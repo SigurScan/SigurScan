@@ -123,6 +123,11 @@ android {
         compose = true
         buildConfig = true
     }
+    sourceSets {
+        getByName("androidTest") {
+            assets.srcDirs(rootProject.file("e2e_fixtures"))
+        }
+    }
 }
 
 dependencies {

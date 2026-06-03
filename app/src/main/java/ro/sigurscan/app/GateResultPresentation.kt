@@ -1,6 +1,12 @@
 package ro.sigurscan.app
 
 object GateResultPresentation {
+    fun isScanInProgress(result: GateResult): Boolean =
+        result.asyncExpected || result.finality == GateFinality.PROVISIONAL
+
+    fun userHeadline(result: GateResult): String =
+        if (isScanInProgress(result)) "Scanare în curs" else result.userLabel
+
     fun legacyRiskLevel(action: GateAction): String = when (action) {
         GateAction.DO_NOT_CONTINUE,
         GateAction.NO_ENTER_DATA,
@@ -28,22 +34,24 @@ object GateResultPresentation {
         GateAction.INSUFFICIENT_EVIDENCE -> "Suspect"
     }.ifBlank { fallback }
 
-    fun supportText(result: GateResult): String = when (result.action) {
-        GateAction.DO_NOT_CONTINUE -> "Scanarea a gasit semnale clare de risc pe destinatie."
-        GateAction.NO_ENTER_DATA -> "Pagina sau mesajul cere date sensibile pe un canal care nu este suficient validat."
-        GateAction.NO_REPLY -> "Mesajul cere raspuns, coduri, bani sau continuarea conversatiei intr-un scenariu riscant."
-        GateAction.VERIFY_OFFICIAL -> "Exista semnale care cer verificare manuala pe canalul oficial."
-        GateAction.CONTINUE_WITH_CAUTION -> "Linkul verificat ajunge pe o destinatie oficiala sau delegata si nu am gasit cereri sensibile."
-        GateAction.INSUFFICIENT_EVIDENCE -> "Scanarea nu este completa inca."
+    fun supportText(result: GateResult): String = when {
+        isScanInProgress(result) -> "Scanăm linkul și pregătim verdictul după verificare."
+        result.action == GateAction.DO_NOT_CONTINUE -> "Scanarea a gasit semnale clare de risc pe destinatie."
+        result.action == GateAction.NO_ENTER_DATA -> "Pagina sau mesajul cere date sensibile pe un canal care nu este suficient validat."
+        result.action == GateAction.NO_REPLY -> "Mesajul cere raspuns, coduri, bani sau continuarea conversatiei intr-un scenariu riscant."
+        result.action == GateAction.VERIFY_OFFICIAL -> "Exista semnale care cer verificare manuala pe canalul oficial."
+        result.action == GateAction.CONTINUE_WITH_CAUTION -> "Linkul verificat ajunge pe o destinatie oficiala sau delegata si nu am gasit cereri sensibile."
+        else -> "Scanarea nu este completa inca."
     }
 
-    fun primaryAction(result: GateResult): String = when (result.action) {
-        GateAction.DO_NOT_CONTINUE -> "Nu apasa linkul si nu continua fluxul."
-        GateAction.NO_ENTER_DATA -> "Nu introduce card, parola, CNP, IBAN sau cod OTP."
-        GateAction.NO_REPLY -> "Nu raspunde si nu trimite coduri sau bani."
-        GateAction.VERIFY_OFFICIAL -> "Deschide manual aplicatia sau site-ul oficial."
-        GateAction.CONTINUE_WITH_CAUTION -> "Poti continua."
-        GateAction.INSUFFICIENT_EVIDENCE -> "Asteapta scanarea sau reincearca."
+    fun primaryAction(result: GateResult): String = when {
+        isScanInProgress(result) -> "Așteaptă finalizarea scanării."
+        result.action == GateAction.DO_NOT_CONTINUE -> "Nu apasa linkul si nu continua fluxul."
+        result.action == GateAction.NO_ENTER_DATA -> "Nu introduce card, parola, CNP, IBAN sau cod OTP."
+        result.action == GateAction.NO_REPLY -> "Nu raspunde si nu trimite coduri sau bani."
+        result.action == GateAction.VERIFY_OFFICIAL -> "Deschide manual aplicatia sau site-ul oficial."
+        result.action == GateAction.CONTINUE_WITH_CAUTION -> "Poti continua."
+        else -> "Asteapta scanarea sau reincearca."
     }
 
     fun reasonText(result: GateResult, snapshot: EvidenceSnapshot?): String {
@@ -73,33 +81,37 @@ object GateResultPresentation {
         }
     }
 
-    fun recommendedActions(result: GateResult): List<String> = when (result.action) {
-        GateAction.DO_NOT_CONTINUE -> listOf(
+    fun recommendedActions(result: GateResult): List<String> = when {
+        isScanInProgress(result) -> listOf(
+            "Așteaptă verdictul final.",
+            "Nu introduce date până nu se termină scanarea."
+        )
+        result.action == GateAction.DO_NOT_CONTINUE -> listOf(
             "Nu apasa linkul.",
             "Deschide manual site-ul sau aplicatia oficiala.",
             "Daca ai introdus date, contacteaza banca imediat."
         )
-        GateAction.NO_ENTER_DATA -> listOf(
+        result.action == GateAction.NO_ENTER_DATA -> listOf(
             "Nu introduce date sensibile.",
             "Inchide pagina si verifica manual canalul oficial.",
             "Daca ai trimis card/OTP, blocheaza cardul si suna banca."
         )
-        GateAction.NO_REPLY -> listOf(
+        result.action == GateAction.NO_REPLY -> listOf(
             "Nu raspunde mesajului.",
             "Suna persoana sau institutia pe un numar cunoscut oficial.",
             "Nu trimite coduri, bani sau date personale."
         )
-        GateAction.VERIFY_OFFICIAL -> listOf(
+        result.action == GateAction.VERIFY_OFFICIAL -> listOf(
             "Verifica pe canalul oficial.",
             "Nu folosi numerele sau linkurile din mesaj.",
             "Continua doar dupa confirmare independenta."
         )
-        GateAction.CONTINUE_WITH_CAUTION -> listOf(
+        result.action == GateAction.CONTINUE_WITH_CAUTION -> listOf(
             "Poti continua.",
             "Daca apare o cerere neasteptata de cod, card sau parola, opreste-te.",
             "Pentru plati sau date sensibile, foloseste aplicatia oficiala."
         )
-        GateAction.INSUFFICIENT_EVIDENCE -> listOf(
+        else -> listOf(
             "Asteapta finalizarea scanarii.",
             "Daca scanarea nu se finalizeaza, reincearca.",
             "Nu introduce date pana nu primesti verdictul."

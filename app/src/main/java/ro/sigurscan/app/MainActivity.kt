@@ -2487,16 +2487,16 @@ fun ResultCard(
 private fun GateEvidenceSummary(assessment: OfflineAssessment, riskUi: RiskDisplayState) {
     val gateResult = assessment.gateResult ?: return
     val snapshot = assessment.evidenceSnapshot
+    val inProgress = GateResultPresentation.isScanInProgress(gateResult)
     val chips = listOfNotNull(
-        if (gateResult.finality == GateFinality.FINAL && !gateResult.asyncExpected) "Decizie finală" else "Dovezi în completare",
+        if (inProgress) "Scanare în curs" else "Verdict final",
         snapshot?.completeness?.let {
             when (it) {
                 EvidenceCompleteness.FULL -> "Verificări complete"
-                EvidenceCompleteness.PARTIAL_ONLINE -> "Online parțial"
-                EvidenceCompleteness.LOCAL_ONLY -> "Doar local"
+                EvidenceCompleteness.PARTIAL_ONLINE -> "Se verifică linkul"
+                EvidenceCompleteness.LOCAL_ONLY -> "Mai trebuie informații"
             }
-        },
-        snapshot?.signals?.size?.takeIf { it > 0 }?.let { "$it semnale" }
+        }
     ).distinct()
 
     Card(
@@ -2989,7 +2989,7 @@ private data class UserActionDecision(
 private fun mapUserActionDecision(assessment: OfflineAssessment, riskUi: RiskDisplayState): UserActionDecision {
     assessment.gateResult?.let { gateResult ->
         return UserActionDecision(
-            headline = gateResult.userLabel,
+            headline = GateResultPresentation.userHeadline(gateResult),
             supportText = GateResultPresentation.supportText(gateResult),
             nextBestAction = GateResultPresentation.primaryAction(gateResult)
         )
@@ -3075,8 +3075,19 @@ private fun containsAny(input: String, needles: List<String>): Boolean {
 private data class RiskDisplayState(val level: String, val label: String, val color: Color)
 
 private fun mapRiskDisplayState(assessment: OfflineAssessment): RiskDisplayState {
-    return assessment.gateResult?.let { mapGateDisplayState(it.action) }
+    return assessment.gateResult?.let { mapGateDisplayState(it) }
         ?: mapRiskDisplayState(assessment.riskLevel)
+}
+
+private fun mapGateDisplayState(result: GateResult): RiskDisplayState {
+    if (GateResultPresentation.isScanInProgress(result)) {
+        return RiskDisplayState(
+            level = "Scanare în curs",
+            label = "Scanare în curs",
+            color = SigurColors.Brand
+        )
+    }
+    return mapGateDisplayState(result.action)
 }
 
 private fun mapGateDisplayState(action: GateAction): RiskDisplayState = when (action) {
@@ -3143,6 +3154,7 @@ private fun gateStatusText(result: GateResult?): String {
 }
 
 private fun resultIconFor(action: GateAction?, level: String): ImageVector {
+    if (level == "Scanare în curs") return Icons.Default.HourglassEmpty
     return when (action) {
         GateAction.DO_NOT_CONTINUE,
         GateAction.NO_ENTER_DATA,

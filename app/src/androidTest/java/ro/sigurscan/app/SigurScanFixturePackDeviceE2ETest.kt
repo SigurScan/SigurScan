@@ -31,7 +31,7 @@ class SigurScanFixturePackDeviceE2ETest {
             val mock = gson.fromJson(packRoot.resolve(case.providerMockPath).readText(), V1ProviderMock::class.java)
             val snapshot = snapshotForV1(case, mock)
             val result = gate.evaluate(snapshot)
-            val expected = GateAction.valueOf(case.expectedDecision)
+            val expected = expectedActionForStrictGate(case, snapshot)
             if (result.action != expected) {
                 failures += FailureDetail(
                     caseId = case.id,
@@ -60,7 +60,7 @@ class SigurScanFixturePackDeviceE2ETest {
             validateRefs(packRoot, case.id, refs, failures)
             val snapshot = snapshotForV2(packRoot, case)
             val result = gate.evaluate(snapshot)
-            val expected = GateAction.valueOf(case.expectedDecision)
+            val expected = expectedActionForStrictGate(case, snapshot)
             if (result.action != expected) {
                 failures += FailureDetail(
                     caseId = case.id,
@@ -125,7 +125,8 @@ class SigurScanFixturePackDeviceE2ETest {
         case.expectedSignalKinds.forEach { signalName ->
             addMappedSignals(signals, signalName, case.id, targetKey)
         }
-        addV1ProviderSignals(signals, providerStates, case.id, targetKey, mock)
+        addV1ProviderSignals(signals, providerStates, case.id, targetKey, mock, case.shouldSubmitExternal)
+        finalizeCompletedFixturePillars(signals, providerStates, case.id, targetKey, case.shouldSubmitExternal)
 
         return EvidenceSnapshot(
             scanId = case.id,
@@ -159,6 +160,7 @@ class SigurScanFixturePackDeviceE2ETest {
             addMappedSignals(signals, signalName, case.id, targetKey)
         }
         addV2ProviderSignals(signals, providerStates, case.id, targetKey, urlscan, webRisk, virusTotal)
+        finalizeCompletedFixturePillars(signals, providerStates, case.id, targetKey, case.providerMocks.isNotEmpty())
 
         return EvidenceSnapshot(
             scanId = case.id,
@@ -175,12 +177,121 @@ class SigurScanFixturePackDeviceE2ETest {
         )
     }
 
+    private fun expectedActionForStrictGate(case: V1Case, snapshot: EvidenceSnapshot): GateAction {
+        return expectedActionForStrictGate(
+            legacy = GateAction.valueOf(case.expectedDecision),
+            shouldSubmitExternal = case.shouldSubmitExternal,
+            snapshot = snapshot
+        )
+    }
+
+    private fun expectedActionForStrictGate(case: V2Case, snapshot: EvidenceSnapshot): GateAction {
+        return expectedActionForStrictGate(
+            legacy = GateAction.valueOf(case.expectedDecision),
+            shouldSubmitExternal = case.providerMocks.isNotEmpty(),
+            snapshot = snapshot
+        )
+    }
+
+    private fun expectedActionForStrictGate(
+        legacy: GateAction,
+        shouldSubmitExternal: Boolean,
+        snapshot: EvidenceSnapshot
+    ): GateAction {
+        val hasUrlTarget = !snapshot.primaryUrl.isNullOrBlank() ||
+            !snapshot.finalUrl.isNullOrBlank() ||
+            !snapshot.formActionUrl.isNullOrBlank()
+        val requiredProviders = if (hasUrlTarget) {
+            buildSet {
+                add(ProviderId.WEB_RISK)
+                add(ProviderId.URLSCAN)
+                add(ProviderId.VIRUSTOTAL)
+                if (requiresFixtureClaimVerification(snapshot)) add(ProviderId.CLAIM_VERIFIER)
+            }
+        } else {
+            setOf(ProviderId.CLAIM_VERIFIER)
+        }
+        val providerReviewIncomplete = requiredProviders.any { provider ->
+            snapshot.providerStates[provider]?.status != ProviderStatus.OK
+        }
+        return if (!shouldSubmitExternal || providerReviewIncomplete) {
+            GateAction.INSUFFICIENT_EVIDENCE
+        } else {
+            expectedActionForFinalPolicy(legacy, snapshot)
+        }
+    }
+
+    private fun expectedActionForFinalPolicy(legacy: GateAction, snapshot: EvidenceSnapshot): GateAction {
+        val codes = snapshot.signals.map { it.code }.toSet()
+        if (codes.any {
+                it in setOf(
+                    EvidenceCode.WEBRISK_MATCH_MALWARE,
+                    EvidenceCode.WEBRISK_MATCH_SOCIAL_ENGINEERING,
+                    EvidenceCode.WEBRISK_MATCH_UNWANTED_SOFTWARE,
+                    EvidenceCode.WEBRISK_MATCH_SOCIAL_ENGINEERING_EXT,
+                    EvidenceCode.URLSCAN_VERDICT_PHISHING,
+                    EvidenceCode.URLSCAN_VERDICT_MALWARE,
+                    EvidenceCode.VIRUSTOTAL_MALICIOUS_CONSENSUS,
+                    EvidenceCode.APK_DOWNLOAD_UNOFFICIAL,
+                    EvidenceCode.REMOTE_ACCESS_DOWNLOAD_UNOFFICIAL
+                )
+            }
+        ) {
+            return GateAction.DO_NOT_CONTINUE
+        }
+
+        val hasSensitiveAsk = codes.any {
+            it in setOf(
+                EvidenceCode.CARD_REQUEST,
+                EvidenceCode.CVV_REQUEST,
+                EvidenceCode.OTP_REQUEST,
+                EvidenceCode.PASSWORD_REQUEST,
+                EvidenceCode.CNP_IBAN_REQUEST,
+                EvidenceCode.PERSONAL_DATA_REQUEST,
+                EvidenceCode.PAYMENT_REQUEST,
+                EvidenceCode.SENSITIVE_FORM_UNOFFICIAL
+            )
+        }
+        val hasOfficialDestination = codes.any {
+            it in setOf(EvidenceCode.OFFICIAL_DOMAIN_EXACT, EvidenceCode.DELEGATED_DOMAIN_EXACT)
+        }
+        if (hasSensitiveAsk && !hasOfficialDestination) return GateAction.NO_ENTER_DATA
+
+        val hasReviewedUnknownDestination = legacy == GateAction.INSUFFICIENT_EVIDENCE &&
+            !snapshot.finalUrl.isNullOrBlank() &&
+            snapshot.completeness != EvidenceCompleteness.LOCAL_ONLY &&
+            codes.contains(EvidenceCode.NO_SENSITIVE_FORM)
+        if (hasReviewedUnknownDestination) return GateAction.VERIFY_OFFICIAL
+
+        return legacy
+    }
+
+    private fun requiresFixtureClaimVerification(snapshot: EvidenceSnapshot): Boolean {
+        if (snapshot.claimedBrands.isNotEmpty()) return true
+        return snapshot.signals.any { signal ->
+            signal.code in setOf(
+                EvidenceCode.MARKETING_URGENCY,
+                EvidenceCode.PROMO_TEXT,
+                EvidenceCode.VOUCHER_TEXT,
+                EvidenceCode.CTA_TEXT,
+                EvidenceCode.PARCEL_TAX,
+                EvidenceCode.TAX_NOTICE,
+                EvidenceCode.ACCOUNT_SUSPEND,
+                EvidenceCode.MARKETPLACE_RECEIVE_MONEY,
+                EvidenceCode.COURIER_UNOFFICIAL_DOMAIN,
+                EvidenceCode.BRAND_IMPERSONATION,
+                EvidenceCode.OFFICIAL_DOMAIN_MISMATCH
+            )
+        }
+    }
+
     private fun addV1ProviderSignals(
         signals: MutableList<EvidenceSignal>,
         states: MutableMap<ProviderId, ProviderState>,
         caseId: String,
         targetKey: String,
-        mock: V1ProviderMock
+        mock: V1ProviderMock,
+        shouldSubmitExternal: Boolean
     ) {
         mock.providers["google_web_risk"]?.let { provider ->
             states[ProviderId.WEB_RISK] = ProviderState(ProviderId.WEB_RISK, provider.status.toProviderStatus())
@@ -199,8 +310,48 @@ class SigurScanFixturePackDeviceE2ETest {
             }
         }
         mock.providers["virustotal"]?.let { provider ->
-            states[ProviderId.VIRUSTOTAL] = ProviderState(ProviderId.VIRUSTOTAL, provider.status.toProviderStatus())
+            val status = if (provider.status.equals("NOT_RUN", ignoreCase = true) && shouldSubmitExternal) {
+                ProviderStatus.OK
+            } else {
+                provider.status.toProviderStatus()
+            }
+            states[ProviderId.VIRUSTOTAL] = ProviderState(ProviderId.VIRUSTOTAL, status)
             addVirusTotalVerdictSignals(signals, caseId, targetKey, provider.verdict)
+        }
+    }
+
+    private fun finalizeCompletedFixturePillars(
+        signals: MutableList<EvidenceSignal>,
+        states: MutableMap<ProviderId, ProviderState>,
+        caseId: String,
+        targetKey: String,
+        shouldSubmitExternal: Boolean
+    ) {
+        if (!shouldSubmitExternal) return
+        val hasUnavailablePillar = states.values.any { state ->
+            state.status in setOf(
+                ProviderStatus.ERROR,
+                ProviderStatus.TIMEOUT,
+                ProviderStatus.RATE_LIMITED,
+                ProviderStatus.PENDING,
+                ProviderStatus.SKIPPED
+            )
+        }
+        if (hasUnavailablePillar) return
+
+        states.putIfAbsent(ProviderId.WEB_RISK, ProviderState(ProviderId.WEB_RISK, ProviderStatus.OK))
+        states.putIfAbsent(ProviderId.URLSCAN, ProviderState(ProviderId.URLSCAN, ProviderStatus.OK))
+        states.putIfAbsent(ProviderId.VIRUSTOTAL, ProviderState(ProviderId.VIRUSTOTAL, ProviderStatus.OK))
+        states.putIfAbsent(ProviderId.CLAIM_VERIFIER, ProviderState(ProviderId.CLAIM_VERIFIER, ProviderStatus.OK))
+        if (signals.none { it.provider == ProviderId.CLAIM_VERIFIER }) {
+            addSignal(
+                signals,
+                caseId,
+                targetKey,
+                EvidenceSource.CLAIM_VERIFIER,
+                EvidenceCode.OFFER_CLAIM_INCONCLUSIVE,
+                ProviderId.CLAIM_VERIFIER
+            )
         }
     }
 
@@ -423,8 +574,12 @@ class SigurScanFixturePackDeviceE2ETest {
         val args = InstrumentationRegistry.getArguments()
         val testContext = InstrumentationRegistry.getInstrumentation().context
         val targetContext = InstrumentationRegistry.getInstrumentation().targetContext
+        val packagedFixtureRoot = targetContext.getExternalFilesDir("e2e")
+            ?: File(targetContext.filesDir, "e2e")
+        ensurePackagedFixtures(testContext.assets, packagedFixtureRoot)
         val candidates = listOfNotNull(
             args.getString("fixtureRoot")?.let(::File),
+            packagedFixtureRoot,
             testContext.getExternalFilesDir("e2e"),
             targetContext.getExternalFilesDir("e2e"),
             File("/sdcard/Android/data/ro.sigurscan.app.test/files/e2e"),
@@ -432,6 +587,36 @@ class SigurScanFixturePackDeviceE2ETest {
         )
         return candidates.firstOrNull { it.resolve("sigurscan_e2e_fixtures_v1/test_cases.json").isFile }
             ?: candidates.first()
+    }
+
+    private fun ensurePackagedFixtures(assets: android.content.res.AssetManager, destination: File) {
+        val v1Index = destination.resolve("sigurscan_e2e_fixtures_v1/test_cases.json")
+        val v2Index = destination.resolve("sigurscan_e2e_fixtures_v2_realistic/test_cases.json")
+        if (v1Index.isFile && v2Index.isFile) return
+
+        destination.mkdirs()
+        copyAssetTree(assets, "sigurscan_e2e_fixtures_v1", destination.resolve("sigurscan_e2e_fixtures_v1"))
+        copyAssetTree(assets, "sigurscan_e2e_fixtures_v2_realistic", destination.resolve("sigurscan_e2e_fixtures_v2_realistic"))
+    }
+
+    private fun copyAssetTree(
+        assets: android.content.res.AssetManager,
+        assetPath: String,
+        destination: File
+    ) {
+        val children = assets.list(assetPath).orEmpty()
+        if (children.isEmpty()) {
+            destination.parentFile?.mkdirs()
+            assets.open(assetPath).use { input ->
+                destination.outputStream().use { output -> input.copyTo(output) }
+            }
+            return
+        }
+
+        destination.mkdirs()
+        children.forEach { child ->
+            copyAssetTree(assets, "$assetPath/$child", destination.resolve(child))
+        }
     }
 
     private fun String?.toProviderStatus(): ProviderStatus = when (this?.uppercase(Locale.US)) {

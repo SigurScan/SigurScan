@@ -2045,6 +2045,20 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
             )
         }
 
+        if (
+            !response.offerAnalysis.isNullOrBlank() &&
+            results.none { providerSourceKeyForScan(it.source).contains("offerclaim") || providerSourceKeyForScan(it.source).contains("aiofferwebcheck") }
+        ) {
+            results.add(
+                ThreatIntelSourceResult(
+                    source = "ai_offer_web_check",
+                    verdict = "inconclusive",
+                    severity = "unknown",
+                    details = response.offerAnalysis.take(500)
+                )
+            )
+        }
+
         return results.distinctBy { it.source.lowercase(Locale.getDefault()) }
     }
 

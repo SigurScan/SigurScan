@@ -86,10 +86,12 @@ class GateResultPresentationTest {
         val result = gateResult(
             GateAction.INSUFFICIENT_EVIDENCE,
             reasonCodes = listOf("PROVIDER_REVIEW_REQUIRED"),
-            unknownReason = "PROVIDERS_PENDING_FOR_TARGET"
+            unknownReason = "PROVIDERS_PENDING_FOR_TARGET",
+            finality = GateFinality.PROVISIONAL,
+            asyncExpected = true
         )
         val copy = listOf(
-            result.userLabel,
+            GateResultPresentation.userHeadline(result),
             GateResultPresentation.supportText(result),
             GateResultPresentation.reasonText(result, null),
             GateResultPresentation.primaryAction(result)
@@ -99,6 +101,8 @@ class GateResultPresentationTest {
             .lowercase()
 
         assertTrue(copy.contains("scan"))
+        assertTrue(GateResultPresentation.userHeadline(result) == "Scanare în curs")
+        assertFalse(copy.contains("suspect"))
         listOf("web risk", "virustotal", "urlscan", "sandbox", "provider", "pilon", "tehnic").forEach { jargon ->
             assertFalse("User-facing copy leaked '$jargon': $copy", copy.contains(jargon))
         }
@@ -107,13 +111,16 @@ class GateResultPresentationTest {
     private fun gateResult(
         action: GateAction,
         reasonCodes: List<String> = listOf("UNIT_TEST_REASON"),
-        unknownReason: String? = null
+        unknownReason: String? = null,
+        finality: GateFinality = GateFinality.FINAL,
+        asyncExpected: Boolean = false
     ): GateResult {
         return GateResult(
             action = action,
-            finality = GateFinality.FINAL,
+            finality = finality,
             reasonCodes = reasonCodes,
             decisiveSignalIds = listOf("sig-test"),
+            asyncExpected = asyncExpected,
             unknownReason = unknownReason
         )
     }
