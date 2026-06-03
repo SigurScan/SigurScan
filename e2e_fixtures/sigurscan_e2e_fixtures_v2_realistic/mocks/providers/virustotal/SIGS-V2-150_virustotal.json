@@ -1,0 +1,14 @@
+{
+  "caseId": "SIGS-V2-150",
+  "provider": "VIRUSTOTAL",
+  "inputUrl": "https://raiffeisen-securitate-cont-7.test/login/confirmare",
+  "status": "SUCCESS",
+  "mockVariant": "conflict_wr_clean_urlscan_bad",
+  "stats": {
+    "malicious": 0,
+    "suspicious": 3,
+    "undetected": 60,
+    "harmless": 14
+  },
+  "categories": []
+}

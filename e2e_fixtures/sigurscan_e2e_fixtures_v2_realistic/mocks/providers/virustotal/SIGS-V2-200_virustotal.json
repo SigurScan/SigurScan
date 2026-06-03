@@ -1,0 +1,14 @@
+{
+  "caseId": "SIGS-V2-200",
+  "provider": "VIRUSTOTAL",
+  "inputUrl": "https://publi24-plata-curier-3.test/incaseaza",
+  "status": "SUCCESS",
+  "mockVariant": "urlscan_malicious",
+  "stats": {
+    "malicious": 3,
+    "suspicious": 4,
+    "undetected": 60,
+    "harmless": 14
+  },
+  "categories": []
+}

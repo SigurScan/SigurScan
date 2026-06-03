@@ -1,0 +1,14 @@
+{
+  "caseId": "SIGS-V2-023",
+  "provider": "VIRUSTOTAL",
+  "inputUrl": "https://spv-anaf-ro-22.test/actualizare-date",
+  "status": "SUCCESS",
+  "mockVariant": "conflict_wr_clean_urlscan_bad",
+  "stats": {
+    "malicious": 0,
+    "suspicious": 2,
+    "undetected": 60,
+    "harmless": 14
+  },
+  "categories": []
+}

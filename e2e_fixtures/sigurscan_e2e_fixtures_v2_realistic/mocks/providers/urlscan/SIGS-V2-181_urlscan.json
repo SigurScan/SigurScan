@@ -1,0 +1,23 @@
+{
+  "caseId": "SIGS-V2-181",
+  "provider": "URLSCAN",
+  "inputUrl": "https://investitii-profit-10.test/start?campanie=broker%20autorizat%20ASF",
+  "status": "SUCCESS",
+  "mockVariant": "urlscan_malicious",
+  "finalUrl": "https://investitii-profit-10.test/start?campanie=broker%20autorizat%20ASF",
+  "verdict": "malicious",
+  "screenshotAvailable": true,
+  "forms": [
+    "whatsapp_code"
+  ],
+  "redirectChain": [],
+  "server": {
+    "country": "US",
+    "asn": "TEST-BAD-AS"
+  },
+  "certificate": {
+    "valid": true,
+    "issuer": "ZeroSSL/R3 test",
+    "ageDays": 3
+  }
+}

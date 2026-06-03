@@ -1,0 +1,14 @@
+{
+  "caseId": "SIGS-V2-188",
+  "provider": "VIRUSTOTAL",
+  "inputUrl": "https://investitii-profit-17.test/start?campanie=investi%C8%9Bii%20cu%20AI",
+  "status": "SUCCESS",
+  "mockVariant": "urlscan_malicious",
+  "stats": {
+    "malicious": 0,
+    "suspicious": 7,
+    "undetected": 60,
+    "harmless": 14
+  },
+  "categories": []
+}

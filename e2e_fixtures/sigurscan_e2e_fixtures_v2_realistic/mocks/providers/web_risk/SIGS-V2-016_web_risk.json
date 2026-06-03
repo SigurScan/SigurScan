@@ -1,0 +1,9 @@
+{
+  "caseId": "SIGS-V2-016",
+  "provider": "GOOGLE_WEB_RISK",
+  "inputUrl": "https://portal-anaf-rambursare-15.test/card/confirmare",
+  "status": "SUCCESS",
+  "mockVariant": "conflict_wr_clean_urlscan_bad",
+  "threats": [],
+  "expireTime": null
+}

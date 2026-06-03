@@ -1,0 +1,36 @@
+Subject: BT - =?utf-8?q?Siguran=C8=9B=C4=83?= online
+From: BT <info@bt.invalid>
+To: test@example.com
+Date: Wed, 03 Jun 2026 03:11:55 -0000
+Message-ID: <178045631528.2350.18170251130829752791@sigurscan.fixture>
+X-SigurScan-Fixture:
+ true; safe-test-only; all scam URLs use reserved .test/.invalid domains
+X-SigurScan-Do-Not-Send: This is a local E2E fixture, not a real email.
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============1064990887676749056=="
+
+--===============1064990887676749056==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+Banca Transilvania - siguran=C8=9B=C4=83 online: https://www.bancatransilvani=
+a.ro/siguranta-online
+
+--===============1064990887676749056==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<html><head>
+<style>body{font-family:Arial,sans-serif;background:#f6f8fb;color:#111}.card{=
+max-width:640px;margin:24px auto;background:white;border-radius:18px;padding:=
+28px;border:1px solid #e5e7eb}.btn{display:inline-block;background:#1d4ed8;co=
+lor:white;padding:14px 22px;border-radius:12px;text-decoration:none;font-weig=
+ht:bold}.danger{color:#b91c1c}.muted{color:#64748b;font-size:12px}</style>
+</head><body><div class=3D'card'><h1>Banca Transilvania - siguran=C8=9B=C4=83=
+ online</h1><p>Nu =C3=AE=C8=9Bi cerem coduri prin telefon. Cite=C8=99te ghidu=
+l de securitate.</p><a class=3D'btn' href=3D'https://www.bancatransilvania.ro=
+/siguranta-online'>Vezi ghidul oficial</a></div></body></html>
+
+--===============1064990887676749056==--

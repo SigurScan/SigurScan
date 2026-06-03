@@ -1,0 +1,17 @@
+{
+  "caseId": "SIGS-V2-389",
+  "expectedDecision": "CONTINUE_WITH_CAUTION",
+  "expectedLabel": "Poți continua cu prudență",
+  "groundTruthIsScam": false,
+  "primaryUrlExpected": "https://www.emag.ro/promo-test",
+  "signalsExpected": [
+    "OFFICIAL_DOMAIN_EXACT_MATCH",
+    "VT_SINGLE_OR_LOW_ENGINE_HIT"
+  ],
+  "sourceStatesExpected": {
+    "web_risk": "SIGS-V2-389_web_risk.json",
+    "urlscan": "SIGS-V2-389_urlscan.json",
+    "virustotal": "SIGS-V2-389_virustotal.json"
+  },
+  "notes": ""
+}

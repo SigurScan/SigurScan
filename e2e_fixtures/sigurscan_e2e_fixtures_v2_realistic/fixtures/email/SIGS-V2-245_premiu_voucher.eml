@@ -1,0 +1,72 @@
+Subject: Premiu voucher
+From: Voucher <noreply@voucher.test>
+To: utilizator.test@sigurscan.local
+Date: Wed, 03 Jun 2026 04:59:02 +0000
+Message-ID: <178046274279.6118.1759544612513667605@mail.example.test>
+Authentication-Results: mx.sigurscan.test; spf=fail
+ smtp.mailfrom=voucher.test; dkim=fail header.d=voucher.test
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============2984698567043214998=="
+
+--===============2984698567043214998==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+Felicit=C4=83ri! Num=C4=83rul t=C4=83u a fost extras pentru un voucher de 100=
+0 RON.
+Pentru revendicare pl=C4=83te=C8=99te taxa de validare 9,99 RON =C8=99i compl=
+eteaz=C4=83 cardul aici: https://premiu-castigator-8.test/revendica
+Oferta expir=C4=83 =C3=AEn 10 minute.
+
+Verific=C4=83 acum: https://premiu-castigator-8.test/revendica
+
+--===============2984698567043214998==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<!doctype html>
+<html lang=3D"ro"><head><meta charset=3D"utf-8"><title>Premiu voucher</title>=
+</head>
+<body style=3D"margin:0;background:#f4f6fb;font-family:Arial,Helvetica,sans-s=
+erif;color:#111827">
+  <table role=3D"presentation" width=3D"100%" cellspacing=3D"0" cellpadding=
+=3D"0" style=3D"background:#f4f6fb;padding:24px">
+    <tr><td align=3D"center">
+      <table role=3D"presentation" width=3D"620" cellspacing=3D"0" cellpaddin=
+g=3D"0" style=3D"background:#fff;border-radius:16px;overflow:hidden;border:1p=
+x solid #e5e7eb">
+        <tr><td style=3D"background:#0b132b;color:white;padding:24px 28px">
+          <div style=3D"font-size:13px;letter-spacing:.08em;text-transform:up=
+percase;color:#9ca3af">Voucher</div>
+          <h1 style=3D"margin:8px 0 0;font-size:28px;line-height:1.2">Premiu =
+voucher</h1>
+        </td></tr>
+        <tr><td style=3D"padding:28px;font-size:16px;line-height:1.55">
+          <p>Felicit=C4=83ri! Num=C4=83rul t=C4=83u a fost extras pentru un v=
+oucher de 1000 RON.</p><p>Pentru revendicare pl=C4=83te=C8=99te taxa de valid=
+are 9,99 RON =C8=99i completeaz=C4=83 cardul aici: https://premiu-castigator-=
+8.test/revendica</p><p>Oferta expir=C4=83 =C3=AEn 10 minute.</p>
+         =20
+        <p style=3D"margin:28px 0"><a href=3D"https://premiu-castigator-8.tes=
+t/revendica" style=3D"background:#d7263d;color:#fff;text-decoration:none;padd=
+ing:14px 22px;border-radius:8px;font-weight:bold;display:inline-block">Verifi=
+c=C4=83 acum</a></p>
+        <p style=3D"font-size:12px;color:#6b7280">Dac=C4=83 butonul nu func=
+=C8=9Bioneaz=C4=83, verifica=C8=9Bi manual =C3=AEn aplica=C8=9Bia oficial=C4=
+=83. Link afi=C8=99at: <span>https://premiu-castigator-8.test/revendica</span=
+></p>
+       =20
+          <hr style=3D"border:none;border-top:1px solid #e5e7eb;margin:28px 0=
+" />
+          <p style=3D"font-size:12px;color:#6b7280">Ai primit aceast=C4=83 no=
+tificare deoarece ai folosit serviciile men=C8=9Bionate. Pentru siguran=C8=9B=
+=C4=83, verific=C4=83 manual canalul oficial dac=C4=83 ai dubii.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>
+
+--===============2984698567043214998==--

@@ -1,0 +1,24 @@
+{
+  "caseId": "SIGS-V2-025",
+  "provider": "URLSCAN",
+  "inputUrl": "https://dpd-livrare-0.test/locker?id=CGS55392010",
+  "status": "SUCCESS",
+  "mockVariant": "urlscan_malicious",
+  "finalUrl": "https://dpd-livrare-0.test/locker?id=CGS55392010",
+  "verdict": "malicious",
+  "screenshotAvailable": true,
+  "forms": [
+    "card",
+    "cvv"
+  ],
+  "redirectChain": [],
+  "server": {
+    "country": "HK",
+    "asn": "TEST-BAD-AS"
+  },
+  "certificate": {
+    "valid": true,
+    "issuer": "ZeroSSL/R3 test",
+    "ageDays": 1
+  }
+}

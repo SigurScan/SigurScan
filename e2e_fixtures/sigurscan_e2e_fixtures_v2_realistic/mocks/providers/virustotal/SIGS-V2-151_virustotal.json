@@ -1,0 +1,14 @@
+{
+  "caseId": "SIGS-V2-151",
+  "provider": "VIRUSTOTAL",
+  "inputUrl": "https://bcr-securitate-cont-8.test/login/confirmare",
+  "status": "SUCCESS",
+  "mockVariant": "conflict_wr_clean_urlscan_bad",
+  "stats": {
+    "malicious": 3,
+    "suspicious": 2,
+    "undetected": 60,
+    "harmless": 14
+  },
+  "categories": []
+}

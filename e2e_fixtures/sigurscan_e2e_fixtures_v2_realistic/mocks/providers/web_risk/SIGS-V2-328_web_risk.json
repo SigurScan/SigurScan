@@ -1,0 +1,9 @@
+{
+  "caseId": "SIGS-V2-328",
+  "provider": "GOOGLE_WEB_RISK",
+  "inputUrl": "https://www.bcr.ro/ro/persoane-fizice/help-center/securitate",
+  "status": "SUCCESS",
+  "mockVariant": "all_clean",
+  "threats": [],
+  "expireTime": null
+}

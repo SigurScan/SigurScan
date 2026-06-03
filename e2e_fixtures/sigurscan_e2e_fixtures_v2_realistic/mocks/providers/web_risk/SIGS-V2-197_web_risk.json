@@ -1,0 +1,9 @@
+{
+  "caseId": "SIGS-V2-197",
+  "provider": "GOOGLE_WEB_RISK",
+  "inputUrl": "https://lajumate-plata-curier-0.test/incaseaza",
+  "status": "SUCCESS",
+  "mockVariant": "urlscan_malicious",
+  "threats": [],
+  "expireTime": null
+}

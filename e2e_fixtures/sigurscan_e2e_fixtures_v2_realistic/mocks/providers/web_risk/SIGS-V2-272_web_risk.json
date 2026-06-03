@@ -1,0 +1,9 @@
+{
+  "caseId": "SIGS-V2-272",
+  "provider": "GOOGLE_WEB_RISK",
+  "inputUrl": "https://email.uber.com/ls/click?upn=test",
+  "status": "SUCCESS",
+  "mockVariant": "all_clean",
+  "threats": [],
+  "expireTime": null
+}

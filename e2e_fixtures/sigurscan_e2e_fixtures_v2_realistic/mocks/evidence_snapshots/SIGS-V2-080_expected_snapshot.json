@@ -1,0 +1,19 @@
+{
+  "caseId": "SIGS-V2-080",
+  "expectedDecision": "DO_NOT_CONTINUE",
+  "expectedLabel": "Nu continua",
+  "groundTruthIsScam": true,
+  "primaryUrlExpected": "https://whatsapp-verificare-ema-17.test/vot",
+  "signalsExpected": [
+    "VOTE_CONTEST_HOOK",
+    "WHATSAPP_VERIFICATION_CODE_REQUEST",
+    "WHATSAPP_DEVICE_LINKING_REQUEST",
+    "OFFICIAL_DOMAIN_MISMATCH"
+  ],
+  "sourceStatesExpected": {
+    "web_risk": "SIGS-V2-080_web_risk.json",
+    "urlscan": "SIGS-V2-080_urlscan.json",
+    "virustotal": "SIGS-V2-080_virustotal.json"
+  },
+  "notes": ""
+}

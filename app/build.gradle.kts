@@ -26,9 +26,7 @@ val hasReleaseKeystore = listOf("storeFile", "storePassword", "keyAlias", "keyPa
 
 val allowDirectProviderKeys = (
     localProperties.getProperty("SIGURSCAN_ENABLE_DIRECT_PROVIDER_KEYS")
-        ?: localProperties.getProperty("NUDACLICK_ENABLE_DIRECT_PROVIDER_KEYS")
         ?: System.getenv("SIGURSCAN_ENABLE_DIRECT_PROVIDER_KEYS")
-        ?: System.getenv("NUDACLICK_ENABLE_DIRECT_PROVIDER_KEYS")
         ?: "false"
     ).trim().lowercase() in setOf("1", "true", "yes", "on")
 
@@ -37,28 +35,9 @@ fun buildConfigSafeString(key: String, envFallback: String): String {
     return "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
 }
 
-fun buildConfigSafeString(primaryKey: String, legacyKey: String, primaryEnv: String, legacyEnv: String): String {
-    val value = (
-        localProperties.getProperty(primaryKey)
-            ?: localProperties.getProperty(legacyKey)
-            ?: System.getenv(primaryEnv)
-            ?: System.getenv(legacyEnv)
-            ?: ""
-        ).trim()
-    return "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
-}
-
 fun providerBuildConfigSafeString(key: String, envFallback: String): String {
     return if (allowDirectProviderKeys) {
         buildConfigSafeString(key, envFallback)
-    } else {
-        "\"\""
-    }
-}
-
-fun providerBuildConfigSafeString(primaryKey: String, legacyKey: String, primaryEnv: String, legacyEnv: String): String {
-    return if (allowDirectProviderKeys) {
-        buildConfigSafeString(primaryKey, legacyKey, primaryEnv, legacyEnv)
     } else {
         "\"\""
     }
@@ -82,42 +61,27 @@ android {
         buildConfigField(
             "String",
             "SIGURSCAN_BACKEND_BASE_URL",
-            buildConfigSafeString(
-                primaryKey = "SIGURSCAN_BACKEND_BASE_URL",
-                legacyKey = "NUDACLICK_BACKEND_BASE_URL",
-                primaryEnv = "SIGURSCAN_BACKEND_BASE_URL",
-                legacyEnv = "NUDACLICK_BACKEND_BASE_URL"
-            )
+            buildConfigSafeString("SIGURSCAN_BACKEND_BASE_URL", "SIGURSCAN_BACKEND_BASE_URL")
+        )
+        buildConfigField(
+            "String",
+            "SIGURSCAN_PRIVACY_URL",
+            buildConfigSafeString("SIGURSCAN_PRIVACY_URL", "SIGURSCAN_PRIVACY_URL")
         )
         buildConfigField(
             "String",
             "URLSCAN_API_KEY",
-            providerBuildConfigSafeString(
-                primaryKey = "SIGURSCAN_URLSCAN_API_KEY",
-                legacyKey = "NUDACLICK_URLSCAN_API_KEY",
-                primaryEnv = "SIGURSCAN_URLSCAN_API_KEY",
-                legacyEnv = "NUDACLICK_URLSCAN_API_KEY"
-            )
+            providerBuildConfigSafeString("SIGURSCAN_URLSCAN_API_KEY", "SIGURSCAN_URLSCAN_API_KEY")
         )
         buildConfigField(
             "String",
             "VIRUS_TOTAL_API_KEY",
-            providerBuildConfigSafeString(
-                primaryKey = "SIGURSCAN_VIRUS_TOTAL_API_KEY",
-                legacyKey = "NUDACLICK_VIRUS_TOTAL_API_KEY",
-                primaryEnv = "SIGURSCAN_VIRUS_TOTAL_API_KEY",
-                legacyEnv = "NUDACLICK_VIRUS_TOTAL_API_KEY"
-            )
+            providerBuildConfigSafeString("SIGURSCAN_VIRUS_TOTAL_API_KEY", "SIGURSCAN_VIRUS_TOTAL_API_KEY")
         )
         buildConfigField(
             "String",
             "GOOGLE_WEB_RISK_API_KEY",
-            providerBuildConfigSafeString(
-                primaryKey = "SIGURSCAN_GOOGLE_WEB_RISK_API_KEY",
-                legacyKey = "NUDACLICK_GOOGLE_SAFE_BROWSING_API_KEY",
-                primaryEnv = "SIGURSCAN_GOOGLE_WEB_RISK_API_KEY",
-                legacyEnv = "NUDACLICK_GOOGLE_SAFE_BROWSING_API_KEY"
-            )
+            providerBuildConfigSafeString("SIGURSCAN_GOOGLE_WEB_RISK_API_KEY", "SIGURSCAN_GOOGLE_WEB_RISK_API_KEY")
         )
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -135,6 +99,8 @@ android {
 
     buildTypes {
         release {
+            buildConfigField("String", "SIGURSCAN_BACKEND_BASE_URL", buildConfigSafeString("SIGURSCAN_RELEASE_BACKEND_BASE_URL", "SIGURSCAN_RELEASE_BACKEND_BASE_URL"))
+            buildConfigField("String", "SIGURSCAN_PRIVACY_URL", buildConfigSafeString("SIGURSCAN_RELEASE_PRIVACY_URL", "SIGURSCAN_RELEASE_PRIVACY_URL"))
             buildConfigField("String", "URLSCAN_API_KEY", "\"\"")
             buildConfigField("String", "VIRUS_TOTAL_API_KEY", "\"\"")
             buildConfigField("String", "GOOGLE_WEB_RISK_API_KEY", "\"\"")

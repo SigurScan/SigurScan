@@ -9,7 +9,7 @@ class EvidenceGateTest {
     private val gate = EvidenceGate { 1_000L }
 
     @Test
-    fun uberRealPromoCanContinueWithCaution() {
+    fun uberRealPromoVerifiedByEvidenceIsShownAsSafe() {
         val result = evaluate(
             EvidenceCode.OFFICIAL_DOMAIN_EXACT,
             EvidenceCode.NO_SENSITIVE_FORM,
@@ -18,7 +18,7 @@ class EvidenceGateTest {
         )
 
         assertAction(GateAction.CONTINUE_WITH_CAUTION, result)
-        assertEquals("Poți continua cu prudență", result.userLabel)
+        assertEquals("Sigur", result.userLabel)
     }
 
     @Test
@@ -154,44 +154,60 @@ class EvidenceGateTest {
     fun textOnlyOtpReplyIsNoReply() {
         val result = evaluate(
             EvidenceCode.REPLY_WITH_CODE_REQUEST,
-            EvidenceCode.OTP_REQUEST
+            EvidenceCode.OTP_REQUEST,
+            providerStates = completedClaimProviderState()
         )
 
         assertAction(GateAction.NO_REPLY, result)
-        assertEquals("Nu răspunde", result.userLabel)
+        assertEquals("Periculos", result.userLabel)
     }
 
     @Test
     fun brokenPhoneMoneyScenarioIsNoReply() {
-        val result = evaluate(EvidenceCode.FAMILY_NEW_PHONE_MONEY)
+        val result = evaluate(
+            EvidenceCode.FAMILY_NEW_PHONE_MONEY,
+            providerStates = completedClaimProviderState()
+        )
 
         assertAction(GateAction.NO_REPLY, result)
     }
 
     @Test
     fun accidentNephewMoneyScenarioIsNoReply() {
-        val result = evaluate(EvidenceCode.ACCIDENT_NEPHEW_MONEY)
+        val result = evaluate(
+            EvidenceCode.ACCIDENT_NEPHEW_MONEY,
+            providerStates = completedClaimProviderState()
+        )
 
         assertAction(GateAction.NO_REPLY, result)
     }
 
     @Test
     fun whatsappCodeScenarioIsNoReply() {
-        val result = evaluate(EvidenceCode.WHATSAPP_CODE_REQUEST)
+        val result = evaluate(
+            EvidenceCode.WHATSAPP_CODE_REQUEST,
+            providerStates = completedClaimProviderState()
+        )
 
         assertAction(GateAction.NO_REPLY, result)
     }
 
     @Test
     fun whatsappDeviceLinkingScenarioIsNoReply() {
-        val result = evaluate(EvidenceCode.WHATSAPP_DEVICE_LINKING_REQUEST)
+        val result = evaluate(
+            EvidenceCode.WHATSAPP_DEVICE_LINKING_REQUEST,
+            providerStates = completedClaimProviderState()
+        )
 
         assertAction(GateAction.NO_REPLY, result)
     }
 
     @Test
     fun bnrSafeAccountScenarioIsNoReply() {
-        val result = evaluate(EvidenceCode.BNR_SAFE_ACCOUNT)
+        val result = evaluate(
+            EvidenceCode.BNR_SAFE_ACCOUNT,
+            providerStates = completedClaimProviderState()
+        )
 
         assertAction(GateAction.NO_REPLY, result)
     }
@@ -200,7 +216,8 @@ class EvidenceGateTest {
     fun marketplaceReceiveMoneyCardRequestIsNoEnterData() {
         val result = evaluate(
             EvidenceCode.MARKETPLACE_RECEIVE_MONEY,
-            EvidenceCode.CARD_REQUEST
+            EvidenceCode.CARD_REQUEST,
+            providerStates = completedClaimProviderState()
         )
 
         assertAction(GateAction.NO_ENTER_DATA, result)
@@ -327,9 +344,46 @@ class EvidenceGateTest {
             )
         )
 
-        assertAction(GateAction.CONTINUE_WITH_CAUTION, result)
+        assertAction(GateAction.INSUFFICIENT_EVIDENCE, result)
         assertEquals(GateFinality.PROVISIONAL, result.finality)
         assertTrue(result.asyncExpected)
+        assertEquals("PROVIDERS_PENDING_FOR_TARGET", result.unknownReason)
+    }
+
+    @Test
+    fun targetWithPendingProvidersCannotReceiveFinalLocalVerdict() {
+        val result = evaluate(
+            EvidenceCode.MONEY_REQUEST,
+            EvidenceCode.MARKETING_URGENCY,
+            primaryUrl = "https://buyback.yoxo.ro",
+            providerStates = mapOf(
+                ProviderId.WEB_RISK to ProviderState(ProviderId.WEB_RISK, ProviderStatus.PENDING),
+                ProviderId.URLSCAN to ProviderState(ProviderId.URLSCAN, ProviderStatus.PENDING)
+            ),
+            completeness = EvidenceCompleteness.PARTIAL_ONLINE
+        )
+
+        assertAction(GateAction.INSUFFICIENT_EVIDENCE, result)
+        assertEquals(GateFinality.PROVISIONAL, result.finality)
+        assertTrue(result.asyncExpected)
+        assertEquals("PROVIDERS_PENDING_FOR_TARGET", result.unknownReason)
+    }
+
+    @Test
+    fun officialYoxoWithCompletedCleanProvidersIsShownAsSafe() {
+        val result = evaluate(
+            EvidenceCode.OFFICIAL_DOMAIN_EXACT,
+            EvidenceCode.NO_SENSITIVE_FORM,
+            EvidenceCode.WEBRISK_NO_MATCH,
+            EvidenceCode.URLSCAN_NO_CLASSIFICATION,
+            EvidenceCode.VIRUSTOTAL_LOW_OR_NO_DETECTION,
+            EvidenceCode.OFFER_CLAIM_INCONCLUSIVE,
+            primaryUrl = "https://buyback.yoxo.ro",
+            finalUrl = "https://buyback.yoxo.ro/?r=1#/yoxo-ro/ro"
+        )
+
+        assertAction(GateAction.CONTINUE_WITH_CAUTION, result)
+        assertEquals("Sigur", result.userLabel)
     }
 
     @Test
@@ -354,11 +408,11 @@ class EvidenceGateTest {
         val result = evaluate(
             EvidenceCode.PROMO_TEXT,
             providerStates = mapOf(
-                ProviderId.URLSCAN to ProviderState(ProviderId.URLSCAN, ProviderStatus.PENDING)
+                ProviderId.CLAIM_VERIFIER to ProviderState(ProviderId.CLAIM_VERIFIER, ProviderStatus.PENDING)
             )
         )
 
-        assertAction(GateAction.VERIFY_OFFICIAL, result)
+        assertAction(GateAction.INSUFFICIENT_EVIDENCE, result)
         assertEquals(GateFinality.PROVISIONAL, result.finality)
         assertTrue(result.asyncExpected)
     }
@@ -374,16 +428,32 @@ class EvidenceGateTest {
         providerStates: Map<ProviderId, ProviderState> = emptyMap(),
         completeness: EvidenceCompleteness = EvidenceCompleteness.FULL
     ): GateResult {
+        val effectiveProviderStates = if (
+            providerStates.isEmpty() &&
+            completeness == EvidenceCompleteness.FULL &&
+            (!primaryUrl.isNullOrBlank() || !finalUrl.isNullOrBlank())
+        ) completedUrlProviderStates() else providerStates
         return gate.evaluate(
             snapshot(
                 signals = codes.map { signal(it) },
                 primaryUrl = primaryUrl,
                 finalUrl = finalUrl,
-                providerStates = providerStates,
+                providerStates = effectiveProviderStates,
                 completeness = completeness
             )
         )
     }
+
+    private fun completedUrlProviderStates(): Map<ProviderId, ProviderState> = mapOf(
+        ProviderId.WEB_RISK to ProviderState(ProviderId.WEB_RISK, ProviderStatus.OK),
+        ProviderId.URLSCAN to ProviderState(ProviderId.URLSCAN, ProviderStatus.OK),
+        ProviderId.VIRUSTOTAL to ProviderState(ProviderId.VIRUSTOTAL, ProviderStatus.OK),
+        ProviderId.CLAIM_VERIFIER to ProviderState(ProviderId.CLAIM_VERIFIER, ProviderStatus.OK)
+    )
+
+    private fun completedClaimProviderState(): Map<ProviderId, ProviderState> = mapOf(
+        ProviderId.CLAIM_VERIFIER to ProviderState(ProviderId.CLAIM_VERIFIER, ProviderStatus.OK)
+    )
 
     private fun snapshot(
         signals: List<EvidenceSignal>,
@@ -433,6 +503,10 @@ class EvidenceGateTest {
         EvidenceCode.VIRUSTOTAL_MALICIOUS_CONSENSUS,
         EvidenceCode.VIRUSTOTAL_LOW_OR_NO_DETECTION -> EvidenceSource.VIRUSTOTAL
 
+        EvidenceCode.OFFER_CLAIM_CONFIRMED,
+        EvidenceCode.OFFER_CLAIM_NOT_FOUND,
+        EvidenceCode.OFFER_CLAIM_INCONCLUSIVE -> EvidenceSource.CLAIM_VERIFIER
+
         EvidenceCode.OFFICIAL_DOMAIN_EXACT,
         EvidenceCode.DELEGATED_DOMAIN_EXACT,
         EvidenceCode.APPROVED_TRACKER_DOMAIN,
@@ -463,6 +537,7 @@ class EvidenceGateTest {
         EvidenceSource.GOOGLE_WEB_RISK -> ProviderId.WEB_RISK
         EvidenceSource.URLSCAN -> ProviderId.URLSCAN
         EvidenceSource.VIRUSTOTAL -> ProviderId.VIRUSTOTAL
+        EvidenceSource.CLAIM_VERIFIER -> ProviderId.CLAIM_VERIFIER
         EvidenceSource.OFFICIAL_REGISTRY -> ProviderId.OFFICIAL_REGISTRY
         EvidenceSource.ROMANIA_SCENARIO -> ProviderId.CORPUS
         EvidenceSource.RAG -> ProviderId.RAG

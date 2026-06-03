@@ -1,0 +1,24 @@
+{
+  "caseId": "SIGS-V2-165",
+  "provider": "URLSCAN",
+  "inputUrl": "https://raiffeisen-securitate-cont-22.test/login/confirmare",
+  "status": "SUCCESS",
+  "mockVariant": "conflict_wr_clean_urlscan_bad",
+  "finalUrl": "https://raiffeisen-securitate-cont-22.test/login/confirmare",
+  "verdict": "malicious",
+  "screenshotAvailable": true,
+  "forms": [
+    "login",
+    "otp"
+  ],
+  "redirectChain": [],
+  "server": {
+    "country": "VN",
+    "asn": "TEST-BAD-AS"
+  },
+  "certificate": {
+    "valid": true,
+    "issuer": "ZeroSSL/R3 test",
+    "ageDays": 1
+  }
+}

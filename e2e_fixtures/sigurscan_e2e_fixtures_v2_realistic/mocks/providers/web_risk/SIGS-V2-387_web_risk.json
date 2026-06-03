@@ -1,0 +1,9 @@
+{
+  "caseId": "SIGS-V2-387",
+  "provider": "GOOGLE_WEB_RISK",
+  "inputUrl": "https://short-link-necunoscut-14.test/aBcd",
+  "status": "UNAVAILABLE",
+  "mockVariant": "urlscan_timeout",
+  "threats": [],
+  "expireTime": null
+}

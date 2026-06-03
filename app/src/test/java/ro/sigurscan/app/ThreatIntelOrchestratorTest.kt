@@ -11,7 +11,7 @@ class ThreatIntelOrchestratorTest {
         riskScore = 25,
         riskLevel = "low",
         reasons = listOf("Nu au fost detectate semnale evidente de risc."),
-        safeActions = listOf("Poți continua cu prudență dacă recunoști expeditorul."),
+        safeActions = listOf("Poți continua."),
         keyDangers = emptyList()
     )
 
@@ -126,6 +126,19 @@ class ThreatIntelOrchestratorTest {
         assertFalse(fallbackBody.contains("client@example.com"))
         assertTrue(unsafeBody.contains("\"visibility\":\"private\""))
         assertFalse(unsafeBody.contains("\"visibility\":\"public\""))
+    }
+
+    @Test
+    fun urlscanSubmissionBodyCanIncludeRomaniaMobilePersona() {
+        val body = ThreatIntelOrchestrator.buildUrlscanSubmissionBody(
+            url = "https://buyback.yoxo.ro/",
+            visibility = "private",
+            country = "ro",
+            customAgent = "Mozilla/5.0 (Linux; Android 15) Chrome/120 Mobile Safari/537.36"
+        )
+
+        assertTrue(body.contains("\"country\":\"ro\""))
+        assertTrue(body.contains("\"customagent\":\"Mozilla/5.0 (Linux; Android 15) Chrome/120 Mobile Safari/537.36\""))
     }
 
     @Test

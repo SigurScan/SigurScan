@@ -1,0 +1,14 @@
+{
+  "caseId": "SIGS-V2-346",
+  "provider": "VIRUSTOTAL",
+  "inputUrl": "https://www.ghiseul.ro/ghiseul/public",
+  "status": "SUCCESS",
+  "mockVariant": "all_clean",
+  "stats": {
+    "malicious": 0,
+    "suspicious": 0,
+    "undetected": 72,
+    "harmless": 14
+  },
+  "categories": []
+}

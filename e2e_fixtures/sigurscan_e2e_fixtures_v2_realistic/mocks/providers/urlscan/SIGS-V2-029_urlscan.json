@@ -1,0 +1,23 @@
+{
+  "caseId": "SIGS-V2-029",
+  "provider": "URLSCAN",
+  "inputUrl": "https://cargus-livrare-4.test/locker?id=SMY883201004",
+  "status": "SUCCESS",
+  "mockVariant": "urlscan_malicious",
+  "finalUrl": "https://cargus-livrare-4.test/locker?id=SMY883201004",
+  "verdict": "malicious",
+  "screenshotAvailable": true,
+  "forms": [
+    "whatsapp_code"
+  ],
+  "redirectChain": [],
+  "server": {
+    "country": "NL",
+    "asn": "TEST-BAD-AS"
+  },
+  "certificate": {
+    "valid": true,
+    "issuer": "ZeroSSL/R3 test",
+    "ageDays": 2
+  }
+}

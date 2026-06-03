@@ -1,0 +1,16 @@
+{
+  "caseId": "SIGS-V2-403",
+  "expectedDecision": "INSUFFICIENT_EVIDENCE",
+  "expectedLabel": "Nu pot verifica suficient",
+  "groundTruthIsScam": false,
+  "primaryUrlExpected": null,
+  "signalsExpected": [
+    "OCR_LOW_CONFIDENCE"
+  ],
+  "sourceStatesExpected": {
+    "web_risk": "SIGS-V2-403_web_risk.json",
+    "urlscan": "SIGS-V2-403_urlscan.json",
+    "virustotal": "SIGS-V2-403_virustotal.json"
+  },
+  "notes": ""
+}

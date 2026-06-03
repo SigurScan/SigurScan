@@ -1,0 +1,20 @@
+{
+  "caseId": "SIGS-V2-366",
+  "provider": "URLSCAN",
+  "inputUrl": "https://www.electricafurnizare.ro/",
+  "status": "SUCCESS",
+  "mockVariant": "all_clean",
+  "finalUrl": "https://www.electricafurnizare.ro/",
+  "verdict": "clean",
+  "screenshotAvailable": true,
+  "forms": [],
+  "redirectChain": [],
+  "server": {
+    "country": "RO",
+    "asn": "KNOWN-LEGIT-AS"
+  },
+  "certificate": {
+    "valid": true,
+    "issuer": "Test CA"
+  }
+}

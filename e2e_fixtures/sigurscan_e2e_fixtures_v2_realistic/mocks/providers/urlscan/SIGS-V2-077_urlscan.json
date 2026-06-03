@@ -1,0 +1,24 @@
+{
+  "caseId": "SIGS-V2-077",
+  "provider": "URLSCAN",
+  "inputUrl": "https://whatsapp-verificare-mara-14.test/vot",
+  "status": "SUCCESS",
+  "mockVariant": "urlscan_malicious",
+  "finalUrl": "https://whatsapp-verificare-mara-14.test/vot",
+  "verdict": "malicious",
+  "screenshotAvailable": true,
+  "forms": [
+    "card",
+    "cvv"
+  ],
+  "redirectChain": [],
+  "server": {
+    "country": "NL",
+    "asn": "TEST-BAD-AS"
+  },
+  "certificate": {
+    "valid": true,
+    "issuer": "ZeroSSL/R3 test",
+    "ageDays": 4
+  }
+}

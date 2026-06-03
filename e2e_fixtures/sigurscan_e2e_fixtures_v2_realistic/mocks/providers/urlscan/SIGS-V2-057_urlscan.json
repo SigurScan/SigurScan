@@ -1,0 +1,23 @@
+{
+  "caseId": "SIGS-V2-057",
+  "provider": "URLSCAN",
+  "inputUrl": "https://cargus-livrare-32.test/locker?id=CGS55392010",
+  "status": "SUCCESS",
+  "mockVariant": "urlscan_malicious",
+  "finalUrl": "https://cargus-livrare-32.test/locker?id=CGS55392010",
+  "verdict": "malicious",
+  "screenshotAvailable": true,
+  "forms": [
+    "whatsapp_code"
+  ],
+  "redirectChain": [],
+  "server": {
+    "country": "NL",
+    "asn": "TEST-BAD-AS"
+  },
+  "certificate": {
+    "valid": true,
+    "issuer": "ZeroSSL/R3 test",
+    "ageDays": 1
+  }
+}

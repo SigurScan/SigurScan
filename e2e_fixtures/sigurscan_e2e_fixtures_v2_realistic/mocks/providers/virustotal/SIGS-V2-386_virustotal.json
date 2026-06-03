@@ -1,0 +1,14 @@
+{
+  "caseId": "SIGS-V2-386",
+  "provider": "VIRUSTOTAL",
+  "inputUrl": "https://webmail-shell-13.test/mail/u/0/#inbox/FMfcgzGtw",
+  "status": "RATE_LIMITED",
+  "mockVariant": "all_down",
+  "stats": {
+    "malicious": 0,
+    "suspicious": 0,
+    "undetected": 72,
+    "harmless": 14
+  },
+  "categories": []
+}

@@ -1,0 +1,14 @@
+{
+  "caseId": "SIGS-V2-365",
+  "provider": "VIRUSTOTAL",
+  "inputUrl": "https://www.vodafone.ro/myvodafone",
+  "status": "SUCCESS",
+  "mockVariant": "all_clean",
+  "stats": {
+    "malicious": 0,
+    "suspicious": 0,
+    "undetected": 72,
+    "harmless": 14
+  },
+  "categories": []
+}

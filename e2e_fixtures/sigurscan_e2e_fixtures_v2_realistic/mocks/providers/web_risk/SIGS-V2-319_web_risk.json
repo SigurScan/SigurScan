@@ -1,0 +1,9 @@
+{
+  "caseId": "SIGS-V2-319",
+  "provider": "GOOGLE_WEB_RISK",
+  "inputUrl": "https://www.bancatransilvania.ro/siguranta-online",
+  "status": "SUCCESS",
+  "mockVariant": "all_clean",
+  "threats": [],
+  "expireTime": null
+}

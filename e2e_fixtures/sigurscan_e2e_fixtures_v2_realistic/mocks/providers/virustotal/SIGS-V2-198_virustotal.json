@@ -1,0 +1,14 @@
+{
+  "caseId": "SIGS-V2-198",
+  "provider": "VIRUSTOTAL",
+  "inputUrl": "https://lajumate-plata-curier-1.test/incaseaza",
+  "status": "SUCCESS",
+  "mockVariant": "urlscan_malicious",
+  "stats": {
+    "malicious": 2,
+    "suspicious": 6,
+    "undetected": 60,
+    "harmless": 14
+  },
+  "categories": []
+}

@@ -53,13 +53,28 @@ internal object ThreatIntelOrchestrator {
     private val emailValueRegex = Regex("""(?i)[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}""")
     private val longTokenValueRegex = Regex("""(?i)^[a-z0-9_\-=]{28,}$""")
 
-    fun buildUrlscanSubmissionBody(url: String, visibility: String = "private"): String {
+    fun buildUrlscanSubmissionBody(
+        url: String,
+        visibility: String = "private",
+        country: String? = null,
+        customAgent: String? = null
+    ): String {
         val safeVisibility = when (visibility.lowercase(Locale.US)) {
             "private" -> "private"
             "unlisted" -> "unlisted"
             else -> "private"
         }
-        return "{\"url\":\"${escapeJson(sanitizeUrlForSandbox(url))}\",\"visibility\":\"$safeVisibility\"}"
+        val parts = mutableListOf(
+            "\"url\":\"${escapeJson(sanitizeUrlForSandbox(url))}\"",
+            "\"visibility\":\"$safeVisibility\""
+        )
+        country?.trim()?.lowercase(Locale.US)?.take(2)?.takeIf { it.isNotBlank() }?.let {
+            parts.add("\"country\":\"${escapeJson(it)}\"")
+        }
+        customAgent?.trim()?.take(512)?.takeIf { it.isNotBlank() }?.let {
+            parts.add("\"customagent\":\"${escapeJson(it)}\"")
+        }
+        return "{${parts.joinToString(",")}}"
     }
 
     fun sanitizeUrlForSandbox(url: String): String {
@@ -131,15 +146,7 @@ internal object ThreatIntelOrchestrator {
                 }
         } ?: return current.copy(threatIntel = threatIntel)
 
-        val reason = when {
-            strongest.source.equals("Google Web Risk", ignoreCase = true) ->
-                "Google Web Risk a identificat risc de phishing, malware sau social engineering."
-            strongest.source.equals("urlscan.io", ignoreCase = true) ->
-                "Sandbox-ul urlscan.io a găsit semnale malițioase pe pagina finală."
-            strongest.source.equals("VirusTotal", ignoreCase = true) ->
-                "VirusTotal are motoare care marchează URL-ul ca malițios sau suspect."
-            else -> "O sursă de reputație a confirmat risc ridicat."
-        }
+        val reason = "Scanarea online a confirmat risc ridicat pentru linkul verificat."
 
         return current.copy(
             family = if (current.family == "Necunoscut" || current.family == "Analiză Link Extern" || current.family == "Link cu risc scăzut") {
@@ -152,7 +159,7 @@ internal object ThreatIntelOrchestrator {
             reasons = (current.reasons + reason).distinct(),
             keyDangers = (
                 current.keyDangers +
-                    "Sursa externă de reputație indică risc real pentru linkul verificat."
+                    "Scanarea indică risc real pentru linkul verificat."
                 ).distinct(),
             safeActions = (
                 current.safeActions +

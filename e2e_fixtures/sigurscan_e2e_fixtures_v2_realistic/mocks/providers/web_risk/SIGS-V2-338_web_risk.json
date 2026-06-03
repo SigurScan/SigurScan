@@ -1,0 +1,9 @@
+{
+  "caseId": "SIGS-V2-338",
+  "provider": "GOOGLE_WEB_RISK",
+  "inputUrl": "https://www.ghiseul.ro/ghiseul/public",
+  "status": "SUCCESS",
+  "mockVariant": "all_clean",
+  "threats": [],
+  "expireTime": null
+}

@@ -1,0 +1,9 @@
+{
+  "caseId": "SIGS-V2-033",
+  "provider": "GOOGLE_WEB_RISK",
+  "inputUrl": "https://dpd-livrare-8.test/awb?id=PR457120903RO",
+  "status": "SUCCESS",
+  "mockVariant": "urlscan_malicious",
+  "threats": [],
+  "expireTime": null
+}

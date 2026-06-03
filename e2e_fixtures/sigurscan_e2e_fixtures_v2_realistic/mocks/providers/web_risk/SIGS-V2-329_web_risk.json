@@ -1,0 +1,9 @@
+{
+  "caseId": "SIGS-V2-329",
+  "provider": "GOOGLE_WEB_RISK",
+  "inputUrl": "https://www.revolut.com/ro-RO/security/",
+  "status": "SUCCESS",
+  "mockVariant": "all_clean",
+  "threats": [],
+  "expireTime": null
+}

@@ -1,0 +1,9 @@
+{
+  "caseId": "SIGS-V2-291",
+  "provider": "GOOGLE_WEB_RISK",
+  "inputUrl": "https://sameday.ro/awb-tracking?awb=TEST123",
+  "status": "SUCCESS",
+  "mockVariant": "all_clean",
+  "threats": [],
+  "expireTime": null
+}

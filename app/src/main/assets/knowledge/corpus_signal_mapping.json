@@ -1,0 +1,182 @@
+[
+  {
+    "signal_code": "OFFICIAL_DOMAIN_EXACT_MATCH",
+    "source_type": "official_registry",
+    "reliability": "high",
+    "max_solo_verdict": "Sigur",
+    "required_combination_for_periculos": "Nu dă Periculos; doar reduce FP dacă nu există semnale sensibile",
+    "false_positive_risk": "medium",
+    "example": "fancourier.ro tracking"
+  },
+  {
+    "signal_code": "OFFICIAL_TRACKING_OR_APP_CHANNEL",
+    "source_type": "official_registry",
+    "reliability": "medium",
+    "max_solo_verdict": "Sigur",
+    "required_combination_for_periculos": "Nu dă Periculos; trebuie final URL + absență cereri sensibile",
+    "false_positive_risk": "high",
+    "example": "SAMEDAY App card payment pentru ramburs"
+  },
+  {
+    "signal_code": "BRAND_NEVER_ASK_CARD_SMS",
+    "source_type": "brand_warning",
+    "reliability": "high",
+    "max_solo_verdict": "Suspect",
+    "required_combination_for_periculos": "brand claim + domeniu neoficial + card/CVV/formular => Periculos",
+    "false_positive_risk": "medium",
+    "example": "FAN/Poșta cere card prin SMS"
+  },
+  {
+    "signal_code": "BRAND_NEVER_ASK_OTP_OR_WHATSAPP_CODE",
+    "source_type": "brand_warning",
+    "reliability": "high",
+    "max_solo_verdict": "Suspect",
+    "required_combination_for_periculos": "cerere cod + link/form OTP sau account takeover pattern => Periculos",
+    "false_positive_risk": "low",
+    "example": "Votează pe Adeline cere cod WhatsApp"
+  },
+  {
+    "signal_code": "SAFE_ACCOUNT_TRANSFER_REQUEST",
+    "source_type": "romania_corpus",
+    "reliability": "high",
+    "max_solo_verdict": "Suspect",
+    "required_combination_for_periculos": "BNR/Poliție/bancă + transfer cont sigur + link/form/cont concret confirmat => Periculos",
+    "false_positive_risk": "medium",
+    "example": "transferă banii în cont sigur"
+  },
+  {
+    "signal_code": "FAMILY_NEW_NUMBER_MONEY_REQUEST",
+    "source_type": "romania_corpus",
+    "reliability": "high",
+    "max_solo_verdict": "Suspect",
+    "required_combination_for_periculos": "text-only rămâne Suspect; contact/cont confirmat în campanie activă poate crește",
+    "false_positive_risk": "medium",
+    "example": "mama mi s-a stricat telefonul"
+  },
+  {
+    "signal_code": "ACCIDENT_OR_NEPHEW_URGENCY",
+    "source_type": "romania_corpus",
+    "reliability": "high",
+    "max_solo_verdict": "Suspect",
+    "required_combination_for_periculos": "voce/text-only nu Periculos fără dovadă suplimentară; acțiune user: sună pe număr vechi",
+    "false_positive_risk": "medium",
+    "example": "bunico am avut accident"
+  },
+  {
+    "signal_code": "MARKETPLACE_CARD_TO_RECEIVE_MONEY",
+    "source_type": "brand_warning",
+    "reliability": "high",
+    "max_solo_verdict": "Suspect",
+    "required_combination_for_periculos": "OLX/marketplace + link neoficial + card/CVV => Periculos",
+    "false_positive_risk": "medium",
+    "example": "ca să primești banii introdu cardul"
+  },
+  {
+    "signal_code": "INVESTMENT_FAST_GAIN_PUBLIC_BRAND",
+    "source_type": "romania_corpus",
+    "reliability": "high",
+    "max_solo_verdict": "Suspect",
+    "required_combination_for_periculos": "brand public + domeniu neoficial + formular date/transfer/remote access => Periculos",
+    "false_positive_risk": "high",
+    "example": "Hidroelectrica profit garantat"
+  },
+  {
+    "signal_code": "REMOTE_ACCESS_APP_REQUEST",
+    "source_type": "brand_warning",
+    "reliability": "high",
+    "max_solo_verdict": "Suspect",
+    "required_combination_for_periculos": "AnyDesk/TeamViewer/RustDesk + banking/investment/authority claim => Periculos",
+    "false_positive_risk": "low",
+    "example": "instalează AnyDesk pentru suport bancar"
+  },
+  {
+    "signal_code": "APK_INSTALL_REQUEST",
+    "source_type": "romania_corpus",
+    "reliability": "medium",
+    "max_solo_verdict": "Suspect",
+    "required_combination_for_periculos": "APK + bancă/telecom/update securitate + provider/sandbox file => Periculos",
+    "false_positive_risk": "medium",
+    "example": "instalează app bancară din link"
+  },
+  {
+    "signal_code": "WHATSAPP_1800_LOAN_REQUEST",
+    "source_type": "brand_warning",
+    "reliability": "medium",
+    "max_solo_verdict": "Suspect",
+    "required_combination_for_periculos": "cont WhatsApp compromis + cerere bani + cont terț confirmat => Suspect/Periculos prin campaign intel",
+    "false_positive_risk": "medium",
+    "example": "am nevoie de 1800 lei urgent"
+  },
+  {
+    "signal_code": "TAX_REFUND_FORM_CARD",
+    "source_type": "romania_corpus",
+    "reliability": "high",
+    "max_solo_verdict": "Suspect",
+    "required_combination_for_periculos": "ANAF/Ghișeul/Digi refund + domeniu neoficial + formular card => Periculos",
+    "false_positive_risk": "medium",
+    "example": "rambursare taxă/factură cere card"
+  },
+  {
+    "signal_code": "EMAIL_HIDDEN_LINK",
+    "source_type": "romania_corpus",
+    "reliability": "medium",
+    "max_solo_verdict": "Suspect",
+    "required_combination_for_periculos": "Hidden link + brand mismatch + sensitive ask => Periculos",
+    "false_positive_risk": "high",
+    "example": "buton «Vezi factura» către .test"
+  },
+  {
+    "signal_code": "SHORTENER_OR_BRANCH_LINK",
+    "source_type": "romania_corpus",
+    "reliability": "low",
+    "max_solo_verdict": "Suspect",
+    "required_combination_for_periculos": "doar după expansion către neoficial + sensitive ask poate crește",
+    "false_positive_risk": "high",
+    "example": "link scurt într-un newsletter real"
+  },
+  {
+    "signal_code": "CORPUS_SIMILARITY_ONLY",
+    "source_type": "rag_explanation",
+    "reliability": "medium",
+    "max_solo_verdict": "Suspect",
+    "required_combination_for_periculos": "Niciodată singur; Periculos doar cu campanie/domeniu/contact confirmat oficial activ",
+    "false_positive_risk": "medium",
+    "example": "text seamănă cu scam FAN"
+  },
+  {
+    "signal_code": "COMMUNITY_REPORT_SINGLE",
+    "source_type": "community_report",
+    "reliability": "low",
+    "max_solo_verdict": "Suspect",
+    "required_combination_for_periculos": "Nu dă Periculos; are nevoie de volum, diversitate și provider/official match",
+    "false_positive_risk": "high",
+    "example": "1 user raportează domeniu"
+  },
+  {
+    "signal_code": "COMMUNITY_ACTIVE_CAMPAIGN_CONFIRMED",
+    "source_type": "community_report",
+    "reliability": "medium",
+    "max_solo_verdict": "Suspect",
+    "required_combination_for_periculos": "Periculos doar dacă domeniul/contactul/campania este confirmată oficial sau tehnic",
+    "false_positive_risk": "medium",
+    "example": "100 raportări + provider malicious"
+  },
+  {
+    "signal_code": "CLAIM_NOT_FOUND",
+    "source_type": "rag_explanation",
+    "reliability": "low",
+    "max_solo_verdict": "Suspect",
+    "required_combination_for_periculos": "Nu dă Periculos; folosit pentru «verifică oficial»",
+    "false_positive_risk": "high",
+    "example": "ofertă eMAG negăsită public"
+  },
+  {
+    "signal_code": "PROVIDER_CLEAN_BUT_LOCAL_SENSITIVE",
+    "source_type": "romania_corpus",
+    "reliability": "medium",
+    "max_solo_verdict": "Suspect",
+    "required_combination_for_periculos": "Provider clean nu anulează formular/card/OTP pe domeniu neoficial",
+    "false_positive_risk": "medium",
+    "example": "Web Risk clean + form OTP"
+  }
+]

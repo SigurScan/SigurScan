@@ -24,6 +24,8 @@ data class UrlScanRequest(
 data class UrlscanSandboxSubmitRequest(
     val url: String,
     val visibility: String = "private",
+    val country: String? = null,
+    val customagent: String? = null,
     @SerializedName("source_channel") val sourceChannel: String = "android_native"
 )
 

@@ -1,0 +1,14 @@
+{
+  "caseId": "SIGS-V2-241",
+  "provider": "VIRUSTOTAL",
+  "inputUrl": "https://premiu-castigator-4.test/revendica",
+  "status": "SUCCESS",
+  "mockVariant": "urlscan_malicious",
+  "stats": {
+    "malicious": 0,
+    "suspicious": 4,
+    "undetected": 60,
+    "harmless": 14
+  },
+  "categories": []
+}

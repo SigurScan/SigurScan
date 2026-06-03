@@ -1,0 +1,9 @@
+{
+  "caseId": "SIGS-V2-149",
+  "provider": "GOOGLE_WEB_RISK",
+  "inputUrl": "https://bancatransilvania-securitate-cont-6.test/login/confirmare",
+  "status": "SUCCESS",
+  "mockVariant": "conflict_wr_clean_urlscan_bad",
+  "threats": [],
+  "expireTime": null
+}

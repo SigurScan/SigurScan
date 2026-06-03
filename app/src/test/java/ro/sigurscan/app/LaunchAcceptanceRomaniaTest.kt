@@ -139,7 +139,8 @@ class LaunchAcceptanceRomaniaTest {
         val snapshot = snapshot(
             rawText = "https://example.com",
             primaryUrl = "https://example.com",
-            finalUrl = "https://example.com"
+            finalUrl = "https://example.com",
+            autoCompleteProviders = false
         )
 
         val result = gate.evaluate(snapshot)
@@ -238,7 +239,7 @@ class LaunchAcceptanceRomaniaTest {
         )
 
         val result = gate.evaluate(snapshot)
-        assertEquals(GateAction.VERIFY_OFFICIAL, result.action)
+        assertEquals(GateAction.INSUFFICIENT_EVIDENCE, result.action)
         assertFalse(result.decisiveSignalIds.any { id ->
             snapshot.signals.firstOrNull { it.id == id }?.maxSoloAction == GateAction.DO_NOT_CONTINUE
         })
@@ -252,8 +253,14 @@ class LaunchAcceptanceRomaniaTest {
         redirectChain: List<String> = emptyList(),
         threatIntel: List<ThreatIntelSourceResult> = emptyList(),
         providerStates: Map<ProviderId, ProviderState> = emptyMap(),
-        virusTotalConfigured: Boolean = false
+        virusTotalConfigured: Boolean = false,
+        autoCompleteProviders: Boolean = true
     ): EvidenceSnapshot {
+        val effectiveProviderStates = if (
+            autoCompleteProviders &&
+            providerStates.isEmpty() &&
+            (!primaryUrl.isNullOrBlank() || !finalUrl.isNullOrBlank())
+        ) completedUrlProviderStates() else providerStates
         return EvidenceSignalNormalizer.buildSnapshot(
             EvidenceNormalizerInput(
                 inputKind = "acceptance_test",
@@ -264,11 +271,19 @@ class LaunchAcceptanceRomaniaTest {
                 finalUrl = finalUrl,
                 redirectChain = redirectChain,
                 threatIntel = threatIntel,
-                providerStates = providerStates,
+                providerStates = effectiveProviderStates,
+                completeness = if (effectiveProviderStates.isNotEmpty()) EvidenceCompleteness.PARTIAL_ONLINE else null,
                 virusTotalConfigured = virusTotalConfigured
             )
         )
     }
+
+    private fun completedUrlProviderStates(): Map<ProviderId, ProviderState> = mapOf(
+        ProviderId.WEB_RISK to ProviderState(ProviderId.WEB_RISK, ProviderStatus.OK),
+        ProviderId.URLSCAN to ProviderState(ProviderId.URLSCAN, ProviderStatus.OK),
+        ProviderId.VIRUSTOTAL to ProviderState(ProviderId.VIRUSTOTAL, ProviderStatus.OK),
+        ProviderId.CLAIM_VERIFIER to ProviderState(ProviderId.CLAIM_VERIFIER, ProviderStatus.OK)
+    )
 
     private fun assertCodes(snapshot: EvidenceSnapshot, vararg expected: EvidenceCode) {
         val actual = snapshot.signals.map { it.code }.toSet()

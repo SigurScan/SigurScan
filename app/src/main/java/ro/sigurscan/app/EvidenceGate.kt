@@ -1,12 +1,12 @@
 package ro.sigurscan.app
 
 enum class GateAction(val userLabel: String) {
-    DO_NOT_CONTINUE("Nu continua"),
-    NO_ENTER_DATA("Nu introduce date"),
-    NO_REPLY("Nu răspunde"),
-    VERIFY_OFFICIAL("Verifică pe canalul oficial"),
-    CONTINUE_WITH_CAUTION("Poți continua cu prudență"),
-    INSUFFICIENT_EVIDENCE("Nu pot verifica suficient")
+    DO_NOT_CONTINUE("Periculos"),
+    NO_ENTER_DATA("Periculos"),
+    NO_REPLY("Periculos"),
+    VERIFY_OFFICIAL("Suspect"),
+    CONTINUE_WITH_CAUTION("Sigur"),
+    INSUFFICIENT_EVIDENCE("Suspect")
 }
 
 enum class GateFinality {
@@ -22,6 +22,7 @@ enum class EvidenceSource {
     GOOGLE_WEB_RISK,
     URLSCAN,
     VIRUSTOTAL,
+    CLAIM_VERIFIER,
     USER_FEEDBACK,
     CORPUS,
     RAG
@@ -31,6 +32,7 @@ enum class ProviderId {
     WEB_RISK,
     URLSCAN,
     VIRUSTOTAL,
+    CLAIM_VERIFIER,
     OFFICIAL_REGISTRY,
     CORPUS,
     RAG
@@ -63,6 +65,9 @@ enum class EvidenceCode {
     URLSCAN_NO_CLASSIFICATION,
     VIRUSTOTAL_MALICIOUS_CONSENSUS,
     VIRUSTOTAL_LOW_OR_NO_DETECTION,
+    OFFER_CLAIM_CONFIRMED,
+    OFFER_CLAIM_NOT_FOUND,
+    OFFER_CLAIM_INCONCLUSIVE,
     APK_DOWNLOAD_UNOFFICIAL,
     REMOTE_ACCESS_DOWNLOAD_UNOFFICIAL,
     BRAND_IMPERSONATION,
@@ -78,6 +83,7 @@ enum class EvidenceCode {
     OTP_REQUEST,
     PASSWORD_REQUEST,
     CNP_IBAN_REQUEST,
+    PERSONAL_DATA_REQUEST,
     PAYMENT_REQUEST,
     REPLY_WITH_CODE_REQUEST,
     MONEY_REQUEST,
@@ -199,6 +205,7 @@ object EvidenceGatePolicy {
         EvidenceCode.OTP_REQUEST,
         EvidenceCode.PASSWORD_REQUEST,
         EvidenceCode.CNP_IBAN_REQUEST,
+        EvidenceCode.PERSONAL_DATA_REQUEST,
         EvidenceCode.PAYMENT_REQUEST,
         EvidenceCode.HIDDEN_LINK_OFFICIAL_TO_UNOFFICIAL,
         EvidenceCode.MARKETPLACE_RECEIVE_MONEY -> GateAction.NO_ENTER_DATA
@@ -230,6 +237,9 @@ object EvidenceGatePolicy {
         EvidenceCode.WEBRISK_NO_MATCH,
         EvidenceCode.URLSCAN_NO_CLASSIFICATION,
         EvidenceCode.VIRUSTOTAL_LOW_OR_NO_DETECTION,
+        EvidenceCode.OFFER_CLAIM_CONFIRMED,
+        EvidenceCode.OFFER_CLAIM_NOT_FOUND,
+        EvidenceCode.OFFER_CLAIM_INCONCLUSIVE,
         EvidenceCode.BRAND_IMPERSONATION,
         EvidenceCode.OFFICIAL_DOMAIN_MISMATCH,
         EvidenceCode.HIDDEN_LINK_PRESENT,
@@ -281,8 +291,10 @@ class EvidenceGate(private val nowMillis: () -> Long = { System.currentTimeMilli
                     .thenBy { it.code.name }
                     .thenBy { it.targetKey }
                     .thenBy { it.id }
-            )
+        )
         val context = EvalContext(snapshot, active, detectConflicts(snapshot, active))
+
+        providerReviewRequired(context)?.let { return it }
 
         return dangerous(context)
             ?: noReply(context)
@@ -481,6 +493,7 @@ class EvidenceGate(private val nowMillis: () -> Long = { System.currentTimeMilli
             EvidenceCode.OTP_REQUEST,
             EvidenceCode.PASSWORD_REQUEST,
             EvidenceCode.CNP_IBAN_REQUEST,
+            EvidenceCode.PERSONAL_DATA_REQUEST,
             EvidenceCode.PAYMENT_REQUEST
         ) && !ctx.hasAny(EvidenceCode.OFFICIAL_DOMAIN_EXACT, EvidenceCode.DELEGATED_DOMAIN_EXACT) -> final(
             GateAction.NO_ENTER_DATA,
@@ -491,6 +504,7 @@ class EvidenceGate(private val nowMillis: () -> Long = { System.currentTimeMilli
                 EvidenceCode.OTP_REQUEST,
                 EvidenceCode.PASSWORD_REQUEST,
                 EvidenceCode.CNP_IBAN_REQUEST,
+                EvidenceCode.PERSONAL_DATA_REQUEST,
                 EvidenceCode.PAYMENT_REQUEST
             ),
             ctx
@@ -618,6 +632,43 @@ class EvidenceGate(private val nowMillis: () -> Long = { System.currentTimeMilli
         )
     }
 
+    private fun providerReviewRequired(ctx: EvalContext): GateResult? {
+        if (ctx.snapshot.completeness == EvidenceCompleteness.LOCAL_ONLY) {
+            return providerReviewGateResult(ctx, "PILLARS_NOT_RUN")
+        }
+        if (
+            ctx.targetUrl().isNullOrBlank() &&
+            ctx.hasAny(EvidenceCode.WEBMAIL_SHELL_ONLY, EvidenceCode.OCR_LOW_CONFIDENCE, EvidenceCode.NO_TARGET)
+        ) return null
+        if (!ctx.needsProviderReviewBeforeVerdict()) return null
+
+        val reason = when {
+            ctx.isAsyncPending() -> "PROVIDERS_PENDING_FOR_TARGET"
+            ctx.providersUnavailable() -> "PROVIDERS_UNAVAILABLE"
+            ctx.targetUrl().isNullOrBlank() -> "PILLARS_NOT_RUN"
+            else -> "PROVIDERS_NOT_RUN_FOR_TARGET"
+        }
+
+        return providerReviewGateResult(ctx, reason)
+    }
+
+    private fun providerReviewGateResult(ctx: EvalContext, reason: String): GateResult {
+        val asyncExpected = ctx.isAsyncPending() || reason in setOf(
+            "PROVIDERS_PENDING_FOR_TARGET",
+            "PROVIDERS_NOT_RUN_FOR_TARGET"
+        )
+        return GateResult(
+            action = GateAction.INSUFFICIENT_EVIDENCE,
+            finality = if (asyncExpected) GateFinality.PROVISIONAL else GateFinality.FINAL,
+            reasonCodes = listOf("PROVIDER_REVIEW_REQUIRED"),
+            decisiveSignalIds = emptyList(),
+            supportingSignalIds = ctx.active.map { it.id }.take(5),
+            conflicts = ctx.conflicts,
+            asyncExpected = asyncExpected,
+            unknownReason = reason
+        )
+    }
+
     private fun insufficientEvidence(ctx: EvalContext): GateResult {
         val reason = when {
             ctx.has(EvidenceCode.WEBMAIL_SHELL_ONLY) -> "WEBMAIL_SHELL_ONLY"
@@ -736,7 +787,7 @@ class EvidenceGate(private val nowMillis: () -> Long = { System.currentTimeMilli
                 .map { it.id }
                 .take(5)
         }
-        fun targetUrl(): String? = snapshot.finalUrl ?: snapshot.primaryUrl
+        fun targetUrl(): String? = snapshot.formActionUrl ?: snapshot.finalUrl ?: snapshot.primaryUrl
         fun hasWeakVerificationContext(): Boolean {
             return !targetUrl().isNullOrBlank() ||
                 snapshot.claimedBrands.isNotEmpty() ||
@@ -744,6 +795,72 @@ class EvidenceGate(private val nowMillis: () -> Long = { System.currentTimeMilli
                 snapshot.providerStates.isNotEmpty()
         }
         fun isAsyncPending(): Boolean = snapshot.providerStates.values.any { it.status == ProviderStatus.PENDING }
+        fun hasHardProviderEvidence(): Boolean = hasAny(
+            EvidenceCode.WEBRISK_MATCH_MALWARE,
+            EvidenceCode.WEBRISK_MATCH_SOCIAL_ENGINEERING,
+            EvidenceCode.WEBRISK_MATCH_UNWANTED_SOFTWARE,
+            EvidenceCode.WEBRISK_MATCH_SOCIAL_ENGINEERING_EXT,
+            EvidenceCode.URLSCAN_VERDICT_PHISHING,
+            EvidenceCode.URLSCAN_VERDICT_MALWARE,
+            EvidenceCode.VIRUSTOTAL_MALICIOUS_CONSENSUS
+        )
+        fun needsProviderReviewBeforeVerdict(): Boolean {
+            if (snapshot.completeness == EvidenceCompleteness.LOCAL_ONLY) return true
+            if (isAsyncPending()) return true
+            if (providersUnavailable()) return true
+            return if (targetUrl().isNullOrBlank()) {
+                !hasProviderOutcome()
+            } else {
+                !hasCompletedRequiredPillars()
+            }
+        }
+        private fun hasCompletedRequiredPillars(): Boolean {
+            val required = buildSet {
+                add(ProviderId.WEB_RISK)
+                add(ProviderId.URLSCAN)
+                add(ProviderId.VIRUSTOTAL)
+                if (requiresClaimVerification()) add(ProviderId.CLAIM_VERIFIER)
+            }
+            return required.all { provider ->
+                snapshot.providerStates[provider]?.status == ProviderStatus.OK
+            }
+        }
+        private fun requiresClaimVerification(): Boolean {
+            if (snapshot.claimedBrands.isNotEmpty()) return true
+            return active.any { signal ->
+                signal.code in setOf(
+                    EvidenceCode.MARKETING_URGENCY,
+                    EvidenceCode.PROMO_TEXT,
+                    EvidenceCode.VOUCHER_TEXT,
+                    EvidenceCode.CTA_TEXT,
+                    EvidenceCode.PARCEL_TAX,
+                    EvidenceCode.TAX_NOTICE,
+                    EvidenceCode.ACCOUNT_SUSPEND,
+                    EvidenceCode.MARKETPLACE_RECEIVE_MONEY,
+                    EvidenceCode.COURIER_UNOFFICIAL_DOMAIN,
+                    EvidenceCode.BRAND_IMPERSONATION,
+                    EvidenceCode.OFFICIAL_DOMAIN_MISMATCH
+                )
+            }
+        }
+        private fun hasProviderOutcome(): Boolean {
+            val requiredProviders = if (targetUrl().isNullOrBlank()) {
+                setOf(ProviderId.CLAIM_VERIFIER)
+            } else {
+                setOf(ProviderId.WEB_RISK, ProviderId.URLSCAN, ProviderId.VIRUSTOTAL)
+            }
+            if (snapshot.providerStates.values.any { it.provider in requiredProviders && it.status == ProviderStatus.OK }) return true
+            return active.any { signal ->
+                when {
+                    targetUrl().isNullOrBlank() -> signal.provider in requiredProviders
+                    else -> signal.source in setOf(
+                        EvidenceSource.GOOGLE_WEB_RISK,
+                        EvidenceSource.URLSCAN,
+                        EvidenceSource.VIRUSTOTAL
+                    )
+                }
+            }
+        }
         fun urlscanReviewed(): Boolean {
             val status = snapshot.providerStates[ProviderId.URLSCAN]?.status ?: return false
             return status in setOf(ProviderStatus.OK, ProviderStatus.PENDING)

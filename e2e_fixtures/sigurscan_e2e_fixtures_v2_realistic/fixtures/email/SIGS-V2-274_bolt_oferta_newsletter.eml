@@ -1,0 +1,73 @@
+Subject: Bolt =?utf-8?q?ofert=C4=83/newsletter?=
+From: Bolt <newsletter@bolt.eu>
+To: utilizator.test@sigurscan.local
+Date: Wed, 03 Jun 2026 04:59:03 +0000
+Message-ID: <178046274355.6118.2081616273354466814@mail.example.test>
+Authentication-Results:
+ mx.sigurscan.test; spf=pass smtp.mailfrom=bolt.eu; dkim=pass header.d=bolt.eu
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============7466118414449206467=="
+
+--===============7466118414449206467==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+Salut,
+Ai o ofert=C4=83 personalizat=C4=83 disponibil=C4=83 =C3=AEn aplica=C8=9Bia B=
+olt. Reducerea se aplic=C4=83 automat =C3=AEn contul t=C4=83u, =C3=AEn limita=
+ stocului.
+Nu =C3=AE=C8=9Bi cerem CNP, PIN, CVV sau coduri SMS. Pentru siguran=C8=9B=C4=
+=83, po=C8=9Bi deschide manual aplica=C8=9Bia oficial=C4=83.
+
+Verific=C4=83 acum: https://bolt.eu/ro-ro/food/promo-test
+
+--===============7466118414449206467==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<!doctype html>
+<html lang=3D"ro"><head><meta charset=3D"utf-8"><title>Bolt ofert=C4=83/newsl=
+etter</title></head>
+<body style=3D"margin:0;background:#f4f6fb;font-family:Arial,Helvetica,sans-s=
+erif;color:#111827">
+  <table role=3D"presentation" width=3D"100%" cellspacing=3D"0" cellpadding=
+=3D"0" style=3D"background:#f4f6fb;padding:24px">
+    <tr><td align=3D"center">
+      <table role=3D"presentation" width=3D"620" cellspacing=3D"0" cellpaddin=
+g=3D"0" style=3D"background:#fff;border-radius:16px;overflow:hidden;border:1p=
+x solid #e5e7eb">
+        <tr><td style=3D"background:#0b132b;color:white;padding:24px 28px">
+          <div style=3D"font-size:13px;letter-spacing:.08em;text-transform:up=
+percase;color:#9ca3af">Bolt</div>
+          <h1 style=3D"margin:8px 0 0;font-size:28px;line-height:1.2">Bolt of=
+ert=C4=83/newsletter</h1>
+        </td></tr>
+        <tr><td style=3D"padding:28px;font-size:16px;line-height:1.55">
+          <p>Salut,</p><p>Ai o ofert=C4=83 personalizat=C4=83 disponibil=C4=
+=83 =C3=AEn aplica=C8=9Bia Bolt. Reducerea se aplic=C4=83 automat =C3=AEn con=
+tul t=C4=83u, =C3=AEn limita stocului.</p><p>Nu =C3=AE=C8=9Bi cerem CNP, PIN,=
+ CVV sau coduri SMS. Pentru siguran=C8=9B=C4=83, po=C8=9Bi deschide manual ap=
+lica=C8=9Bia oficial=C4=83.</p>
+         =20
+        <p style=3D"margin:28px 0"><a href=3D"https://bolt.eu/ro-ro/food/prom=
+o-test" style=3D"background:#2563ff;color:#fff;text-decoration:none;padding:1=
+4px 22px;border-radius:8px;font-weight:bold;display:inline-block">Verific=C4=
+=83 acum</a></p>
+        <p style=3D"font-size:12px;color:#6b7280">Dac=C4=83 butonul nu func=
+=C8=9Bioneaz=C4=83, verifica=C8=9Bi manual =C3=AEn aplica=C8=9Bia oficial=C4=
+=83. Link afi=C8=99at: <span>https://bolt.eu/ro-ro/food/promo-test</span></p>
+       =20
+          <hr style=3D"border:none;border-top:1px solid #e5e7eb;margin:28px 0=
+" />
+          <p style=3D"font-size:12px;color:#6b7280">Ai primit aceast=C4=83 no=
+tificare deoarece ai folosit serviciile men=C8=9Bionate. Pentru siguran=C8=9B=
+=C4=83, verific=C4=83 manual canalul oficial dac=C4=83 ai dubii.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>
+
+--===============7466118414449206467==--

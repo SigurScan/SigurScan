@@ -1,0 +1,9 @@
+{
+  "caseId": "SIGS-V2-025",
+  "provider": "GOOGLE_WEB_RISK",
+  "inputUrl": "https://dpd-livrare-0.test/locker?id=CGS55392010",
+  "status": "SUCCESS",
+  "mockVariant": "urlscan_malicious",
+  "threats": [],
+  "expireTime": null
+}

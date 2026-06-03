@@ -1,0 +1,73 @@
+Subject: DPD tracking colet
+From: DPD <noreply@dpd.ro>
+To: utilizator.test@sigurscan.local
+Date: Wed, 03 Jun 2026 04:59:04 +0000
+Message-ID: <178046274460.6118.14049574596943840817@mail.example.test>
+Authentication-Results:
+ mx.sigurscan.test; spf=pass smtp.mailfrom=dpd.ro; dkim=pass header.d=dpd.ro
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============2953630720800104314=="
+
+--===============2953630720800104314==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+DPD: coletul FAN782931042RO este =C3=AEn livrare.
+Po=C8=9Bi verifica statusul pe site-ul oficial sau direct =C3=AEn aplica=C8=
+=9Bia curierului.
+Nu =C8=9Bi se solicit=C4=83 date de card, PIN, CVV sau coduri SMS pentru acea=
+st=C4=83 informare.
+
+Verific=C4=83 acum: https://www.dpd.com/ro/ro/primeste-coletul/urmareste-cole=
+tul/
+
+--===============2953630720800104314==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<!doctype html>
+<html lang=3D"ro"><head><meta charset=3D"utf-8"><title>DPD tracking colet</ti=
+tle></head>
+<body style=3D"margin:0;background:#f4f6fb;font-family:Arial,Helvetica,sans-s=
+erif;color:#111827">
+  <table role=3D"presentation" width=3D"100%" cellspacing=3D"0" cellpadding=
+=3D"0" style=3D"background:#f4f6fb;padding:24px">
+    <tr><td align=3D"center">
+      <table role=3D"presentation" width=3D"620" cellspacing=3D"0" cellpaddin=
+g=3D"0" style=3D"background:#fff;border-radius:16px;overflow:hidden;border:1p=
+x solid #e5e7eb">
+        <tr><td style=3D"background:#0b132b;color:white;padding:24px 28px">
+          <div style=3D"font-size:13px;letter-spacing:.08em;text-transform:up=
+percase;color:#9ca3af">DPD</div>
+          <h1 style=3D"margin:8px 0 0;font-size:28px;line-height:1.2">DPD tra=
+cking colet</h1>
+        </td></tr>
+        <tr><td style=3D"padding:28px;font-size:16px;line-height:1.55">
+          <p>DPD: coletul FAN782931042RO este =C3=AEn livrare.</p><p>Po=C8=9B=
+i verifica statusul pe site-ul oficial sau direct =C3=AEn aplica=C8=9Bia curi=
+erului.</p><p>Nu =C8=9Bi se solicit=C4=83 date de card, PIN, CVV sau coduri S=
+MS pentru aceast=C4=83 informare.</p>
+         =20
+        <p style=3D"margin:28px 0"><a href=3D"https://www.dpd.com/ro/ro/prime=
+ste-coletul/urmareste-coletul/" style=3D"background:#2563ff;color:#fff;text-d=
+ecoration:none;padding:14px 22px;border-radius:8px;font-weight:bold;display:i=
+nline-block">Verific=C4=83 acum</a></p>
+        <p style=3D"font-size:12px;color:#6b7280">Dac=C4=83 butonul nu func=
+=C8=9Bioneaz=C4=83, verifica=C8=9Bi manual =C3=AEn aplica=C8=9Bia oficial=C4=
+=83. Link afi=C8=99at: <span>https://www.dpd.com/ro/ro/primeste-coletul/urmar=
+este-coletul/</span></p>
+       =20
+          <hr style=3D"border:none;border-top:1px solid #e5e7eb;margin:28px 0=
+" />
+          <p style=3D"font-size:12px;color:#6b7280">Ai primit aceast=C4=83 no=
+tificare deoarece ai folosit serviciile men=C8=9Bionate. Pentru siguran=C8=9B=
+=C4=83, verific=C4=83 manual canalul oficial dac=C4=83 ai dubii.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>
+
+--===============2953630720800104314==--

@@ -1,0 +1,20 @@
+{
+  "caseId": "SIGS-V2-002",
+  "expectedDecision": "NO_ENTER_DATA",
+  "expectedLabel": "Nu introduce date",
+  "groundTruthIsScam": true,
+  "primaryUrlExpected": "https://anaf-ro-spv-1.test/validare?session=redacted",
+  "signalsExpected": [
+    "CLAIMED_BRAND_IDENTIFIED",
+    "OFFICIAL_DOMAIN_MISMATCH",
+    "CARD_DATA_REQUEST",
+    "CNP_OR_ID_REQUEST",
+    "URGENCY_LANGUAGE"
+  ],
+  "sourceStatesExpected": {
+    "web_risk": "SIGS-V2-002_web_risk.json",
+    "urlscan": "SIGS-V2-002_urlscan.json",
+    "virustotal": "SIGS-V2-002_virustotal.json"
+  },
+  "notes": ""
+}

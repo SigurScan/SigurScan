@@ -4,7 +4,8 @@ import java.net.URI
 import java.util.Locale
 
 internal object PrimaryUrlPicker {
-    private val officialDomains = ScamRules.TRUSTED_OFFICIAL_DOMAINS.values.flatten().distinct()
+    private val officialDomains: List<String>
+        get() = ScamRules.TRUSTED_OFFICIAL_DOMAINS.values.flatten().distinct()
 
     private val ignoredPathHints = listOf(
         "unsubscribe",
@@ -61,17 +62,10 @@ internal object PrimaryUrlPicker {
         ".fun"
     )
 
-    private val brandHints = mapOf(
-        "emag" to listOf("emag"),
-        "uber" to listOf("uber", "ubereats"),
-        "fan courier" to listOf("fan", "fancourier", "fan courier"),
-        "posta romana" to listOf("posta", "poșta", "posta romana", "poșta română"),
-        "anaf" to listOf("anaf", "spv"),
-        "revolut" to listOf("revolut"),
-        "bcr" to listOf("bcr", "george"),
-        "ing" to listOf("ing"),
-        "banca transilvania" to listOf("bt", "banca transilvania", "btpay")
-    )
+    private val brandHints: Map<String, List<String>>
+        get() = BrandKnowledgeRegistry.entries.associate { entry ->
+            entry.id to (entry.aliases + entry.id).map { it.lowercase(Locale.getDefault()) }.distinct()
+        }
 
     fun pick(candidates: Collection<String>, rawText: String = ""): String {
         return candidates

@@ -1,0 +1,14 @@
+{
+  "caseId": "SIGS-V2-232",
+  "provider": "VIRUSTOTAL",
+  "inputUrl": "https://factura-vodafone-13.test/plata",
+  "status": "SUCCESS",
+  "mockVariant": "conflict_wr_clean_urlscan_bad",
+  "stats": {
+    "malicious": 2,
+    "suspicious": 3,
+    "undetected": 60,
+    "harmless": 14
+  },
+  "categories": []
+}

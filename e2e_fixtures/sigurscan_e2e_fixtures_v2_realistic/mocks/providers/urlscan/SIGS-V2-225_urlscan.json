@@ -1,0 +1,23 @@
+{
+  "caseId": "SIGS-V2-225",
+  "provider": "URLSCAN",
+  "inputUrl": "https://factura-digi-6.test/plata",
+  "status": "SUCCESS",
+  "mockVariant": "conflict_wr_clean_urlscan_bad",
+  "finalUrl": "https://factura-digi-6.test/plata",
+  "verdict": "malicious",
+  "screenshotAvailable": true,
+  "forms": [
+    "apk_download"
+  ],
+  "redirectChain": [],
+  "server": {
+    "country": "DE",
+    "asn": "TEST-BAD-AS"
+  },
+  "certificate": {
+    "valid": true,
+    "issuer": "ZeroSSL/R3 test",
+    "ageDays": 0
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "caseId": "SIGS-V2-372",
+  "provider": "GOOGLE_WEB_RISK",
+  "inputUrl": "https://www.orange.ro/myaccount/",
+  "status": "SUCCESS",
+  "mockVariant": "all_clean",
+  "threats": [],
+  "expireTime": null
+}

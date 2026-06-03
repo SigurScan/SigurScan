@@ -1,0 +1,18 @@
+{
+  "caseId": "SIGS-V2-372",
+  "expectedDecision": "CONTINUE_WITH_CAUTION",
+  "expectedLabel": "Poți continua cu prudență",
+  "groundTruthIsScam": false,
+  "primaryUrlExpected": "https://www.orange.ro/myaccount/",
+  "signalsExpected": [
+    "OFFICIAL_DOMAIN_EXACT_MATCH",
+    "BILLING_LANGUAGE",
+    "NO_SENSITIVE_ASK"
+  ],
+  "sourceStatesExpected": {
+    "web_risk": "SIGS-V2-372_web_risk.json",
+    "urlscan": "SIGS-V2-372_urlscan.json",
+    "virustotal": "SIGS-V2-372_virustotal.json"
+  },
+  "notes": ""
+}

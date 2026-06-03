@@ -20,7 +20,7 @@ class GateResultPresentationTest {
     }
 
     @Test
-    fun continueWithCautionDoesNotClaimTheLinkIsSafeOrCertain() {
+    fun verifiedCleanOfficialDestinationUsesThreeStatusSafeCopyWithoutGuarantees() {
         val result = gateResult(GateAction.CONTINUE_WITH_CAUTION)
         val copy = listOf(
             result.userLabel,
@@ -31,10 +31,12 @@ class GateResultPresentationTest {
             .joinToString(" ")
             .lowercase()
 
+        assertTrue(result.userLabel == "Sigur")
         assertFalse(copy.contains("100%"))
-        assertFalse(copy.contains("sigur"))
+        assertFalse(copy.contains("garantat"))
         assertFalse(copy.contains("safe"))
-        assertTrue(copy.contains("prudenta") || copy.contains("prudență"))
+        assertFalse(copy.contains("prudenta"))
+        assertFalse(copy.contains("prudență"))
     }
 
     @Test
@@ -50,8 +52,8 @@ class GateResultPresentationTest {
             .joinToString(" ")
             .lowercase()
 
-        assertTrue(copy.contains("verifica") || copy.contains("verifică"))
-        assertTrue(copy.contains("oficial"))
+        assertTrue(copy.contains("scan"))
+        assertTrue(copy.contains("asteapta") || copy.contains("așteaptă") || copy.contains("reincearca") || copy.contains("reîncearcă"))
         assertFalse(copy.contains("phishing confirmat"))
         assertFalse(copy.contains("malware confirmat"))
         assertFalse(copy.contains("nu continua"))
@@ -77,6 +79,29 @@ class GateResultPresentationTest {
         assertFalse(copy.contains("json"))
         assertFalse(copy.contains("http 200"))
         assertFalse(copy.contains("asn"))
+    }
+
+    @Test
+    fun pendingScanCopyHidesProviderAndPillarJargonFromUsers() {
+        val result = gateResult(
+            GateAction.INSUFFICIENT_EVIDENCE,
+            reasonCodes = listOf("PROVIDER_REVIEW_REQUIRED"),
+            unknownReason = "PROVIDERS_PENDING_FOR_TARGET"
+        )
+        val copy = listOf(
+            result.userLabel,
+            GateResultPresentation.supportText(result),
+            GateResultPresentation.reasonText(result, null),
+            GateResultPresentation.primaryAction(result)
+        )
+            .plus(GateResultPresentation.recommendedActions(result))
+            .joinToString(" ")
+            .lowercase()
+
+        assertTrue(copy.contains("scan"))
+        listOf("web risk", "virustotal", "urlscan", "sandbox", "provider", "pilon", "tehnic").forEach { jargon ->
+            assertFalse("User-facing copy leaked '$jargon': $copy", copy.contains(jargon))
+        }
     }
 
     private fun gateResult(

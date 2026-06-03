@@ -1,0 +1,9 @@
+{
+  "caseId": "SIGS-V2-185",
+  "provider": "GOOGLE_WEB_RISK",
+  "inputUrl": "https://investitii-profit-14.test/start?campanie=Hidroelectrica%20listare%20ac%C8%9Biuni",
+  "status": "SUCCESS",
+  "mockVariant": "urlscan_malicious",
+  "threats": [],
+  "expireTime": null
+}

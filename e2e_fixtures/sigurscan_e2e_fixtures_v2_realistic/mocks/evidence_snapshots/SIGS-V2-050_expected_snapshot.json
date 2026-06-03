@@ -1,0 +1,20 @@
+{
+  "caseId": "SIGS-V2-050",
+  "expectedDecision": "DO_NOT_CONTINUE",
+  "expectedLabel": "Nu continua",
+  "groundTruthIsScam": true,
+  "primaryUrlExpected": "https://fancourier-livrare-25.test/confirmare?id=DPDRO7451102",
+  "signalsExpected": [
+    "COURIER_BRAND_CONTEXT",
+    "DELIVERY_SMALL_FEE_REQUEST",
+    "OFFICIAL_DOMAIN_MISMATCH",
+    "CARD_DATA_REQUEST",
+    "URGENCY_LANGUAGE"
+  ],
+  "sourceStatesExpected": {
+    "web_risk": "SIGS-V2-050_web_risk.json",
+    "urlscan": "SIGS-V2-050_urlscan.json",
+    "virustotal": "SIGS-V2-050_virustotal.json"
+  },
+  "notes": "Contextul real de așteptare colet nu reduce riscul."
+}

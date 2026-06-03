@@ -1,0 +1,9 @@
+{
+  "caseId": "SIGS-V2-255",
+  "provider": "GOOGLE_WEB_RISK",
+  "inputUrl": "https://newsletter.fashiondays.ro/click/test?u=https%3A%2F%2Fwww.fashiondays.ro%2F",
+  "status": "SUCCESS",
+  "mockVariant": "all_clean",
+  "threats": [],
+  "expireTime": null
+}

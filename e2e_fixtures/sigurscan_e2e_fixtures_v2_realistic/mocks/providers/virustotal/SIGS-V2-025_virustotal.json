@@ -1,0 +1,14 @@
+{
+  "caseId": "SIGS-V2-025",
+  "provider": "VIRUSTOTAL",
+  "inputUrl": "https://dpd-livrare-0.test/locker?id=CGS55392010",
+  "status": "SUCCESS",
+  "mockVariant": "urlscan_malicious",
+  "stats": {
+    "malicious": 3,
+    "suspicious": 5,
+    "undetected": 60,
+    "harmless": 14
+  },
+  "categories": []
+}

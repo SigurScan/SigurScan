@@ -1,0 +1,14 @@
+{
+  "caseId": "SIGS-V2-272",
+  "provider": "VIRUSTOTAL",
+  "inputUrl": "https://email.uber.com/ls/click?upn=test",
+  "status": "SUCCESS",
+  "mockVariant": "all_clean",
+  "stats": {
+    "malicious": 0,
+    "suspicious": 0,
+    "undetected": 72,
+    "harmless": 14
+  },
+  "categories": []
+}

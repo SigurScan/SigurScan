@@ -1,0 +1,23 @@
+{
+  "caseId": "SIGS-V2-037",
+  "provider": "URLSCAN",
+  "inputUrl": "https://fancourier-livrare-12.test/locker?id=PR457120903RO",
+  "status": "SUCCESS",
+  "mockVariant": "urlscan_malicious",
+  "finalUrl": "https://fancourier-livrare-12.test/locker?id=PR457120903RO",
+  "verdict": "malicious",
+  "screenshotAvailable": true,
+  "forms": [
+    "whatsapp_code"
+  ],
+  "redirectChain": [],
+  "server": {
+    "country": "RU",
+    "asn": "TEST-BAD-AS"
+  },
+  "certificate": {
+    "valid": true,
+    "issuer": "ZeroSSL/R3 test",
+    "ageDays": 0
+  }
+}

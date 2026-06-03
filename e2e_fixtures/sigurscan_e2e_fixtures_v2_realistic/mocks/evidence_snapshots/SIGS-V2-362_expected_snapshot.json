@@ -1,0 +1,18 @@
+{
+  "caseId": "SIGS-V2-362",
+  "expectedDecision": "CONTINUE_WITH_CAUTION",
+  "expectedLabel": "Poți continua cu prudență",
+  "groundTruthIsScam": false,
+  "primaryUrlExpected": "https://www.spotify.com/ro-ro/account/",
+  "signalsExpected": [
+    "OFFICIAL_DOMAIN_EXACT_MATCH",
+    "BILLING_LANGUAGE",
+    "NO_SENSITIVE_ASK"
+  ],
+  "sourceStatesExpected": {
+    "web_risk": "SIGS-V2-362_web_risk.json",
+    "urlscan": "SIGS-V2-362_urlscan.json",
+    "virustotal": "SIGS-V2-362_virustotal.json"
+  },
+  "notes": ""
+}

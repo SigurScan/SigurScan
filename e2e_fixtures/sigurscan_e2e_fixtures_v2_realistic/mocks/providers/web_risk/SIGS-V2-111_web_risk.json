@@ -1,0 +1,9 @@
+{
+  "caseId": "SIGS-V2-111",
+  "provider": "GOOGLE_WEB_RISK",
+  "inputUrl": null,
+  "status": "SUCCESS",
+  "mockVariant": "all_clean_structural",
+  "threats": [],
+  "expireTime": null
+}

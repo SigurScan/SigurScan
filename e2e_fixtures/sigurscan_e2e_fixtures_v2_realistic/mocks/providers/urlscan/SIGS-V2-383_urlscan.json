@@ -1,0 +1,20 @@
+{
+  "caseId": "SIGS-V2-383",
+  "provider": "URLSCAN",
+  "inputUrl": "https://www.emag.ro/promo-test",
+  "status": "SUCCESS",
+  "mockVariant": "vt_low",
+  "finalUrl": "https://www.emag.ro/promo-test",
+  "verdict": "unknown",
+  "screenshotAvailable": false,
+  "forms": [],
+  "redirectChain": [],
+  "server": {
+    "country": "RO",
+    "asn": "TEST-AS"
+  },
+  "certificate": {
+    "valid": true,
+    "issuer": "Test CA"
+  }
+}

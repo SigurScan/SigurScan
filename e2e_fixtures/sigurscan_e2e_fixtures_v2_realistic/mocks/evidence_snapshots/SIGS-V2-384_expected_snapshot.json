@@ -1,0 +1,17 @@
+{
+  "caseId": "SIGS-V2-384",
+  "expectedDecision": "INSUFFICIENT_EVIDENCE",
+  "expectedLabel": "Nu pot verifica suficient",
+  "groundTruthIsScam": false,
+  "primaryUrlExpected": "https://token-reset-11.test/reset?token=SECRET-REDACT-ME&email=test@example.com",
+  "signalsExpected": [
+    "QUERY_CONTAINS_TOKEN_OR_EMAIL",
+    "PII_REDACTION_UNSAFE"
+  ],
+  "sourceStatesExpected": {
+    "web_risk": "SIGS-V2-384_web_risk.json",
+    "urlscan": "SIGS-V2-384_urlscan.json",
+    "virustotal": "SIGS-V2-384_virustotal.json"
+  },
+  "notes": ""
+}

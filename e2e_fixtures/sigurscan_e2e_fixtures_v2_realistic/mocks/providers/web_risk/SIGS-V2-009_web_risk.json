@@ -1,0 +1,9 @@
+{
+  "caseId": "SIGS-V2-009",
+  "provider": "GOOGLE_WEB_RISK",
+  "inputUrl": "https://anaf-notificari-fiscale-8.invalid/login",
+  "status": "SUCCESS",
+  "mockVariant": "conflict_wr_clean_urlscan_bad",
+  "threats": [],
+  "expireTime": null
+}

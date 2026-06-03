@@ -1,0 +1,20 @@
+{
+  "caseId": "SIGS-V2-267",
+  "provider": "URLSCAN",
+  "inputUrl": "https://email.uber.com/ls/click?upn=test",
+  "status": "SUCCESS",
+  "mockVariant": "all_clean",
+  "finalUrl": "https://email.uber.com/ls/click?upn=test",
+  "verdict": "clean",
+  "screenshotAvailable": true,
+  "forms": [],
+  "redirectChain": [],
+  "server": {
+    "country": "RO",
+    "asn": "KNOWN-LEGIT-AS"
+  },
+  "certificate": {
+    "valid": true,
+    "issuer": "Test CA"
+  }
+}

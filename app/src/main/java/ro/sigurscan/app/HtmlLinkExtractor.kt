@@ -658,7 +658,7 @@ object HtmlLinkExtractor {
         val normalized = when {
             candidate.startsWith("https://") || candidate.startsWith("http://") -> candidate
             candidate.startsWith("//") -> "https:$candidate"
-            else -> null
+            else -> UrlTextExtractor.normalizeCandidate(candidate)
         }
 
         return normalized?.let { unwrapRedirectWrapper(it) ?: it }
@@ -912,12 +912,7 @@ object HtmlLinkExtractor {
     }
 
     private fun urlMatches(input: String): List<String> {
-        val result = mutableListOf<String>()
-        val matcher = urlRegex.matcher(input)
-        while (matcher.find()) {
-            result.add(matcher.group())
-        }
-        return result
+        return UrlTextExtractor.extract(input)
     }
 
     private fun extractMetaRefreshTarget(content: String): String? {

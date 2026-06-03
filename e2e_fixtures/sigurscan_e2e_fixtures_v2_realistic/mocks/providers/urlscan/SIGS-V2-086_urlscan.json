@@ -1,0 +1,24 @@
+{
+  "caseId": "SIGS-V2-086",
+  "provider": "URLSCAN",
+  "inputUrl": "https://whatsapp-verificare-daria-23.test/vot",
+  "status": "SUCCESS",
+  "mockVariant": "urlscan_malicious",
+  "finalUrl": "https://whatsapp-verificare-daria-23.test/vot",
+  "verdict": "malicious",
+  "screenshotAvailable": true,
+  "forms": [
+    "card",
+    "cvv"
+  ],
+  "redirectChain": [],
+  "server": {
+    "country": "HK",
+    "asn": "TEST-BAD-AS"
+  },
+  "certificate": {
+    "valid": true,
+    "issuer": "ZeroSSL/R3 test",
+    "ageDays": 4
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "caseId": "SIGS-V2-047",
+  "provider": "GOOGLE_WEB_RISK",
+  "inputUrl": "https://fancourier-livrare-22.test/locker?id=PR457120903RO",
+  "status": "SUCCESS",
+  "mockVariant": "urlscan_malicious",
+  "threats": [],
+  "expireTime": null
+}

@@ -1,0 +1,9 @@
+{
+  "caseId": "SIGS-V2-406",
+  "provider": "GOOGLE_WEB_RISK",
+  "inputUrl": "https://card-form-neoficial-33.test/pay",
+  "status": "SUCCESS",
+  "mockVariant": "conflict_urlscan_clean_structural",
+  "threats": [],
+  "expireTime": null
+}

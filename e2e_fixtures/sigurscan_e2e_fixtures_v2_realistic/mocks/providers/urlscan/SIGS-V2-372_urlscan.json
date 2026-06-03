@@ -1,0 +1,20 @@
+{
+  "caseId": "SIGS-V2-372",
+  "provider": "URLSCAN",
+  "inputUrl": "https://www.orange.ro/myaccount/",
+  "status": "SUCCESS",
+  "mockVariant": "all_clean",
+  "finalUrl": "https://www.orange.ro/myaccount/",
+  "verdict": "clean",
+  "screenshotAvailable": true,
+  "forms": [],
+  "redirectChain": [],
+  "server": {
+    "country": "RO",
+    "asn": "KNOWN-LEGIT-AS"
+  },
+  "certificate": {
+    "valid": true,
+    "issuer": "Test CA"
+  }
+}

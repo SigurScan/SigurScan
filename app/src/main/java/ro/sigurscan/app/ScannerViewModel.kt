@@ -151,6 +151,9 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
         private const val TMP_UPLOAD_PREFIX = "temp_upload_"
         private const val WEB_RISK_NO_THREAT_CACHE_MS = 10L * 60L * 1000L
         private const val WEB_RISK_THREAT_FALLBACK_CACHE_MS = 5L * 60L * 1000L
+        private const val URLSCAN_PERSONA_COUNTRY = "ro"
+        private const val URLSCAN_MOBILE_ANDROID_AGENT =
+            "Mozilla/5.0 (Linux; Android 15; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
     }
 
     var text by mutableStateOf("")
@@ -253,9 +256,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
 	            .addInterceptor(logging)
 	            .build()
 
-        val backendBaseUrl = BuildConfig.SIGURSCAN_BACKEND_BASE_URL
-            .ifBlank { "https://nudaclick-backend.vercel.app/" }
-            .let { if (it.endsWith("/")) it else "$it/" }
+        val backendBaseUrl = configuredBackendBaseUrl()
 
         Retrofit.Builder()
             .baseUrl(backendBaseUrl)
@@ -265,7 +266,18 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
             .create(SigurScanApi::class.java)
     }
 
+    private fun configuredBackendBaseUrl(): String {
+        val configured = BuildConfig.SIGURSCAN_BACKEND_BASE_URL.trim()
+        val allowed = configured.takeIf {
+            it.startsWith("https://", ignoreCase = true) ||
+                (BuildConfig.DEBUG && it.startsWith("http://", ignoreCase = true))
+        }
+        return (allowed ?: "https://offline.sigurscan.invalid/")
+            .let { if (it.endsWith("/")) it else "$it/" }
+    }
+
     init {
+        BrandKnowledgeRegistry.initialize(application)
         loadHistory()
         loadTriageState()
         loadEducationState()
@@ -282,25 +294,8 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                 val list = api.getCampaigns()
                 campaigns.clear()
                 campaigns.addAll(list)
-            } catch (e: Exception) {
-                // fallback list keeps app functional if backend is not available
+            } catch (_: Exception) {
                 campaigns.clear()
-                campaigns.add(
-                    ScamCampaign(
-                        id = "fallback-1",
-                        title = "FAN Courier: Alertă blocată",
-                        brand = "FAN Courier",
-                        riskLevel = "dangerous",
-                        description = "Campanie activă detectată în București (fallback local).",
-                        safeAction = "Accesează doar aplicația oficială FAN Courier.",
-                        scanCount = 112,
-                        lastSeen = "Acum",
-                        status = "active",
-                        region = "București",
-                        lat = 44.435,
-                        lon = 26.102
-                    )
-                )
             } finally {
                 campaignsLoading = false
             }
@@ -473,8 +468,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                     notes = "android_native"
                 ))
                 cyberScore += 5
-            } catch (e: Exception) {
-                e.printStackTrace()
+            } catch (_: Exception) {
             }
         }
     }
@@ -515,6 +509,8 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                 threatIntel = threatIntel,
                 providerStates = providerStates,
                 completeness = completeness,
+                registryVersion = BrandKnowledgeRegistry.registryVersion(),
+                corpusVersion = BrandKnowledgeRegistry.corpusVersion(),
                 virusTotalConfigured = VIRUS_TOTAL_API_KEY.isNotBlank()
             )
         )
@@ -583,10 +579,12 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                 threatIntel = threatIntel,
                 providerStates = previous.providerStates,
                 completeness = EvidenceCompleteness.PARTIAL_ONLINE,
+                registryVersion = BrandKnowledgeRegistry.registryVersion(),
+                corpusVersion = BrandKnowledgeRegistry.corpusVersion(),
                 virusTotalConfigured = VIRUS_TOTAL_API_KEY.isNotBlank()
             )
         )
-        val providerIds = setOf(ProviderId.WEB_RISK, ProviderId.URLSCAN, ProviderId.VIRUSTOTAL)
+        val providerIds = setOf(ProviderId.WEB_RISK, ProviderId.URLSCAN, ProviderId.VIRUSTOTAL, ProviderId.CLAIM_VERIFIER)
         val retainedSignals = previous.signals.filterNot { it.provider in providerIds }
         val mergedSnapshot = previous.copy(
             finalUrl = threatSnapshot.finalUrl ?: previous.finalUrl,
@@ -648,19 +646,22 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
     private fun unavailableProviderStates(): Map<ProviderId, ProviderState> = mapOf(
         ProviderId.WEB_RISK to ProviderState(ProviderId.WEB_RISK, ProviderStatus.ERROR, note = "Backend/provider unavailable"),
         ProviderId.URLSCAN to ProviderState(ProviderId.URLSCAN, ProviderStatus.ERROR, note = "Backend/provider unavailable"),
-        ProviderId.VIRUSTOTAL to ProviderState(ProviderId.VIRUSTOTAL, ProviderStatus.SKIPPED, note = "VirusTotal fallback unavailable or not configured")
+        ProviderId.VIRUSTOTAL to ProviderState(ProviderId.VIRUSTOTAL, ProviderStatus.ERROR, note = "VirusTotal unavailable or not configured"),
+        ProviderId.CLAIM_VERIFIER to ProviderState(ProviderId.CLAIM_VERIFIER, ProviderStatus.ERROR, note = "Offer/claim verification unavailable")
     )
 
     private fun pendingOnlineProviderStates(): Map<ProviderId, ProviderState> = mapOf(
         ProviderId.WEB_RISK to ProviderState(ProviderId.WEB_RISK, ProviderStatus.PENDING, note = "Backend reputation check running"),
         ProviderId.URLSCAN to ProviderState(ProviderId.URLSCAN, ProviderStatus.PENDING, note = "Sandbox preview running"),
-        ProviderId.VIRUSTOTAL to ProviderState(ProviderId.VIRUSTOTAL, ProviderStatus.SKIPPED, note = "VirusTotal runs only as fallback")
+        ProviderId.VIRUSTOTAL to ProviderState(ProviderId.VIRUSTOTAL, ProviderStatus.PENDING, note = "VirusTotal reputation check running"),
+        ProviderId.CLAIM_VERIFIER to ProviderState(ProviderId.CLAIM_VERIFIER, ProviderStatus.PENDING, note = "Offer/claim verification running")
     )
 
     private fun backendUnavailableWhileSandboxRuns(): Map<ProviderId, ProviderState> = mapOf(
         ProviderId.WEB_RISK to ProviderState(ProviderId.WEB_RISK, ProviderStatus.ERROR, note = "Backend reputation check unavailable"),
         ProviderId.URLSCAN to ProviderState(ProviderId.URLSCAN, ProviderStatus.PENDING, note = "Sandbox preview still running"),
-        ProviderId.VIRUSTOTAL to ProviderState(ProviderId.VIRUSTOTAL, ProviderStatus.SKIPPED, note = "VirusTotal fallback unavailable or not configured")
+        ProviderId.VIRUSTOTAL to ProviderState(ProviderId.VIRUSTOTAL, ProviderStatus.ERROR, note = "VirusTotal unavailable or not configured"),
+        ProviderId.CLAIM_VERIFIER to ProviderState(ProviderId.CLAIM_VERIFIER, ProviderStatus.ERROR, note = "Offer/claim verification unavailable")
     )
 
     private fun startPreliminaryUrlAssessment(rawInput: String, urls: List<String>): OfflineAssessment? {
@@ -669,10 +670,10 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
             source = "urlscan.io",
             verdict = "Pending",
             severity = "unknown",
-            details = "Preview-ul paginii finale se generează în sandbox securizat."
+            details = "Se generează captura paginii finale."
         )
         val preliminary = evaluateOfflineText(rawInput).copy(
-            serverInfo = "Preview-ul sandbox securizat se generează pe backend...",
+            serverInfo = "Se generează captura paginii finale...",
             redirectChain = listOf(primaryUrl),
             finalUrl = primaryUrl,
             reputationVerdict = "Se verifică",
@@ -727,43 +728,36 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                 null
             }
             try {
-                val trimmedText = rawInput.trim()
                 val response = when {
                     !htmlPayload.isNullOrBlank() -> api.scanEmailHtml(
                         htmlPayload,
                         activeEvidenceChannel(rawInput) ?: "android_html_share"
                     )
-                    urls.isNotEmpty() && looksLikeUrlOnly(trimmedText, urls.first()) -> api.scanUrl(UrlScanRequest(normalizeUrl(urls.first())))
+                    urls.isNotEmpty() && looksLikeUrlOnly(rawInput.trim(), urls.first()) -> {
+                        api.scanUrl(UrlScanRequest(normalizeUrl(urls.first())))
+                    }
+                    urls.isNotEmpty() -> api.scanText(ScanRequest(rawInput))
                     else -> api.scanText(ScanRequest(rawInput))
                 }
-                val normalizedText = rawInput.lowercase().trim()
-                
-                // Analizăm semnalele de sinceritate de la backend
                 val evidence = response.evidence
                 val extractedUrls = mapList(evidence?.get("extracted_urls")).ifEmpty {
                     response.extractedUrls ?: emptyList()
                 }
                 val firstUrlEntry = extractedUrls.firstOrNull()
-                
-                // Pilonul 1: Reputație Globală (Cazierul)
+
                 val intelSummary = evidence?.get("external_intel_summary") as? Map<*, *>
                 val reputation = if (intelSummary.isNullOrEmpty()) "Curat (Nicio raportare)" else "Semnalat de ${intelSummary.size} surse"
-                
-                // Pilonul 2: Vechimea Domeniului
+
                 val ageDays = (firstUrlEntry?.get("domain_age_days") as? Double)?.toInt()
                 val ageText = when {
                     ageDays == null -> "Necunoscută"
                     ageDays > 365 -> "${ageDays / 365} ani+"
                     else -> "$ageDays zile"
                 }
-                
-                // Pilonul 3: Infrastructura (SSL)
+
                 val resolvedFinalUrl = firstUrlEntry?.get("final_url")?.toString() ?: ""
-                
-                // Pilonul 4: Analiza AI
                 val aiVerdict = response.aiVerdict ?: "Analiză automată finalizată"
 
-                // Extragem lanțul de redirecționări
                 val chain = mapList(firstUrlEntry?.get("redirect_chain")).mapNotNull { it["url"]?.toString() }
                 val threatIntel = buildThreatIntel(evidence, response)
                 val threatIntelTargetUrl = resolvedFinalUrl.ifBlank {
@@ -779,19 +773,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                 val isSsl = visualEvidenceUrl.startsWith("https", ignoreCase = true)
                 val sslText = if (isSsl) "Valid (HTTPS)" else "Inexistent (HTTP)"
 
-        val offerInsight = when {
-            normalizedText.contains("iphone") || normalizedText.contains("gratuit") || normalizedText.contains("premiu") || normalizedText.contains("castigat") -> 
-                "Ofertele cu premii sau produse gratuite pot fi marketing legitim, dar devin riscante dacă trimit către domenii neoficiale sau cer plată/date personale. Verifică oferta în aplicația sau site-ul oficial."
-            normalizedText.contains("colet") || normalizedText.contains("livrare") || normalizedText.contains("awb") || normalizedText.contains("locker") ->
-                "Mesajele despre colete pot fi legitime, dar verificarea trebuie făcută pe AWB-ul din site-ul/aplicația oficială a curierului, mai ales dacă linkul cere plată sau date personale."
-            normalizedText.contains("voucher") || normalizedText.contains("card cadou") -> 
-                "Voucherele și cardurile cadou sunt frecvente în marketing real. Riscul se decide după domeniul final și datele cerute, nu doar după cuvântul voucher."
-            normalizedText.contains("punct") && normalizedText.contains("expir") ->
-                "Momeala cu 'puncte care expiră' este folosită pentru a crea panică și a te face să apeși rapid pe un link malițios fără să gândești."
-            normalizedText.contains("anaf") || normalizedText.contains("spv") || normalizedText.contains("taxa") || normalizedText.contains("rambursare") ->
-                "ANAF nu trimite niciodată solicitări de plată sau notificări de rambursare prin SMS sau link-uri externe. Orice interacțiune oficială se face doar prin portalul SPV securizat."
-            else -> response.offerAnalysis
-        }
+        val offerInsight = response.offerAnalysis
 
                 val result = OfflineAssessment(
                     scanId = preliminaryResult?.scanId ?: response.scanId,
@@ -806,11 +788,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
             safeActions = response.safeActions ?: emptyList(),
             keyDangers = response.keyDangers ?: emptyList(),
             originalText = rawInput,
-            serverInfo = if (visualEvidenceUrl.isNotBlank()) {
-                "Se pregătește preview-ul securizat al paginii finale..."
-            } else {
-                null
-            },
+            serverInfo = if (visualEvidenceUrl.isNotBlank()) "Se pregătește captura paginii finale..." else null,
             redirectChain = chain,
             finalUrl = visualEvidenceUrl.takeIf { it.isNotBlank() },
             offerAnalysis = offerInsight,
@@ -853,7 +831,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                     current = evaluateOfflineText(rawInput).copy(
                         scanId = preliminaryResult?.scanId ?: UUID.randomUUID().toString(),
                         serverInfo = if (fallbackPrimaryUrl != null) {
-                            "Verificarea reputației a întârziat. Preview-ul sandbox continuă separat."
+                            "Scanarea linkului continuă."
                         } else {
                             null
                         },
@@ -878,23 +856,13 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    private fun applyLocalMailRiskGuard(
-        current: OfflineAssessment,
-        scannedText: String
-    ): OfflineAssessment {
-        return MailEvidenceGate.apply(current, scannedText)
-    }
-
     private fun isTrustedOfficialUrl(url: String): Boolean {
         val host = runCatching {
             Uri.parse(normalizeUrl(url)).host?.lowercase(Locale.getDefault()).orEmpty()
         }.getOrDefault("")
         if (host.isBlank()) return false
 
-        return ScamRules.TRUSTED_OFFICIAL_DOMAINS.values.flatten().any { trustedDomain ->
-            val normalizedTrusted = trustedDomain.lowercase(Locale.getDefault()).removePrefix("www.")
-            host == normalizedTrusted || host.endsWith(".$normalizedTrusted")
-        }
+        return BrandKnowledgeRegistry.isOfficialHost(host)
     }
 
     private fun createSecurePrefs(application: Application): SharedPreferences {
@@ -1045,16 +1013,21 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                             source = "urlscan.io",
                             verdict = "Skipped",
                             severity = "unknown",
-                            details = "urlscan.io API key not configured."
+                            details = "Captura paginii finale nu este configurată."
                         ),
-                        serverInfo = "Preview-ul sandbox nu este configurat momentan."
+                        serverInfo = "Captura paginii finale nu este configurată momentan."
                     )
                     return@launch
                 }
 
                 val client = OkHttpClient()
                 val mediaType = "application/json".toMediaTypeOrNull()
-                val body = ThreatIntelOrchestrator.buildUrlscanSubmissionBody(url, "private").toRequestBody(mediaType)
+                val body = ThreatIntelOrchestrator.buildUrlscanSubmissionBody(
+                    url = url,
+                    visibility = "private",
+                    country = URLSCAN_PERSONA_COUNTRY,
+                    customAgent = URLSCAN_MOBILE_ANDROID_AGENT
+                ).toRequestBody(mediaType)
                 var request = okhttp3.Request.Builder()
                     .url("https://urlscan.io/api/v1/scan/")
                     .post(body)
@@ -1065,7 +1038,12 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                 var responseBody = response.body?.string()
                 if (!response.isSuccessful && response.code in listOf(400, 403, 422)) {
                     response.close()
-                    val fallbackBody = ThreatIntelOrchestrator.buildUrlscanSubmissionBody(url, "unlisted").toRequestBody(mediaType)
+                    val fallbackBody = ThreatIntelOrchestrator.buildUrlscanSubmissionBody(
+                        url = url,
+                        visibility = "unlisted",
+                        country = URLSCAN_PERSONA_COUNTRY,
+                        customAgent = URLSCAN_MOBILE_ANDROID_AGENT
+                    ).toRequestBody(mediaType)
                     request = okhttp3.Request.Builder()
                         .url("https://urlscan.io/api/v1/scan/")
                         .post(fallbackBody)
@@ -1087,9 +1065,9 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                                 source = "urlscan.io",
                                 verdict = "Pending",
                                 severity = "unknown",
-                                details = "Sandbox queued; preview-ul paginii finale se generează."
+                                details = "Se generează captura paginii finale."
                             ),
-                            serverInfo = "Preview-ul sandbox se generează pentru pagina finală...",
+                            serverInfo = "Se generează captura paginii finale...",
                             reportUrl = reportUrl,
                             finalUrl = url
                         )
@@ -1127,9 +1105,9 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                                             current = current.copy(
                                                 screenshotUrl = screenshotUrl,
                                                 serverInfo = if (screenshotUrl == null) {
-                                                    "${summary.details} Preview-ul privat nu a putut fi descărcat momentan."
+                                                    "Captura paginii finale nu a putut fi descărcată momentan."
                                                 } else {
-                                                    summary.details
+                                                    "Captura paginii finale a fost generată."
                                                 },
                                                 sandboxReportUrl = reportUrl
                                             ),
@@ -1147,9 +1125,9 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                                         source = "urlscan.io",
                                         verdict = "Pending",
                                         severity = "unknown",
-                                        details = "Sandbox processing attempt $attempts/$maxAttempts."
+                                        details = "Se generează captura paginii finale."
                                     ),
-                                    serverInfo = "Se generează dovada vizuală... (Pas $attempts/$maxAttempts)",
+                                    serverInfo = "Se generează captura paginii finale... (Pas $attempts/$maxAttempts)",
                                     reportUrl = reportUrl,
                                     finalUrl = url
                                 )
@@ -1161,9 +1139,9 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                                         source = "urlscan.io",
                                         verdict = "Error",
                                         severity = "unknown",
-                                        details = "urlscan.io result polling failed with HTTP ${checkResponse.code}."
+                                        details = "Verificarea vizuală nu a răspuns complet."
                                     ),
-                                    serverInfo = "Preview-ul vizual este cerut; detaliile sandbox nu au răspuns complet (${checkResponse.code}).",
+                                    serverInfo = "Captura paginii finale nu a răspuns complet.",
                                     reportUrl = reportUrl,
                                     finalUrl = url
                                 )
@@ -1178,9 +1156,9 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                                     source = "urlscan.io",
                                     verdict = "Timeout",
                                     severity = "unknown",
-                                    details = "urlscan.io sandbox did not finish within the mobile timeout."
+                                    details = "Captura paginii finale nu a fost gata la timp."
                                 ),
-                                serverInfo = "Preview-ul sandbox nu a fost gata la timp. Recomandarea rămâne pe dovezile disponibile.",
+                                serverInfo = "Captura paginii finale nu a fost gata la timp. Reîncearcă scanarea.",
                                 reportUrl = reportUrl,
                                 finalUrl = url
                             )
@@ -1193,9 +1171,9 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                             source = "urlscan.io",
                             verdict = "Error",
                             severity = "unknown",
-                            details = "urlscan.io scan submission failed with HTTP ${response.code}."
+                            details = "Nu am putut porni verificarea vizuală."
                         ),
-                        serverInfo = "Nu am putut porni preview-ul sandbox (${response.code}).",
+                        serverInfo = "Nu am putut porni captura paginii finale.",
                         finalUrl = url
                     )
                 }
@@ -1206,9 +1184,9 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                         source = "urlscan.io",
                         verdict = "Error",
                         severity = "unknown",
-                        details = "urlscan.io sandbox exception: ${e.javaClass.simpleName}."
+                        details = "Nu am putut genera captura paginii finale."
                     ),
-                    serverInfo = "Nu am putut genera preview-ul sandbox momentan.",
+                    serverInfo = "Nu am putut genera captura paginii finale momentan.",
                     finalUrl = url
                 )
             }
@@ -1221,6 +1199,8 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
 	                UrlscanSandboxSubmitRequest(
 	                    url = url,
 	                    visibility = "private",
+	                    country = URLSCAN_PERSONA_COUNTRY,
+	                    customagent = URLSCAN_MOBILE_ANDROID_AGENT,
 	                    sourceChannel = "android_native"
 	                )
 	            )
@@ -1234,9 +1214,9 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
 	                    source = "urlscan.io",
 	                    verdict = "Pending",
 	                    severity = "unknown",
-	                    details = "Backend sandbox queued; preview-ul paginii finale se generează."
+	                    details = "Se generează captura paginii finale."
 	                ),
-	                serverInfo = "Preview-ul sandbox securizat se generează pe backend...",
+	                serverInfo = "Se generează captura paginii finale...",
 	                reportUrl = reportUrl,
 	                screenshotUrl = null,
 	                finalUrl = url
@@ -1256,9 +1236,9 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
 	                            source = "urlscan.io",
 	                            verdict = "Pending",
 	                            severity = "unknown",
-	                            details = result.details ?: "Backend sandbox processing attempt $attempt/$maxAttempts."
+	                            details = "Se generează captura paginii finale."
 	                        ),
-	                        serverInfo = "Se generează dovada vizuală pe backend... (Pas $attempt/$maxAttempts)",
+	                        serverInfo = "Se generează captura paginii finale... (Pas $attempt/$maxAttempts)",
 	                        reportUrl = result.reportUrl ?: reportUrl,
 	                        screenshotUrl = null,
 	                        finalUrl = result.finalUrl ?: submitted.submittedUrl ?: url
@@ -1267,7 +1247,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
 	                }
 
 	                isFinished = true
-	                val details = result.details ?: "urlscan.io sandbox finished via backend."
+	                val details = result.details ?: "Captura paginii finale a fost generată."
 	                val remoteScreenshotUrl = result.screenshotUrl ?: screenshotUrl
 	                val stableScreenshotUrl = downloadSandboxScreenshotProxy(remoteScreenshotUrl) ?: remoteScreenshotUrl
 	                applySandboxThreatIntelUpdate(
@@ -1293,9 +1273,9 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
 	                        source = "urlscan.io",
 	                        verdict = "Timeout",
 	                        severity = "unknown",
-	                        details = "Backend urlscan sandbox did not finish within the mobile timeout."
+	                        details = "Captura paginii finale nu a fost gata la timp."
 	                    ),
-	                    serverInfo = "Preview-ul sandbox nu a fost gata la timp. Recomandarea rămâne pe dovezile disponibile.",
+	                    serverInfo = "Captura paginii finale nu a fost gata la timp. Scanarea poate continua după reîncercare.",
 	                    reportUrl = reportUrl,
 	                    screenshotUrl = null,
 	                    finalUrl = submitted.submittedUrl ?: url
@@ -1600,7 +1580,9 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
 
     fun onFilePicked(uri: Uri, context: Context) {
         val fileName = getFileName(uri, context)
-        val mimeType = context.contentResolver.getType(uri)?.lowercase(Locale.getDefault()) ?: ""
+        val mimeType = runCatching {
+            context.contentResolver.getType(uri)?.lowercase(Locale.getDefault()) ?: ""
+        }.getOrDefault("")
         val lowerName = fileName.lowercase(Locale.getDefault())
         val isPdf = lowerName.endsWith(".pdf") || mimeType.startsWith("application/pdf")
         val isHtml = lowerName.endsWith(".html") || lowerName.endsWith(".htm") || mimeType.startsWith("text/html")
@@ -1693,8 +1675,8 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                 assessment = applyEvidenceGate(
                     current = OfflineAssessment(
                         family = "Fișier prea mare",
-                        riskScore = 20,
-                        riskLevel = "low",
+                        riskScore = 0,
+                        riskLevel = "unknown",
                         reasons = listOf("Fișierul depășește limita de ${maxMb}MB pentru scanarea cloud."),
                         safeActions = listOf(
                             "Încarcă PDF-ul/e-mailul împărțit în secțiuni mai mici.",
@@ -1768,8 +1750,8 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                     assessment = applyEvidenceGate(
                         current = OfflineAssessment(
                             family = "Fișier prea mare",
-                            riskScore = 20,
-                            riskLevel = "low",
+                            riskScore = 0,
+                            riskLevel = "unknown",
                             reasons = listOf("Fișierul depășește limita de ${maxMb}MB pentru scanare cloud."),
                             safeActions = listOf(
                                 "Încarcă PDF-ul/e-mailul împărțit în secțiuni mai mici.",
@@ -1789,7 +1771,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                 }
 
                 if (isPdf) {
-                    loadingMsg = "Fallback local: OCR pe PDF..."
+                    loadingMsg = "Extragem textul din PDF pentru scanare..."
                     val fallback = runCatching {
                         extractTextFromPdfFallback(uri, context)
                     }.getOrNull() ?: PdfFallbackExtraction("", emptySet())
@@ -1814,12 +1796,12 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                     } else {
                         assessment = applyEvidenceGate(
                             current = OfflineAssessment(
-                                family = "Document suspect",
-                                riskScore = 40,
-                                riskLevel = "medium",
-                                reasons = listOf("Nu s-a putut analiza cloud, iar OCR-ul local nu a extras text din PDF."),
-                                safeActions = listOf("Nu deschideți documentul dacă provine dintr-o sursă nesigură."),
-                                keyDangers = listOf("Posibil malware sau link-uri ascunse."),
+                                family = "Scanare incompletă",
+                                riskScore = 0,
+                                riskLevel = "unknown",
+                                reasons = listOf("Nu s-a putut analiza cloud, iar OCR-ul nu a extras text verificabil din PDF."),
+                                safeActions = listOf("Reîncearcă scanarea sau trimite un PDF cu text/linkuri detectabile."),
+                                keyDangers = listOf("Nu avem suficiente dovezi tehnice pentru verdict."),
                                 originalText = "Eroare la analiza locală a documentului PDF."
                             ),
                             rawInput = "PDF fără text OCR verificabil: $fileName",
@@ -1832,12 +1814,12 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                 } else {
                     assessment = applyEvidenceGate(
                         current = OfflineAssessment(
-                            family = "Document suspect",
-                            riskScore = 40,
-                            riskLevel = "medium",
-                            reasons = listOf("Nu s-a putut analiza cloud, dar fișierul a fost interceptat."),
-                            safeActions = listOf("Nu deschideți documentul dacă provine dintr-o sursă nesigură."),
-                            keyDangers = listOf("Posibil malware sau link-uri ascunse."),
+                            family = "Scanare incompletă",
+                            riskScore = 0,
+                            riskLevel = "unknown",
+                            reasons = listOf("Nu s-a putut finaliza scanarea cloud a fișierului."),
+                            safeActions = listOf("Reîncearcă scanarea când conexiunea este disponibilă."),
+                            keyDangers = listOf("Nu avem suficiente dovezi tehnice pentru verdict."),
                             originalText = "Eroare conexiune server."
                         ),
                         rawInput = "Eroare conexiune server pentru fișier: $fileName",
@@ -1856,10 +1838,12 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
 
     private fun getFileName(uri: Uri, context: Context): String {
         var name = "document"
-        val cursor = context.contentResolver.query(uri, null, null, null, null)
+        val cursor = runCatching {
+            context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+        }.getOrNull()
         cursor?.use {
             if (it.moveToFirst()) {
-                val nameIndex = it.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                val nameIndex = it.getColumnIndex(OpenableColumns.DISPLAY_NAME)
                 if (nameIndex != -1) name = it.getString(nameIndex)
             }
         }
@@ -1963,7 +1947,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
         return when {
             candidate.startsWith("https://") || candidate.startsWith("http://") -> candidate
             candidate.startsWith("//") -> "https:$candidate"
-            else -> null
+            else -> UrlTextExtractor.normalizeCandidate(candidate)
         }
     }
 
@@ -2011,7 +1995,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                 source = "SigurScan Backend",
                 verdict = response.riskLevel.uppercase(Locale.getDefault()),
                 severity = response.riskLevel,
-                details = "Scor risc ${response.riskScore}%. ${response.detectedFamily ?: "Familie nespecificată"}"
+                details = "Analiza principală a fost primită."
             )
         )
 
@@ -2023,7 +2007,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                 ?: rawPayload?.toString()?.take(80)
                 ?: "raport primit"
             val severity = firstString(payload, "severity", "risk_level", "level") ?: inferSeverity(verdict)
-            val details = firstString(payload, "details", "description", "message", "summary")
+            val details = threatIntelDetails(payload)
             results.add(
                 ThreatIntelSourceResult(
                     source = source.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() },
@@ -2034,7 +2018,55 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
             )
         }
 
+        val claimPayload = firstMap(
+            evidence,
+            "offer_claim_verification",
+            "claim_verification",
+            "offer_claim",
+            "claim_verifier"
+        )
+        if (claimPayload != null && results.none { providerSourceKeyForScan(it.source).contains("offerclaim") || providerSourceKeyForScan(it.source).contains("aiofferwebcheck") }) {
+            val verdict = firstString(
+                claimPayload,
+                "verdict",
+                "status",
+                "result",
+                "claim_status",
+                "official_source_found"
+            ) ?: "inconclusive"
+            val details = threatIntelDetails(claimPayload)
+            results.add(
+                ThreatIntelSourceResult(
+                    source = "ai_offer_web_check",
+                    verdict = verdict,
+                    severity = inferSeverity(verdict),
+                    details = details
+                )
+            )
+        }
+
         return results.distinctBy { it.source.lowercase(Locale.getDefault()) }
+    }
+
+    private fun threatIntelDetails(payload: Map<*, *>?): String? {
+        if (payload == null) return null
+        val base = firstString(payload, "details", "description", "message", "summary", "source_url")
+        val officialDomains = (payload["official_domains"] as? List<*>)
+            ?.mapNotNull { it?.toString()?.takeIf { value -> value.isNotBlank() } }
+            ?.joinToString(",")
+        val officialSourceFound = payload["official_source_found"]?.toString()
+        return listOfNotNull(
+            base,
+            officialDomains?.let { "official_domains=$it" },
+            officialSourceFound?.let { "official_source_found=$it" }
+        ).joinToString("; ").takeIf { it.isNotBlank() }
+    }
+
+    private fun firstMap(map: Map<String, Any>?, vararg keys: String): Map<*, *>? {
+        if (map == null) return null
+        return keys.firstNotNullOfOrNull { key ->
+            map[key] as? Map<*, *>
+        }
     }
 
     private fun firstString(map: Map<*, *>?, vararg keys: String): String? {
@@ -2042,6 +2074,10 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
         return keys.firstNotNullOfOrNull { key ->
             map[key]?.toString()?.trim()?.takeIf { it.isNotBlank() && it != "null" }
         }
+    }
+
+    private fun providerSourceKeyForScan(value: String): String {
+        return value.lowercase(Locale.US).filter { it.isLetterOrDigit() }
     }
 
     private fun inferSeverity(value: String): String {
@@ -2162,25 +2198,8 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
         val webRisk = async { fetchGoogleWebRiskThreatIntel(url) }.await()
         webRisk?.let { result = upsertThreatIntel(result, it).toMutableList() }
 
-        if (ThreatIntelOrchestrator.shouldRunVirusTotal(riskLevel, result, webRisk)) {
-            fetchVirusTotalThreatIntel(url)?.let {
-                result = upsertThreatIntel(result, it).toMutableList()
-            }
-        }
-
-        if (result.size == existingThreatIntel.size && (riskLevel == "high" || riskLevel == "critical")) {
-            // fallback safety net: păstrăm o opinie de risc conservatoare dacă serviciile nu sunt disponibile
-            if (VIRUS_TOTAL_API_KEY.isBlank() && GOOGLE_WEB_RISK_API_KEY.isBlank()) {
-                result = upsertThreatIntel(
-                    result,
-                    ThreatIntelSourceResult(
-                        source = "Threat Intel (local)",
-                        verdict = "Informații limitate",
-                        severity = "medium",
-                        details = "Fără răspuns de la servicii externe pentru acest URL. Fii precaut dacă URL-ul e nou sau nu este de încredere."
-                    )
-                ).toMutableList()
-            }
+        fetchVirusTotalThreatIntel(url)?.let {
+            result = upsertThreatIntel(result, it).toMutableList()
         }
 
         return@coroutineScope result.distinctBy { it.source.lowercase(Locale.getDefault()) }
@@ -2505,13 +2524,15 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private fun queryContentSize(uri: Uri, context: Context): Long? {
-        val cursor = context.contentResolver.query(
-            uri,
-            arrayOf(OpenableColumns.SIZE),
-            null,
-            null,
-            null
-        )
+        val cursor = runCatching {
+            context.contentResolver.query(
+                uri,
+                arrayOf(OpenableColumns.SIZE),
+                null,
+                null,
+                null
+            )
+        }.getOrNull()
         cursor?.use {
             if (!it.moveToFirst()) return null
             val sizeIndex = it.getColumnIndex(OpenableColumns.SIZE)
@@ -2534,101 +2555,34 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private fun evaluateOfflineText(scannedText: String): OfflineAssessment {
-        val normalized = scannedText.lowercase().trim()
         val urls = extractUrls(scannedText)
-        
-        var bestMatch: OfflineRule? = null
-        var bestScore = 0
-        val detectReasons = mutableListOf<String>()
 
-        val urgencyWords = listOf("urgent", "imediat", "acum", "24h", "suspendat", "expira", "atentie", "important")
-        val matchedUrgency = urgencyWords.filter { normalized.contains(it) }
-        if (matchedUrgency.isNotEmpty()) {
-            bestScore += 15
-            detectReasons.add("Detectat ton de urgență ridicată (${matchedUrgency.first()}).")
-        }
-
-        ScamRules.OFFLINE_RULES.forEach { rule ->
-            val matchedKeywords = rule.keywords.filter { normalized.contains(it.lowercase()) }
-            if (matchedKeywords.isNotEmpty()) {
-                var score = rule.baseScore + matchedKeywords.size * 5
-                val matchedHighSignals = rule.highSignals.filter { normalized.contains(it.lowercase()) }
-                score += matchedHighSignals.size * 10
-                val suspiciousDomain = urls.any { url -> 
-                    rule.suspiciousDomains.any { url.contains(it) } 
-                }
-                if (suspiciousDomain) score += 20
-
-                if (score > bestScore) {
-                    bestScore = score
-                    bestMatch = rule
-                }
-            }
-        }
-
-        // Generic link risk if no brand matches
-        if (bestMatch == null && urls.isNotEmpty()) {
-            val isWhitelisted = urls.any { url ->
-                ScamRules.TRUSTED_OFFICIAL_DOMAINS.values.flatten().any { url.contains(it) }
-            }
-            if (isWhitelisted) {
-                bestScore = 5
+        return OfflineAssessment(
+            family = if (urls.isNotEmpty()) "Scanare în curs" else "Scanare incompletă",
+            riskScore = 0,
+            riskLevel = "unknown",
+            reasons = if (urls.isNotEmpty()) {
+                listOf("Se scanează linkul. Revenim cu verdictul după verificare.")
             } else {
-                bestScore += 25
-                if (normalized.contains("urgent") || normalized.contains("plata")) bestScore += 20
-            }
-        }
-
-        val offerInsight = when {
-            normalized.contains("iphone") || normalized.contains("gratuit") || normalized.contains("premiu") || normalized.contains("castigat") -> 
-                "Ofertele cu premii sau produse gratuite pot fi marketing legitim, dar devin riscante dacă trimit către domenii neoficiale sau cer plată/date personale. Verifică oferta în aplicația sau site-ul oficial."
-            normalized.contains("colet") || normalized.contains("livrare") || normalized.contains("awb") || normalized.contains("locker") || normalized.contains("fancourier") || normalized.contains("posta") ->
-                "Mesajele despre colete pot fi legitime, dar verificarea trebuie făcută pe AWB-ul din site-ul/aplicația oficială a curierului, mai ales dacă linkul cere plată sau date personale."
-            normalized.contains("voucher") || normalized.contains("card cadou") -> 
-                "Voucherele și cardurile cadou sunt frecvente în marketing real. Riscul se decide după domeniul final și datele cerute, nu doar după cuvântul voucher."
-            normalized.contains("punct") && normalized.contains("expir") ->
-                "Momeala cu 'puncte care expiră' este folosită pentru a crea panică și a te face să apeși rapid pe un link malițios fără să gândești."
-            normalized.contains("anaf") || normalized.contains("spv") || normalized.contains("taxa") || normalized.contains("rambursare") ->
-                "ANAF nu trimite niciodată solicitări de plată sau notificări de rambursare prin SMS sau link-uri externe. Orice interacțiune oficială se face doar prin portalul SPV securizat."
-            else -> null
-        }
-
-        val preliminary = OfflineAssessment(
-            family = bestMatch?.family ?: if (urls.isNotEmpty()) {
-                when {
-                    bestScore <= 10 -> "Link cu risc scăzut"
-                    bestScore <= 30 -> "Analiză Link Extern"
-                    else -> "Link Suspect"
-                }
-            } else "Necunoscut",
-            riskScore = Math.min(100, bestScore),
-            riskLevel = when {
-                bestScore >= 70 -> "high"
-                bestScore >= 45 -> "medium"
-                else -> "low"
+                listOf("Nu am găsit un link complet pentru scanare.")
             },
-            reasons = (bestMatch?.reasons ?: emptyList()) + detectReasons,
-            safeActions = when {
-                bestScore <= 10 -> listOf("Nu am găsit semnale cunoscute de risc.", "Poți continua cu prudență dacă recunoști expeditorul.")
-                bestScore <= 30 -> listOf("Acesta este un link către o sursă externă care nu prezintă semnale evidente de risc.", "Verificați manual dacă recunoașteți expeditorul.")
-                else -> (bestMatch?.safeActions ?: listOf("Verificați manual sursa.", "Nu trimiteți date de autentificare sau card."))
-            },
-            keyDangers = when {
-                bestScore <= 10 -> listOf("Nu am găsit semnale cunoscute de risc.")
-                bestScore <= 30 -> listOf("Informații limitate despre acest domeniu.")
-                else -> (bestMatch?.keyDangers ?: listOf("Posibil conținut dubios."))
-            },
+            safeActions = listOf(
+                "Așteaptă finalizarea scanării.",
+                "Nu introduce date până nu primești verdictul."
+            ),
+            keyDangers = emptyList(),
             originalText = scannedText,
-            offerAnalysis = offerInsight
+            offerAnalysis = null
         )
-        return OfflineRiskPolicy.applyEvidenceCap(preliminary, scannedText)
     }
 
     fun onCommunityReport() {
         viewModelScope.launch {
             try {
                 val current = assessment ?: return@launch
-                val hash = MessageDigest.getInstance("MD5").digest(current.originalText.toByteArray()).joinToString("") { "%02x".format(it) }
+                val hash = MessageDigest.getInstance("SHA-256")
+                    .digest(current.originalText.toByteArray(StandardCharsets.UTF_8))
+                    .joinToString("") { "%02x".format(it) }
                 val report = CommunityReport(
                     hash = hash,
                     riskLevel = current.riskLevel,
@@ -2636,24 +2590,21 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                 )
                 api.sendCommunityReport(report)
                 cyberScore += 20
-            } catch (e: Exception) {
-                e.printStackTrace()
+            } catch (_: Exception) {
             }
         }
     }
 
     private fun extractUrls(input: String): List<String> {
-        val matcher = URL_REGEX.matcher(input)
-        val urls = mutableListOf<String>()
-        while (matcher.find()) {
-            urls.add(matcher.group())
-        }
-        return urls
+        return UrlTextExtractor.extract(input)
     }
 
     private fun looksLikeUrlOnly(input: String, firstUrl: String): Boolean {
         val normalizedInput = input.removeSuffix(".").removeSuffix(",")
         if (normalizedInput.any { it.isWhitespace() }) return false
+        UrlTextExtractor.normalizeCandidate(normalizedInput)?.let { normalized ->
+            if (normalized.equals(firstUrl, ignoreCase = true)) return true
+        }
         return normalizedInput.equals(firstUrl, ignoreCase = true) ||
                 normalizedInput.startsWith("http://", ignoreCase = true) ||
                 normalizedInput.startsWith("https://", ignoreCase = true) ||

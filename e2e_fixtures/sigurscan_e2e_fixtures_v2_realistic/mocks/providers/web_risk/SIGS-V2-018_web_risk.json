@@ -1,0 +1,9 @@
+{
+  "caseId": "SIGS-V2-018",
+  "provider": "GOOGLE_WEB_RISK",
+  "inputUrl": "https://anaf-ro-spv-17.test/validare?session=redacted",
+  "status": "SUCCESS",
+  "mockVariant": "conflict_wr_clean_urlscan_bad",
+  "threats": [],
+  "expireTime": null
+}

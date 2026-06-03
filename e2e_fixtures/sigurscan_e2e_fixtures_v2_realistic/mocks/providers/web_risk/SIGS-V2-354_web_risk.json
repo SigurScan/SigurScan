@@ -1,0 +1,9 @@
+{
+  "caseId": "SIGS-V2-354",
+  "provider": "GOOGLE_WEB_RISK",
+  "inputUrl": "https://www.spotify.com/ro-ro/account/",
+  "status": "SUCCESS",
+  "mockVariant": "all_clean",
+  "threats": [],
+  "expireTime": null
+}

@@ -1,0 +1,23 @@
+{
+  "caseId": "SIGS-V2-170",
+  "provider": "URLSCAN",
+  "inputUrl": "https://raiffeisen-securitate-cont-27.test/login/confirmare",
+  "status": "SUCCESS",
+  "mockVariant": "conflict_wr_clean_urlscan_bad",
+  "finalUrl": "https://raiffeisen-securitate-cont-27.test/login/confirmare",
+  "verdict": "malicious",
+  "screenshotAvailable": true,
+  "forms": [
+    "apk_download"
+  ],
+  "redirectChain": [],
+  "server": {
+    "country": "VN",
+    "asn": "TEST-BAD-AS"
+  },
+  "certificate": {
+    "valid": true,
+    "issuer": "ZeroSSL/R3 test",
+    "ageDays": 2
+  }
+}

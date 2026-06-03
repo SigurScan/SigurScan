@@ -1,0 +1,20 @@
+{
+  "caseId": "SIGS-V2-129",
+  "expectedDecision": "NO_REPLY",
+  "expectedLabel": "Nu răspunde",
+  "groundTruthIsScam": true,
+  "primaryUrlExpected": null,
+  "signalsExpected": [
+    "OFFICIAL_AUTHORITY_CHAIN",
+    "FRAUDULENT_CREDIT_CLAIM",
+    "SAFE_ACCOUNT_TRANSFER_REQUEST",
+    "CONFIDENTIALITY_PRESSURE",
+    "REMOTE_ACCESS_APP_REQUEST"
+  ],
+  "sourceStatesExpected": {
+    "web_risk": "SIGS-V2-129_web_risk.json",
+    "urlscan": "SIGS-V2-129_urlscan.json",
+    "virustotal": "SIGS-V2-129_virustotal.json"
+  },
+  "notes": ""
+}

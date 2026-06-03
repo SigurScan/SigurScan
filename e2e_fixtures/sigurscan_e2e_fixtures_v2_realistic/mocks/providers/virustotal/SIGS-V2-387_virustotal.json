@@ -1,0 +1,14 @@
+{
+  "caseId": "SIGS-V2-387",
+  "provider": "VIRUSTOTAL",
+  "inputUrl": "https://short-link-necunoscut-14.test/aBcd",
+  "status": "TIMEOUT",
+  "mockVariant": "urlscan_timeout",
+  "stats": {
+    "malicious": 0,
+    "suspicious": 0,
+    "undetected": 72,
+    "harmless": 14
+  },
+  "categories": []
+}

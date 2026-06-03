@@ -2,85 +2,11 @@ package ro.sigurscan.app
 
 import org.junit.Test
 import org.junit.Assert.*
-import java.util.regex.Pattern
 
 class ScannerViewModelTest {
 
-    private val URL_REGEX = Pattern.compile("(?:https?://|www\\.)[\\w\\-.~:/?#\\[\\]@!$&'()*+,;=%]+", Pattern.CASE_INSENSITIVE)
-
-    private fun evaluateOfflineText(scannedText: String): Pair<String, Int> {
-        val normalized = scannedText.lowercase().trim()
-        val urls = extractUrls(scannedText)
-        
-        var bestMatch: OfflineRule? = null
-        var bestScore = 0
-
-        val urgencyWords = listOf("urgent", "imediat", "acum", "24h", "suspendat", "expira", "atentie", "important")
-        val matchedUrgency = urgencyWords.filter { normalized.contains(it) }
-        if (matchedUrgency.isNotEmpty()) {
-            bestScore += 15
-        }
-
-        ScamRules.OFFLINE_RULES.forEach { rule ->
-            val matchedKeywords = rule.keywords.filter { normalized.contains(it.lowercase()) }
-            if (matchedKeywords.isNotEmpty()) {
-                var score = rule.baseScore + matchedKeywords.size * 5
-                val matchedHighSignals = rule.highSignals.filter { normalized.contains(it.lowercase()) }
-                score += matchedHighSignals.size * 10
-                val suspiciousDomain = urls.any { url -> 
-                    rule.suspiciousDomains.any { url.contains(it) } 
-                }
-                if (suspiciousDomain) score += 20
-
-                if (score > bestScore) {
-                    bestScore = score
-                    bestMatch = rule
-                }
-            }
-        }
-
-        if (bestMatch == null && urls.isNotEmpty()) {
-            bestScore += 25
-            if (normalized.contains("urgent") || normalized.contains("plata")) bestScore += 20
-        }
-
-        val riskLevel = when {
-            bestScore >= 70 -> "high"
-            bestScore >= 45 -> "medium"
-            else -> "low"
-        }
-
-        return Pair(riskLevel, Math.min(100, bestScore))
-    }
-
-    private fun extractUrls(input: String): List<String> {
-        val matcher = URL_REGEX.matcher(input)
-        val urls = mutableListOf<String>()
-        while (matcher.find()) {
-            urls.add(matcher.group())
-        }
-        return urls
-    }
-
     private fun extractHtmlLinks(content: String): List<String> {
         return HtmlLinkExtractor.extractHtmlLinks(content)
-    }
-
-    @Test
-    fun testFanCourierScam() {
-        val message = "FAN Courier: Coletul tau nr. 123456 a ajuns la locker. Plateste taxa de 5 RON aici: https://fancourier-plata.ru"
-        val (level, score) = evaluateOfflineText(message)
-        assertEquals("high", level)
-        assertTrue(score >= 78)
-    }
-
-    @Test
-    fun testUrgencyDetection() {
-        val message = "Contul tau este SUSPENDAT! Actioneaza ACUM: http://scam.ru"
-        val (_, score) = evaluateOfflineText(message)
-        // Base for link (25) + urgency "suspendat" (15) = 40.
-        // Wait, 40 is medium. To be high it needs more.
-        assertTrue("Score: $score", score >= 40)
     }
 
     @Test
@@ -331,11 +257,4 @@ class ScannerViewModelTest {
         assertTrue(links.contains("https://alias-link.example.com/safe"))
     }
 
-    @Test
-    fun testNormalMessage() {
-        val message = "Salut! Ce mai faci? Ne vedem diseara la fotbal?"
-        val (level, score) = evaluateOfflineText(message)
-        assertEquals("low", level)
-        assertTrue(score < 45)
-    }
 }

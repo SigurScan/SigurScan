@@ -1,0 +1,9 @@
+{
+  "caseId": "SIGS-V2-364",
+  "provider": "GOOGLE_WEB_RISK",
+  "inputUrl": "https://play.google.com/store/account",
+  "status": "SUCCESS",
+  "mockVariant": "all_clean",
+  "threats": [],
+  "expireTime": null
+}

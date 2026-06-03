@@ -1,0 +1,9 @@
+{
+  "caseId": "SIGS-V2-357",
+  "provider": "GOOGLE_WEB_RISK",
+  "inputUrl": "https://www.eon.ro/",
+  "status": "SUCCESS",
+  "mockVariant": "all_clean",
+  "threats": [],
+  "expireTime": null
+}

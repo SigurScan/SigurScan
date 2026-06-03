@@ -81,7 +81,7 @@ class EvidenceSignalNormalizerTest {
         val snapshot = normalize(rawText = html, htmlContent = html)
 
         assertCodes(snapshot, EvidenceCode.HTML_BUTTON_LINK, EvidenceCode.HIDDEN_LINK_PRESENT)
-        assertEquals(GateAction.VERIFY_OFFICIAL, gate.evaluate(snapshot).action)
+        assertEquals(GateAction.INSUFFICIENT_EVIDENCE, gate.evaluate(snapshot).action)
     }
 
     @Test
@@ -91,7 +91,7 @@ class EvidenceSignalNormalizerTest {
         )
 
         assertCodes(snapshot, EvidenceCode.FAMILY_NEW_PHONE_MONEY, EvidenceCode.MONEY_REQUEST)
-        assertEquals(GateAction.NO_REPLY, gate.evaluate(snapshot).action)
+        assertEquals(GateAction.INSUFFICIENT_EVIDENCE, gate.evaluate(snapshot).action)
     }
 
     @Test
@@ -101,7 +101,7 @@ class EvidenceSignalNormalizerTest {
         )
 
         assertCodes(snapshot, EvidenceCode.WHATSAPP_CODE_REQUEST, EvidenceCode.WHATSAPP_DEVICE_LINKING_REQUEST)
-        assertEquals(GateAction.NO_REPLY, gate.evaluate(snapshot).action)
+        assertEquals(GateAction.INSUFFICIENT_EVIDENCE, gate.evaluate(snapshot).action)
     }
 
     @Test
@@ -118,7 +118,7 @@ class EvidenceSignalNormalizerTest {
             </html>
         """.trimIndent()
 
-        val snapshot = normalize(rawText = html, htmlContent = html)
+        val snapshot = normalize(rawText = html, htmlContent = html, providerStates = completedUrlProviderStates())
 
         assertCodes(
             snapshot,
@@ -154,7 +154,8 @@ class EvidenceSignalNormalizerTest {
                     severity = "low",
                     details = "URL fara semnale in baza Google Web Risk."
                 )
-            )
+            ),
+            providerStates = completedUrlProviderStates()
         )
 
         assertCodes(snapshot, EvidenceCode.WEBRISK_NO_MATCH, EvidenceCode.SENSITIVE_FORM_UNOFFICIAL)
@@ -174,7 +175,8 @@ class EvidenceSignalNormalizerTest {
                     severity = "high",
                     details = "SOCIAL_ENGINEERING"
                 )
-            )
+            ),
+            providerStates = completedUrlProviderStates()
         )
 
         assertCodes(snapshot, EvidenceCode.WEBRISK_MATCH_SOCIAL_ENGINEERING)
@@ -197,7 +199,7 @@ class EvidenceSignalNormalizerTest {
             </html>
         """.trimIndent()
 
-        val snapshot = normalize(rawText = html, htmlContent = html)
+        val snapshot = normalize(rawText = html, htmlContent = html, providerStates = completedUrlProviderStates())
 
         assertCodes(
             snapshot,
@@ -223,7 +225,8 @@ class EvidenceSignalNormalizerTest {
                     severity = "high",
                     details = "Sandbox verdict: phishing"
                 )
-            )
+            ),
+            providerStates = completedUrlProviderStates()
         )
 
         assertCodes(snapshot, EvidenceCode.URLSCAN_VERDICT_PHISHING)
@@ -391,7 +394,8 @@ class EvidenceSignalNormalizerTest {
                     details = "Engines: total=70, malicious=4, suspicious=1"
                 )
             ),
-            virusTotalConfigured = true
+            virusTotalConfigured = true,
+            providerStates = completedUrlProviderStates()
         )
 
         assertCodes(snapshot, EvidenceCode.VIRUSTOTAL_MALICIOUS_CONSENSUS)
@@ -405,7 +409,218 @@ class EvidenceSignalNormalizerTest {
         )
 
         assertCodes(snapshot, EvidenceCode.MARKETPLACE_RECEIVE_MONEY, EvidenceCode.CARD_REQUEST, EvidenceCode.OTP_REQUEST)
-        assertEquals(GateAction.NO_ENTER_DATA, gate.evaluate(snapshot).action)
+        assertEquals(GateAction.INSUFFICIENT_EVIDENCE, gate.evaluate(snapshot).action)
+    }
+
+    @Test
+    fun bareDomainInRealYoxoSmsIsExtractedAsScanTarget() {
+        val snapshot = normalize(
+            rawText = """
+                Ai un telefon sau o tableta pe care nu le mai folosesti? Acum le poti transforma rapid in bani cu serviciul de buy-back YOXO. Beneficiezi de evaluare online in doar cateva minute, transport gratuit si plata in cont in maximum 48 de ore de la confirmarea dispozitivului. Simplu, sigur si fara batai de cap. Afla cat valoreaza dispozitivul tau si incepe procesul chiar acum: buyback.yoxo.ro
+            """.trimIndent()
+        )
+
+        assertEquals("https://buyback.yoxo.ro", snapshot.primaryUrl)
+        assertCodes(snapshot, EvidenceCode.OFFICIAL_DOMAIN_EXACT)
+    }
+
+    @Test
+    fun yoxoBuybackSmsWithCleanProvidersOfficialDomainAndInconclusiveClaimIsSafe() {
+        val snapshot = normalize(
+            rawText = "Ai un telefon sau o tableta pe care nu le mai folosesti? Acum le poti transforma rapid in bani cu serviciul de buy-back YOXO. Afla cat valoreaza dispozitivul tau si incepe procesul chiar acum: buyback.yoxo.ro",
+            primaryUrl = "https://buyback.yoxo.ro/",
+            finalUrl = "https://buyback.yoxo.ro/?r=1",
+            threatIntel = listOf(
+                ThreatIntelSourceResult(
+                    source = "google_web_risk",
+                    verdict = "No Threats",
+                    severity = "low"
+                ),
+                ThreatIntelSourceResult(
+                    source = "urlscan.io",
+                    verdict = "No malicious classification",
+                    severity = "low"
+                ),
+                ThreatIntelSourceResult(
+                    source = "VirusTotal",
+                    verdict = "Clean",
+                    severity = "low"
+                ),
+                ThreatIntelSourceResult(
+                    source = "ai_offer_web_check",
+                    verdict = "inconclusive",
+                    severity = "unknown"
+                )
+            ),
+            virusTotalConfigured = true
+        )
+
+        assertCodes(
+            snapshot,
+            EvidenceCode.WEBRISK_NO_MATCH,
+            EvidenceCode.URLSCAN_NO_CLASSIFICATION,
+            EvidenceCode.VIRUSTOTAL_LOW_OR_NO_DETECTION,
+            EvidenceCode.OFFER_CLAIM_INCONCLUSIVE,
+            EvidenceCode.OFFICIAL_DOMAIN_EXACT,
+            EvidenceCode.NO_SENSITIVE_FORM
+        )
+        val result = gate.evaluate(snapshot)
+        assertEquals(GateAction.CONTINUE_WITH_CAUTION, result.action)
+        assertEquals("Sigur", result.userLabel)
+    }
+
+    @Test
+    fun idroidServiceSmsWithCleanProvidersAndConfirmedOfficialClaimIsSafe() {
+        val snapshot = normalize(
+            rawText = "Dispozitivul dvs. (cod 8HXDX) nu a putut fi reparat. Informatii la 0371237475. https://idroid.ro/verificare-status Se percepe taxa de magazinaj la depasirea a 10 zile.",
+            primaryUrl = "https://idroid.ro/verificare-status",
+            finalUrl = "https://idroid.ro/verifica-status/",
+            threatIntel = listOf(
+                ThreatIntelSourceResult(
+                    source = "google_web_risk",
+                    verdict = "clean",
+                    severity = "low"
+                ),
+                ThreatIntelSourceResult(
+                    source = "urlscan.io",
+                    verdict = "No malicious classification",
+                    severity = "low"
+                ),
+                ThreatIntelSourceResult(
+                    source = "VirusTotal",
+                    verdict = "clean",
+                    severity = "low"
+                ),
+                ThreatIntelSourceResult(
+                    source = "ai_offer_web_check",
+                    verdict = "confirmed",
+                    severity = "low",
+                    details = "official_source_found=true; official_domains=idroid.ro; Claim terms were found on an official destination/page."
+                )
+            ),
+            virusTotalConfigured = true
+        )
+
+        assertCodes(
+            snapshot,
+            EvidenceCode.WEBRISK_NO_MATCH,
+            EvidenceCode.URLSCAN_NO_CLASSIFICATION,
+            EvidenceCode.VIRUSTOTAL_LOW_OR_NO_DETECTION,
+            EvidenceCode.OFFER_CLAIM_CONFIRMED,
+            EvidenceCode.OFFICIAL_DOMAIN_EXACT,
+            EvidenceCode.NO_SENSITIVE_FORM
+        )
+        val result = gate.evaluate(snapshot)
+        assertEquals(GateAction.CONTINUE_WITH_CAUTION, result.action)
+        assertEquals("Sigur", result.userLabel)
+    }
+
+    @Test
+    fun idroidServiceSmsWithCleanUrlProvidersButMissingClaimVerifierStaysSuspect() {
+        val snapshot = normalize(
+            rawText = "Dispozitivul dvs. (cod 8HXDX) nu a putut fi reparat. Informatii la 0371237475. https://idroid.ro/verificare-status Se percepe taxa de magazinaj la depasirea a 10 zile.",
+            primaryUrl = "https://idroid.ro/verificare-status",
+            finalUrl = "https://idroid.ro/verifica-status/",
+            threatIntel = listOf(
+                ThreatIntelSourceResult(
+                    source = "google_web_risk",
+                    verdict = "clean",
+                    severity = "low"
+                ),
+                ThreatIntelSourceResult(
+                    source = "urlscan.io",
+                    verdict = "No malicious classification",
+                    severity = "low"
+                ),
+                ThreatIntelSourceResult(
+                    source = "VirusTotal",
+                    verdict = "clean",
+                    severity = "low"
+                )
+            ),
+            virusTotalConfigured = true
+        )
+
+        assertCodes(
+            snapshot,
+            EvidenceCode.WEBRISK_NO_MATCH,
+            EvidenceCode.URLSCAN_NO_CLASSIFICATION,
+            EvidenceCode.VIRUSTOTAL_LOW_OR_NO_DETECTION,
+            EvidenceCode.OFFICIAL_DOMAIN_EXACT,
+            EvidenceCode.NO_SENSITIVE_FORM
+        )
+        val result = gate.evaluate(snapshot)
+        assertEquals(GateAction.INSUFFICIENT_EVIDENCE, result.action)
+        assertEquals("Suspect", result.userLabel)
+        assertTrue(result.reasonCodes.contains("PROVIDER_REVIEW_REQUIRED"))
+    }
+
+    @Test
+    fun fanCourierWhatsappCardScenarioIncludesRuntimeCorpusBrandWarning() {
+        val snapshot = normalize(
+            rawText = "FAN Courier: colet la locker. Pentru ridicare intra pe link si introdu codul WhatsApp, cardul si CVV.",
+            primaryUrl = "https://fan-locker.example.test/card",
+            finalUrl = "https://fan-locker.example.test/card",
+            providerStates = completedUrlProviderStates()
+        )
+
+        assertCodes(
+            snapshot,
+            EvidenceCode.CORPUS_BRAND_WARNING,
+            EvidenceCode.COURIER_UNOFFICIAL_DOMAIN,
+            EvidenceCode.PARCEL_TAX,
+            EvidenceCode.CARD_REQUEST,
+            EvidenceCode.CVV_REQUEST,
+            EvidenceCode.OTP_REQUEST
+        )
+        assertTrue(snapshot.signals.any { signal ->
+            signal.code == EvidenceCode.CORPUS_BRAND_WARNING &&
+                signal.brandId == "fanCourier" &&
+                signal.attrs["neverAskFor"]?.contains("CARD_DATA") == true
+        })
+        assertEquals(GateAction.DO_NOT_CONTINUE, gate.evaluate(snapshot).action)
+    }
+
+    @Test
+    fun corpusAndRagThreatIntelMapToControlledNonJudgingSignals() {
+        val snapshot = normalize(
+            rawText = "Voteaza pe Adeline si confirma cu codul primit pe WhatsApp.",
+            threatIntel = listOf(
+                ThreatIntelSourceResult(
+                    source = "romania_corpus",
+                    verdict = "similarity",
+                    severity = "medium",
+                    details = "scenario=whatsapp_voteaza_pe_adeline"
+                ),
+                ThreatIntelSourceResult(
+                    source = "brand_warning_corpus",
+                    verdict = "brand_warning",
+                    severity = "medium",
+                    details = "neverAskFor=OTP_CODE; brand=whatsapp"
+                ),
+                ThreatIntelSourceResult(
+                    source = "rag_explainer",
+                    verdict = "explanation",
+                    severity = "low",
+                    details = "RAG found similar WhatsApp takeover pattern."
+                )
+            ),
+            providerStates = mapOf(
+                ProviderId.CLAIM_VERIFIER to ProviderState(ProviderId.CLAIM_VERIFIER, ProviderStatus.OK)
+            )
+        )
+
+        assertCodes(
+            snapshot,
+            EvidenceCode.CORPUS_SIMILARITY,
+            EvidenceCode.CORPUS_BRAND_WARNING,
+            EvidenceCode.RAG_EXPLANATION
+        )
+        assertEquals(ProviderStatus.OK, snapshot.providerStates[ProviderId.CORPUS]?.status)
+        assertEquals(ProviderStatus.OK, snapshot.providerStates[ProviderId.RAG]?.status)
+        assertTrue(snapshot.signals.none {
+            it.code == EvidenceCode.RAG_EXPLANATION && EvidenceGatePolicy.isDecisionEligible(it)
+        })
     }
 
     private fun normalize(
@@ -415,8 +630,15 @@ class EvidenceSignalNormalizerTest {
         finalUrl: String? = null,
         redirectChain: List<String> = emptyList(),
         threatIntel: List<ThreatIntelSourceResult> = emptyList(),
-        virusTotalConfigured: Boolean = false
+        virusTotalConfigured: Boolean = false,
+        providerStates: Map<ProviderId, ProviderState> = emptyMap()
     ): EvidenceSnapshot {
+        val effectiveProviderStates = providerStates.ifEmpty {
+            if (
+            threatIntel.isEmpty() &&
+            (!primaryUrl.isNullOrBlank() || !finalUrl.isNullOrBlank())
+            ) completedUrlProviderStates() else emptyMap()
+        }
         return EvidenceSignalNormalizer.buildSnapshot(
             EvidenceNormalizerInput(
                 inputKind = "unit_test",
@@ -427,10 +649,18 @@ class EvidenceSignalNormalizerTest {
                 finalUrl = finalUrl,
                 redirectChain = redirectChain,
                 threatIntel = threatIntel,
+                providerStates = effectiveProviderStates,
                 virusTotalConfigured = virusTotalConfigured
             )
         )
     }
+
+    private fun completedUrlProviderStates(): Map<ProviderId, ProviderState> = mapOf(
+        ProviderId.WEB_RISK to ProviderState(ProviderId.WEB_RISK, ProviderStatus.OK),
+        ProviderId.URLSCAN to ProviderState(ProviderId.URLSCAN, ProviderStatus.OK),
+        ProviderId.VIRUSTOTAL to ProviderState(ProviderId.VIRUSTOTAL, ProviderStatus.OK),
+        ProviderId.CLAIM_VERIFIER to ProviderState(ProviderId.CLAIM_VERIFIER, ProviderStatus.OK)
+    )
 
     private fun assertCodes(snapshot: EvidenceSnapshot, vararg expected: EvidenceCode) {
         val actual = snapshot.signals.map { it.code }.toSet()

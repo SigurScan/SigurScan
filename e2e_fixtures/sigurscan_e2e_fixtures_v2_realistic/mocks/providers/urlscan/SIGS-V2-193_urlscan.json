@@ -1,0 +1,24 @@
+{
+  "caseId": "SIGS-V2-193",
+  "provider": "URLSCAN",
+  "inputUrl": "https://investitii-profit-22.test/start?campanie=Tesla%20bonus%20trading",
+  "status": "SUCCESS",
+  "mockVariant": "urlscan_malicious",
+  "finalUrl": "https://investitii-profit-22.test/start?campanie=Tesla%20bonus%20trading",
+  "verdict": "malicious",
+  "screenshotAvailable": true,
+  "forms": [
+    "login",
+    "otp"
+  ],
+  "redirectChain": [],
+  "server": {
+    "country": "RU",
+    "asn": "TEST-BAD-AS"
+  },
+  "certificate": {
+    "valid": true,
+    "issuer": "ZeroSSL/R3 test",
+    "ageDays": 2
+  }
+}

@@ -1,0 +1,69 @@
+Subject: Revolut =?utf-8?q?educa=C8=9Bie_antifraud=C4=83?=
+From: Revolut <security@revolut.ro>
+To: utilizator.test@sigurscan.local
+Date: Wed, 03 Jun 2026 04:59:04 +0000
+Message-ID: <178046274490.6118.308542900043033182@mail.example.test>
+Authentication-Results: mx.sigurscan.test; spf=pass smtp.mailfrom=revolut.ro;
+ dkim=pass header.d=revolut.ro
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============6661052184501152289=="
+
+--===============6661052184501152289==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+Revolut: campanie de informare privind siguran=C8=9Ba online.
+Banca nu =C3=AE=C8=9Bi cere parola, PIN-ul, CVV-ul sau codurile primite prin =
+SMS. Cite=C8=99te recomand=C4=83rile de securitate pe canalul oficial.
+
+Verific=C4=83 acum: https://www.revolut.com/ro-RO/security/
+
+--===============6661052184501152289==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<!doctype html>
+<html lang=3D"ro"><head><meta charset=3D"utf-8"><title>Revolut educa=C8=9Bie =
+antifraud=C4=83</title></head>
+<body style=3D"margin:0;background:#f4f6fb;font-family:Arial,Helvetica,sans-s=
+erif;color:#111827">
+  <table role=3D"presentation" width=3D"100%" cellspacing=3D"0" cellpadding=
+=3D"0" style=3D"background:#f4f6fb;padding:24px">
+    <tr><td align=3D"center">
+      <table role=3D"presentation" width=3D"620" cellspacing=3D"0" cellpaddin=
+g=3D"0" style=3D"background:#fff;border-radius:16px;overflow:hidden;border:1p=
+x solid #e5e7eb">
+        <tr><td style=3D"background:#0b132b;color:white;padding:24px 28px">
+          <div style=3D"font-size:13px;letter-spacing:.08em;text-transform:up=
+percase;color:#9ca3af">Revolut</div>
+          <h1 style=3D"margin:8px 0 0;font-size:28px;line-height:1.2">Revolut=
+ educa=C8=9Bie antifraud=C4=83</h1>
+        </td></tr>
+        <tr><td style=3D"padding:28px;font-size:16px;line-height:1.55">
+          <p>Revolut: campanie de informare privind siguran=C8=9Ba online.</p=
+><p>Banca nu =C3=AE=C8=9Bi cere parola, PIN-ul, CVV-ul sau codurile primite p=
+rin SMS. Cite=C8=99te recomand=C4=83rile de securitate pe canalul oficial.</p>
+         =20
+        <p style=3D"margin:28px 0"><a href=3D"https://www.revolut.com/ro-RO/s=
+ecurity/" style=3D"background:#2563ff;color:#fff;text-decoration:none;padding=
+:14px 22px;border-radius:8px;font-weight:bold;display:inline-block">Verific=
+=C4=83 acum</a></p>
+        <p style=3D"font-size:12px;color:#6b7280">Dac=C4=83 butonul nu func=
+=C8=9Bioneaz=C4=83, verifica=C8=9Bi manual =C3=AEn aplica=C8=9Bia oficial=C4=
+=83. Link afi=C8=99at: <span>https://www.revolut.com/ro-RO/security/</span></=
+p>
+       =20
+          <hr style=3D"border:none;border-top:1px solid #e5e7eb;margin:28px 0=
+" />
+          <p style=3D"font-size:12px;color:#6b7280">Ai primit aceast=C4=83 no=
+tificare deoarece ai folosit serviciile men=C8=9Bionate. Pentru siguran=C8=9B=
+=C4=83, verific=C4=83 manual canalul oficial dac=C4=83 ai dubii.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>
+
+--===============6661052184501152289==--

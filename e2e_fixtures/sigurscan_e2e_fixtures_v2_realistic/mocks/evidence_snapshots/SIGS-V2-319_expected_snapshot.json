@@ -1,0 +1,17 @@
+{
+  "caseId": "SIGS-V2-319",
+  "expectedDecision": "CONTINUE_WITH_CAUTION",
+  "expectedLabel": "Poți continua cu prudență",
+  "groundTruthIsScam": false,
+  "primaryUrlExpected": "https://www.bancatransilvania.ro/siguranta-online",
+  "signalsExpected": [
+    "OFFICIAL_DOMAIN_EXACT_MATCH",
+    "SECURITY_EDUCATION"
+  ],
+  "sourceStatesExpected": {
+    "web_risk": "SIGS-V2-319_web_risk.json",
+    "urlscan": "SIGS-V2-319_urlscan.json",
+    "virustotal": "SIGS-V2-319_virustotal.json"
+  },
+  "notes": ""
+}

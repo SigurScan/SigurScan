@@ -1,0 +1,23 @@
+{
+  "caseId": "SIGS-V2-038",
+  "provider": "URLSCAN",
+  "inputUrl": "https://cargus-livrare-13.test/awb?id=CGS55392010",
+  "status": "SUCCESS",
+  "mockVariant": "urlscan_malicious",
+  "finalUrl": "https://cargus-livrare-13.test/awb?id=CGS55392010",
+  "verdict": "malicious",
+  "screenshotAvailable": true,
+  "forms": [
+    "apk_download"
+  ],
+  "redirectChain": [],
+  "server": {
+    "country": "DE",
+    "asn": "TEST-BAD-AS"
+  },
+  "certificate": {
+    "valid": true,
+    "issuer": "ZeroSSL/R3 test",
+    "ageDays": 4
+  }
+}

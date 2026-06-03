@@ -1,0 +1,9 @@
+{
+  "caseId": "SIGS-V2-298",
+  "provider": "GOOGLE_WEB_RISK",
+  "inputUrl": "https://www.dpd.com/ro/ro/primeste-coletul/urmareste-coletul/",
+  "status": "SUCCESS",
+  "mockVariant": "all_clean",
+  "threats": [],
+  "expireTime": null
+}

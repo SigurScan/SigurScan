@@ -1,0 +1,14 @@
+{
+  "caseId": "SIGS-V2-293",
+  "provider": "VIRUSTOTAL",
+  "inputUrl": "https://sameday.ro/awb-tracking?awb=TEST123",
+  "status": "SUCCESS",
+  "mockVariant": "all_clean",
+  "stats": {
+    "malicious": 0,
+    "suspicious": 0,
+    "undetected": 72,
+    "harmless": 14
+  },
+  "categories": []
+}

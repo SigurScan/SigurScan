@@ -1,0 +1,9 @@
+{
+  "caseId": "SIGS-V2-017",
+  "provider": "GOOGLE_WEB_RISK",
+  "inputUrl": "https://spv-anaf-ro-16.test/actualizare-date",
+  "status": "SUCCESS",
+  "mockVariant": "conflict_wr_clean_urlscan_bad",
+  "threats": [],
+  "expireTime": null
+}

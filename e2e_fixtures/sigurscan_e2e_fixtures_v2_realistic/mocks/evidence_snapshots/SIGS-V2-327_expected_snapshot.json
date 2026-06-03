@@ -1,0 +1,17 @@
+{
+  "caseId": "SIGS-V2-327",
+  "expectedDecision": "NO_REPLY",
+  "expectedLabel": "Nu răspunde",
+  "groundTruthIsScam": false,
+  "primaryUrlExpected": null,
+  "signalsExpected": [
+    "OTP_PRESENT_BUT_LEGIT_CONTEXT",
+    "OFFICIAL_DOMAIN_EXACT_MATCH"
+  ],
+  "sourceStatesExpected": {
+    "web_risk": "SIGS-V2-327_web_risk.json",
+    "urlscan": "SIGS-V2-327_urlscan.json",
+    "virustotal": "SIGS-V2-327_virustotal.json"
+  },
+  "notes": ""
+}

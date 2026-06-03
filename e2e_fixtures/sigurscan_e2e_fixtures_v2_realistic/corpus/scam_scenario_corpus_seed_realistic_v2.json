@@ -1,0 +1,119 @@
+{
+  "version": "scam-scenario-corpus-ro-v2.0.0",
+  "issuedAt": "2026-06-03T04:59:06.428456+00:00",
+  "sources": [
+    {
+      "id": "sigurantaonline",
+      "name": "SiguranțaOnline - Uniți împotriva escrocheriilor",
+      "url": "https://sigurantaonline.ro/uniti-impotriva-escrocheriilor/"
+    },
+    {
+      "id": "dnsc_adeline",
+      "name": "DNSC - Votează pe Adeline",
+      "url": "https://www.dnsc.ro/citeste/alerta-frauda-de-tip-voteaza-pe-adeline"
+    },
+    {
+      "id": "fan_smishing",
+      "name": "FAN Courier - SMiShing Alert",
+      "url": "https://www.fancourier.ro/en/smishing-alert/"
+    },
+    {
+      "id": "posta_phishing",
+      "name": "Poșta Română - phishing SMS",
+      "url": "https://www.posta-romana.ro/a1941/stiri/o-noua-tentativa-de-phishing-prin-sms-in-numele-postei-romane.html"
+    },
+    {
+      "id": "dnsc_anaf",
+      "name": "DNSC - Phishing email ANAF",
+      "url": "https://dnsc.ro/citeste/alerta-phishing-e-mail-anaf"
+    },
+    {
+      "id": "arb_fraud",
+      "name": "ARB - fraudă bancară/spoofing/WhatsApp",
+      "url": "https://www.arb.ro/ce-trebuie-sa-stim-pentru-a-nu-deveni-victime-ale-fraudei-bancare-ramona-rusu-presedintele-comisiei-antifrauda-arb-tipologiile-de-frauda-sunt-intr-o-dinamica-permanenta-iar-metodele-de-fr/"
+    }
+  ],
+  "scenarios": [
+    {
+      "kind": "FAMILY_NEW_PHONE",
+      "family": "URGENCY_BIG",
+      "phrases": [
+        "mi s-a stricat telefonul",
+        "numărul acesta nou",
+        "nu pot vorbi",
+        "trimite-mi bani"
+      ],
+      "maxTextOnlyDecision": "NO_REPLY"
+    },
+    {
+      "kind": "ACCIDENT_OR_NEPHEW_AI_VOICE",
+      "family": "URGENCY_BIG",
+      "phrases": [
+        "am avut accident",
+        "sunt la spital",
+        "sunt la poliție",
+        "am nevoie urgent de bani"
+      ],
+      "maxTextOnlyDecision": "NO_REPLY"
+    },
+    {
+      "kind": "WHATSAPP_TAKEOVER_VOTE",
+      "family": "ACCOUNT_TAKEOVER",
+      "phrases": [
+        "votează",
+        "cod WhatsApp",
+        "cod primit prin SMS",
+        "conectare WhatsApp"
+      ],
+      "maxTextOnlyDecision": "NO_REPLY"
+    },
+    {
+      "kind": "COURIER_LOCKER_OR_ADDRESS_UPDATE",
+      "family": "DELIVERY_PHISHING",
+      "phrases": [
+        "colet blocat",
+        "adresă incompletă",
+        "alege locker",
+        "taxă livrare"
+      ],
+      "maxTextOnlyDecision": "VERIFY_OFFICIAL"
+    },
+    {
+      "kind": "BNR_SAFE_ACCOUNT",
+      "family": "OFFICIAL_PHONE",
+      "phrases": [
+        "credit fraudulos",
+        "BNR",
+        "cont sigur",
+        "Poliție",
+        "nu închide",
+        "confidențial"
+      ],
+      "maxTextOnlyDecision": "NO_REPLY"
+    },
+    {
+      "kind": "MARKETPLACE_RECEIVE_MONEY",
+      "family": "MARKETPLACE_ESCROW",
+      "phrases": [
+        "ca să primești banii",
+        "introdu cardul",
+        "cod SMS",
+        "curierul vine după confirmare"
+      ],
+      "maxTextOnlyDecision": "NO_ENTER_DATA"
+    },
+    {
+      "kind": "CRYPTO_BROKER_INVESTMENT",
+      "family": "OVERNIGHT_GAIN",
+      "phrases": [
+        "randament garantat",
+        "broker",
+        "crypto",
+        "AnyDesk",
+        "ATM Bitcoin",
+        "aplicație de suport"
+      ],
+      "maxTextOnlyDecision": "NO_ENTER_DATA"
+    }
+  ]
+}

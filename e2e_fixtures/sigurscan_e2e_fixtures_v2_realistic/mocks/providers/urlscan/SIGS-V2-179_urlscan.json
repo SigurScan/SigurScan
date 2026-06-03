@@ -1,0 +1,24 @@
+{
+  "caseId": "SIGS-V2-179",
+  "provider": "URLSCAN",
+  "inputUrl": "https://investitii-profit-8.test/start?campanie=platform%C4%83%20crypto",
+  "status": "SUCCESS",
+  "mockVariant": "urlscan_malicious",
+  "finalUrl": "https://investitii-profit-8.test/start?campanie=platform%C4%83%20crypto",
+  "verdict": "malicious",
+  "screenshotAvailable": true,
+  "forms": [
+    "login",
+    "otp"
+  ],
+  "redirectChain": [],
+  "server": {
+    "country": "VN",
+    "asn": "TEST-BAD-AS"
+  },
+  "certificate": {
+    "valid": true,
+    "issuer": "ZeroSSL/R3 test",
+    "ageDays": 3
+  }
+}

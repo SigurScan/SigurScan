@@ -1,0 +1,23 @@
+{
+  "caseId": "SIGS-V2-015",
+  "provider": "URLSCAN",
+  "inputUrl": "https://anaf-ro-spv-14.test/validare?session=redacted",
+  "status": "SUCCESS",
+  "mockVariant": "conflict_wr_clean_urlscan_bad",
+  "finalUrl": "https://anaf-ro-spv-14.test/validare?session=redacted",
+  "verdict": "malicious",
+  "screenshotAvailable": true,
+  "forms": [
+    "whatsapp_code"
+  ],
+  "redirectChain": [],
+  "server": {
+    "country": "DE",
+    "asn": "TEST-BAD-AS"
+  },
+  "certificate": {
+    "valid": true,
+    "issuer": "ZeroSSL/R3 test",
+    "ageDays": 1
+  }
+}

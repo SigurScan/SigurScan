@@ -5,7 +5,6 @@ import java.security.MessageDigest
 import java.text.Normalizer
 import java.util.Locale
 import java.util.UUID
-import java.util.regex.Pattern
 
 data class EvidenceNormalizerInput(
     val scanId: String = UUID.randomUUID().toString(),
@@ -28,81 +27,20 @@ data class EvidenceNormalizerInput(
 )
 
 object EvidenceSignalNormalizer {
-    private val urlRegex = Pattern.compile(
-        "(?:https?://|www\\.)[\\w\\-.~:/?#\\[\\]@!$&'()*+,;=%]+",
-        Pattern.CASE_INSENSITIVE
-    )
+    private val brandPolicies: List<BrandPolicyLite>
+        get() = BrandKnowledgeRegistry.entries.map { entry ->
+            BrandPolicyLite(
+                id = entry.id,
+                aliases = entry.aliases,
+                officialDomains = entry.officialDomains,
+                approvedTrackerDomains = entry.approvedTrackerDomains
+            )
+        }
 
-    private val brandPolicies = listOf(
-        BrandPolicyLite(
-            id = "uber",
-            aliases = listOf("uber", "uber eats", "ubereats"),
-            officialDomains = ScamRules.TRUSTED_OFFICIAL_DOMAINS["uber"].orEmpty(),
-            approvedTrackerDomains = setOf("sng.link", "app.link", "branch.link", "bnc.lt", "uber.link")
-        ),
-        BrandPolicyLite(
-            id = "emag",
-            aliases = listOf("emag", "eMAG"),
-            officialDomains = ScamRules.TRUSTED_OFFICIAL_DOMAINS["emag"].orEmpty(),
-            approvedTrackerDomains = setOf("emag.delivery", "sng.link", "app.link", "branch.link", "bnc.lt")
-        ),
-        BrandPolicyLite(
-            id = "fanCourier",
-            aliases = listOf("fan courier", "fancourier", "fanbox", "awb"),
-            officialDomains = ScamRules.TRUSTED_OFFICIAL_DOMAINS["fanCourier"].orEmpty()
-        ),
-        BrandPolicyLite(
-            id = "postaRomana",
-            aliases = listOf("posta romana", "poșta română", "posta", "poșta"),
-            officialDomains = ScamRules.TRUSTED_OFFICIAL_DOMAINS["postaRomana"].orEmpty()
-        ),
-        BrandPolicyLite(
-            id = "anaf",
-            aliases = listOf("anaf", "spv", "mfinante", "spatiul privat virtual", "spațiul privat virtual"),
-            officialDomains = ScamRules.TRUSTED_OFFICIAL_DOMAINS["anaf"].orEmpty()
-        ),
-        BrandPolicyLite(
-            id = "revolut",
-            aliases = listOf("revolut"),
-            officialDomains = listOf("revolut.com", "revolut.me", "revolut.space")
-        ),
-        BrandPolicyLite(
-            id = "banks",
-            aliases = listOf("banca", "bcr", "ing", "bt", "banca transilvania", "george", "cont sigur"),
-            officialDomains = ScamRules.TRUSTED_OFFICIAL_DOMAINS["cardAndBanks"].orEmpty()
-        ),
-        BrandPolicyLite(
-            id = "whatsapp",
-            aliases = listOf("whatsapp", "wa.me"),
-            officialDomains = ScamRules.TRUSTED_OFFICIAL_DOMAINS["whatsapp"].orEmpty()
-        ),
-        BrandPolicyLite(
-            id = "marketplace",
-            aliases = listOf("olx", "marketplace"),
-            officialDomains = ScamRules.TRUSTED_OFFICIAL_DOMAINS["marketplace"].orEmpty()
-        ),
-        BrandPolicyLite(
-            id = "dnsc",
-            aliases = listOf("dnsc", "siguranta online", "siguranța online"),
-            officialDomains = ScamRules.TRUSTED_OFFICIAL_DOMAINS["dnsc"].orEmpty()
-        ),
-        BrandPolicyLite(
-            id = "utilities",
-            aliases = listOf("hidroelectrica"),
-            officialDomains = ScamRules.TRUSTED_OFFICIAL_DOMAINS["utilities"].orEmpty()
-        )
-    )
-
-    private val allOfficialDomains = brandPolicies.flatMap { it.officialDomains }.map(::normalizeDomain).toSet()
-    private val approvedTrackerDomains = brandPolicies.flatMap { it.approvedTrackerDomains }.map(::normalizeDomain).toSet() +
-        setOf(
-            "sng.link",
-            "app.link",
-            "branch.link",
-            "bnc.lt",
-            "safelinks.protection.outlook.com",
-            "urldefense.com"
-        )
+    private val allOfficialDomains: Set<String>
+        get() = brandPolicies.flatMap { it.officialDomains }.map(::normalizeDomain).toSet()
+    private val approvedTrackerDomains: Set<String>
+        get() = BrandKnowledgeRegistry.approvedTrackerDomains
     private val shortenerDomains = setOf(
         "bit.ly",
         "tinyurl.com",
@@ -150,6 +88,15 @@ object EvidenceSignalNormalizer {
             targetHost = targetHost,
             claimedBrands = claimedBrands
         )
+        addScamKnowledgeSignals(
+            builder = builder,
+            rawForAnalysis = rawForAnalysis,
+            normalizedText = normalizedText,
+            allUrls = allUrls,
+            formActionHost = normalizedFormActionHost,
+            targetHost = targetHost,
+            claimedBrands = claimedBrands
+        )
         addThreatIntelSignals(builder, input.threatIntel, targetHost ?: textTargetKey(normalizedText))
 
         val providerStates = buildProviderStates(input, builder.signals)
@@ -172,8 +119,8 @@ object EvidenceSignalNormalizer {
             claimedBrands = claimedBrands.map { it.id }.toSet(),
             signals = builder.signals,
             providerStates = providerStates,
-            registryVersion = input.registryVersion,
-            corpusVersion = input.corpusVersion,
+            registryVersion = input.registryVersion.takeUnless { it == "local" } ?: BrandKnowledgeRegistry.registryVersion(),
+            corpusVersion = input.corpusVersion.takeUnless { it == "local" } ?: BrandKnowledgeRegistry.corpusVersion(),
             completeness = completeness
         )
     }
@@ -222,7 +169,16 @@ object EvidenceSignalNormalizer {
         val effectiveIsApprovedTracker = effectiveTargetHost?.let(::isApprovedTrackerHost) == true
         val primaryIsApprovedTracker = primaryHost?.let(::isApprovedTrackerHost) == true
         val sensitiveCodes = detectSensitiveCodes(normalizedText, allUrls)
-        val hasSensitiveRisk = sensitiveCodes.isNotEmpty()
+        val hasCredentialOrIdentitySensitiveRisk = sensitiveCodes.any {
+            it in setOf(
+                EvidenceCode.CARD_REQUEST,
+                EvidenceCode.CVV_REQUEST,
+                EvidenceCode.OTP_REQUEST,
+                EvidenceCode.PASSWORD_REQUEST,
+                EvidenceCode.CNP_IBAN_REQUEST,
+                EvidenceCode.PERSONAL_DATA_REQUEST
+            )
+        }
         if (!formActionUrl.isNullOrBlank()) {
             builder.add(
                 source = EvidenceSource.HTML_EXTRACTOR,
@@ -262,7 +218,6 @@ object EvidenceSignalNormalizer {
         }
 
         addMarketingSignals(builder, normalizedText)
-        addRomaniaScenarioSignals(builder, normalizedText)
         sensitiveCodes.forEach { builder.add(EvidenceSource.LOCAL_EXTRACTOR, it) }
 
         if (targetIsOfficial) {
@@ -279,7 +234,7 @@ object EvidenceSignalNormalizer {
             builder.add(EvidenceSource.OFFICIAL_REGISTRY, EvidenceCode.REDIRECT_CHAIN_APPROVED, targetKey = targetHost.orEmpty())
         }
 
-        if (hasTarget && (!hasSensitiveRisk || targetIsOfficial || effectiveIsOfficial) && !hasSensitiveForm(rawForAnalysis)) {
+        if (hasTarget && (!hasCredentialOrIdentitySensitiveRisk || targetIsOfficial || effectiveIsOfficial) && !hasSensitiveForm(rawForAnalysis)) {
             builder.add(EvidenceSource.LOCAL_EXTRACTOR, EvidenceCode.NO_SENSITIVE_FORM)
         }
 
@@ -338,6 +293,9 @@ object EvidenceSignalNormalizer {
                 sourceKey.contains("webrisk") -> mapWebRisk(builder, item, text, targetKey)
                 source.contains("urlscan") -> mapUrlscan(builder, item, text, targetKey)
                 source.contains("virustotal") || source == "vt" -> mapVirusTotal(builder, item, text, targetKey)
+                sourceKey.contains("aiofferwebcheck") || sourceKey.contains("offerclaim") -> mapOfferClaimVerifier(builder, item, text, targetKey)
+                sourceKey.contains("brandwarning") || sourceKey.contains("corpus") -> mapCorpus(builder, item, text, targetKey)
+                sourceKey.contains("rag") -> mapRag(builder, item, text, targetKey)
             }
         }
     }
@@ -386,6 +344,107 @@ object EvidenceSignalNormalizer {
         }
     }
 
+    private fun mapOfferClaimVerifier(builder: SignalBuilder, item: ThreatIntelSourceResult, text: String, targetKey: String) {
+        when {
+            containsAny(text, "confirmed", "official_source_found=true") -> {
+                builder.add(EvidenceSource.CLAIM_VERIFIER, EvidenceCode.OFFER_CLAIM_CONFIRMED, targetKey = targetKey, provider = ProviderId.CLAIM_VERIFIER)
+                if (claimListsTargetAsOfficial(text, targetKey)) {
+                    builder.add(EvidenceSource.CLAIM_VERIFIER, EvidenceCode.OFFICIAL_DOMAIN_EXACT, targetKey = targetKey, provider = ProviderId.CLAIM_VERIFIER)
+                }
+            }
+            containsAny(text, "not_found", "not found", "unconfirmed") -> {
+                builder.add(EvidenceSource.CLAIM_VERIFIER, EvidenceCode.OFFER_CLAIM_NOT_FOUND, targetKey = targetKey, provider = ProviderId.CLAIM_VERIFIER)
+            }
+            else -> {
+                builder.add(EvidenceSource.CLAIM_VERIFIER, EvidenceCode.OFFER_CLAIM_INCONCLUSIVE, targetKey = targetKey, provider = ProviderId.CLAIM_VERIFIER)
+            }
+        }
+    }
+
+    private fun mapCorpus(builder: SignalBuilder, item: ThreatIntelSourceResult, text: String, targetKey: String) {
+        val brandId = Regex("""(?:brand|brand_id)\s*[=:]\s*([a-zA-Z0-9_-]+)""")
+            .find(text)
+            ?.groupValues
+            ?.getOrNull(1)
+        val attrs = item.details
+            ?.takeIf { it.isNotBlank() }
+            ?.let { mapOf("details" to it.take(240)) }
+            .orEmpty()
+        val code = if (containsAny(text, "brand_warning", "brand warning", "neveraskfor", "never ask for")) {
+            EvidenceCode.CORPUS_BRAND_WARNING
+        } else {
+            EvidenceCode.CORPUS_SIMILARITY
+        }
+        builder.add(
+            source = EvidenceSource.CORPUS,
+            code = code,
+            targetKey = targetKey,
+            brandId = brandId,
+            provider = ProviderId.CORPUS,
+            attrs = attrs
+        )
+    }
+
+    private fun mapRag(builder: SignalBuilder, item: ThreatIntelSourceResult, text: String, targetKey: String) {
+        val attrs = item.details
+            ?.takeIf { it.isNotBlank() }
+            ?.let { mapOf("details" to it.take(240)) }
+            .orEmpty()
+        builder.add(
+            source = EvidenceSource.RAG,
+            code = EvidenceCode.RAG_EXPLANATION,
+            targetKey = targetKey,
+            provider = ProviderId.RAG,
+            attrs = attrs + ("verdict" to item.verdict)
+        )
+    }
+
+    private fun addScamKnowledgeSignals(
+        builder: SignalBuilder,
+        rawForAnalysis: String,
+        normalizedText: String,
+        allUrls: List<String>,
+        formActionHost: String?,
+        targetHost: String?,
+        claimedBrands: List<BrandPolicyLite>
+    ) {
+        val effectiveTargetHost = formActionHost ?: targetHost
+        val knowledgeSignals = ScamKnowledgeLayer.evaluate(
+            ScamKnowledgeInput(
+                rawText = rawForAnalysis,
+                claimedBrandIds = claimedBrands.map { it.id }.toSet(),
+                targetHost = effectiveTargetHost,
+                targetIsOfficial = effectiveTargetHost?.let(::isOfficialHost) == true,
+                targetIsApprovedTracker = effectiveTargetHost?.let(::isApprovedTrackerHost) == true,
+                sensitiveCodes = detectSensitiveCodes(normalizedText, allUrls),
+                hasSensitiveForm = hasSensitiveForm(rawForAnalysis),
+                hasTarget = !effectiveTargetHost.isNullOrBlank()
+            )
+        )
+
+        knowledgeSignals.forEach { signal ->
+            builder.add(
+                source = signal.source,
+                code = signal.code,
+                targetKey = signal.targetKey ?: effectiveTargetHost ?: textTargetKey(normalizedText),
+                brandId = signal.brandId,
+                provider = when (signal.source) {
+                    EvidenceSource.CORPUS -> ProviderId.CORPUS
+                    EvidenceSource.RAG -> ProviderId.RAG
+                    else -> null
+                },
+                attrs = signal.attrs
+            )
+        }
+    }
+
+    private fun claimListsTargetAsOfficial(text: String, targetKey: String): Boolean {
+        val target = normalizeDomain(targetKey)
+        if (target.isBlank()) return false
+        val hasOfficialSource = containsAny(text, "official_source_found=true", "official source found", "official_domains")
+        return hasOfficialSource && text.contains(target)
+    }
+
     private fun addMarketingSignals(builder: SignalBuilder, normalizedText: String) {
         if (containsAny(normalizedText, "voucher", "card cadou", "premiu", "gratuit", "promo code", "cod promo")) {
             builder.add(EvidenceSource.LOCAL_EXTRACTOR, EvidenceCode.VOUCHER_TEXT)
@@ -398,62 +457,6 @@ object EvidenceSignalNormalizer {
         }
         if (containsAny(normalizedText, "click", "apas", "apasă", "deschide", "vezi oferta", "continua", "continuă", "confirma", "confirmă")) {
             builder.add(EvidenceSource.LOCAL_EXTRACTOR, EvidenceCode.CTA_TEXT)
-        }
-    }
-
-    private fun addRomaniaScenarioSignals(builder: SignalBuilder, normalizedText: String) {
-        if (containsAny(normalizedText, "telefon stricat", "mi s-a stricat telefonul", "numar nou", "număr nou") && hasMoneyRequest(normalizedText)) {
-            builder.add(EvidenceSource.ROMANIA_SCENARIO, EvidenceCode.FAMILY_NEW_PHONE_MONEY)
-        }
-        if (containsAny(normalizedText, "accident", "nepot", "fiul tau", "fiica ta", "spital") && hasMoneyRequest(normalizedText)) {
-            builder.add(EvidenceSource.ROMANIA_SCENARIO, EvidenceCode.ACCIDENT_NEPHEW_MONEY)
-        }
-        val whatsappCodeEducationalNegation = containsAny(
-            normalizedText,
-            "nu introduce coduri whatsapp",
-            "nu introduceți coduri whatsapp",
-            "nu introduceti coduri whatsapp",
-            "nu trimite coduri whatsapp",
-            "nu comunica coduri whatsapp",
-            "nu comunicați coduri whatsapp",
-            "nu comunicati coduri whatsapp"
-        )
-        if (!whatsappCodeEducationalNegation && containsAny(normalizedText, "whatsapp") && containsAny(normalizedText, "cod", "otp", "verificare", "sms")) {
-            builder.add(EvidenceSource.ROMANIA_SCENARIO, EvidenceCode.WHATSAPP_CODE_REQUEST)
-        }
-        if (containsAny(normalizedText, "whatsapp") && containsAny(normalizedText, "dispozitiv", "device", "linking", "asociere")) {
-            builder.add(EvidenceSource.ROMANIA_SCENARIO, EvidenceCode.WHATSAPP_DEVICE_LINKING_REQUEST)
-        }
-        if (containsAny(normalizedText, "bnr", "cont sigur", "cont de siguranta", "cont de siguranță")) {
-            builder.add(EvidenceSource.ROMANIA_SCENARIO, EvidenceCode.BNR_SAFE_ACCOUNT)
-        }
-        if (containsAny(normalizedText, "credit fraudulos", "credit pe numele", "politia", "poliția") &&
-            containsAny(normalizedText, "banca", "transfer", "cont sigur", "bnr")) {
-            builder.add(EvidenceSource.ROMANIA_SCENARIO, EvidenceCode.FRAUDULENT_CREDIT_AUTHORITY_CHAIN)
-        }
-        if (containsAny(normalizedText, "ca sa primesti banii", "ca să primești banii", "primeste banii", "primești banii")) {
-            builder.add(EvidenceSource.ROMANIA_SCENARIO, EvidenceCode.MARKETPLACE_RECEIVE_MONEY)
-        }
-        if (containsAny(normalizedText, "credit") &&
-            containsAny(normalizedText, "fraudulos", "aprobat", "numele tau", "numele tău") &&
-            containsAny(normalizedText, "banca", "bancara", "bancară", "datele de acces", "aplicatia bancara", "aplicația bancară")) {
-            builder.add(EvidenceSource.ROMANIA_SCENARIO, EvidenceCode.FRAUDULENT_CREDIT_AUTHORITY_CHAIN)
-        }
-        if (containsAny(normalizedText, "spune", "spuneti", "spuneți", "raspunde", "răspunde", "trimite", "comunica", "comunică") &&
-            containsAny(normalizedText, "cod", "otp", "sms", "pin", "parola", "parolă", "date de acces", "ultimele 4 cifre")) {
-            builder.add(EvidenceSource.ROMANIA_SCENARIO, EvidenceCode.REPLY_WITH_CODE_REQUEST)
-        }
-        if (containsAny(normalizedText, "anydesk", "teamviewer", "remote access", "control la distanta", "control la distanță")) {
-            builder.add(EvidenceSource.LOCAL_EXTRACTOR, EvidenceCode.REMOTE_ACCESS_DOWNLOAD_UNOFFICIAL)
-        }
-        if (containsAny(normalizedText, "apk", "instaleaza aplicatia", "instalează aplicația", "descarca aplicatia", "descarcă aplicația")) {
-            builder.add(EvidenceSource.LOCAL_EXTRACTOR, EvidenceCode.APK_DOWNLOAD_UNOFFICIAL)
-        }
-        if (hasMoneyRequest(normalizedText)) {
-            builder.add(EvidenceSource.ROMANIA_SCENARIO, EvidenceCode.MONEY_REQUEST)
-        }
-        if (containsAny(normalizedText, "raspunde cu cod", "răspunde cu cod", "trimite codul", "spune codul")) {
-            builder.add(EvidenceSource.ROMANIA_SCENARIO, EvidenceCode.REPLY_WITH_CODE_REQUEST)
         }
     }
 
@@ -482,7 +485,7 @@ object EvidenceSignalNormalizer {
             output.add(EvidenceCode.CARD_REQUEST)
         }
         if (sensitiveCvvField || containsAny(combined, "cvv", "cvc", "cvv2")) output.add(EvidenceCode.CVV_REQUEST)
-        if (containsAny(combined, "otp", "cod sms", "codul sms", "cod de verificare", "codul primit", "cod primit", "3d secure")) output.add(EvidenceCode.OTP_REQUEST)
+        if (containsAny(combined, "otp", "cod sms", "codul sms", "cod whatsapp", "codul whatsapp", "cod de verificare", "codul primit", "cod primit", "3d secure")) output.add(EvidenceCode.OTP_REQUEST)
         if (containsAny(combined, "parola", "parolă", "password", "pin bancar", "pin-ul", "pin ", "date de acces")) output.add(EvidenceCode.PASSWORD_REQUEST)
         if (containsAny(
                 combined,
@@ -583,6 +586,9 @@ object EvidenceSignalNormalizer {
                 }
             }
         }
+        signals.mapNotNull { it.provider }.distinct().forEach { provider ->
+            states.putIfAbsent(provider, ProviderState(provider, ProviderStatus.OK))
+        }
         input.threatIntel.forEach { item ->
             val provider = providerForThreatIntel(item) ?: return@forEach
             states[provider] = ProviderState(provider, inferProviderStatus(item))
@@ -609,6 +615,7 @@ object EvidenceSignalNormalizer {
     ): EvidenceCompleteness {
         if (providerStates.values.any { it.status == ProviderStatus.PENDING }) return EvidenceCompleteness.PARTIAL_ONLINE
         if (finalUrl != null) return EvidenceCompleteness.FULL
+        if (providerStates.values.any { it.status == ProviderStatus.OK }) return EvidenceCompleteness.PARTIAL_ONLINE
         if (signals.any { it.provider != null }) return EvidenceCompleteness.PARTIAL_ONLINE
         return EvidenceCompleteness.LOCAL_ONLY
     }
@@ -620,6 +627,9 @@ object EvidenceSignalNormalizer {
             sourceKey.contains("webrisk") -> ProviderId.WEB_RISK
             source.contains("urlscan") -> ProviderId.URLSCAN
             source.contains("virustotal") || source == "vt" -> ProviderId.VIRUSTOTAL
+            sourceKey.contains("aiofferwebcheck") || sourceKey.contains("offerclaim") -> ProviderId.CLAIM_VERIFIER
+            sourceKey.contains("brandwarning") || sourceKey.contains("corpus") -> ProviderId.CORPUS
+            sourceKey.contains("rag") -> ProviderId.RAG
             else -> null
         }
     }
@@ -629,24 +639,12 @@ object EvidenceSignalNormalizer {
     }
 
     private fun extractUrls(input: String): List<String> {
-        val matcher = urlRegex.matcher(input)
-        val urls = mutableListOf<String>()
-        while (matcher.find()) {
-            urls.add(matcher.group().trimEnd('.', ',', ';', ')', ']', '}', '"', '\''))
-        }
-        return urls
+        return UrlTextExtractor.extract(input)
     }
 
     private fun normalizeUrl(raw: String?): String? {
         if (raw.isNullOrBlank()) return null
-        return HtmlLinkExtractor.normalizeCandidateUrl(raw) ?: run {
-            val trimmed = raw.trim().trimEnd('.', ',', ';', ')', ']', '}', '"', '\'')
-            when {
-                trimmed.startsWith("http://", ignoreCase = true) || trimmed.startsWith("https://", ignoreCase = true) -> trimmed
-                trimmed.startsWith("www.", ignoreCase = true) -> "https://$trimmed"
-                else -> null
-            }
-        }
+        return HtmlLinkExtractor.normalizeCandidateUrl(raw) ?: UrlTextExtractor.normalizeCandidate(raw)
     }
 
     private fun hostOf(url: String?): String? {

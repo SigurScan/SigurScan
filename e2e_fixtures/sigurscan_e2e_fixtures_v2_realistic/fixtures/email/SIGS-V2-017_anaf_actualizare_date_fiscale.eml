@@ -1,0 +1,75 @@
+Subject: ANAF actualizare date fiscale
+From: ANAF RO <notificari@anaf-ro-16.test>
+To: utilizator.test@sigurscan.local
+Date: Wed, 03 Jun 2026 04:58:55 +0000
+Message-ID: <178046273533.6118.2063595287456017794@mail.example.test>
+Authentication-Results: mx.sigurscan.test; spf=softfail
+ smtp.mailfrom=anaf-ro-16.test; dkim=none header.d=anaf-ro-16.test
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============0534265401183092535=="
+
+--===============0534265401183092535==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+Stimate contribuabil,
+=C3=8En eviden=C8=9Ba noastr=C4=83 apare o notificare privind actualizare dat=
+e fiscale. Pentru continuarea procesului este necesar=C4=83 validarea datelor=
+ =C3=AEn termen de 24 de ore.
+Acceseaz=C4=83 butonul de mai jos =C8=99i confirm=C4=83 CNP-ul, telefonul =C8=
+=99i cardul pe care se vireaz=C4=83 suma.
+Dac=C4=83 nu finalizezi validarea, cererea poate fi anulat=C4=83 automat.
+
+Verific=C4=83 acum: https://www.anaf.ro/SPV
+
+--===============0534265401183092535==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<!doctype html>
+<html lang=3D"ro"><head><meta charset=3D"utf-8"><title>ANAF actualizare date =
+fiscale</title></head>
+<body style=3D"margin:0;background:#f4f6fb;font-family:Arial,Helvetica,sans-s=
+erif;color:#111827">
+  <table role=3D"presentation" width=3D"100%" cellspacing=3D"0" cellpadding=
+=3D"0" style=3D"background:#f4f6fb;padding:24px">
+    <tr><td align=3D"center">
+      <table role=3D"presentation" width=3D"620" cellspacing=3D"0" cellpaddin=
+g=3D"0" style=3D"background:#fff;border-radius:16px;overflow:hidden;border:1p=
+x solid #e5e7eb">
+        <tr><td style=3D"background:#0b132b;color:white;padding:24px 28px">
+          <div style=3D"font-size:13px;letter-spacing:.08em;text-transform:up=
+percase;color:#9ca3af">ANAF</div>
+          <h1 style=3D"margin:8px 0 0;font-size:28px;line-height:1.2">ANAF ac=
+tualizare date fiscale</h1>
+        </td></tr>
+        <tr><td style=3D"padding:28px;font-size:16px;line-height:1.55">
+          <p>Stimate contribuabil,</p><p>=C3=8En eviden=C8=9Ba noastr=C4=83 a=
+pare o notificare privind actualizare date fiscale. Pentru continuarea proces=
+ului este necesar=C4=83 validarea datelor =C3=AEn termen de 24 de ore.</p><p>=
+Acceseaz=C4=83 butonul de mai jos =C8=99i confirm=C4=83 CNP-ul, telefonul =C8=
+=99i cardul pe care se vireaz=C4=83 suma.</p><p>Dac=C4=83 nu finalizezi valid=
+area, cererea poate fi anulat=C4=83 automat.</p>
+         =20
+        <p style=3D"margin:28px 0"><a href=3D"https://spv-anaf-ro-16.test/act=
+ualizare-date" style=3D"background:#d7263d;color:#fff;text-decoration:none;pa=
+dding:14px 22px;border-radius:8px;font-weight:bold;display:inline-block">Veri=
+fic=C4=83 acum</a></p>
+        <p style=3D"font-size:12px;color:#6b7280">Dac=C4=83 butonul nu func=
+=C8=9Bioneaz=C4=83, verifica=C8=9Bi manual =C3=AEn aplica=C8=9Bia oficial=C4=
+=83. Link afi=C8=99at: <span>https://www.anaf.ro/SPV</span></p>
+       =20
+          <hr style=3D"border:none;border-top:1px solid #e5e7eb;margin:28px 0=
+" />
+          <p style=3D"font-size:12px;color:#6b7280">Ai primit aceast=C4=83 no=
+tificare deoarece ai folosit serviciile men=C8=9Bionate. Pentru siguran=C8=9B=
+=C4=83, verific=C4=83 manual canalul oficial dac=C4=83 ai dubii.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>
+
+--===============0534265401183092535==--

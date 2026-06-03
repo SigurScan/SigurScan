@@ -1,0 +1,17 @@
+{
+  "caseId": "SIGS-V2-332",
+  "expectedDecision": "CONTINUE_WITH_CAUTION",
+  "expectedLabel": "Poți continua cu prudență",
+  "groundTruthIsScam": false,
+  "primaryUrlExpected": "https://www.bcr.ro/ro/persoane-fizice/help-center/securitate",
+  "signalsExpected": [
+    "OFFICIAL_DOMAIN_EXACT_MATCH",
+    "SECURITY_EDUCATION"
+  ],
+  "sourceStatesExpected": {
+    "web_risk": "SIGS-V2-332_web_risk.json",
+    "urlscan": "SIGS-V2-332_urlscan.json",
+    "virustotal": "SIGS-V2-332_virustotal.json"
+  },
+  "notes": ""
+}

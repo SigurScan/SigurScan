@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SigurScan E2E Case",
+  "type": "object",
+  "required": [
+    "id",
+    "title",
+    "category",
+    "channel",
+    "fixturePaths",
+    "expectedDecision",
+    "groundTruthIsScam",
+    "expectedSignals"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string"
+    },
+    "channel": {
+      "type": "string"
+    },
+    "fixturePaths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "expectedDecision": {
+      "enum": [
+        "DO_NOT_CONTINUE",
+        "NO_ENTER_DATA",
+        "NO_REPLY",
+        "VERIFY_OFFICIAL",
+        "CONTINUE_WITH_CAUTION",
+        "INSUFFICIENT_EVIDENCE"
+      ]
+    },
+    "groundTruthIsScam": {
+      "type": [
+        "boolean",
+        "null"
+      ]
+    },
+    "brandClaimed": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "primaryUrl": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "expectedSignals": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "providerMocks": {
+      "type": "object"
+    }
+  }
+}

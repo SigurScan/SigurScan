@@ -1,0 +1,21 @@
+{
+  "caseId": "SIGS-V2-146",
+  "expectedDecision": "DO_NOT_CONTINUE",
+  "expectedLabel": "Nu continua",
+  "groundTruthIsScam": true,
+  "primaryUrlExpected": "https://ing-securitate-cont-3.test/login/confirmare",
+  "signalsExpected": [
+    "CLAIMED_BRAND_IDENTIFIED",
+    "OFFICIAL_DOMAIN_MISMATCH",
+    "PASSWORD_REQUEST",
+    "OTP_REQUEST",
+    "FORM_LOGIN_DETECTED",
+    "URGENCY_LANGUAGE"
+  ],
+  "sourceStatesExpected": {
+    "web_risk": "SIGS-V2-146_web_risk.json",
+    "urlscan": "SIGS-V2-146_urlscan.json",
+    "virustotal": "SIGS-V2-146_virustotal.json"
+  },
+  "notes": ""
+}

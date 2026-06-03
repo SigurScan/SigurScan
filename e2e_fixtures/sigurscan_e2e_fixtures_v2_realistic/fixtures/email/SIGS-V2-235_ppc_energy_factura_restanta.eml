@@ -1,0 +1,73 @@
+Subject: PPC Energy =?utf-8?q?factur=C4=83/restan=C8=9B=C4=83?=
+From: PPC Energy <noreply@ppcenergy.test>
+To: utilizator.test@sigurscan.local
+Date: Wed, 03 Jun 2026 04:59:02 +0000
+Message-ID: <178046274219.6118.10578779745090217005@mail.example.test>
+Authentication-Results: mx.sigurscan.test; spf=none
+ smtp.mailfrom=ppcenergy.test; dkim=none header.d=ppcenergy.test
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============9040385319833210530=="
+
+--===============9040385319833210530==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+PPC Energy: factura ta are restan=C8=9B=C4=83 =C8=99i serviciul va fi suspend=
+at ast=C4=83zi la ora 20:00.
+Pentru reconectare rapid=C4=83 achit=C4=83 diferen=C8=9Ba de 42,30 RON la htt=
+ps://factura-ppc_energy-16.test/plata
+Pentru verificare =C8=9Bi se poate cere cardul =C8=99i codul de autorizare.
+
+Verific=C4=83 acum: https://factura-ppc_energy-16.test/plata
+
+--===============9040385319833210530==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<!doctype html>
+<html lang=3D"ro"><head><meta charset=3D"utf-8"><title>PPC Energy factur=C4=
+=83/restan=C8=9B=C4=83</title></head>
+<body style=3D"margin:0;background:#f4f6fb;font-family:Arial,Helvetica,sans-s=
+erif;color:#111827">
+  <table role=3D"presentation" width=3D"100%" cellspacing=3D"0" cellpadding=
+=3D"0" style=3D"background:#f4f6fb;padding:24px">
+    <tr><td align=3D"center">
+      <table role=3D"presentation" width=3D"620" cellspacing=3D"0" cellpaddin=
+g=3D"0" style=3D"background:#fff;border-radius:16px;overflow:hidden;border:1p=
+x solid #e5e7eb">
+        <tr><td style=3D"background:#0b132b;color:white;padding:24px 28px">
+          <div style=3D"font-size:13px;letter-spacing:.08em;text-transform:up=
+percase;color:#9ca3af">PPC Energy</div>
+          <h1 style=3D"margin:8px 0 0;font-size:28px;line-height:1.2">PPC Ene=
+rgy factur=C4=83/restan=C8=9B=C4=83</h1>
+        </td></tr>
+        <tr><td style=3D"padding:28px;font-size:16px;line-height:1.55">
+          <p>PPC Energy: factura ta are restan=C8=9B=C4=83 =C8=99i serviciul =
+va fi suspendat ast=C4=83zi la ora 20:00.</p><p>Pentru reconectare rapid=C4=
+=83 achit=C4=83 diferen=C8=9Ba de 42,30 RON la https://factura-ppc_energy-16.=
+test/plata</p><p>Pentru verificare =C8=9Bi se poate cere cardul =C8=99i codul=
+ de autorizare.</p>
+         =20
+        <p style=3D"margin:28px 0"><a href=3D"https://factura-ppc_energy-16.t=
+est/plata" style=3D"background:#d7263d;color:#fff;text-decoration:none;paddin=
+g:14px 22px;border-radius:8px;font-weight:bold;display:inline-block">Verific=
+=C4=83 acum</a></p>
+        <p style=3D"font-size:12px;color:#6b7280">Dac=C4=83 butonul nu func=
+=C8=9Bioneaz=C4=83, verifica=C8=9Bi manual =C3=AEn aplica=C8=9Bia oficial=C4=
+=83. Link afi=C8=99at: <span>https://factura-ppc_energy-16.test/plata</span><=
+/p>
+       =20
+          <hr style=3D"border:none;border-top:1px solid #e5e7eb;margin:28px 0=
+" />
+          <p style=3D"font-size:12px;color:#6b7280">Ai primit aceast=C4=83 no=
+tificare deoarece ai folosit serviciile men=C8=9Bionate. Pentru siguran=C8=9B=
+=C4=83, verific=C4=83 manual canalul oficial dac=C4=83 ai dubii.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>
+
+--===============9040385319833210530==--

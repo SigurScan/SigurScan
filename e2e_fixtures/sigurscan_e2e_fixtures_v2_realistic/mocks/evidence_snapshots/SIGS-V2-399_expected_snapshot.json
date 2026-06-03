@@ -1,0 +1,17 @@
+{
+  "caseId": "SIGS-V2-399",
+  "expectedDecision": "VERIFY_OFFICIAL",
+  "expectedLabel": "Verifică pe canalul oficial",
+  "groundTruthIsScam": null,
+  "primaryUrlExpected": "https://short-link-necunoscut-26.test/aBcd",
+  "signalsExpected": [
+    "URL_SHORTENER",
+    "URGENCY_LANGUAGE"
+  ],
+  "sourceStatesExpected": {
+    "web_risk": "SIGS-V2-399_web_risk.json",
+    "urlscan": "SIGS-V2-399_urlscan.json",
+    "virustotal": "SIGS-V2-399_virustotal.json"
+  },
+  "notes": ""
+}

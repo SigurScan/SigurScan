@@ -1,0 +1,20 @@
+{
+  "caseId": "SIGS-V2-343",
+  "provider": "URLSCAN",
+  "inputUrl": "https://www.anaf.ro/anaf/internet/ANAF/servicii_online/",
+  "status": "SUCCESS",
+  "mockVariant": "all_clean",
+  "finalUrl": "https://www.anaf.ro/anaf/internet/ANAF/servicii_online/",
+  "verdict": "clean",
+  "screenshotAvailable": true,
+  "forms": [],
+  "redirectChain": [],
+  "server": {
+    "country": "RO",
+    "asn": "KNOWN-LEGIT-AS"
+  },
+  "certificate": {
+    "valid": true,
+    "issuer": "Test CA"
+  }
+}

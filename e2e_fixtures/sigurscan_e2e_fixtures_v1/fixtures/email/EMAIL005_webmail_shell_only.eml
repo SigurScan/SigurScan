@@ -1,0 +1,36 @@
+Subject: Document disponibil
+From: Sender <sender@example.invalid>
+To: test@example.com
+Date: Wed, 03 Jun 2026 03:11:55 -0000
+Message-ID: <178045631527.2350.1309544575655069284@sigurscan.fixture>
+X-SigurScan-Fixture:
+ true; safe-test-only; all scam URLs use reserved .test/.invalid domains
+X-SigurScan-Do-Not-Send: This is a local E2E fixture, not a real email.
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============4203404863269047829=="
+
+--===============4203404863269047829==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+
+RG9jdW1lbnQgZGlzcG9uaWJpbC4gTnUgZXhpc3TEgyBsaW5rIHBhcnNlYWJpbCDDrm4gY29uyJtp
+bnV0dWwgaW1wb3J0YXQuCg==
+
+--===============4203404863269047829==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<html><head>
+<style>body{font-family:Arial,sans-serif;background:#f6f8fb;color:#111}.card{=
+max-width:640px;margin:24px auto;background:white;border-radius:18px;padding:=
+28px;border:1px solid #e5e7eb}.btn{display:inline-block;background:#1d4ed8;co=
+lor:white;padding:14px 22px;border-radius:12px;text-decoration:none;font-weig=
+ht:bold}.danger{color:#b91c1c}.muted{color:#64748b;font-size:12px}</style>
+</head><body><div class=3D'card'><h1>Document disponibil</h1><p>Mesajul este =
+redat de clientul webmail; linkurile reale sunt =C3=AEnc=C4=83rcate prin scri=
+pturi ale clientului.</p><p>Nu exist=C4=83 href-uri parseabile =C3=AEn acest =
+HTML.</p></div></body></html>
+
+--===============4203404863269047829==--

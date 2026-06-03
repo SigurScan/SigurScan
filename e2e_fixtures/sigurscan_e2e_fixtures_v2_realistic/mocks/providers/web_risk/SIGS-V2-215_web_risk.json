@@ -1,0 +1,9 @@
+{
+  "caseId": "SIGS-V2-215",
+  "provider": "GOOGLE_WEB_RISK",
+  "inputUrl": "https://publi24-plata-curier-18.test/incaseaza",
+  "status": "SUCCESS",
+  "mockVariant": "urlscan_malicious",
+  "threats": [],
+  "expireTime": null
+}

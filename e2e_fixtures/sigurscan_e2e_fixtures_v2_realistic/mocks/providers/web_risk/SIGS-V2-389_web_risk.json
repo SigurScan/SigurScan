@@ -1,0 +1,9 @@
+{
+  "caseId": "SIGS-V2-389",
+  "provider": "GOOGLE_WEB_RISK",
+  "inputUrl": "https://www.emag.ro/promo-test",
+  "status": "SUCCESS",
+  "mockVariant": "vt_low",
+  "threats": [],
+  "expireTime": null
+}

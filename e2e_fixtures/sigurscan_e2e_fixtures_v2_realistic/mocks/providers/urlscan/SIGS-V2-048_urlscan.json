@@ -1,0 +1,23 @@
+{
+  "caseId": "SIGS-V2-048",
+  "provider": "URLSCAN",
+  "inputUrl": "https://dpd-livrare-23.test/confirmare?id=DPDRO7451102",
+  "status": "SUCCESS",
+  "mockVariant": "urlscan_malicious",
+  "finalUrl": "https://dpd-livrare-23.test/confirmare?id=DPDRO7451102",
+  "verdict": "malicious",
+  "screenshotAvailable": true,
+  "forms": [
+    "apk_download"
+  ],
+  "redirectChain": [],
+  "server": {
+    "country": "DE",
+    "asn": "TEST-BAD-AS"
+  },
+  "certificate": {
+    "valid": true,
+    "issuer": "ZeroSSL/R3 test",
+    "ageDays": 0
+  }
+}

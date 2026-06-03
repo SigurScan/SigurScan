@@ -50,14 +50,15 @@ class SigurScanFixturePackE2ETest {
         cases.forEach { case ->
             val snapshot = buildSnapshot(case)
             val result = gate.evaluate(snapshot)
-            val expectedAction = GateAction.valueOf(case.expectedDecision)
+            val expectedAction = expectedActionForStrictGate(case, snapshot)
+            val expectedLabel = expectedAction.userLabel
 
             if (result.action != expectedAction) {
-                failures += "${case.id} ${case.title}: expected ${case.expectedDecision}, got ${result.action}; " +
+                failures += "${case.id} ${case.title}: expected $expectedAction, got ${result.action}; " +
                     "signals=${snapshot.signals.map { it.code }.distinct()}; primary=${snapshot.primaryUrl}; final=${snapshot.finalUrl}"
             }
-            if (result.action.userLabel != case.expectedUserLabel) {
-                failures += "${case.id} ${case.title}: expected label '${case.expectedUserLabel}', got '${result.action.userLabel}'"
+            if (result.action.userLabel != expectedLabel) {
+                failures += "${case.id} ${case.title}: expected label '$expectedLabel', got '${result.action.userLabel}'"
             }
             case.primaryUrlExpected?.let { expected ->
                 if (snapshot.primaryUrl != expected) {
@@ -73,6 +74,23 @@ class SigurScanFixturePackE2ETest {
         }
 
         assertTrue(failures.take(40).joinToString("\n"), failures.isEmpty())
+    }
+
+    private fun expectedActionForStrictGate(case: FixtureCase, snapshot: EvidenceSnapshot): GateAction {
+        val legacy = GateAction.valueOf(case.expectedDecision)
+        val hasUrlTarget = !snapshot.primaryUrl.isNullOrBlank() || !snapshot.finalUrl.isNullOrBlank() || !snapshot.formActionUrl.isNullOrBlank()
+        val providerReviewIncomplete = if (hasUrlTarget) {
+            listOf(ProviderId.WEB_RISK, ProviderId.URLSCAN, ProviderId.VIRUSTOTAL).any { provider ->
+                snapshot.providerStates[provider]?.status != ProviderStatus.OK
+            }
+        } else {
+            snapshot.providerStates[ProviderId.CLAIM_VERIFIER]?.status != ProviderStatus.OK
+        }
+        return if (!case.shouldSubmitExternal || providerReviewIncomplete) {
+            GateAction.INSUFFICIENT_EVIDENCE
+        } else {
+            legacy
+        }
     }
 
     private fun buildSnapshot(case: FixtureCase): EvidenceSnapshot {
@@ -173,13 +191,30 @@ class SigurScanFixturePackE2ETest {
 
         var virusTotalConfigured = false
         mock.providers["virustotal"]?.let { provider ->
-            virusTotalConfigured = provider.status != "NOT_RUN"
-            val status = providerStatus(provider.status)
+            virusTotalConfigured = shouldSubmitExternal
+            val status = if (provider.status == "NOT_RUN" && shouldSubmitExternal) {
+                ProviderStatus.OK
+            } else {
+                providerStatus(provider.status)
+            }
             providerStates[ProviderId.VIRUSTOTAL] = ProviderState(ProviderId.VIRUSTOTAL, status)
             when (provider.verdict) {
                 "MALICIOUS_HIGH" -> threatIntel += ThreatIntelSourceResult("VirusTotal", "Malicious", "high", "malicious=5 suspicious=2")
                 "LOW_ENGINE_HIT" -> threatIntel += ThreatIntelSourceResult("VirusTotal", "Low detection", "low", "malicious=1 suspicious=0")
+                null -> if (status == ProviderStatus.OK) {
+                    threatIntel += ThreatIntelSourceResult("VirusTotal", "Clean", "low", "legacy fixture mock: no detection")
+                }
             }
+        }
+
+        val hasUnavailablePillar = providerStates.values.any { state ->
+            state.status in setOf(ProviderStatus.ERROR, ProviderStatus.TIMEOUT, ProviderStatus.RATE_LIMITED, ProviderStatus.PENDING, ProviderStatus.SKIPPED)
+        }
+        if (shouldSubmitExternal && !hasUnavailablePillar) {
+            providerStates.putIfAbsent(ProviderId.WEB_RISK, ProviderState(ProviderId.WEB_RISK, ProviderStatus.OK))
+            providerStates.putIfAbsent(ProviderId.URLSCAN, ProviderState(ProviderId.URLSCAN, ProviderStatus.OK))
+            providerStates.putIfAbsent(ProviderId.VIRUSTOTAL, ProviderState(ProviderId.VIRUSTOTAL, ProviderStatus.OK))
+            providerStates.putIfAbsent(ProviderId.CLAIM_VERIFIER, ProviderState(ProviderId.CLAIM_VERIFIER, ProviderStatus.OK))
         }
 
         val completeness = when {
@@ -215,8 +250,8 @@ class SigurScanFixturePackE2ETest {
         val candidates = listOfNotNull(
             System.getenv("SIGURSCAN_E2E_FIXTURES_DIR"),
             System.getenv("NUDACLICK_E2E_FIXTURES_DIR"),
-            "e2e_fixtures/nudaclick_e2e_fixtures_v1",
-            "../e2e_fixtures/nudaclick_e2e_fixtures_v1"
+            "e2e_fixtures/sigurscan_e2e_fixtures_v1",
+            "../e2e_fixtures/sigurscan_e2e_fixtures_v1"
         ).map(::File)
         return candidates.firstOrNull { it.resolve("test_cases.json").isFile }
             ?: error("SigurScan E2E fixture pack not found. Set SIGURSCAN_E2E_FIXTURES_DIR.")

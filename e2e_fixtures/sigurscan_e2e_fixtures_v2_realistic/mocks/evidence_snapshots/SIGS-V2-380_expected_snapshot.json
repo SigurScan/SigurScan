@@ -1,0 +1,17 @@
+{
+  "caseId": "SIGS-V2-380",
+  "expectedDecision": "INSUFFICIENT_EVIDENCE",
+  "expectedLabel": "Nu pot verifica suficient",
+  "groundTruthIsScam": false,
+  "primaryUrlExpected": "https://webmail-shell-7.test/mail/u/0/#inbox/FMfcgzGtw",
+  "signalsExpected": [
+    "WEBMAIL_SHELL_ONLY",
+    "NO_PRIMARY_TARGET_URL"
+  ],
+  "sourceStatesExpected": {
+    "web_risk": "SIGS-V2-380_web_risk.json",
+    "urlscan": "SIGS-V2-380_urlscan.json",
+    "virustotal": "SIGS-V2-380_virustotal.json"
+  },
+  "notes": ""
+}

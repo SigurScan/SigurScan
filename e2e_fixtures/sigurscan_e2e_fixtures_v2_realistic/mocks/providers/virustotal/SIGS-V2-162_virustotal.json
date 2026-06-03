@@ -1,0 +1,14 @@
+{
+  "caseId": "SIGS-V2-162",
+  "provider": "VIRUSTOTAL",
+  "inputUrl": "https://ing-securitate-cont-19.test/login/confirmare",
+  "status": "SUCCESS",
+  "mockVariant": "conflict_wr_clean_urlscan_bad",
+  "stats": {
+    "malicious": 3,
+    "suspicious": 5,
+    "undetected": 60,
+    "harmless": 14
+  },
+  "categories": []
+}

@@ -245,9 +245,12 @@ private fun collectSharedStreamUris(intent: Intent): List<Uri> {
     }
     singleStream?.let { streams[it.toString()] = it }
 
-    @Suppress("DEPRECATION")
-    intent.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM)
-        ?.forEach { stream -> streams[stream.toString()] = stream }
+    if (singleStream == null) {
+        @Suppress("DEPRECATION")
+        runCatching { intent.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM) }
+            .getOrNull()
+            ?.forEach { stream -> streams[stream.toString()] = stream }
+    }
 
     val clipData = intent.clipData
     if (clipData != null) {
@@ -328,7 +331,9 @@ fun MainScreen(viewModel: ScannerViewModel) {
                 "triage" -> TriageTab(viewModel)
                 "education" -> EducationTab(viewModel)
                 "more" -> {
-                    LaunchedEffect(Unit) { viewModel.loadReports() }
+                    if (BuildConfig.DEBUG) {
+                        LaunchedEffect(Unit) { viewModel.loadReports() }
+                    }
                     MoreTab(viewModel)
                 }
                 else -> ScanTab(
@@ -1318,9 +1323,11 @@ fun MoreTab(viewModel: ScannerViewModel) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        ReportsTab(viewModel)
+        if (BuildConfig.DEBUG) {
+            ReportsTab(viewModel)
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+        }
 
         ContrastSection()
 
@@ -1862,9 +1869,9 @@ fun EvidenceSectionPreview() {
     SigurScanTheme {
         Column(modifier = Modifier.padding(16.dp)) {
             EvidenceSection(
-                screenshotUrl = "https://urlscan.io/screenshots/example.png",
-                serverInfo = "Server: București, RO | Scorul de risc: 92%",
-                finalUrl = "https://google.com"
+                screenshotUrl = null,
+                serverInfo = "Preview disponibil pentru pagina finală.",
+                finalUrl = "https://exemplu.invalid"
             )
         }
     }
@@ -1885,13 +1892,13 @@ fun Header() {
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "NuDa",
+                text = "Sigur",
                 fontSize = 26.sp,
                 fontWeight = FontWeight.Bold,
                 color = SigurColors.TextPrimary
             )
             Text(
-                text = "Click",
+                text = "Scan",
                 fontSize = 26.sp,
                 fontWeight = FontWeight.Bold,
                 color = SigurColors.Brand
@@ -2103,27 +2110,6 @@ fun ScanInputCard(viewModel: ScannerViewModel, onPickImage: () -> Unit, onPickFi
                             Text("Șterge", fontSize = 12.sp)
                         }
                     }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text("Încearcă un exemplu (LIVE Sandbox):", color = SigurColors.TextMuted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-            Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf(
-                    "FAN (Real)" to "FAN Courier: Coletul tau este gata. Vezi aici: https://bit.ly/3XvO2zE", 
-                    "Google (Real)" to "Verificare cont Google: https://google.com"
-                ).forEach { (label, content) ->
-                    AssistChip(
-                        onClick = {
-                            viewModel.clearPendingSharedInput()
-                            viewModel.clearPendingSharedFiles()
-                            viewModel.text = content
-                        },
-                        label = { Text(label, fontSize = 10.sp) },
-                        colors = AssistChipDefaults.assistChipColors(labelColor = SigurColors.Brand, containerColor = SigurColors.BrandTint),
-                        border = BorderStroke(1.dp, SigurColors.Brand.copy(alpha = 0.30f))
-                    )
                 }
             }
 
@@ -2371,7 +2357,7 @@ fun ResultCard(
                 OfferAnalysisSection(assessment.offerAnalysis)
             }
 
-            if (assessment.keyDangers.isNotEmpty() && riskUi.level != "Caution") {
+            if (assessment.keyDangers.isNotEmpty() && riskUi.level != "Sigur") {
                 ResultSection(title = "Riscuri principale", items = assessment.keyDangers.take(3), icon = Icons.Default.Warning)
             }
 
@@ -2470,7 +2456,7 @@ fun ResultCard(
             }
             Spacer(modifier = Modifier.height(12.dp))
 
-            if (riskUi.level == "Dangerous") {
+            if (riskUi.level == "Periculos") {
                 Button(
                     onClick = onReport,
                     modifier = Modifier.fillMaxWidth(),
@@ -2726,10 +2712,10 @@ fun ThreatIntelSection(items: List<ThreatIntelSourceResult>, sandboxReportUrl: S
                         Spacer(modifier = Modifier.width(10.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                                Text(item.source, color = SigurColors.TextPrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                Text(item.verdict, color = statusColor, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                Text(publicThreatSource(item.source), color = SigurColors.TextPrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                Text(publicThreatVerdict(item.verdict), color = statusColor, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                             }
-                            item.details?.takeIf { it.isNotBlank() }?.let { details ->
+                            publicThreatDetails(item.details)?.let { details ->
                                 Text(details, color = SigurColors.TextSecondary, fontSize = 11.sp, lineHeight = 16.sp)
                             }
                         }
@@ -2737,7 +2723,7 @@ fun ThreatIntelSection(items: List<ThreatIntelSourceResult>, sandboxReportUrl: S
                     Spacer(modifier = Modifier.height(10.dp))
                 }
 
-                sandboxReportUrl?.let { url ->
+                sandboxReportUrl?.takeIf { BuildConfig.DEBUG }?.let { url ->
                     TextButton(
                         onClick = {
                             runCatching {
@@ -2748,11 +2734,56 @@ fun ThreatIntelSection(items: List<ThreatIntelSourceResult>, sandboxReportUrl: S
                     ) {
                         Icon(Icons.Default.OpenInNew, contentDescription = null, tint = SigurColors.Brand, modifier = Modifier.size(14.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Deschide raportul complet urlscan.io", color = SigurColors.Brand, fontSize = 12.sp)
+                        Text("Deschide detalii tehnice", color = SigurColors.Brand, fontSize = 12.sp)
                     }
                 }
             }
         }
+    }
+}
+
+private fun publicThreatSource(source: String): String {
+    val normalized = source.lowercase(Locale.getDefault())
+    return when {
+        normalized.contains("urlscan") -> "Analiză izolată"
+        normalized.contains("web risk") || normalized.contains("webrisk") || normalized.contains("google") -> "Reputație globală"
+        normalized.contains("virustotal") || normalized == "vt" -> "Reputație suplimentară"
+        normalized.contains("backend") -> "Analiză SigurScan"
+        else -> "Sursă de verificare"
+    }
+}
+
+private fun publicThreatVerdict(verdict: String): String {
+    val normalized = verdict.lowercase(Locale.getDefault())
+    return when {
+        normalized.contains("pending") || normalized.contains("queued") || normalized.contains("processing") -> "În verificare"
+        normalized.contains("malware") || normalized.contains("phish") || normalized.contains("malicious") || normalized.contains("threat") -> "Periculos"
+        normalized.contains("clean") || normalized.contains("no malicious") || normalized.contains("no threat") || normalized.contains("no classification") -> "Sigur"
+        normalized.isBlank() -> "În verificare"
+        else -> "Suspect"
+    }
+}
+
+private fun publicThreatDetails(details: String?): String? {
+    val value = details?.trim()?.takeIf { it.isNotBlank() } ?: return null
+    val normalized = value.lowercase(Locale.getDefault())
+    return when {
+        normalized.contains("http ") ||
+            normalized.contains("exception") ||
+            normalized.contains("api key") ||
+            normalized.contains("backend") ||
+            normalized.contains("urlscan") ||
+            normalized.contains("virustotal") ||
+            normalized.contains("web risk") ||
+            normalized.contains("vt score") ||
+            normalized.contains("engines:") ||
+            normalized.contains("sandbox") ->
+            "Verificarea online nu a returnat suficiente detalii publice. Folosește și canalul oficial."
+        normalized.contains("queued") || normalized.contains("processing") || normalized.contains("attempt") ->
+            "Verificarea online este încă în curs."
+        normalized.contains("not configured") || normalized.contains("unavailable") || normalized.contains("timeout") ->
+            "Unele surse online nu sunt disponibile momentan."
+        else -> value.take(180)
     }
 }
 
@@ -2878,21 +2909,21 @@ fun EvidenceSection(screenshotUrl: String?, serverInfo: String?, finalUrl: Strin
 	                        if (localBitmap != null) {
 	                            androidx.compose.foundation.Image(
 	                                bitmap = localBitmap.asImageBitmap(),
-	                                contentDescription = "Captură sandbox a paginii finale",
+                                contentDescription = "Captură izolată a paginii finale",
 	                                modifier = Modifier.fillMaxSize(),
 	                                contentScale = androidx.compose.ui.layout.ContentScale.Fit
 	                            )
 	                        } else {
 	                            SubcomposeAsyncImage(
 	                                model = screenshotModel,
-	                                contentDescription = "Captură sandbox a paginii finale",
+	                                contentDescription = "Captură izolată a paginii finale",
 	                                modifier = Modifier.fillMaxSize(),
 	                                contentScale = androidx.compose.ui.layout.ContentScale.Fit,
 	                                loading = {
 	                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
 	                                        CircularProgressIndicator(color = SigurColors.Brand, modifier = Modifier.size(30.dp))
 	                                        Spacer(modifier = Modifier.height(8.dp))
-	                                        Text("Se încarcă imaginea sandbox...", color = SigurColors.TextPrimary, fontSize = 10.sp)
+	                                        Text("Se încarcă preview-ul securizat...", color = SigurColors.TextPrimary, fontSize = 10.sp)
 	                                    }
 	                                },
 	                                error = {
@@ -2914,7 +2945,7 @@ fun EvidenceSection(screenshotUrl: String?, serverInfo: String?, finalUrl: Strin
                             .fillMaxWidth()
                     ) {
                         Text(
-                            text = serverInfo ?: "Sursă: urlscan.io Sandbox",
+                            text = publicServerInfo(serverInfo),
                             color = SigurColors.TextInverse,
                             fontSize = 11.sp,
                             modifier = Modifier.padding(8.dp),
@@ -2924,7 +2955,7 @@ fun EvidenceSection(screenshotUrl: String?, serverInfo: String?, finalUrl: Strin
                 }
             }
             Text(
-                "Aceasta este o imagine a paginii finale, nu site-ul real. Nu interacționezi cu pagina.",
+                "Aceasta este o imagine izolată a paginii finale, nu site-ul real. Nu interacționezi cu pagina.",
                 color = SigurColors.TextSecondary,
                 fontSize = 10.sp,
                 modifier = Modifier.padding(top = 4.dp, start = 4.dp)
@@ -2936,6 +2967,18 @@ fun EvidenceSection(screenshotUrl: String?, serverInfo: String?, finalUrl: Strin
 internal fun sandboxScreenshotModel(screenshotUrl: String?): String? =
     screenshotUrl
         ?.takeIf { it.isNotBlank() }
+
+private fun publicServerInfo(serverInfo: String?): String {
+    val value = serverInfo?.trim()?.takeIf { it.isNotBlank() } ?: return "Preview securizat al paginii finale"
+    val normalized = value.lowercase(Locale.getDefault())
+    return when {
+        normalized.contains("server:") || normalized.contains("backend") || normalized.contains("http ") || normalized.contains("sandbox") ->
+            "Preview securizat al paginii finale"
+        normalized.contains("genere") || normalized.contains("processing") || normalized.contains("pending") ->
+            "Preview-ul securizat se generează."
+        else -> value.take(140)
+    }
+}
 
 private data class UserActionDecision(
     val headline: String,
@@ -2963,7 +3006,7 @@ private fun mapUserActionDecision(assessment: OfflineAssessment, riskUi: RiskDis
     )
 
     return when (riskUi.level) {
-        "Dangerous" -> UserActionDecision(
+        "Periculos" -> UserActionDecision(
             headline = when {
                 asksForSensitiveData -> "Nu introduce date"
                 looksLikeEmail -> "Nu răspunde"
@@ -2976,20 +3019,15 @@ private fun mapUserActionDecision(assessment: OfflineAssessment, riskUi: RiskDis
                 "Deschide manual site-ul oficial, nu linkul primit."
             }
         )
-        "Review" -> UserActionDecision(
-            headline = "Verifică pe canalul oficial",
-            supportText = "Am găsit semnale neclare. Nu folosi linkul primit până confirmi pe canalul oficial.",
+        "Suspect" -> UserActionDecision(
+            headline = "Suspect",
+            supportText = "Am găsit semnale neclare. Verifică direct în aplicația sau pe site-ul oficial.",
             nextBestAction = "Intră manual în aplicația sau site-ul oficial, fără să apeși linkul primit."
         )
-        "Error" -> UserActionDecision(
-            headline = "Nu pot verifica suficient",
-            supportText = "Nu pot verifica suficient acest conținut din datele disponibile.",
-            nextBestAction = "Scanează din nou cu linkul complet sau verifică direct pe canalul oficial."
-        )
         else -> UserActionDecision(
-            headline = "Poți continua cu prudență",
-            supportText = "Nu am găsit semnale cunoscute de risc, dar verifică dacă recunoști expeditorul.",
-            nextBestAction = "Continuă doar dacă nu ți se cer parole, card sau coduri OTP."
+            headline = "Sigur",
+            supportText = "Scanarea a verificat destinația și nu a găsit semnale clare de risc.",
+            nextBestAction = "Poți continua."
         )
     }
 }
@@ -3045,52 +3083,52 @@ private fun mapGateDisplayState(action: GateAction): RiskDisplayState = when (ac
     GateAction.DO_NOT_CONTINUE,
     GateAction.NO_ENTER_DATA,
     GateAction.NO_REPLY -> RiskDisplayState(
-        level = "Dangerous",
-        label = action.userLabel,
+        level = "Periculos",
+        label = "Periculos",
         color = SigurColors.Dangerous
     )
     GateAction.VERIFY_OFFICIAL -> RiskDisplayState(
-        level = "Review",
-        label = action.userLabel,
+        level = "Suspect",
+        label = "Suspect",
         color = SigurColors.Suspect
     )
     GateAction.CONTINUE_WITH_CAUTION -> RiskDisplayState(
-        level = "Caution",
-        label = action.userLabel,
+        level = "Sigur",
+        label = "Sigur",
         color = SigurColors.Safe
     )
     GateAction.INSUFFICIENT_EVIDENCE -> RiskDisplayState(
-        level = "Error",
-        label = action.userLabel,
-        color = SigurColors.Unknown
+        level = "Suspect",
+        label = "Suspect",
+        color = SigurColors.Suspect
     )
 }
 
 private fun mapRiskDisplayState(level: String): RiskDisplayState {
     return when (level.lowercase(Locale.getDefault())) {
         "high", "critical", "dangerous", "high_risk" -> RiskDisplayState(
-            level = "Dangerous",
-            label = "Nu continua",
+            level = "Periculos",
+            label = "Periculos",
             color = SigurColors.Dangerous
         )
         "medium", "suspicious", "warn", "warning" -> RiskDisplayState(
-            level = "Review",
-            label = "Verifică oficial",
+            level = "Suspect",
+            label = "Suspect",
             color = SigurColors.Suspect
         )
         "error" -> RiskDisplayState(
-            level = "Error",
-            label = "Nu pot verifica",
-            color = SigurColors.Unknown
+            level = "Suspect",
+            label = "Suspect",
+            color = SigurColors.Suspect
         )
         "low", "safe", "none" -> RiskDisplayState(
-            level = "Caution",
-            label = "Poți continua cu prudență",
+            level = "Sigur",
+            label = "Sigur",
             color = SigurColors.Safe
         )
         else -> RiskDisplayState(
-            level = "Review",
-            label = "Verifică oficial",
+            level = "Suspect",
+            label = "Suspect",
             color = SigurColors.Suspect
         )
     }
@@ -3098,9 +3136,9 @@ private fun mapRiskDisplayState(level: String): RiskDisplayState {
 
 private fun gateStatusText(result: GateResult?): String {
     return when {
-        result == null -> "Analiză automată pe dovezile disponibile"
-        result.asyncExpected || result.finality == GateFinality.PROVISIONAL -> "Dovezile externe pot actualiza recomandarea"
-        else -> "Decizie finală pe dovezile disponibile"
+        result == null -> "Scanare pregătită"
+        result.asyncExpected || result.finality == GateFinality.PROVISIONAL -> "Scanare în curs"
+        else -> "Verdict finalizat"
     }
 }
 
@@ -3113,9 +3151,8 @@ private fun resultIconFor(action: GateAction?, level: String): ImageVector {
         GateAction.CONTINUE_WITH_CAUTION -> Icons.Default.CheckCircle
         GateAction.INSUFFICIENT_EVIDENCE -> Icons.Default.ReportProblem
         null -> when (level) {
-            "Dangerous" -> Icons.Default.Warning
-            "Error" -> Icons.Default.ReportProblem
-            "Caution" -> Icons.Default.CheckCircle
+            "Periculos" -> Icons.Default.Warning
+            "Sigur" -> Icons.Default.CheckCircle
             else -> Icons.Default.Info
         }
     }
@@ -3202,12 +3239,24 @@ fun HistoryItemCard(item: OfflineAssessment, onClick: () -> Unit, onDelete: () -
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Text("Clasificare: ${item.family}", color = SigurColors.TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                Text(item.originalText, color = SigurColors.TextSecondary, fontSize = 12.sp, maxLines = 1)
+                Text(publicHistorySummary(item), color = SigurColors.TextSecondary, fontSize = 12.sp, maxLines = 1)
             }
             IconButton(onClick = onDelete) {
                 Icon(Icons.Default.Delete, contentDescription = null, tint = SigurColors.Dangerous.copy(alpha = 0.70f), modifier = Modifier.size(18.dp))
             }
         }
+    }
+}
+
+private fun publicHistorySummary(item: OfflineAssessment): String {
+    item.finalUrl?.let { return "Link analizat: ${it.take(72)}" }
+    return when {
+        item.originalText.startsWith("scan=", ignoreCase = true) -> "Conținut analizat local, detalii redactate"
+        item.originalText.contains("Scanare imagine", ignoreCase = true) -> "Imagine analizată"
+        item.originalText.contains("Scanare PDF", ignoreCase = true) -> "PDF analizat"
+        item.originalText.contains("Scanare email", ignoreCase = true) -> "E-mail analizat"
+        item.originalText.contains("Fișier", ignoreCase = true) -> "Fișier analizat"
+        else -> "Mesaj analizat, conținut redactat"
     }
 }
 
@@ -3549,19 +3598,16 @@ fun AboutTab() {
         
         Spacer(modifier = Modifier.height(16.dp))
 
-        OutlinedButton(
-            onClick = {
-                val backendBaseUrl = BuildConfig.SIGURSCAN_BACKEND_BASE_URL
-                    .ifBlank { "https://nudaclick-backend.vercel.app/" }
-                    .trimEnd('/')
-                uriHandler.openUri("$backendBaseUrl/privacy")
-            },
-            border = BorderStroke(1.dp, SigurColors.Brand),
-            shape = RoundedCornerShape(10.dp)
-        ) {
-            Icon(Icons.Default.PrivacyTip, contentDescription = null, tint = SigurColors.Brand)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Politica de confidențialitate", color = SigurColors.Brand)
+        BuildConfig.SIGURSCAN_PRIVACY_URL.takeIf { it.isNotBlank() }?.let { privacyUrl ->
+            OutlinedButton(
+                onClick = { uriHandler.openUri(privacyUrl) },
+                border = BorderStroke(1.dp, SigurColors.Brand),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Icon(Icons.Default.PrivacyTip, contentDescription = null, tint = SigurColors.Brand)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Politica de confidențialitate", color = SigurColors.Brand)
+            }
         }
 
         Spacer(modifier = Modifier.height(40.dp))

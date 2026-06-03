@@ -1,0 +1,20 @@
+{
+  "caseId": "SIGS-V2-016",
+  "expectedDecision": "NO_ENTER_DATA",
+  "expectedLabel": "Nu introduce date",
+  "groundTruthIsScam": true,
+  "primaryUrlExpected": "https://portal-anaf-rambursare-15.test/card/confirmare",
+  "signalsExpected": [
+    "CLAIMED_BRAND_IDENTIFIED",
+    "OFFICIAL_DOMAIN_MISMATCH",
+    "CARD_DATA_REQUEST",
+    "CNP_OR_ID_REQUEST",
+    "URGENCY_LANGUAGE"
+  ],
+  "sourceStatesExpected": {
+    "web_risk": "SIGS-V2-016_web_risk.json",
+    "urlscan": "SIGS-V2-016_urlscan.json",
+    "virustotal": "SIGS-V2-016_virustotal.json"
+  },
+  "notes": ""
+}

@@ -1,0 +1,9 @@
+{
+  "caseId": "SIGS-V2-396",
+  "provider": "GOOGLE_WEB_RISK",
+  "inputUrl": "https://token-reset-23.test/reset?token=SECRET-REDACT-ME&email=test@example.com",
+  "status": "SKIPPED_PRIVACY",
+  "mockVariant": "privacy_skipped",
+  "threats": [],
+  "expireTime": null
+}

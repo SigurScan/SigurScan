@@ -1,0 +1,20 @@
+{
+  "caseId": "SIGS-V2-386",
+  "provider": "URLSCAN",
+  "inputUrl": "https://webmail-shell-13.test/mail/u/0/#inbox/FMfcgzGtw",
+  "status": "TIMEOUT",
+  "mockVariant": "all_down",
+  "finalUrl": "https://webmail-shell-13.test/mail/u/0/#inbox/FMfcgzGtw",
+  "verdict": "unknown",
+  "screenshotAvailable": false,
+  "forms": [],
+  "redirectChain": [],
+  "server": {
+    "country": "RO",
+    "asn": "TEST-AS"
+  },
+  "certificate": {
+    "valid": true,
+    "issuer": "Test CA"
+  }
+}

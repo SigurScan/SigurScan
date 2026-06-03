@@ -1,0 +1,3 @@
+Cargus: coletul DPDRO7451102 nu poate fi livrat din cauza: colet blocat.
+Pentru reprogramare achită taxa de 7,90 RON și confirmă datele cardului: https://cargus-livrare-21.test/confirmare?id=DPDRO7451102
+Mesaj valabil până astăzi la ora 18:00.

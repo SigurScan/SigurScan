@@ -1,0 +1,20 @@
+{
+  "caseId": "SIGS-V2-358",
+  "provider": "URLSCAN",
+  "inputUrl": "https://www.vodafone.ro/myvodafone",
+  "status": "SUCCESS",
+  "mockVariant": "all_clean",
+  "finalUrl": "https://www.vodafone.ro/myvodafone",
+  "verdict": "clean",
+  "screenshotAvailable": true,
+  "forms": [],
+  "redirectChain": [],
+  "server": {
+    "country": "RO",
+    "asn": "KNOWN-LEGIT-AS"
+  },
+  "certificate": {
+    "valid": true,
+    "issuer": "Test CA"
+  }
+}

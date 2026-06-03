@@ -1,0 +1,14 @@
+{
+  "caseId": "SIGS-V2-377",
+  "provider": "VIRUSTOTAL",
+  "inputUrl": "https://www.emag.ro/promo-test",
+  "status": "SUCCESS",
+  "mockVariant": "vt_low",
+  "stats": {
+    "malicious": 1,
+    "suspicious": 1,
+    "undetected": 70,
+    "harmless": 14
+  },
+  "categories": []
+}

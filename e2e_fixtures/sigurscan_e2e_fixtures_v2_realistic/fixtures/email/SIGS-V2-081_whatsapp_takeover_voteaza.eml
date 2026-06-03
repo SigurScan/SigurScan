@@ -1,0 +1,72 @@
+Subject: WhatsApp takeover - =?utf-8?q?voteaz=C4=83?=
+From: WhatsApp <noreply@whatsapp.test>
+To: utilizator.test@sigurscan.local
+Date: Wed, 03 Jun 2026 04:58:58 +0000
+Message-ID: <178046273816.6118.2166867917511234230@mail.example.test>
+Authentication-Results: mx.sigurscan.test; spf=none
+ smtp.mailfrom=whatsapp.test; dkim=fail header.d=whatsapp.test
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============8602206166108703100=="
+
+--===============8602206166108703100==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+Bun=C4=83! Te rog mult, voteaz=C4=83 pentru Sofia. E finala azi =C8=99i mai a=
+vem nevoie de c=C3=A2teva voturi.
+Intr=C4=83 aici: https://whatsapp-verificare-sofia-18.test/vot
+Dup=C4=83 ce se deschide pagina, introdu num=C4=83rul =C8=99i codul primit pr=
+in WhatsApp/SMS ca s=C4=83 confirme votul. Mersi mult!
+
+Verific=C4=83 acum: https://www.whatsapp.com/
+
+--===============8602206166108703100==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<!doctype html>
+<html lang=3D"ro"><head><meta charset=3D"utf-8"><title>WhatsApp takeover - vo=
+teaz=C4=83</title></head>
+<body style=3D"margin:0;background:#f4f6fb;font-family:Arial,Helvetica,sans-s=
+erif;color:#111827">
+  <table role=3D"presentation" width=3D"100%" cellspacing=3D"0" cellpadding=
+=3D"0" style=3D"background:#f4f6fb;padding:24px">
+    <tr><td align=3D"center">
+      <table role=3D"presentation" width=3D"620" cellspacing=3D"0" cellpaddin=
+g=3D"0" style=3D"background:#fff;border-radius:16px;overflow:hidden;border:1p=
+x solid #e5e7eb">
+        <tr><td style=3D"background:#0b132b;color:white;padding:24px 28px">
+          <div style=3D"font-size:13px;letter-spacing:.08em;text-transform:up=
+percase;color:#9ca3af">WhatsApp</div>
+          <h1 style=3D"margin:8px 0 0;font-size:28px;line-height:1.2">WhatsAp=
+p takeover - voteaz=C4=83</h1>
+        </td></tr>
+        <tr><td style=3D"padding:28px;font-size:16px;line-height:1.55">
+          <p>Bun=C4=83! Te rog mult, voteaz=C4=83 pentru Sofia. E finala azi =
+=C8=99i mai avem nevoie de c=C3=A2teva voturi.</p><p>Intr=C4=83 aici: https:/=
+/whatsapp-verificare-sofia-18.test/vot</p><p>Dup=C4=83 ce se deschide pagina,=
+ introdu num=C4=83rul =C8=99i codul primit prin WhatsApp/SMS ca s=C4=83 confi=
+rme votul. Mersi mult!</p>
+         =20
+        <p style=3D"margin:28px 0"><a href=3D"https://whatsapp-verificare-sof=
+ia-18.test/vot" style=3D"background:#d7263d;color:#fff;text-decoration:none;p=
+adding:14px 22px;border-radius:8px;font-weight:bold;display:inline-block">Ver=
+ific=C4=83 acum</a></p>
+        <p style=3D"font-size:12px;color:#6b7280">Dac=C4=83 butonul nu func=
+=C8=9Bioneaz=C4=83, verifica=C8=9Bi manual =C3=AEn aplica=C8=9Bia oficial=C4=
+=83. Link afi=C8=99at: <span>https://www.whatsapp.com/</span></p>
+       =20
+          <hr style=3D"border:none;border-top:1px solid #e5e7eb;margin:28px 0=
+" />
+          <p style=3D"font-size:12px;color:#6b7280">Ai primit aceast=C4=83 no=
+tificare deoarece ai folosit serviciile men=C8=9Bionate. Pentru siguran=C8=9B=
+=C4=83, verific=C4=83 manual canalul oficial dac=C4=83 ai dubii.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>
+
+--===============8602206166108703100==--

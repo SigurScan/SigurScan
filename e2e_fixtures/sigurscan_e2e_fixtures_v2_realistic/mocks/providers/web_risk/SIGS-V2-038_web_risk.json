@@ -1,0 +1,9 @@
+{
+  "caseId": "SIGS-V2-038",
+  "provider": "GOOGLE_WEB_RISK",
+  "inputUrl": "https://cargus-livrare-13.test/awb?id=CGS55392010",
+  "status": "SUCCESS",
+  "mockVariant": "urlscan_malicious",
+  "threats": [],
+  "expireTime": null
+}

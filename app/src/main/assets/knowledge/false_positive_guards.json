@@ -1,0 +1,62 @@
+[
+  {
+    "case": "marketing «nu rata/ofertă limitată»",
+    "de_ce_poate_pacali_detectorul": "urgență + promo + CTA seamănă cu scam.",
+    "dovada_sigur": "domeniu oficial/partener verificat, DKIM/SPF ok dacă e email, fără cerere card/parolă/OTP în mesaj.",
+    "dovada_suspect_periculos": "domeniu neoficial + formular card/CNP/OTP sau provider malicious."
+  },
+  {
+    "case": "link sub buton în email",
+    "de_ce_poate_pacali_detectorul": "HTML emails ascund href sub CTA, normal în marketing.",
+    "dovada_sigur": "final URL oficial/partner valid + dezabonare normală + fără sensitive ask.",
+    "dovada_suspect_periculos": "display brand oficial, href către .test/neoficial + cerere date."
+  },
+  {
+    "case": "tracking link legitim",
+    "de_ce_poate_pacali_detectorul": "ESP/tracking domains arată necunoscut.",
+    "dovada_sigur": "redirect final către domeniu oficial și partner în registry.",
+    "dovada_suspect_periculos": "redirect chain ajunge la clone/formular card."
+  },
+  {
+    "case": "shortener/branch link legitim",
+    "de_ce_poate_pacali_detectorul": "shortener este semnal structural weak.",
+    "dovada_sigur": "resolved final URL oficial, no sensitive ask.",
+    "dovada_suspect_periculos": "unresolved + brand claim + sensitive ask => Suspect; final phishing => Periculos."
+  },
+  {
+    "case": "notificare curier reală",
+    "de_ce_poate_pacali_detectorul": "colet, locker, adresă, ramburs, plată apar și în fluxuri legitime.",
+    "dovada_sigur": "domeniu/app oficial; pentru SAMEDAY card payment în app poate fi legitim.",
+    "dovada_suspect_periculos": "domeniu neoficial + card/CVV/cod WhatsApp."
+  },
+  {
+    "case": "OTP legitim",
+    "de_ce_poate_pacali_detectorul": "codurile OTP apar în scamuri.",
+    "dovada_sigur": "mesaj informativ fără solicitare de a-l comunica altcuiva; legat de acțiune inițiată de user.",
+    "dovada_suspect_periculos": "orice cerere de a trimite/introduce codul pe domeniu neoficial."
+  },
+  {
+    "case": "factură reală",
+    "de_ce_poate_pacali_detectorul": "PDF/email factură conține sumă, termen, link plată.",
+    "dovada_sigur": "portal/app oficial, număr client, canale verificate; fără refund/card extern.",
+    "dovada_suspect_periculos": "rambursare/deconectare urgentă + domeniu neoficial + card."
+  },
+  {
+    "case": "campanie buyback reală",
+    "de_ce_poate_pacali_detectorul": "promite voucher/reducere + colectează detalii telefon.",
+    "dovada_sigur": "program publicat pe orange.ro/yoxo.ro/newsroom; proces în app oficial.",
+    "dovada_suspect_periculos": "domeniu neoficial + card/CNP/OTP pentru voucher."
+  },
+  {
+    "case": "plată utilități cu cardul",
+    "de_ce_poate_pacali_detectorul": "PPC/E.ON/Ghișeul pot permite plată online legitimă.",
+    "dovada_sigur": "ppcenergy.ro/eon.ro/ghiseul.ro + context cont/client; canal oficial.",
+    "dovada_suspect_periculos": "obligație de plată anunțată prin SMS cu link neoficial + card/CNP/password."
+  },
+  {
+    "case": "email bancar educațional",
+    "de_ce_poate_pacali_detectorul": "conține linkuri și termeni de securitate/fraudă.",
+    "dovada_sigur": "domeniu oficial bancă + doar educațional, fără login/card/cod.",
+    "dovada_suspect_periculos": "link cere login/card/OTP sau safe account transfer."
+  }
+]

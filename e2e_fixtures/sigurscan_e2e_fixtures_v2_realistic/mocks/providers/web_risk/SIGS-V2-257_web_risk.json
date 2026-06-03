@@ -1,0 +1,9 @@
+{
+  "caseId": "SIGS-V2-257",
+  "provider": "GOOGLE_WEB_RISK",
+  "inputUrl": "https://www.altex.ro/promotii/test",
+  "status": "SUCCESS",
+  "mockVariant": "all_clean",
+  "threats": [],
+  "expireTime": null
+}

@@ -1,0 +1,14 @@
+{
+  "caseId": "SIGS-V2-219",
+  "provider": "VIRUSTOTAL",
+  "inputUrl": "https://factura-digi-0.test/plata",
+  "status": "SUCCESS",
+  "mockVariant": "conflict_wr_clean_urlscan_bad",
+  "stats": {
+    "malicious": 2,
+    "suspicious": 6,
+    "undetected": 60,
+    "harmless": 14
+  },
+  "categories": []
+}

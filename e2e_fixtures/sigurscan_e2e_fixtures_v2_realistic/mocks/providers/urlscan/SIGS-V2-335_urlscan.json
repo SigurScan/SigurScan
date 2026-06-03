@@ -1,0 +1,20 @@
+{
+  "caseId": "SIGS-V2-335",
+  "provider": "URLSCAN",
+  "inputUrl": "https://ing.ro/ing-in-romania/siguranta",
+  "status": "SUCCESS",
+  "mockVariant": "all_clean",
+  "finalUrl": "https://ing.ro/ing-in-romania/siguranta",
+  "verdict": "clean",
+  "screenshotAvailable": true,
+  "forms": [],
+  "redirectChain": [],
+  "server": {
+    "country": "RO",
+    "asn": "KNOWN-LEGIT-AS"
+  },
+  "certificate": {
+    "valid": true,
+    "issuer": "Test CA"
+  }
+}

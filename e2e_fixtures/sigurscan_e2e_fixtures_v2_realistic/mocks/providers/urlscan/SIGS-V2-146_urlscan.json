@@ -1,0 +1,24 @@
+{
+  "caseId": "SIGS-V2-146",
+  "provider": "URLSCAN",
+  "inputUrl": "https://ing-securitate-cont-3.test/login/confirmare",
+  "status": "SUCCESS",
+  "mockVariant": "conflict_wr_clean_urlscan_bad",
+  "finalUrl": "https://ing-securitate-cont-3.test/login/confirmare",
+  "verdict": "malicious",
+  "screenshotAvailable": true,
+  "forms": [
+    "login",
+    "otp"
+  ],
+  "redirectChain": [],
+  "server": {
+    "country": "RU",
+    "asn": "TEST-BAD-AS"
+  },
+  "certificate": {
+    "valid": true,
+    "issuer": "ZeroSSL/R3 test",
+    "ageDays": 2
+  }
+}

@@ -6,11 +6,11 @@ Ultima actualizare: 2026-06-03
 
 Pachetul v1 este extras local aici:
 
-`/Users/vaduvageorge/Desktop/SigurScan/e2e_fixtures/nudaclick_e2e_fixtures_v1`
+`/Users/vaduvageorge/Desktop/SigurScan/e2e_fixtures/sigurscan_e2e_fixtures_v1`
 
 Zip sursa:
 
-`/Users/vaduvageorge/Downloads/nudaclick_e2e_fixtures_v1.zip`
+`/Users/vaduvageorge/Downloads/sigurscan_e2e_fixtures_v1.zip`
 
 SHA-256:
 

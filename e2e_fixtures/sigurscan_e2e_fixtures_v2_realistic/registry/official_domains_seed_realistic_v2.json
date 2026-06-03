@@ -1,0 +1,158 @@
+{
+  "version": "ro-brands-realistic-v2.0.0",
+  "issuedAt": "2026-06-03T04:59:06.427993+00:00",
+  "expiresAt": "2026-06-17T04:59:06.428010+00:00",
+  "note": "Synthetic seed registry for SigurScan E2E tests. Validate against production source before use.",
+  "brands": [
+    {
+      "brandId": "anaf",
+      "displayName": "ANAF",
+      "officialDomains": [
+        "anaf.ro"
+      ],
+      "officialSubdomains": [
+        "www.anaf.ro",
+        "static.anaf.ro"
+      ],
+      "allowedPartnerDomains": [],
+      "neverAskFor": [
+        "CARD_CVV",
+        "CARD_PIN",
+        "BANK_PASSWORD",
+        "SMS_CODE_FOR_REFUND"
+      ]
+    },
+    {
+      "brandId": "posta",
+      "displayName": "Poșta Română",
+      "officialDomains": [
+        "posta-romana.ro",
+        "ropost.ro"
+      ],
+      "officialSubdomains": [
+        "www.posta-romana.ro"
+      ],
+      "allowedPartnerDomains": [],
+      "neverAskFor": [
+        "CARD_CVV",
+        "CARD_PIN",
+        "ONLINE_DELIVERY_FEE_FROM_SMS"
+      ]
+    },
+    {
+      "brandId": "fan",
+      "displayName": "FAN Courier",
+      "officialDomains": [
+        "fancourier.ro"
+      ],
+      "officialSubdomains": [
+        "www.fancourier.ro"
+      ],
+      "allowedPartnerDomains": [],
+      "neverAskFor": [
+        "WHATSAPP_CODE",
+        "CARD_CVV",
+        "CARD_PIN"
+      ]
+    },
+    {
+      "brandId": "emag",
+      "displayName": "eMAG",
+      "officialDomains": [
+        "emag.ro"
+      ],
+      "officialSubdomains": [
+        "www.emag.ro",
+        "click.emag.ro"
+      ],
+      "allowedPartnerDomains": [
+        {
+          "registeredDomain": "click.emag.ro",
+          "purpose": "EMAIL_MARKETING",
+          "confidence": 80
+        }
+      ],
+      "neverAskFor": [
+        "CARD_CVV",
+        "SMS_CODE_IN_EMAIL"
+      ]
+    },
+    {
+      "brandId": "olx",
+      "displayName": "OLX",
+      "officialDomains": [
+        "olx.ro"
+      ],
+      "officialSubdomains": [
+        "www.olx.ro"
+      ],
+      "allowedPartnerDomains": [],
+      "neverAskFor": [
+        "CARD_REQUIRED_TO_RECEIVE_MONEY",
+        "SMS_CODE_TO_RECEIVE_PAYMENT"
+      ]
+    },
+    {
+      "brandId": "bt",
+      "displayName": "Banca Transilvania",
+      "officialDomains": [
+        "bancatransilvania.ro",
+        "btpay.ro"
+      ],
+      "officialSubdomains": [
+        "www.bancatransilvania.ro"
+      ],
+      "neverAskFor": [
+        "PIN",
+        "CVV",
+        "PASSWORD",
+        "SMS_CODE"
+      ]
+    },
+    {
+      "brandId": "ing",
+      "displayName": "ING",
+      "officialDomains": [
+        "ing.ro"
+      ],
+      "officialSubdomains": [
+        "www.ing.ro"
+      ],
+      "neverAskFor": [
+        "PIN",
+        "CVV",
+        "PASSWORD",
+        "SMS_CODE"
+      ]
+    },
+    {
+      "brandId": "revolut",
+      "displayName": "Revolut",
+      "officialDomains": [
+        "revolut.com"
+      ],
+      "officialSubdomains": [
+        "www.revolut.com"
+      ],
+      "neverAskFor": [
+        "SMS_CODE_BY_CHAT",
+        "PASSWORD"
+      ]
+    },
+    {
+      "brandId": "sameday",
+      "displayName": "Sameday",
+      "officialDomains": [
+        "sameday.ro",
+        "samedayeasyway.ro"
+      ],
+      "officialSubdomains": [
+        "www.sameday.ro"
+      ],
+      "neverAskFor": [
+        "WHATSAPP_CODE",
+        "CARD_CVV"
+      ]
+    }
+  ]
+}

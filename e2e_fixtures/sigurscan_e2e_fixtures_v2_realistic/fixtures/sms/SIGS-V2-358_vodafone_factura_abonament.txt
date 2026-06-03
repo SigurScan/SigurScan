@@ -1,0 +1,2 @@
+Vodafone: factura/abonamentul tău pentru luna curentă este disponibil(ă).
+Poți vedea detaliile în contul oficial. Nu îți solicităm PIN, CVV sau coduri SMS prin acest mesaj.

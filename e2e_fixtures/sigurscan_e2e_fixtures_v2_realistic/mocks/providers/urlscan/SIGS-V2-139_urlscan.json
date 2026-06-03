@@ -1,0 +1,20 @@
+{
+  "caseId": "SIGS-V2-139",
+  "provider": "URLSCAN",
+  "inputUrl": null,
+  "status": "SUCCESS",
+  "mockVariant": "all_clean_structural",
+  "finalUrl": null,
+  "verdict": "no_visible_risk",
+  "screenshotAvailable": false,
+  "forms": [],
+  "redirectChain": [],
+  "server": {
+    "country": "RO",
+    "asn": "TEST-AS"
+  },
+  "certificate": {
+    "valid": true,
+    "issuer": "Test CA"
+  }
+}

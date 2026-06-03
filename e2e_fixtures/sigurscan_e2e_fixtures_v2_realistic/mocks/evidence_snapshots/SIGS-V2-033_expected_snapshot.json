@@ -1,0 +1,20 @@
+{
+  "caseId": "SIGS-V2-033",
+  "expectedDecision": "DO_NOT_CONTINUE",
+  "expectedLabel": "Nu continua",
+  "groundTruthIsScam": true,
+  "primaryUrlExpected": "https://dpd-livrare-8.test/awb?id=PR457120903RO",
+  "signalsExpected": [
+    "COURIER_BRAND_CONTEXT",
+    "DELIVERY_SMALL_FEE_REQUEST",
+    "OFFICIAL_DOMAIN_MISMATCH",
+    "CARD_DATA_REQUEST",
+    "URGENCY_LANGUAGE"
+  ],
+  "sourceStatesExpected": {
+    "web_risk": "SIGS-V2-033_web_risk.json",
+    "urlscan": "SIGS-V2-033_urlscan.json",
+    "virustotal": "SIGS-V2-033_virustotal.json"
+  },
+  "notes": "Contextul real de așteptare colet nu reduce riscul."
+}

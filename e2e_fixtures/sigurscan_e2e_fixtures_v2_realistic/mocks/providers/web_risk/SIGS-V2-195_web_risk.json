@@ -1,0 +1,9 @@
+{
+  "caseId": "SIGS-V2-195",
+  "provider": "GOOGLE_WEB_RISK",
+  "inputUrl": "https://investitii-profit-24.test/start?campanie=platform%C4%83%20crypto",
+  "status": "SUCCESS",
+  "mockVariant": "urlscan_malicious",
+  "threats": [],
+  "expireTime": null
+}

@@ -1,0 +1,9 @@
+{
+  "caseId": "SIGS-V2-278",
+  "provider": "GOOGLE_WEB_RISK",
+  "inputUrl": "https://bolt.eu/ro-ro/food/promo-test",
+  "status": "SUCCESS",
+  "mockVariant": "all_clean",
+  "threats": [],
+  "expireTime": null
+}

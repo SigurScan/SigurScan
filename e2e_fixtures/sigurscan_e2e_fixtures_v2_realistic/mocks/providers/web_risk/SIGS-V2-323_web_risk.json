@@ -1,0 +1,9 @@
+{
+  "caseId": "SIGS-V2-323",
+  "provider": "GOOGLE_WEB_RISK",
+  "inputUrl": "https://ing.ro/ing-in-romania/siguranta",
+  "status": "SUCCESS",
+  "mockVariant": "all_clean",
+  "threats": [],
+  "expireTime": null
+}

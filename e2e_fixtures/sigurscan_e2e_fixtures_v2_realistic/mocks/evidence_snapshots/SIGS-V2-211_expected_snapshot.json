@@ -1,0 +1,19 @@
+{
+  "caseId": "SIGS-V2-211",
+  "expectedDecision": "DO_NOT_CONTINUE",
+  "expectedLabel": "Nu continua",
+  "groundTruthIsScam": true,
+  "primaryUrlExpected": "https://facebook_marketplace-plata-curier-14.test/incaseaza",
+  "signalsExpected": [
+    "MARKETPLACE_RECEIVE_MONEY_LINK",
+    "CARD_REQUIRED_TO_RECEIVE_MONEY",
+    "OTP_REQUEST",
+    "OFFICIAL_DOMAIN_MISMATCH"
+  ],
+  "sourceStatesExpected": {
+    "web_risk": "SIGS-V2-211_web_risk.json",
+    "urlscan": "SIGS-V2-211_urlscan.json",
+    "virustotal": "SIGS-V2-211_virustotal.json"
+  },
+  "notes": ""
+}

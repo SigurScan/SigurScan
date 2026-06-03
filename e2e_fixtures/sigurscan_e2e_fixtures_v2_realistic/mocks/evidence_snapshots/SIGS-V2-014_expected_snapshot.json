@@ -1,0 +1,20 @@
+{
+  "caseId": "SIGS-V2-014",
+  "expectedDecision": "NO_ENTER_DATA",
+  "expectedLabel": "Nu introduce date",
+  "groundTruthIsScam": true,
+  "primaryUrlExpected": "https://spv-anaf-ro-13.test/actualizare-date",
+  "signalsExpected": [
+    "CLAIMED_BRAND_IDENTIFIED",
+    "OFFICIAL_DOMAIN_MISMATCH",
+    "CARD_DATA_REQUEST",
+    "CNP_OR_ID_REQUEST",
+    "URGENCY_LANGUAGE"
+  ],
+  "sourceStatesExpected": {
+    "web_risk": "SIGS-V2-014_web_risk.json",
+    "urlscan": "SIGS-V2-014_urlscan.json",
+    "virustotal": "SIGS-V2-014_virustotal.json"
+  },
+  "notes": ""
+}

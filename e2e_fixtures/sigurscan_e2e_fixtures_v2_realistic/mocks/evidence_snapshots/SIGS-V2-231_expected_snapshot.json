@@ -1,0 +1,19 @@
+{
+  "caseId": "SIGS-V2-231",
+  "expectedDecision": "DO_NOT_CONTINUE",
+  "expectedLabel": "Nu continua",
+  "groundTruthIsScam": true,
+  "primaryUrlExpected": "https://factura-digi-12.test/plata",
+  "signalsExpected": [
+    "URGENCY_LANGUAGE",
+    "OFFICIAL_DOMAIN_MISMATCH",
+    "CARD_DATA_REQUEST",
+    "OTP_REQUEST"
+  ],
+  "sourceStatesExpected": {
+    "web_risk": "SIGS-V2-231_web_risk.json",
+    "urlscan": "SIGS-V2-231_urlscan.json",
+    "virustotal": "SIGS-V2-231_virustotal.json"
+  },
+  "notes": ""
+}

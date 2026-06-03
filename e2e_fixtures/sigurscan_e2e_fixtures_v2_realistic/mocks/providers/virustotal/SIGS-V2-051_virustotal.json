@@ -1,0 +1,14 @@
+{
+  "caseId": "SIGS-V2-051",
+  "provider": "VIRUSTOTAL",
+  "inputUrl": "https://dpd-livrare-26.test/locker?id=DPDRO7451102",
+  "status": "SUCCESS",
+  "mockVariant": "urlscan_malicious",
+  "stats": {
+    "malicious": 2,
+    "suspicious": 8,
+    "undetected": 60,
+    "harmless": 14
+  },
+  "categories": []
+}

@@ -1,0 +1,3 @@
+Raiffeisen: am detectat o autentificare neobișnuită. Pentru evitarea blocării contului, verifică identitatea în 15 minute.
+Accesează https://raiffeisen-securitate-cont-27.test/login/confirmare și introdu userul, parola și codul primit prin SMS.
+Nu ignora mesajul, contul poate fi suspendat.

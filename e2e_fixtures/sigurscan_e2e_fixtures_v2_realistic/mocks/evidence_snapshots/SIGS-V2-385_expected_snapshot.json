@@ -1,0 +1,16 @@
+{
+  "caseId": "SIGS-V2-385",
+  "expectedDecision": "INSUFFICIENT_EVIDENCE",
+  "expectedLabel": "Nu pot verifica suficient",
+  "groundTruthIsScam": false,
+  "primaryUrlExpected": null,
+  "signalsExpected": [
+    "OCR_LOW_CONFIDENCE"
+  ],
+  "sourceStatesExpected": {
+    "web_risk": "SIGS-V2-385_web_risk.json",
+    "urlscan": "SIGS-V2-385_urlscan.json",
+    "virustotal": "SIGS-V2-385_virustotal.json"
+  },
+  "notes": ""
+}

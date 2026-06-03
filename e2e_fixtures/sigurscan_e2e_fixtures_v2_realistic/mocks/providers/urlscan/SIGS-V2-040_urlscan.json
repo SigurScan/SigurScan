@@ -1,0 +1,24 @@
+{
+  "caseId": "SIGS-V2-040",
+  "provider": "URLSCAN",
+  "inputUrl": "https://sameday-livrare-15.test/confirmare?id=PR457120903RO",
+  "status": "SUCCESS",
+  "mockVariant": "urlscan_malicious",
+  "finalUrl": "https://sameday-livrare-15.test/confirmare?id=PR457120903RO",
+  "verdict": "malicious",
+  "screenshotAvailable": true,
+  "forms": [
+    "login",
+    "otp"
+  ],
+  "redirectChain": [],
+  "server": {
+    "country": "HK",
+    "asn": "TEST-BAD-AS"
+  },
+  "certificate": {
+    "valid": true,
+    "issuer": "ZeroSSL/R3 test",
+    "ageDays": 3
+  }
+}

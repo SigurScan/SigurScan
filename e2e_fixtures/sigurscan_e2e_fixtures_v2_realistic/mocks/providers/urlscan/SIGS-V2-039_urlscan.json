@@ -1,0 +1,23 @@
+{
+  "caseId": "SIGS-V2-039",
+  "provider": "URLSCAN",
+  "inputUrl": "https://cargus-livrare-14.test/awb?id=DPDRO7451102",
+  "status": "SUCCESS",
+  "mockVariant": "urlscan_malicious",
+  "finalUrl": "https://cargus-livrare-14.test/awb?id=DPDRO7451102",
+  "verdict": "malicious",
+  "screenshotAvailable": true,
+  "forms": [
+    "whatsapp_code"
+  ],
+  "redirectChain": [],
+  "server": {
+    "country": "NL",
+    "asn": "TEST-BAD-AS"
+  },
+  "certificate": {
+    "valid": true,
+    "issuer": "ZeroSSL/R3 test",
+    "ageDays": 0
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "caseId": "SIGS-V2-286",
+  "expectedDecision": "CONTINUE_WITH_CAUTION",
+  "expectedLabel": "Poți continua cu prudență",
+  "groundTruthIsScam": false,
+  "primaryUrlExpected": "https://email.uber.com/ls/click?upn=test",
+  "signalsExpected": [
+    "OFFICIAL_TRACKING_DOMAIN_MATCH",
+    "WEB_RISK_NO_MATCH",
+    "MARKETING_LANGUAGE"
+  ],
+  "sourceStatesExpected": {
+    "web_risk": "SIGS-V2-286_web_risk.json",
+    "urlscan": "SIGS-V2-286_urlscan.json",
+    "virustotal": "SIGS-V2-286_virustotal.json"
+  },
+  "notes": "Legitim chiar dacă are tracking link și limbaj de promoție."
+}

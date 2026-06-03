@@ -1,0 +1,72 @@
+Subject: FAN Courier tracking colet
+From: FAN Courier <noreply@fan_courier.ro>
+To: utilizator.test@sigurscan.local
+Date: Wed, 03 Jun 2026 04:59:04 +0000
+Message-ID: <178046274429.6118.3513765756906240103@mail.example.test>
+Authentication-Results: mx.sigurscan.test; spf=pass
+ smtp.mailfrom=fan_courier.ro; dkim=pass header.d=fan_courier.ro
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============2476121080988795182=="
+
+--===============2476121080988795182==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+FAN Courier: coletul CGS55392010 este =C3=AEn livrare.
+Po=C8=9Bi verifica statusul pe site-ul oficial sau direct =C3=AEn aplica=C8=
+=9Bia curierului.
+Nu =C8=9Bi se solicit=C4=83 date de card, PIN, CVV sau coduri SMS pentru acea=
+st=C4=83 informare.
+
+Verific=C4=83 acum: https://www.fancourier.ro/awb-tracking/?awb=3DTEST123
+
+--===============2476121080988795182==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<!doctype html>
+<html lang=3D"ro"><head><meta charset=3D"utf-8"><title>FAN Courier tracking c=
+olet</title></head>
+<body style=3D"margin:0;background:#f4f6fb;font-family:Arial,Helvetica,sans-s=
+erif;color:#111827">
+  <table role=3D"presentation" width=3D"100%" cellspacing=3D"0" cellpadding=
+=3D"0" style=3D"background:#f4f6fb;padding:24px">
+    <tr><td align=3D"center">
+      <table role=3D"presentation" width=3D"620" cellspacing=3D"0" cellpaddin=
+g=3D"0" style=3D"background:#fff;border-radius:16px;overflow:hidden;border:1p=
+x solid #e5e7eb">
+        <tr><td style=3D"background:#0b132b;color:white;padding:24px 28px">
+          <div style=3D"font-size:13px;letter-spacing:.08em;text-transform:up=
+percase;color:#9ca3af">FAN Courier</div>
+          <h1 style=3D"margin:8px 0 0;font-size:28px;line-height:1.2">FAN Cou=
+rier tracking colet</h1>
+        </td></tr>
+        <tr><td style=3D"padding:28px;font-size:16px;line-height:1.55">
+          <p>FAN Courier: coletul CGS55392010 este =C3=AEn livrare.</p><p>Po=
+=C8=9Bi verifica statusul pe site-ul oficial sau direct =C3=AEn aplica=C8=9Bi=
+a curierului.</p><p>Nu =C8=9Bi se solicit=C4=83 date de card, PIN, CVV sau co=
+duri SMS pentru aceast=C4=83 informare.</p>
+         =20
+        <p style=3D"margin:28px 0"><a href=3D"https://www.fancourier.ro/awb-t=
+racking/?awb=3DTEST123" style=3D"background:#2563ff;color:#fff;text-decoratio=
+n:none;padding:14px 22px;border-radius:8px;font-weight:bold;display:inline-bl=
+ock">Verific=C4=83 acum</a></p>
+        <p style=3D"font-size:12px;color:#6b7280">Dac=C4=83 butonul nu func=
+=C8=9Bioneaz=C4=83, verifica=C8=9Bi manual =C3=AEn aplica=C8=9Bia oficial=C4=
+=83. Link afi=C8=99at: <span>https://www.fancourier.ro/awb-tracking/?awb=3DTE=
+ST123</span></p>
+       =20
+          <hr style=3D"border:none;border-top:1px solid #e5e7eb;margin:28px 0=
+" />
+          <p style=3D"font-size:12px;color:#6b7280">Ai primit aceast=C4=83 no=
+tificare deoarece ai folosit serviciile men=C8=9Bionate. Pentru siguran=C8=9B=
+=C4=83, verific=C4=83 manual canalul oficial dac=C4=83 ai dubii.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>
+
+--===============2476121080988795182==--

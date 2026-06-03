@@ -1,0 +1,23 @@
+{
+  "caseId": "SIGS-V2-189",
+  "provider": "URLSCAN",
+  "inputUrl": "https://investitii-profit-18.test/start?campanie=Romgaz%20profit%20garantat",
+  "status": "SUCCESS",
+  "mockVariant": "urlscan_malicious",
+  "finalUrl": "https://investitii-profit-18.test/start?campanie=Romgaz%20profit%20garantat",
+  "verdict": "malicious",
+  "screenshotAvailable": true,
+  "forms": [
+    "apk_download"
+  ],
+  "redirectChain": [],
+  "server": {
+    "country": "RU",
+    "asn": "TEST-BAD-AS"
+  },
+  "certificate": {
+    "valid": true,
+    "issuer": "ZeroSSL/R3 test",
+    "ageDays": 4
+  }
+}

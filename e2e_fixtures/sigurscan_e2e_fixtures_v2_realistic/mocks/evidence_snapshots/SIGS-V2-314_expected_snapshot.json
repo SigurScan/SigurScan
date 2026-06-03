@@ -1,0 +1,18 @@
+{
+  "caseId": "SIGS-V2-314",
+  "expectedDecision": "CONTINUE_WITH_CAUTION",
+  "expectedLabel": "Poți continua cu prudență",
+  "groundTruthIsScam": false,
+  "primaryUrlExpected": "https://www.dpd.com/ro/ro/primeste-coletul/urmareste-coletul/",
+  "signalsExpected": [
+    "OFFICIAL_DOMAIN_EXACT_MATCH",
+    "WEB_RISK_NO_MATCH",
+    "COURIER_BRAND_CONTEXT"
+  ],
+  "sourceStatesExpected": {
+    "web_risk": "SIGS-V2-314_web_risk.json",
+    "urlscan": "SIGS-V2-314_urlscan.json",
+    "virustotal": "SIGS-V2-314_virustotal.json"
+  },
+  "notes": ""
+}

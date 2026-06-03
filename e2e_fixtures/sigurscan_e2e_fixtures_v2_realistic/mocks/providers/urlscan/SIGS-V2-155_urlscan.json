@@ -1,0 +1,23 @@
+{
+  "caseId": "SIGS-V2-155",
+  "provider": "URLSCAN",
+  "inputUrl": "https://bcr-securitate-cont-12.test/login/confirmare",
+  "status": "SUCCESS",
+  "mockVariant": "conflict_wr_clean_urlscan_bad",
+  "finalUrl": "https://bcr-securitate-cont-12.test/login/confirmare",
+  "verdict": "malicious",
+  "screenshotAvailable": true,
+  "forms": [
+    "whatsapp_code"
+  ],
+  "redirectChain": [],
+  "server": {
+    "country": "US",
+    "asn": "TEST-BAD-AS"
+  },
+  "certificate": {
+    "valid": true,
+    "issuer": "ZeroSSL/R3 test",
+    "ageDays": 0
+  }
+}

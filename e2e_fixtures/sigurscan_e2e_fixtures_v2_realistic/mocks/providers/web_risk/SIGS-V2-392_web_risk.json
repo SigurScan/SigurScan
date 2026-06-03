@@ -1,0 +1,9 @@
+{
+  "caseId": "SIGS-V2-392",
+  "provider": "GOOGLE_WEB_RISK",
+  "inputUrl": "https://webmail-shell-19.test/mail/u/0/#inbox/FMfcgzGtw",
+  "status": "UNAVAILABLE",
+  "mockVariant": "all_down",
+  "threats": [],
+  "expireTime": null
+}

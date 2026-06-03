@@ -1,0 +1,21 @@
+{
+  "caseId": "SIGS-V2-106",
+  "expectedDecision": "NO_REPLY",
+  "expectedLabel": "Nu răspunde",
+  "groundTruthIsScam": true,
+  "primaryUrlExpected": null,
+  "signalsExpected": [
+    "FAMILY_NEW_NUMBER_CLAIM",
+    "FAMILY_PHONE_BROKEN_CLAIM",
+    "FAMILY_EMERGENCY_CLAIM",
+    "FAMILY_MONEY_REQUEST",
+    "TRANSFER_TO_FRIEND_ACCOUNT",
+    "AVOIDS_VOICE_VERIFICATION"
+  ],
+  "sourceStatesExpected": {
+    "web_risk": "SIGS-V2-106_web_risk.json",
+    "urlscan": "SIGS-V2-106_urlscan.json",
+    "virustotal": "SIGS-V2-106_virustotal.json"
+  },
+  "notes": "Text-only scam: verdict corect este NO_REPLY, nu DO_NOT_CONTINUE."
+}

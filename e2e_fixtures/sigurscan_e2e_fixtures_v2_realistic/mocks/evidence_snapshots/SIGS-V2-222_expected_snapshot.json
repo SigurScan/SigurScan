@@ -1,0 +1,19 @@
+{
+  "caseId": "SIGS-V2-222",
+  "expectedDecision": "DO_NOT_CONTINUE",
+  "expectedLabel": "Nu continua",
+  "groundTruthIsScam": true,
+  "primaryUrlExpected": "https://factura-electrica-3.test/plata",
+  "signalsExpected": [
+    "URGENCY_LANGUAGE",
+    "OFFICIAL_DOMAIN_MISMATCH",
+    "CARD_DATA_REQUEST",
+    "OTP_REQUEST"
+  ],
+  "sourceStatesExpected": {
+    "web_risk": "SIGS-V2-222_web_risk.json",
+    "urlscan": "SIGS-V2-222_urlscan.json",
+    "virustotal": "SIGS-V2-222_virustotal.json"
+  },
+  "notes": ""
+}

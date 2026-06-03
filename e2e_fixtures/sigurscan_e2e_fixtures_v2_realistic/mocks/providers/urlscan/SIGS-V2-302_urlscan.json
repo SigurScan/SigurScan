@@ -1,0 +1,20 @@
+{
+  "caseId": "SIGS-V2-302",
+  "provider": "URLSCAN",
+  "inputUrl": "https://www.dpd.com/ro/ro/primeste-coletul/urmareste-coletul/",
+  "status": "SUCCESS",
+  "mockVariant": "all_clean",
+  "finalUrl": "https://www.dpd.com/ro/ro/primeste-coletul/urmareste-coletul/",
+  "verdict": "clean",
+  "screenshotAvailable": true,
+  "forms": [],
+  "redirectChain": [],
+  "server": {
+    "country": "RO",
+    "asn": "KNOWN-LEGIT-AS"
+  },
+  "certificate": {
+    "valid": true,
+    "issuer": "Test CA"
+  }
+}

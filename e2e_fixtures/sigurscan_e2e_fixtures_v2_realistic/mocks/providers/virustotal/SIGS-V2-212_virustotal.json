@@ -1,0 +1,14 @@
+{
+  "caseId": "SIGS-V2-212",
+  "provider": "VIRUSTOTAL",
+  "inputUrl": "https://facebook_marketplace-plata-curier-15.test/incaseaza",
+  "status": "SUCCESS",
+  "mockVariant": "urlscan_malicious",
+  "stats": {
+    "malicious": 1,
+    "suspicious": 3,
+    "undetected": 60,
+    "harmless": 14
+  },
+  "categories": []
+}

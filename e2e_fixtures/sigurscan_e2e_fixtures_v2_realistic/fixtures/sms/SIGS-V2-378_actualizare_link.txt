@@ -1,0 +1,1 @@
+Link cu token sensibil: https://token-reset-5.test/reset?token=SECRET-REDACT-ME&email=test@example.com. Redaction trebuie să oprească trimiterea externă.

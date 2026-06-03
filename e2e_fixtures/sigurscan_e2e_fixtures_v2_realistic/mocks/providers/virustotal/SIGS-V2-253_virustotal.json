@@ -1,0 +1,14 @@
+{
+  "caseId": "SIGS-V2-253",
+  "provider": "VIRUSTOTAL",
+  "inputUrl": "https://bolt.eu/ro-ro/food/promo-test",
+  "status": "SUCCESS",
+  "mockVariant": "all_clean",
+  "stats": {
+    "malicious": 0,
+    "suspicious": 0,
+    "undetected": 72,
+    "harmless": 14
+  },
+  "categories": []
+}

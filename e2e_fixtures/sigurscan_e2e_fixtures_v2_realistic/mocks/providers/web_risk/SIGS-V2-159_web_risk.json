@@ -1,0 +1,9 @@
+{
+  "caseId": "SIGS-V2-159",
+  "provider": "GOOGLE_WEB_RISK",
+  "inputUrl": "https://bcr-securitate-cont-16.test/login/confirmare",
+  "status": "SUCCESS",
+  "mockVariant": "conflict_wr_clean_urlscan_bad",
+  "threats": [],
+  "expireTime": null
+}

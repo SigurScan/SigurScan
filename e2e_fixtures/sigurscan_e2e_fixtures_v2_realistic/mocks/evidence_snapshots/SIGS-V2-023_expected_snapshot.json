@@ -1,0 +1,20 @@
+{
+  "caseId": "SIGS-V2-023",
+  "expectedDecision": "DO_NOT_CONTINUE",
+  "expectedLabel": "Nu continua",
+  "groundTruthIsScam": true,
+  "primaryUrlExpected": "https://spv-anaf-ro-22.test/actualizare-date",
+  "signalsExpected": [
+    "CLAIMED_BRAND_IDENTIFIED",
+    "OFFICIAL_DOMAIN_MISMATCH",
+    "CARD_DATA_REQUEST",
+    "CNP_OR_ID_REQUEST",
+    "URGENCY_LANGUAGE"
+  ],
+  "sourceStatesExpected": {
+    "web_risk": "SIGS-V2-023_web_risk.json",
+    "urlscan": "SIGS-V2-023_urlscan.json",
+    "virustotal": "SIGS-V2-023_virustotal.json"
+  },
+  "notes": ""
+}

@@ -1,0 +1,9 @@
+{
+  "caseId": "SIGS-V2-264",
+  "provider": "GOOGLE_WEB_RISK",
+  "inputUrl": "https://www.mega-image.ro/oferte/test",
+  "status": "SUCCESS",
+  "mockVariant": "all_clean",
+  "threats": [],
+  "expireTime": null
+}

@@ -1,0 +1,20 @@
+{
+  "caseId": "SIGS-V2-195",
+  "expectedDecision": "DO_NOT_CONTINUE",
+  "expectedLabel": "Nu continua",
+  "groundTruthIsScam": true,
+  "primaryUrlExpected": "https://investitii-profit-24.test/start?campanie=platform%C4%83%20crypto",
+  "signalsExpected": [
+    "INVESTMENT_FAST_GAIN_PROMISE",
+    "PUBLIC_COMPANY_INVESTMENT_IMPERSONATION",
+    "REMOTE_ACCESS_APP_REQUEST",
+    "CARD_DATA_REQUEST",
+    "WITHDRAWAL_TAX_REQUEST"
+  ],
+  "sourceStatesExpected": {
+    "web_risk": "SIGS-V2-195_web_risk.json",
+    "urlscan": "SIGS-V2-195_urlscan.json",
+    "virustotal": "SIGS-V2-195_virustotal.json"
+  },
+  "notes": ""
+}

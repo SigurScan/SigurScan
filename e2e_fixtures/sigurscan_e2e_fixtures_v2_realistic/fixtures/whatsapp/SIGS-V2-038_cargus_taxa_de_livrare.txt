@@ -1,0 +1,3 @@
+Cargus: coletul DPDRO7451102 nu poate fi livrat din cauza: taxă de livrare.
+Pentru reprogramare achită taxa de 4,99 RON și confirmă datele cardului: https://cargus-livrare-13.test/awb?id=CGS55392010
+Mesaj valabil până astăzi la ora 18:00.

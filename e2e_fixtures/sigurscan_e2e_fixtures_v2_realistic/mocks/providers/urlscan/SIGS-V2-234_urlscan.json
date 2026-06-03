@@ -1,0 +1,23 @@
+{
+  "caseId": "SIGS-V2-234",
+  "provider": "URLSCAN",
+  "inputUrl": "https://factura-vodafone-15.test/plata",
+  "status": "SUCCESS",
+  "mockVariant": "conflict_wr_clean_urlscan_bad",
+  "finalUrl": "https://factura-vodafone-15.test/plata",
+  "verdict": "malicious",
+  "screenshotAvailable": true,
+  "forms": [
+    "whatsapp_code"
+  ],
+  "redirectChain": [],
+  "server": {
+    "country": "VN",
+    "asn": "TEST-BAD-AS"
+  },
+  "certificate": {
+    "valid": true,
+    "issuer": "ZeroSSL/R3 test",
+    "ageDays": 1
+  }
+}

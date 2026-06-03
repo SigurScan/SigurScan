@@ -1,0 +1,19 @@
+{
+  "caseId": "SIGS-V2-242",
+  "expectedDecision": "DO_NOT_CONTINUE",
+  "expectedLabel": "Nu continua",
+  "groundTruthIsScam": true,
+  "primaryUrlExpected": "https://premiu-castigator-5.test/revendica",
+  "signalsExpected": [
+    "INVESTMENT_FAST_GAIN_PROMISE",
+    "CARD_DATA_REQUEST",
+    "URGENCY_LANGUAGE",
+    "DELIVERY_SMALL_FEE_REQUEST"
+  ],
+  "sourceStatesExpected": {
+    "web_risk": "SIGS-V2-242_web_risk.json",
+    "urlscan": "SIGS-V2-242_urlscan.json",
+    "virustotal": "SIGS-V2-242_virustotal.json"
+  },
+  "notes": ""
+}

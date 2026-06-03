@@ -1,0 +1,9 @@
+{
+  "caseId": "SIGS-V2-227",
+  "provider": "GOOGLE_WEB_RISK",
+  "inputUrl": "https://factura-orange-8.test/plata",
+  "status": "SUCCESS",
+  "mockVariant": "conflict_wr_clean_urlscan_bad",
+  "threats": [],
+  "expireTime": null
+}

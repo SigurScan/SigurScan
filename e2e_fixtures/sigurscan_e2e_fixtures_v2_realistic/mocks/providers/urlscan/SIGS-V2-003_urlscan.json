@@ -1,0 +1,24 @@
+{
+  "caseId": "SIGS-V2-003",
+  "provider": "URLSCAN",
+  "inputUrl": "https://spv-anaf-ro-2.test/actualizare-date",
+  "status": "SUCCESS",
+  "mockVariant": "conflict_wr_clean_urlscan_bad",
+  "finalUrl": "https://spv-anaf-ro-2.test/actualizare-date",
+  "verdict": "malicious",
+  "screenshotAvailable": true,
+  "forms": [
+    "card",
+    "cvv"
+  ],
+  "redirectChain": [],
+  "server": {
+    "country": "HK",
+    "asn": "TEST-BAD-AS"
+  },
+  "certificate": {
+    "valid": true,
+    "issuer": "ZeroSSL/R3 test",
+    "ageDays": 3
+  }
+}

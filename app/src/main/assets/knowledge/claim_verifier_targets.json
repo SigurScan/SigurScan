@@ -1,0 +1,276 @@
+[
+  {
+    "claim_type": "buyback YOXO",
+    "cum_verificam_pe_web_oficial": "Caută pe yoxo.ro și newsroom.orange.ro; confirmă că oferta/programul există și că linkul duce în aplicația/site-ul oficial, nu la un formular extern neconfirmat.",
+    "surse_oficiale_folosim": [
+      {
+        "source_id": "orange_yoxo_buyback",
+        "url": "https://newsroom.orange.ro/",
+        "published": "2026-05-28 (mențiune în newsroom)",
+        "accessed": "2026-06-03"
+      },
+      {
+        "source_id": "yoxo_home",
+        "url": "https://www.yoxo.ro/",
+        "published": "unknown",
+        "accessed": "2026-06-03"
+      }
+    ],
+    "claim_confirmed": "Programul/offer este publicat pe domeniu oficial Orange/YOXO; linkul final este orange.ro/yoxo.ro sau aplicație oficială.",
+    "claim_not_found": "Nu găsim campania pe domeniul oficial sau linkul duce spre domeniu necunoscut.",
+    "de_ce_not_found_nu_e_automat_periculos": "Campaniile pot fi geo-targetate, personalizate sau retrase; not-found devine Suspect, nu Periculos, fără provider scan sau cerere sensibilă.",
+    "exemple_legitime": [
+      "Comunicat Orange Newsroom despre YOXO buy-back; acces în aplicația YOXO"
+    ],
+    "exemple_fake": [
+      "yoxo-buyback-premiu.test cere card/CNP pentru voucher"
+    ]
+  },
+  {
+    "claim_type": "service status iDroid",
+    "cum_verificam_pe_web_oficial": "Verifică idroid.ro, contact oficial și existența rutei/status. Dacă userul are cod service, nu îl trimite către provider extern; doar verificare locală/URL domain.",
+    "surse_oficiale_folosim": [
+      {
+        "source_id": "idroid_home",
+        "url": "https://idroid.ro/",
+        "published": "unknown",
+        "accessed": "2026-06-03"
+      },
+      {
+        "source_id": "idroid_contact",
+        "url": "https://idroid.ro/contact/",
+        "published": "unknown",
+        "accessed": "2026-06-03"
+      }
+    ],
+    "claim_confirmed": "Linkul este idroid.ro și pagina/fluxul cere cod service în context de status reparație.",
+    "claim_not_found": "Nu am găsit rută status clară sau linkul nu e domeniul oficial.",
+    "de_ce_not_found_nu_e_automat_periculos": "Site-urile de service schimbă rute și pot trimite status pe WhatsApp/SMS; not-found este Unknown/Suspect, nu Periculos.",
+    "exemple_legitime": [
+      "idroid.ro/contact cu numere oficiale; link idroid.ro/verifica-status dacă va fi confirmat"
+    ],
+    "exemple_fake": [
+      "idroid-status-service.test cere card pentru eliberarea telefonului"
+    ]
+  },
+  {
+    "claim_type": "campanii eMAG/Altex",
+    "cum_verificam_pe_web_oficial": "Verifică emag.ro/altex.ro și eventual marketplace.emag.ro pentru seller; nu decide după text marketing. Verifică final URL și lipsa cererilor card/parolă în email.",
+    "surse_oficiale_folosim": [
+      {
+        "source_id": "altex_security",
+        "url": "https://altex.ro/securitatea-protectia-datelor-caracter-personal/pag/",
+        "published": "unknown",
+        "accessed": "2026-06-03"
+      },
+      {
+        "source_id": "emag_otp_seller",
+        "url": "https://marketplace.emag.ro/infocenter/emag-academy/contul-meu/contul-meu-profil/cum-obtii-prin-sms-codul-de-autentificare-in-contul-emag/",
+        "published": "unknown",
+        "accessed": "2026-06-03"
+      }
+    ],
+    "claim_confirmed": "Oferta e pe domeniu oficial sau în aplicație; nu cere date sensibile prin link extern.",
+    "claim_not_found": "Oferta nu apare public, dar newsletterul poate fi segmentat; rămâne Suspect dacă domeniu necunoscut.",
+    "de_ce_not_found_nu_e_automat_periculos": "Marketingul real este targetat; absența în căutare nu dovedește fraudă.",
+    "exemple_legitime": [
+      "newsletter altex.ro cu dezabonare și linkuri oficiale"
+    ],
+    "exemple_fake": [
+      "emag-premii-clienti.test cu formular card/CNP"
+    ]
+  },
+  {
+    "claim_type": "tracking curier",
+    "cum_verificam_pe_web_oficial": "Verifică domeniul oficial curier + final URL; pentru FAN/Posta sunt hard warnings când se cer card/CVC/WhatsApp code prin SMS. Pentru SAMEDAY, card payment în app poate fi legit.",
+    "surse_oficiale_folosim": [
+      {
+        "source_id": "fan_smishing_2026",
+        "url": "https://www.fancourier.ro/alerta-de-smishing/",
+        "published": "2026-02-11",
+        "accessed": "2026-06-03"
+      },
+      {
+        "source_id": "posta_phishing_sms",
+        "url": "https://www.posta-romana.ro/a1941/stiri/o-noua-tentativa-de-phishing-prin-sms-in-numele-postei-romane.html",
+        "published": "data exactă în rezultat neconfirmată; comunicat curent în site",
+        "accessed": "2026-06-03"
+      },
+      {
+        "source_id": "sameday_app",
+        "url": "https://sameday.ro/sameday-app/",
+        "published": "unknown",
+        "accessed": "2026-06-03"
+      },
+      {
+        "source_id": "cargus_fraude",
+        "url": "https://www.cargus.ro/blog/recomandari-cargus-cu-privire-la-eventuale-fraude-electronice/",
+        "published": "2023-02-08",
+        "accessed": "2026-06-03"
+      }
+    ],
+    "claim_confirmed": "AWB/tracking pe domeniu oficial sau aplicația oficială; nu cere card/CVV prin SMS/extern.",
+    "claim_not_found": "AWB nu se găsește sau domeniul e necunoscut.",
+    "de_ce_not_found_nu_e_automat_periculos": "AWB poate fi încă neindexat; domeniu necunoscut + taxe/card crește la Periculos cu provider scan.",
+    "exemple_legitime": [
+      "fancourier.ro tracking",
+      "SAMEDAY App redirect livrare"
+    ],
+    "exemple_fake": [
+      "fanbox-locker.test cere cod WhatsApp/CVC"
+    ]
+  },
+  {
+    "claim_type": "notificări ANAF/SPV",
+    "cum_verificam_pe_web_oficial": "Verifică anaf.ro/SPV; dacă mesajul cere click pe domeniu non-ANAF sau card pentru rambursare, rulează provider scan și marchează semnale puternice.",
+    "surse_oficiale_folosim": [
+      {
+        "source_id": "dnsc_anaf_phishing_2025",
+        "url": "https://dnsc.ro/citeste/alerta-phishing-e-mail-anaf",
+        "published": "2025-03-20",
+        "accessed": "2026-06-03"
+      },
+      {
+        "source_id": "anaf_email_fals_2025",
+        "url": "https://www.anaf.ro/anaf/internet/ANAF/comunicate/",
+        "published": "2025-10-13",
+        "accessed": "2026-06-03"
+      }
+    ],
+    "claim_confirmed": "Mesajul indică verificare în SPV/anaf.ro fără formular extern sensibil.",
+    "claim_not_found": "Nu găsim anunțul sau adresa expeditorului e neoficială.",
+    "de_ce_not_found_nu_e_automat_periculos": "ANAF trimite notificări administrative; textul vag nu e fraudă singur. Domeniul/fomularul decid.",
+    "exemple_legitime": [
+      "notificare care te trimite să intri manual în SPV"
+    ],
+    "exemple_fake": [
+      "anaf-rambursare.test cere card/CNP"
+    ]
+  },
+  {
+    "claim_type": "facturi utilități",
+    "cum_verificam_pe_web_oficial": "Verifică portal/aplicație oficială: digi.ro, ppcenergy.ro/myPPC, eon.ro/Myline. Nu trimite cod client/CNP în provider extern.",
+    "surse_oficiale_folosim": [
+      {
+        "source_id": "digi_factura",
+        "url": "https://www.digi.ro/factura-electronica",
+        "published": "unknown",
+        "accessed": "2026-06-03"
+      },
+      {
+        "source_id": "ppc_sms",
+        "url": "https://www.ppcenergy.ro/servicii-digitale/activare-factura-sms/",
+        "published": "unknown",
+        "accessed": "2026-06-03"
+      },
+      {
+        "source_id": "ppc_myppc",
+        "url": "https://www.ppcenergy.ro/servicii-digitale/aplicatie-myppc/",
+        "published": "unknown",
+        "accessed": "2026-06-03"
+      },
+      {
+        "source_id": "eon_myline",
+        "url": "https://www.eon.ro/info-myline",
+        "published": "unknown",
+        "accessed": "2026-06-03"
+      }
+    ],
+    "claim_confirmed": "Domeniu oficial + valoare factură verificabilă în cont/aplicație; plata prin canal oficial.",
+    "claim_not_found": "Nu se poate confirma suma/contractul sau linkul e extern.",
+    "de_ce_not_found_nu_e_automat_periculos": "Facturile pot fi emise personalizat; lipsa confirmării publice nu dovedește scam.",
+    "exemple_legitime": [
+      "ppcenergy.ro factură prin SMS",
+      "E.ON Myline"
+    ],
+    "exemple_fake": [
+      "digi-refund-factura.test cere card pentru ramburs"
+    ]
+  },
+  {
+    "claim_type": "oferte telecom",
+    "cum_verificam_pe_web_oficial": "Verifică orange.ro/yoxo.ro/vodafone.ro/digi.ro; tratează linkurile de campanie ca Suspect dacă sunt shortener/extern fără final URL oficial.",
+    "surse_oficiale_folosim": [
+      {
+        "source_id": "orange_smishing",
+        "url": "https://www.orange.ro/help/articole/cum-sa-recunosti-si-sa-eviti-tentativele-de-frauda-prin-sms-smishing",
+        "published": "2026-02-15",
+        "accessed": "2026-06-03"
+      },
+      {
+        "source_id": "vodafone_frauda",
+        "url": "https://www.vodafone.ro/frauda/",
+        "published": "unknown",
+        "accessed": "2026-06-03"
+      },
+      {
+        "source_id": "digi_factura",
+        "url": "https://www.digi.ro/factura-electronica",
+        "published": "unknown",
+        "accessed": "2026-06-03"
+      },
+      {
+        "source_id": "yoxo_home",
+        "url": "https://www.yoxo.ro/",
+        "published": "unknown",
+        "accessed": "2026-06-03"
+      }
+    ],
+    "claim_confirmed": "Campanie pe domeniu oficial sau aplicație oficială; fără cerere cod/card/parolă în link extern.",
+    "claim_not_found": "Oferta nu apare public.",
+    "de_ce_not_found_nu_e_automat_periculos": "Telecom are oferte segmentate; not-found este Suspect doar dacă există domeniu necunoscut sau cerere de date.",
+    "exemple_legitime": [
+      "yoxo.ro abonament/app",
+      "digi.ro ofertă/factură"
+    ],
+    "exemple_fake": [
+      "vodafone-premiu-client.test cere OTP/card"
+    ]
+  },
+  {
+    "claim_type": "campanii bancare educaționale",
+    "cum_verificam_pe_web_oficial": "Verifică paginile de securitate ale băncii; campaniile educaționale pot avea linkuri, dar nu trebuie să ceară autentificare/card în email/SMS.",
+    "surse_oficiale_folosim": [
+      {
+        "source_id": "bt_siguranta",
+        "url": "https://www.bancatransilvania.ro/siguranta-online",
+        "published": "unknown",
+        "accessed": "2026-06-03"
+      },
+      {
+        "source_id": "bcr_never",
+        "url": "https://www.bcr.ro/en/individuals/useful-information/tentative-de-frauda-phishing",
+        "published": "unknown",
+        "accessed": "2026-06-03"
+      },
+      {
+        "source_id": "ing_phishing",
+        "url": "https://ing.ro/ing-in-romania/informatii-utile/securitate/phishing-smishing",
+        "published": "2025-03-26",
+        "accessed": "2026-06-03"
+      },
+      {
+        "source_id": "raiffeisen_online",
+        "url": "https://bank.raiffeisen.ro/ro/in-siguranta-online/home.html",
+        "published": "unknown",
+        "accessed": "2026-06-03"
+      },
+      {
+        "source_id": "revolut_report",
+        "url": "https://help.revolut.com/ro-RO/help/security-logging-in/how-do-i-report-a-suspicious-call-email-link-or-text/",
+        "published": "unknown",
+        "accessed": "2026-06-03"
+      }
+    ],
+    "claim_confirmed": "Domeniu oficial bancă + conținut educațional; nu cere date de acces/coduri/PIN.",
+    "claim_not_found": "Nu găsim campania publică.",
+    "de_ce_not_found_nu_e_automat_periculos": "Materialele pot fi email-only; se cere verificare oficială dacă linkurile sunt externe.",
+    "exemple_legitime": [
+      "bancatransilvania.ro/siguranta-online",
+      "ing.ro/securitate"
+    ],
+    "exemple_fake": [
+      "bt-securizare-cont.test cere CVV/OTP"
+    ]
+  }
+]

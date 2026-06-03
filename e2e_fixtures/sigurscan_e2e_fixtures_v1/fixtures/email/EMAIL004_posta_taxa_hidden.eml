@@ -1,0 +1,37 @@
+Subject: =?utf-8?b?UG/ImXRhIFJvbcOibsSDIC0gYWRyZXPEgyBpbmNvbXBsZXTEgw==?=
+From: =?utf-8?b?UG/ImXRhIFJvbcOibsSD?= <noreply@posta.invalid>
+To: test@example.com
+Date: Wed, 03 Jun 2026 03:11:55 -0000
+Message-ID: <178045631527.2350.18101938400250716596@sigurscan.fixture>
+X-SigurScan-Fixture:
+ true; safe-test-only; all scam URLs use reserved .test/.invalid domains
+X-SigurScan-Do-Not-Send: This is a local E2E fixture, not a real email.
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============7531183945409298994=="
+
+--===============7531183945409298994==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+Po=C8=99ta Rom=C3=A2n=C4=83 - adres=C4=83 incomplet=C4=83. Actualizeaz=C4=83 =
+adresa: https://posta-romana-ajutor.test/relivrare
+
+--===============7531183945409298994==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<html><head>
+<style>body{font-family:Arial,sans-serif;background:#f6f8fb;color:#111}.card{=
+max-width:640px;margin:24px auto;background:white;border-radius:18px;padding:=
+28px;border:1px solid #e5e7eb}.btn{display:inline-block;background:#1d4ed8;co=
+lor:white;padding:14px 22px;border-radius:12px;text-decoration:none;font-weig=
+ht:bold}.danger{color:#b91c1c}.muted{color:#64748b;font-size:12px}</style>
+</head><body><div class=3D'card'><h1>Po=C8=99ta Rom=C3=A2n=C4=83 - adres=C4=
+=83 incomplet=C4=83</h1><p>Adresa coletului este incomplet=C4=83. Actualiza=
+=C8=9Bi datele =C8=99i achita=C8=9Bi 5,49 RON.</p><a class=3D'btn' href=3D'ht=
+tps://posta-romana-ajutor.test/relivrare'>Actualizeaz=C4=83 adresa</a></div><=
+/body></html>
+
+--===============7531183945409298994==--
