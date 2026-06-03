@@ -1,0 +1,21 @@
+{
+  "case_id": "CONFLICT007",
+  "policy_version": "gate-1.0.0",
+  "providers": {
+    "google_web_risk": {
+      "status": "SUCCESS",
+      "result": "NO_MATCH"
+    },
+    "urlscan": {
+      "status": "SUCCESS",
+      "verdict": "NO_VISIBLE_RISK",
+      "final_url": "https://vt-vs-webrisk.test/login",
+      "screenshot_available": true
+    },
+    "virustotal": {
+      "status": "SUCCESS",
+      "verdict": "MALICIOUS_HIGH"
+    }
+  },
+  "conflict": "CLEAN_REPUTATION_BUT_DANGEROUS_VT"
+}

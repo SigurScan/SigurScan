@@ -1,0 +1,21 @@
+{
+  "case_id": "TIMEOUT008",
+  "policy_version": "gate-1.0.0",
+  "providers": {
+    "google_web_risk": {
+      "status": "NOT_RUN",
+      "result": "NOT_RUN"
+    },
+    "urlscan": {
+      "status": "NOT_RUN",
+      "verdict": "NOT_RUN",
+      "final_url": "https://service.example/reset?token=SECRET_TOKEN_123&email=ana@example.com",
+      "screenshot_available": false
+    },
+    "virustotal": {
+      "status": "NOT_RUN",
+      "verdict": "NOT_RUN"
+    }
+  },
+  "conflict": null
+}

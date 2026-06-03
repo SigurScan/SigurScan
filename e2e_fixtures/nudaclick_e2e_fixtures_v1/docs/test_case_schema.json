@@ -1,0 +1,15 @@
+{
+  "fields": {
+    "id": "Unique test case ID",
+    "title": "Human readable title",
+    "group": "Scenario group",
+    "persona": "general/senior/etc.",
+    "input_type": "PASTE_TEXT, SHARE_HTML_EMAIL, IMPORT_FILE, QR_SCAN, OCR_IMAGE",
+    "fixture_path": "Path relative to pack root",
+    "expected_decision": "GateDecision enum",
+    "expected_user_label": "Romanian UI label",
+    "expected_signal_kinds": "Subset expected in EvidenceSnapshot",
+    "provider_mock_path": "Mock source states/results",
+    "should_submit_external": "Privacy/redaction gate expectation"
+  }
+}

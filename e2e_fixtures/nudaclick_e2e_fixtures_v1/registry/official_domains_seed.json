@@ -1,0 +1,151 @@
+{
+  "version": "ro-brands-2026.06.03",
+  "issuedAt": "2026-06-03T00:00:00+00:00",
+  "expiresAt": "2026-06-17T00:00:00+00:00",
+  "note": "Seed minimal pentru E2E. Nu este registry complet de producție.",
+  "entries": [
+    {
+      "brandId": "fan_courier",
+      "displayName": "FAN Courier",
+      "officialDomains": [
+        "fancourier.ro",
+        "selfawb.ro"
+      ],
+      "allowedPartnerDomains": [],
+      "neverAskFor": [
+        "WHATSAPP_CODE",
+        "CARD_CVV",
+        "CARD_PIN",
+        "BANK_PASSWORD"
+      ]
+    },
+    {
+      "brandId": "posta_romana",
+      "displayName": "Poșta Română",
+      "officialDomains": [
+        "posta-romana.ro",
+        "ropost.ro"
+      ],
+      "allowedPartnerDomains": [],
+      "neverAskFor": [
+        "CARD_CVV",
+        "CARD_PIN",
+        "ONLINE_DELIVERY_FEE_BY_SMS"
+      ]
+    },
+    {
+      "brandId": "anaf",
+      "displayName": "ANAF",
+      "officialDomains": [
+        "anaf.ro"
+      ],
+      "allowedPartnerDomains": [],
+      "neverAskFor": [
+        "CARD_CVV",
+        "BANK_PASSWORD",
+        "OTP_CODE"
+      ]
+    },
+    {
+      "brandId": "emag",
+      "displayName": "eMAG",
+      "officialDomains": [
+        "emag.ro"
+      ],
+      "allowedPartnerDomains": [],
+      "neverAskFor": [
+        "CARD_CVV_FOR_PRIZE",
+        "OTP_CODE"
+      ]
+    },
+    {
+      "brandId": "bt",
+      "displayName": "Banca Transilvania",
+      "officialDomains": [
+        "bancatransilvania.ro",
+        "bt.ro"
+      ],
+      "allowedPartnerDomains": [],
+      "neverAskFor": [
+        "OTP_CODE",
+        "BANK_PASSWORD",
+        "CARD_PIN"
+      ]
+    },
+    {
+      "brandId": "ing",
+      "displayName": "ING",
+      "officialDomains": [
+        "ing.ro"
+      ],
+      "allowedPartnerDomains": [],
+      "neverAskFor": [
+        "OTP_CODE",
+        "BANK_PASSWORD",
+        "CARD_PIN"
+      ]
+    },
+    {
+      "brandId": "bcr",
+      "displayName": "BCR",
+      "officialDomains": [
+        "bcr.ro"
+      ],
+      "allowedPartnerDomains": [],
+      "neverAskFor": [
+        "OTP_CODE",
+        "BANK_PASSWORD",
+        "CARD_PIN"
+      ]
+    },
+    {
+      "brandId": "revolut",
+      "displayName": "Revolut",
+      "officialDomains": [
+        "revolut.com"
+      ],
+      "allowedPartnerDomains": [],
+      "neverAskFor": [
+        "OTP_CODE",
+        "BANK_PASSWORD",
+        "CARD_PIN"
+      ]
+    },
+    {
+      "brandId": "dnsc",
+      "displayName": "DNSC",
+      "officialDomains": [
+        "dnsc.ro",
+        "sigurantaonline.ro"
+      ],
+      "allowedPartnerDomains": [],
+      "neverAskFor": [
+        "APK_INSTALL_BY_SMS",
+        "REMOTE_ACCESS"
+      ]
+    },
+    {
+      "brandId": "olx",
+      "displayName": "OLX",
+      "officialDomains": [
+        "olx.ro"
+      ],
+      "allowedPartnerDomains": [],
+      "neverAskFor": [
+        "CARD_REQUIRED_TO_RECEIVE_MONEY",
+        "OTP_CODE"
+      ]
+    },
+    {
+      "brandId": "uber",
+      "displayName": "Uber",
+      "officialDomains": [
+        "uber.com"
+      ],
+      "allowedPartnerDomains": [],
+      "neverAskFor": [
+        "CARD_CVV_BY_SMS"
+      ]
+    }
+  ]
+}

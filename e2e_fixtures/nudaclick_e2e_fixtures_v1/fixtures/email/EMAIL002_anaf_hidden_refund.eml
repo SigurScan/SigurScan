@@ -1,0 +1,36 @@
+Subject: ANAF - notificare rambursare
+From: ANAF <noreply@anaf.invalid>
+To: test@example.com
+Date: Wed, 03 Jun 2026 03:11:55 -0000
+Message-ID: <178045631525.2350.9125837581798599016@nudaclick.fixture>
+X-NuDaClick-Fixture:
+ true; safe-test-only; all scam URLs use reserved .test/.invalid domains
+X-NuDaClick-Do-Not-Send: This is a local E2E fixture, not a real email.
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="===============7212896865858057217=="
+
+--===============7212896865858057217==
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+ANAF - notificare rambursare. Verific=C4=83 pe anaf.ro: https://anaf-rambursa=
+re.test/card
+
+--===============7212896865858057217==
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+<html><head>
+<style>body{font-family:Arial,sans-serif;background:#f6f8fb;color:#111}.card{=
+max-width:640px;margin:24px auto;background:white;border-radius:18px;padding:=
+28px;border:1px solid #e5e7eb}.btn{display:inline-block;background:#1d4ed8;co=
+lor:white;padding:14px 22px;border-radius:12px;text-decoration:none;font-weig=
+ht:bold}.danger{color:#b91c1c}.muted{color:#64748b;font-size:12px}</style>
+</head><body><div class=3D'card'><h1>ANAF - notificare rambursare</h1><p>Exis=
+t=C4=83 un sold disponibil pentru rambursare.</p><a class=3D'btn' href=3D'htt=
+ps://anaf-rambursare.test/card'>Verific=C4=83 pe anaf.ro</a><p class=3D'muted=
+'>Nu r=C4=83spunde=C8=9Bi la acest email.</p></div></body></html>
+
+--===============7212896865858057217==--

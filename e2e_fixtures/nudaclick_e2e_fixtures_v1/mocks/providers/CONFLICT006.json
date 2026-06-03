@@ -1,0 +1,21 @@
+{
+  "case_id": "CONFLICT006",
+  "policy_version": "gate-1.0.0",
+  "providers": {
+    "google_web_risk": {
+      "status": "SUCCESS",
+      "result": "NO_MATCH"
+    },
+    "urlscan": {
+      "status": "SUCCESS",
+      "verdict": "MALICIOUS_CARD_FORM",
+      "final_url": "https://user-says-safe.test/card",
+      "screenshot_available": true
+    },
+    "virustotal": {
+      "status": "NOT_RUN",
+      "verdict": "NOT_RUN"
+    }
+  },
+  "conflict": "USER_FEEDBACK_CONFLICTS_WITH_TECHNICAL_EVIDENCE"
+}

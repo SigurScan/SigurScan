@@ -1,0 +1,21 @@
+{
+  "case_id": "CONFLICT004",
+  "policy_version": "gate-1.0.0",
+  "providers": {
+    "google_web_risk": {
+      "status": "SUCCESS",
+      "result": "WEB_RISK_MALWARE"
+    },
+    "urlscan": {
+      "status": "NOT_RUN",
+      "verdict": "NOT_RUN",
+      "final_url": "https://www.example.com/security",
+      "screenshot_available": true
+    },
+    "virustotal": {
+      "status": "NOT_RUN",
+      "verdict": "NOT_RUN"
+    }
+  },
+  "conflict": "OFFICIAL_DOMAIN_BUT_REPUTATION_HIT"
+}

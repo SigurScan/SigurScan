@@ -1,0 +1,96 @@
+{
+  "version": "ro-scam-scenario-corpus-2026.06.03",
+  "generatedAt": "2026-06-03T00:00:00+00:00",
+  "safety": "Synthetic, safe fixtures. Scam URLs use reserved domains.",
+  "families": [
+    {
+      "family": "URGENCY_BIG",
+      "scenarios": [
+        "FAMILY_NEW_PHONE",
+        "FAMILY_EMERGENCY_MONEY",
+        "ACCIDENT_OR_NEPHEW_AI_VOICE",
+        "WHATSAPP_TAKEOVER_VOTE",
+        "WHATSAPP_TAKEOVER_PETITION"
+      ]
+    },
+    {
+      "family": "OFFICIAL_PHONE",
+      "scenarios": [
+        "BNR_SAFE_ACCOUNT",
+        "FAKE_CREDIT_AUTHORITY_CHAIN",
+        "COURIER_LOCKER_OR_ADDRESS_UPDATE",
+        "FAKE_LEGITIMATION"
+      ]
+    },
+    {
+      "family": "OVERNIGHT_GAIN",
+      "scenarios": [
+        "HIDROELECTRICA_INVESTMENT",
+        "CRYPTO_BROKER_INVESTMENT",
+        "MARKETPLACE_RECEIVE_MONEY",
+        "LOTTERY_BONUS_DEPOSIT",
+        "REMOTE_ACCESS_APP_INSTALL",
+        "APK_OR_SIDELOAD"
+      ]
+    }
+  ],
+  "patterns": [
+    {
+      "id": "family_new_phone",
+      "phrases": [
+        "mi s-a stricat telefonul",
+        "salvează numărul ăsta nou",
+        "contul unui prieten"
+      ],
+      "maxDecisionTextOnly": "NO_REPLY"
+    },
+    {
+      "id": "whatsapp_code",
+      "phrases": [
+        "codul WhatsApp",
+        "codul de verificare",
+        "dispozitive conectate"
+      ],
+      "maxDecisionTextOnly": "NO_REPLY"
+    },
+    {
+      "id": "safe_account",
+      "phrases": [
+        "cont sigur",
+        "BNR",
+        "credit în numele dumneavoastră",
+        "vă ținem la telefon"
+      ],
+      "maxDecisionTextOnly": "NO_REPLY"
+    },
+    {
+      "id": "courier_fee",
+      "phrases": [
+        "colet blocat",
+        "alege locker",
+        "taxa de livrare",
+        "adresă incompletă"
+      ],
+      "maxDecisionUrl": "DO_NOT_CONTINUE_IF_SENSITIVE"
+    },
+    {
+      "id": "marketplace_receive_money",
+      "phrases": [
+        "ca să primești banii",
+        "introdu cardul",
+        "cod SMS pentru încasare"
+      ],
+      "maxDecisionTextOnly": "NO_ENTER_DATA"
+    },
+    {
+      "id": "remote_access_investment",
+      "phrases": [
+        "AnyDesk",
+        "TeamViewer",
+        "control la distanță",
+        "profit garantat"
+      ],
+      "maxDecisionTextOnly": "DO_NOT_CONTINUE"
+    }
+  ]
+}

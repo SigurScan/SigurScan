@@ -1,0 +1,1 @@
+Autentificare: https://login.example/magic?token=SECRET_RESET_TOKEN&email=user@example.com

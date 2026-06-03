@@ -1,0 +1,21 @@
+{
+  "case_id": "TIMEOUT004",
+  "policy_version": "gate-1.0.0",
+  "providers": {
+    "google_web_risk": {
+      "status": "UNAVAILABLE",
+      "result": "UNAVAILABLE"
+    },
+    "urlscan": {
+      "status": "TIMEOUT",
+      "verdict": "TIMEOUT",
+      "final_url": null,
+      "screenshot_available": false
+    },
+    "virustotal": {
+      "status": "TIMEOUT",
+      "verdict": "TIMEOUT"
+    }
+  },
+  "conflict": null
+}

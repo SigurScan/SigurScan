@@ -1,0 +1,21 @@
+{
+  "case_id": "EMAIL007",
+  "policy_version": "gate-1.0.0",
+  "providers": {
+    "google_web_risk": {
+      "status": "SUCCESS",
+      "result": "NO_MATCH"
+    },
+    "urlscan": {
+      "status": "SUCCESS",
+      "verdict": "MALICIOUS_CARD_FORM",
+      "final_url": "https://factura-urgenta.test/card",
+      "screenshot_available": true
+    },
+    "virustotal": {
+      "status": "NOT_RUN",
+      "verdict": "NOT_RUN"
+    }
+  },
+  "conflict": null
+}

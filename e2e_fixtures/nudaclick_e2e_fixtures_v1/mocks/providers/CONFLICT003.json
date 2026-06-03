@@ -1,0 +1,21 @@
+{
+  "case_id": "CONFLICT003",
+  "policy_version": "gate-1.0.0",
+  "providers": {
+    "google_web_risk": {
+      "status": "SUCCESS",
+      "result": "NO_MATCH"
+    },
+    "urlscan": {
+      "status": "SUCCESS",
+      "verdict": "NO_VISIBLE_RISK",
+      "final_url": "https://www.bancatransilvania.ro/siguranta-online",
+      "screenshot_available": false
+    },
+    "virustotal": {
+      "status": "SUCCESS",
+      "verdict": "LOW_ENGINE_HIT"
+    }
+  },
+  "conflict": "OFFICIAL_DOMAIN_BUT_LOW_VT"
+}

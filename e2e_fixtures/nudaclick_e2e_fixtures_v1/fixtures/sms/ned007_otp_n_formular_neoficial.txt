@@ -1,0 +1,1 @@
+Confirmă codul SMS primit pentru livrare: https://livrare-confirm.test/cod

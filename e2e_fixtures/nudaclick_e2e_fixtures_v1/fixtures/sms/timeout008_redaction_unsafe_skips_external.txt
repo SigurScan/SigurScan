@@ -1,0 +1,1 @@
+Resetare cont: https://service.example/reset?token=SECRET_TOKEN_123&email=ana@example.com

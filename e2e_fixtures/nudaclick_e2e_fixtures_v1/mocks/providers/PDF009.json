@@ -1,0 +1,21 @@
+{
+  "case_id": "PDF009",
+  "policy_version": "gate-1.0.0",
+  "providers": {
+    "google_web_risk": {
+      "status": "SUCCESS",
+      "result": "NO_MATCH"
+    },
+    "urlscan": {
+      "status": "SUCCESS",
+      "verdict": "MALICIOUS_PHISHING",
+      "final_url": "https://broker-crypto.test/remote",
+      "screenshot_available": true
+    },
+    "virustotal": {
+      "status": "NOT_RUN",
+      "verdict": "NOT_RUN"
+    }
+  },
+  "conflict": null
+}

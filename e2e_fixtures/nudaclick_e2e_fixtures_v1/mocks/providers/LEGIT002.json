@@ -1,0 +1,21 @@
+{
+  "case_id": "LEGIT002",
+  "policy_version": "gate-1.0.0",
+  "providers": {
+    "google_web_risk": {
+      "status": "SUCCESS",
+      "result": "NO_MATCH"
+    },
+    "urlscan": {
+      "status": "SUCCESS",
+      "verdict": "NO_VISIBLE_RISK",
+      "final_url": "https://www.posta-romana.ro/",
+      "screenshot_available": false
+    },
+    "virustotal": {
+      "status": "NOT_RUN",
+      "verdict": "NOT_RUN"
+    }
+  },
+  "conflict": null
+}

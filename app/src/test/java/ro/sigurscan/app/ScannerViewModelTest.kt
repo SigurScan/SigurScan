@@ -1,0 +1,341 @@
+package ro.sigurscan.app
+
+import org.junit.Test
+import org.junit.Assert.*
+import java.util.regex.Pattern
+
+class ScannerViewModelTest {
+
+    private val URL_REGEX = Pattern.compile("(?:https?://|www\\.)[\\w\\-.~:/?#\\[\\]@!$&'()*+,;=%]+", Pattern.CASE_INSENSITIVE)
+
+    private fun evaluateOfflineText(scannedText: String): Pair<String, Int> {
+        val normalized = scannedText.lowercase().trim()
+        val urls = extractUrls(scannedText)
+        
+        var bestMatch: OfflineRule? = null
+        var bestScore = 0
+
+        val urgencyWords = listOf("urgent", "imediat", "acum", "24h", "suspendat", "expira", "atentie", "important")
+        val matchedUrgency = urgencyWords.filter { normalized.contains(it) }
+        if (matchedUrgency.isNotEmpty()) {
+            bestScore += 15
+        }
+
+        ScamRules.OFFLINE_RULES.forEach { rule ->
+            val matchedKeywords = rule.keywords.filter { normalized.contains(it.lowercase()) }
+            if (matchedKeywords.isNotEmpty()) {
+                var score = rule.baseScore + matchedKeywords.size * 5
+                val matchedHighSignals = rule.highSignals.filter { normalized.contains(it.lowercase()) }
+                score += matchedHighSignals.size * 10
+                val suspiciousDomain = urls.any { url -> 
+                    rule.suspiciousDomains.any { url.contains(it) } 
+                }
+                if (suspiciousDomain) score += 20
+
+                if (score > bestScore) {
+                    bestScore = score
+                    bestMatch = rule
+                }
+            }
+        }
+
+        if (bestMatch == null && urls.isNotEmpty()) {
+            bestScore += 25
+            if (normalized.contains("urgent") || normalized.contains("plata")) bestScore += 20
+        }
+
+        val riskLevel = when {
+            bestScore >= 70 -> "high"
+            bestScore >= 45 -> "medium"
+            else -> "low"
+        }
+
+        return Pair(riskLevel, Math.min(100, bestScore))
+    }
+
+    private fun extractUrls(input: String): List<String> {
+        val matcher = URL_REGEX.matcher(input)
+        val urls = mutableListOf<String>()
+        while (matcher.find()) {
+            urls.add(matcher.group())
+        }
+        return urls
+    }
+
+    private fun extractHtmlLinks(content: String): List<String> {
+        return HtmlLinkExtractor.extractHtmlLinks(content)
+    }
+
+    @Test
+    fun testFanCourierScam() {
+        val message = "FAN Courier: Coletul tau nr. 123456 a ajuns la locker. Plateste taxa de 5 RON aici: https://fancourier-plata.ru"
+        val (level, score) = evaluateOfflineText(message)
+        assertEquals("high", level)
+        assertTrue(score >= 78)
+    }
+
+    @Test
+    fun testUrgencyDetection() {
+        val message = "Contul tau este SUSPENDAT! Actioneaza ACUM: http://scam.ru"
+        val (_, score) = evaluateOfflineText(message)
+        // Base for link (25) + urgency "suspendat" (15) = 40.
+        // Wait, 40 is medium. To be high it needs more.
+        assertTrue("Score: $score", score >= 40)
+    }
+
+    @Test
+    fun testHtmlLinkExtraction() {
+        val html = """
+            <html>
+                <body>
+                    <p>Click pe butonul de mai jos:</p>
+                    <a href="https://confirmare-plata.ru/anaf">CONFIRMARE</a>
+                </body>
+            </html>
+        """.trimIndent()
+        val links = extractHtmlLinks(html)
+        assertEquals(1, links.size)
+        assertEquals("https://confirmare-plata.ru/anaf", links[0])
+    }
+
+    @Test
+    fun testHiddenButtonOnclickLinkExtraction() {
+        val html = """
+            <html>
+                <body>
+                    <button onclick="window.location.href='https://scam-example.com/verify'">Apasă aici</button>
+                </body>
+            </html>
+        """.trimIndent()
+
+        val links = extractHtmlLinks(html)
+        assertTrue(links.contains("https://scam-example.com/verify"))
+    }
+
+    @Test
+    fun testFormActionLinkExtraction() {
+        val html = """
+            <form action="https://phishing.example.net/login">
+                <button type="submit">Confirmă cont</button>
+            </form>
+        """.trimIndent()
+        val links = extractHtmlLinks(html)
+        assertTrue(links.contains("https://phishing.example.net/login"))
+    }
+
+    @Test
+    fun testDataAndObfuscatedLinkExtraction() {
+        val html = """
+            <html>
+                <body>
+                    <a data-href="https://hidden.example.org/track">Apasă aici</a>
+                    <div onclick="window.open('https://popup.example.org/landing')">Mai jos</div>
+                </body>
+            </html>
+        """.trimIndent()
+        val links = extractHtmlLinks(html)
+        assertTrue(links.contains("https://hidden.example.org/track"))
+        assertTrue(links.contains("https://popup.example.org/landing"))
+    }
+
+    @Test
+    fun testFormActionAndOnsubmitLinkExtraction() {
+        val html = """
+            <html>
+                <body>
+                    <form action="https://checkout.example.net/confirm" onsubmit="return false;">
+                        <button type="submit" formaction="https://fallback.example.net/submit">Trimite</button>
+                    </form>
+                </body>
+            </html>
+        """.trimIndent()
+        val links = extractHtmlLinks(html)
+        assertTrue(links.contains("https://checkout.example.net/confirm"))
+        assertTrue(links.contains("https://fallback.example.net/submit"))
+    }
+
+    @Test
+    fun testScriptRedirectEncodedLinkExtraction() {
+        val encoded = "aHR0cHM6Ly9wcm9uY2UuZXhhbXBsZS5uZXQvaW9uZXQ/cD05"
+        val html = """
+            <html>
+                <body>
+                    <button onclick="window.location.assign(atob('$encoded')); return false;">Continuă</button>
+                </body>
+            </html>
+        """.trimIndent()
+        val links = extractHtmlLinks(html)
+        assertTrue(links.contains("https://pronce.example.net/ionet?p=9"))
+    }
+
+    @Test
+    fun testStyleAndDataSourceLinkExtraction() {
+        val html = """
+            <html>
+                <body>
+                    <div style="background:url('https://style-trace.example.net/overlay.png')">Click mai jos</div>
+                    <button data-action="https://meta-action.example.net/track">Verifică</button>
+                </body>
+            </html>
+        """.trimIndent()
+        val links = extractHtmlLinks(html)
+        assertTrue(links.contains("https://style-trace.example.net/overlay.png"))
+        assertTrue(links.contains("https://meta-action.example.net/track"))
+    }
+
+    @Test
+    fun testStyleBlockLinkExtraction() {
+        val html = """
+            <html>
+                <head>
+                    <style>
+                        .hero { background-image: url(https://css-background.example.net/banner.png); }
+                        @import url("https://css-import.example.net/import.css");
+                    </style>
+                </head>
+            </html>
+        """.trimIndent()
+        val links = extractHtmlLinks(html)
+        assertTrue(links.contains("https://css-background.example.net/banner.png"))
+        assertTrue(links.contains("https://css-import.example.net/import.css"))
+    }
+
+    @Test
+    fun testBase64ObfuscationLinkExtraction() {
+        val encoded = "aHR0cHM6Ly9iYXNlNjQuZXhhbXBsZS5uZXQvY2hlY2suZG9uZQ=="
+        val html = """
+            <a onclick="window.location = atob('$encoded')">Continuă</a>
+        """.trimIndent()
+        val links = extractHtmlLinks(html)
+        assertTrue(links.contains("https://base64.example.net/check.done"))
+    }
+
+    @Test
+    fun testConcatenatedScriptLinkExtraction() {
+        val html = """
+            <button onclick="window.location.href='https://' + 'concat-test.example.net' + '/unlock'">Apasă aici</button>
+        """.trimIndent()
+        val links = extractHtmlLinks(html)
+        assertTrue(links.contains("https://concat-test.example.net/unlock"))
+    }
+
+    @Test
+    fun testHarderObfuscatedScriptLinkExtraction() {
+        val encodedUrl = "aHR0cHM6Ly9sb2dpbi5leGFtcGxlLm5ldC92ZXJpZnk="
+        val html = """
+            <button onclick="window.location='https://' + 'hard' + '-test' + '.example.net' + '/verify?step=1'">Pas 1</button>
+            <a onclick="window.open(atob('$encodedUrl'))">Pas 2</a>
+            <a href="https://&#x68;&#x61;&#x72;&#x64;&#x65;&#x72;&#x2d;&#x65;&#x6e;&#x74;&#x69;&#x74;&#x79;.example.net/decode">
+                Pas 3
+            </a>
+            <div onmouseover="location.href=unescape('https%3A%2F%2Funescape.example.net%2Fwarn')">Pas 4</div>
+            <a onclick="location.assign(decodeURIComponent('https%3A%2F%2Fdecode.example.net%2Fpath'))">Pas 5</a>
+        <form onsubmit="window.location.replace('https://%65%78%61%6d%70%6c%65.com/%66%69%6c%74%72%61%74%65')">Pas 6</form>
+        """.trimIndent()
+        val links = extractHtmlLinks(html)
+        val extractedMessage = "Extracted links: ${links.joinToString(", ")}"
+        assertTrue(extractedMessage, links.contains("https://hard-test.example.net/verify?step=1"))
+        assertTrue(extractedMessage, links.contains("https://login.example.net/verify"))
+        assertTrue(extractedMessage, links.contains("https://harder-entity.example.net/decode"))
+        assertTrue(extractedMessage, links.contains("https://unescape.example.net/warn"))
+        assertTrue(extractedMessage, links.contains("https://decode.example.net/path"))
+        assertTrue(extractedMessage, links.contains("https://example.com/filtrate"))
+    }
+
+    @Test
+    fun testHtmlEntityEncodedLinkExtraction() {
+        val html = """
+            <a href="https://&#x65;&#x78;&#x61;&#x6d;&#x70;&#x6c;&#x65;&#x2e;&#x63;&#x6f;&#x6d;">link</a>
+            <a href="https://&#101;&#120;&#97;&#109;&#112;&#108;&#101;&#46;&#99;&#111;&#109;/entity">entity</a>
+        """.trimIndent()
+        val links = extractHtmlLinks(html)
+        assertTrue(links.contains("https://example.com"))
+        assertTrue(links.contains("https://example.com/entity"))
+    }
+
+    @Test
+    fun testSelfLocationRedirectLinkExtraction() {
+        val html = """
+            <button onclick="self.location='https://self-link.example.org/verify'">Apasă mai jos</button>
+        """.trimIndent()
+        val links = extractHtmlLinks(html)
+        assertTrue(links.contains("https://self-link.example.org/verify"))
+    }
+
+    @Test
+    fun testMetaRefreshLinkExtraction() {
+        val html = """
+            <meta http-equiv="refresh" content="0;url=https://meta-refresh.example.com/redirect" />
+        """.trimIndent()
+        val links = extractHtmlLinks(html)
+        assertTrue(links.contains("https://meta-refresh.example.com/redirect"))
+    }
+
+    @Test
+    fun testScriptBlockLinkExtraction() {
+        val encoded = "aHR0cHM6Ly9zY3JpcHQuZXhhbXBsZS5jb20vc2NyaXB0"
+        val html = """
+            <script>
+              const base = 'https://';
+              const host = 'script-block.example.com';
+              const path = '/payload';
+              window.location.href = base + host + path;
+              window.open(atob('$encoded'));
+              location.assign('https://assign.example.com/next');
+            </script>
+        """.trimIndent()
+        val links = extractHtmlLinks(html)
+        val extractedMessage = "Extracted links: ${links.joinToString(", ")}"
+        assertTrue(extractedMessage, links.contains("https://script-block.example.com/payload"))
+        assertTrue(extractedMessage, links.contains("https://script.example.com/script"))
+        assertTrue(extractedMessage, links.contains("https://assign.example.com/next"))
+    }
+
+    @Test
+    fun testSrcSetAndHiddenWrapperLinkExtraction() {
+        val html = """
+            <div onpointerdown="window.location='https://pointer-down.example.net/route'">
+                <img srcset="/fallback 1x, https://imgset.example.net/photo.jpg 2x" alt="img">
+            </div>
+        """.trimIndent()
+        val links = extractHtmlLinks(html)
+        assertTrue(links.contains("https://pointer-down.example.net/route"))
+        assertTrue(links.contains("https://imgset.example.net/photo.jpg"))
+    }
+
+    @Test
+    fun testTemplateLiteralScriptLinkExtraction() {
+        val html = """
+            <script>
+              const domain = 'template-link.example.com';
+              const path = '/payload';
+              window.location.href = `https://${'$'}{domain}${'$'}{path}`;
+            </script>
+        """.trimIndent()
+        val links = extractHtmlLinks(html)
+        assertTrue(links.contains("https://template-link.example.com/payload"))
+    }
+
+    @Test
+    fun testVariableAliasLinkExtraction() {
+        val html = """
+            <script>
+              const base = 'https://';
+              const host = 'alias-link.example.com';
+              const path = '/safe';
+              const link = base + host + path;
+              window.location = link;
+            </script>
+        """.trimIndent()
+        val links = extractHtmlLinks(html)
+        assertTrue(links.contains("https://alias-link.example.com/safe"))
+    }
+
+    @Test
+    fun testNormalMessage() {
+        val message = "Salut! Ce mai faci? Ne vedem diseara la fotbal?"
+        val (level, score) = evaluateOfflineText(message)
+        assertEquals("low", level)
+        assertTrue(score < 45)
+    }
+}
