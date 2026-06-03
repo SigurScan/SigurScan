@@ -18,3 +18,25 @@ release/*.keystore
 *.aab
 *.apks
 tmp_*/
+
+# Secrets and deployment state
+.env
+.env.*
+!.env.example
+.vercel/
+
+# Backend runtime/cache artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+backend/venv/
+backend/.venv/
+backend/.vercel/
+backend/data/scan_events.jsonl
+backend/data/scan_feedback.jsonl
+backend/data/url_reputation_cache.json
+backend/data/*.sqlite
+backend/data/*.db
+
+# Supabase local CLI state
+supabase/.temp/

@@ -71,6 +71,36 @@ data class ScanResponse(
     @SerializedName("email_auth") val emailAuth: Map<String, Any>? = null
 )
 
+data class OrchestratedScanRequest(
+    @SerializedName("input_type") val inputType: String,
+    val text: String? = null,
+    val url: String? = null,
+    @SerializedName("html_content") val htmlContent: String? = null,
+    @SerializedName("source_channel") val sourceChannel: String = "android_native"
+)
+
+data class OrchestratedPillarState(
+    val status: String? = null,
+    val required: Boolean? = null,
+    val details: String? = null,
+    val ref: String? = null
+)
+
+data class OrchestratedPreview(
+    @SerializedName("screenshot_url") val screenshotUrl: String? = null,
+    @SerializedName("report_url") val reportUrl: String? = null,
+    @SerializedName("final_url") val finalUrl: String? = null
+)
+
+data class OrchestratedScanResponse(
+    @SerializedName("scan_id") val scanId: String,
+    val status: String? = null,
+    @SerializedName("status_message") val statusMessage: String? = null,
+    val pillars: Map<String, OrchestratedPillarState>? = null,
+    val preview: OrchestratedPreview? = null,
+    val result: ScanResponse? = null
+)
+
 data class ReadinessResponse(
     val status: String? = null,
     @SerializedName("readiness_score") val readinessScore: Float? = null,
@@ -158,6 +188,12 @@ data class CommunityReport(
 )
 
 interface SigurScanApi {
+    @POST("v1/scan/orchestrated")
+    suspend fun startOrchestratedScan(@Body request: OrchestratedScanRequest): OrchestratedScanResponse
+
+    @GET("v1/scan/orchestrated/{scan_id}")
+    suspend fun getOrchestratedScan(@Path("scan_id") scanId: String): OrchestratedScanResponse
+
     @POST("v1/scan/url")
     suspend fun scanUrl(@Body request: UrlScanRequest): ScanResponse
 

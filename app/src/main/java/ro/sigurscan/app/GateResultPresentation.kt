@@ -67,6 +67,7 @@ object GateResultPresentation {
             "MARKETPLACE_RECEIVE_MONEY_SENSITIVE_REQUEST" in codes -> "Fluxul de marketplace cere card sau OTP ca sa primesti bani."
             "SENSITIVE_FORM_UNOFFICIAL" in codes -> "Am gasit formular sensibil pe un domeniu nevalidat."
             "OFFICIAL_DESTINATION_NO_SENSITIVE_COLLECTION" in codes -> "Linkul ajunge pe domeniu oficial/delegat si nu cere date sensibile."
+            "BACKEND_ORCHESTRATED_VERDICT" in codes -> "Am verificat linkul final, captura securizata si reputatia destinatiei."
             "WEAK_OR_EXPLANATORY_EVIDENCE_ONLY" in codes -> "Am gasit doar semnale slabe, precum marketing, CTA, tracking sau explicatii."
             "BRAND_OR_AUTHORITY_CLAIM_NEEDS_VERIFICATION" in codes -> "Mesajul mentioneaza un brand sau o autoritate si trebuie verificat pe canalul oficial."
             "PROVIDER_REVIEW_REQUIRED" in codes && result.unknownReason == "PROVIDERS_PENDING_FOR_TARGET" -> "Se scaneaza linkul. Revenim cu verdictul dupa verificare."

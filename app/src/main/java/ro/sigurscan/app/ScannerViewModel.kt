@@ -145,6 +145,13 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
         val result: ThreatIntelSourceResult,
         val expiresAtMillis: Long
     )
+    private data class PersistedStartupState(
+        val history: List<OfflineAssessment> = emptyList(),
+        val triageProgress: Map<String, Set<Int>> = emptyMap(),
+        val completedLessons: Set<String> = emptySet(),
+        val familyMembers: List<FamilyMember> = emptyList(),
+        val familyAlerts: List<FamilyAlert> = emptyList()
+    )
 
     private companion object {
         private const val MAX_UPLOAD_BYTES = 25L * 1024L * 1024L
@@ -221,10 +228,10 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
         )
     )
     
-    private val prefs: SharedPreferences = createSecurePrefs(application)
+    private val prefs: SharedPreferences by lazy { createSecurePrefs(application) }
     private val gson = Gson()
-    private val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-    private val barcodeScanner = com.google.mlkit.vision.barcode.BarcodeScanning.getClient()
+    private val recognizer by lazy { TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS) }
+    private val barcodeScanner by lazy { BarcodeScanning.getClient() }
     private val URLSCAN_API_KEY = BuildConfig.URLSCAN_API_KEY
     private val VIRUS_TOTAL_API_KEY = BuildConfig.VIRUS_TOTAL_API_KEY
     private val GOOGLE_WEB_RISK_API_KEY = BuildConfig.GOOGLE_WEB_RISK_API_KEY
@@ -277,14 +284,59 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
     }
 
     init {
-        BrandKnowledgeRegistry.initialize(application)
-        loadHistory()
-        loadTriageState()
-        loadEducationState()
-        loadFamilyState()
         calculateStats()
-        loadCampaigns()
-        cleanupLegacyTempUploads()
+        viewModelScope.launch(Dispatchers.IO) {
+            BrandKnowledgeRegistry.initialize(application)
+            val persisted = loadPersistedStartupState()
+            cleanupLegacyTempUploads()
+            withContext(Dispatchers.Main) {
+                applyPersistedStartupState(persisted)
+            }
+        }
+    }
+
+    private fun loadPersistedStartupState(): PersistedStartupState {
+        return PersistedStartupState(
+            history = runCatching {
+                val raw = prefs.getString("history", null) ?: return@runCatching emptyList()
+                val type = object : TypeToken<List<OfflineAssessment>>() {}.type
+                gson.fromJson<List<OfflineAssessment>>(raw, type)
+            }.getOrDefault(emptyList()),
+            triageProgress = runCatching {
+                val raw = prefs.getString("triage_steps_state", null) ?: return@runCatching emptyMap()
+                val type = object : TypeToken<Map<String, List<Int>>>() {}.type
+                val values: Map<String, List<Int>> = gson.fromJson(raw, type)
+                values.mapValues { it.value.toSet() }
+            }.getOrDefault(emptyMap()),
+            completedLessons = runCatching {
+                val raw = prefs.getString("education_lessons_done", null) ?: return@runCatching emptySet()
+                val type = object : TypeToken<Set<String>>() {}.type
+                gson.fromJson<Set<String>>(raw, type)
+            }.getOrDefault(emptySet()),
+            familyMembers = runCatching {
+                val raw = prefs.getString("family_members_state", null) ?: return@runCatching emptyList()
+                val type = object : TypeToken<List<FamilyMember>>() {}.type
+                gson.fromJson<List<FamilyMember>>(raw, type)
+            }.getOrDefault(emptyList()),
+            familyAlerts = runCatching {
+                val raw = prefs.getString("family_alerts_state", null) ?: return@runCatching emptyList()
+                val type = object : TypeToken<List<FamilyAlert>>() {}.type
+                gson.fromJson<List<FamilyAlert>>(raw, type)
+            }.getOrDefault(emptyList())
+        )
+    }
+
+    private fun applyPersistedStartupState(state: PersistedStartupState) {
+        historyItems.clear()
+        historyItems.addAll(state.history)
+        triageStepProgress = state.triageProgress
+        completedLessons = state.completedLessons
+        familyMembers.clear()
+        familyMembers.addAll(state.familyMembers)
+        familyAlerts.clear()
+        familyAlerts.addAll(state.familyAlerts)
+        refreshFamilyResilienceScore()
+        calculateStats()
     }
 
     fun loadCampaigns() {
@@ -698,12 +750,64 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
         return guarded
     }
 
+    private fun startBackendOrchestratedPendingAssessment(rawInput: String, urls: List<String>): OfflineAssessment? {
+        val primaryUrl = urls.firstOrNull()?.let(::normalizeUrl)
+        val pendingIntel = ThreatIntelSourceResult(
+            source = "SigurScan Backend",
+            verdict = "Scanning",
+            severity = "unknown",
+            details = "Scanarea rulează pe backend prin pilonii necesari."
+        )
+        val preliminary = evaluateOfflineText(rawInput).copy(
+            scanId = UUID.randomUUID().toString(),
+            serverInfo = "Scanarea rulează. Așteptăm rezultatele complete.",
+            redirectChain = primaryUrl?.let { listOf(it) }.orEmpty(),
+            finalUrl = primaryUrl,
+            reputationVerdict = "Se verifică",
+            domainAgeText = "Se verifică",
+            sslStatus = primaryUrl?.let { if (it.startsWith("https", ignoreCase = true)) "Valid (HTTPS)" else "Neverificat" } ?: "Neverificat",
+            aiConfidence = "Analiză online în curs",
+            threatIntel = listOf(pendingIntel)
+        )
+        val guarded = applyEvidenceGate(
+            current = preliminary,
+            rawInput = rawInput,
+            primaryUrl = primaryUrl,
+            finalUrl = null,
+            redirectChain = primaryUrl?.let { listOf(it) }.orEmpty(),
+            threatIntel = listOf(pendingIntel),
+            providerStates = pendingOnlineProviderStates(),
+            completeness = EvidenceCompleteness.PARTIAL_ONLINE
+        )
+        assessment = guarded
+        return guarded
+    }
+
     private fun publishAssessmentResult(existingScanId: String?, updated: OfflineAssessment) {
+        val isFinal = updated.gateResult?.finality == GateFinality.FINAL
         if (existingScanId != null && currentAssessmentForScan(existingScanId) != null) {
-            replaceAssessment(existingScanId, updated)
+            if (isFinal) {
+                replaceAssessment(existingScanId, updated)
+                if (historyItems.none { it.scanId == updated.scanId }) {
+                    historyItems.add(0, updated)
+                    calculateStats()
+                    saveHistory()
+                }
+            } else {
+                val idx = historyItems.indexOfFirst { it.scanId == existingScanId }
+                if (idx >= 0) {
+                    historyItems[idx] = updated
+                    calculateStats()
+                }
+                if (assessment?.scanId == existingScanId) {
+                    assessment = updated
+                }
+            }
         } else {
             assessment = updated
-            addToHistory(updated)
+            if (isFinal) {
+                addToHistory(updated)
+            }
         }
     }
 
@@ -711,6 +815,244 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
         val normalizedLeft = normalizeCandidateUrl(left) ?: left?.let(::normalizeUrl)
         val normalizedRight = normalizeCandidateUrl(right) ?: right?.let(::normalizeUrl)
         return !normalizedLeft.isNullOrBlank() && normalizedLeft == normalizedRight
+    }
+
+    private fun orchestratedRequest(rawInput: String, htmlPayload: String?, urls: List<String>): OrchestratedScanRequest {
+        return when {
+            !htmlPayload.isNullOrBlank() -> OrchestratedScanRequest(
+                inputType = "email_html",
+                text = rawInput,
+                htmlContent = htmlPayload,
+                sourceChannel = activeEvidenceChannel(rawInput) ?: "android_html_share"
+            )
+            urls.isNotEmpty() && looksLikeUrlOnly(rawInput.trim(), urls.first()) -> OrchestratedScanRequest(
+                inputType = "url",
+                url = normalizeUrl(urls.first()),
+                sourceChannel = "android_url_scan"
+            )
+            else -> OrchestratedScanRequest(
+                inputType = "text",
+                text = rawInput,
+                sourceChannel = activeEvidenceChannel(rawInput) ?: "android_native"
+            )
+        }
+    }
+
+    private fun providerStatesFromOrchestratedPillars(
+        pillars: Map<String, OrchestratedPillarState>?
+    ): Map<ProviderId, ProviderState> {
+        fun mapStatus(value: String?): ProviderStatus = when (value?.lowercase(Locale.US)) {
+            "ok" -> ProviderStatus.OK
+            "pending" -> ProviderStatus.PENDING
+            "not_required" -> ProviderStatus.SKIPPED
+            "rate_limited" -> ProviderStatus.RATE_LIMITED
+            "timeout" -> ProviderStatus.TIMEOUT
+            "error" -> ProviderStatus.ERROR
+            else -> ProviderStatus.NOT_RUN
+        }
+
+        fun state(key: String, provider: ProviderId): ProviderState? {
+            val raw = pillars?.get(key) ?: return null
+            return ProviderState(
+                provider = provider,
+                status = mapStatus(raw.status),
+                note = raw.details
+            )
+        }
+
+        return listOfNotNull(
+            state("google_web_risk", ProviderId.WEB_RISK),
+            state("urlscan", ProviderId.URLSCAN),
+            state("virustotal", ProviderId.VIRUSTOTAL),
+            state("claim_verifier", ProviderId.CLAIM_VERIFIER)
+        ).associateBy { it.provider }
+    }
+
+    private fun backendGateResultFromScanResponse(response: ScanResponse): GateResult {
+        val normalized = (response.userRiskLevel ?: response.riskLevel).lowercase(Locale.US)
+        val action = when {
+            normalized in setOf("safe", "low") -> GateAction.CONTINUE_WITH_CAUTION
+            normalized in setOf("dangerous", "high", "critical") -> GateAction.DO_NOT_CONTINUE
+            else -> GateAction.VERIFY_OFFICIAL
+        }
+        return GateResult(
+            action = action,
+            finality = GateFinality.FINAL,
+            reasonCodes = listOf("BACKEND_ORCHESTRATED_VERDICT"),
+            decisiveSignalIds = emptyList(),
+            supportingSignalIds = emptyList(),
+            asyncExpected = false
+        )
+    }
+
+    private fun buildAssessmentFromBackendScanResponse(
+        response: ScanResponse,
+        rawInput: String,
+        urls: List<String>,
+        preview: OrchestratedPreview? = null,
+        providerStates: Map<ProviderId, ProviderState> = emptyMap()
+    ): OfflineAssessment {
+        val evidence = response.evidence
+        val extractedUrls = mapList(evidence?.get("extracted_urls")).ifEmpty {
+            response.extractedUrls ?: response.resolvedUrls ?: emptyList()
+        }
+        val firstUrlEntry = extractedUrls.firstOrNull()
+        val backendPrimaryUrl = pickPrimaryThreatIntelUrl(response, rawInput).takeIf { it.isNotBlank() }
+        val intelSummary = evidence?.get("external_intel_summary") as? Map<*, *>
+        val reputation = if (intelSummary.isNullOrEmpty()) "Se verifică" else "Verificat prin ${intelSummary.size} surse"
+        val ageDays = (firstUrlEntry?.get("domain_age_days") as? Double)?.toInt()
+        val ageText = when {
+            ageDays == null -> "Necunoscută"
+            ageDays > 365 -> "${ageDays / 365} ani+"
+            else -> "$ageDays zile"
+        }
+        val resolvedFinalUrl = normalizeCandidateUrl(preview?.finalUrl)
+            ?: normalizeCandidateUrl(firstUrlEntry?.get("final_url")?.toString())
+            ?: backendPrimaryUrl
+            ?: ""
+        val chain = mapList(firstUrlEntry?.get("redirect_chain"))
+            .mapNotNull { normalizeCandidateUrl(it["url"]?.toString()) }
+            .ifEmpty { listOfNotNull(backendPrimaryUrl, resolvedFinalUrl.takeIf { it.isNotBlank() }) }
+            .distinct()
+        val threatIntel = buildThreatIntel(evidence, response)
+        val visualEvidenceUrl = normalizeCandidateUrl(resolvedFinalUrl)
+            ?: backendPrimaryUrl
+            ?: urls.firstOrNull()
+            ?: ""
+        val result = OfflineAssessment(
+            scanId = response.scanId,
+            family = when {
+                response.riskLevel == "critical" || response.riskLevel == "high" -> response.detectedFamily ?: "Scam detectat"
+                response.riskLevel == "low" -> "Destinație verificată"
+                else -> response.detectedFamily ?: "Analiză în curs"
+            },
+            riskScore = response.riskScore,
+            riskLevel = response.riskLevel,
+            reasons = response.reasons ?: emptyList(),
+            safeActions = response.safeActions ?: emptyList(),
+            keyDangers = response.keyDangers ?: emptyList(),
+            originalText = rawInput,
+            serverInfo = "Scanarea completă a fost finalizată.",
+            redirectChain = chain,
+            finalUrl = visualEvidenceUrl.takeIf { it.isNotBlank() },
+            offerAnalysis = response.offerAnalysis,
+            reputationVerdict = reputation,
+            domainAgeText = ageText,
+            sslStatus = if (visualEvidenceUrl.startsWith("https", ignoreCase = true)) "Valid (HTTPS)" else "Neverificat",
+            aiConfidence = response.aiVerdict ?: "Analiză automată finalizată",
+            detectedButtons = mapButtons(response.buttons),
+            emailAuth = mapEmailAuth(response.emailAuth),
+            threatIntel = threatIntel,
+            screenshotUrl = preview?.screenshotUrl,
+            sandboxReportUrl = preview?.reportUrl
+        )
+        val snapshot = EvidenceSignalNormalizer.buildSnapshot(
+            EvidenceNormalizerInput(
+                scanId = response.scanId,
+                inputKind = activeEvidenceInputKind(rawInput) ?: inferEvidenceInputKind(rawInput),
+                channel = activeEvidenceChannel(rawInput) ?: inferEvidenceChannel(rawInput),
+                rawText = rawInput,
+                htmlContent = activeEvidenceHtml(rawInput),
+                extractedLinks = activeEvidenceLinks(rawInput),
+                primaryUrl = backendPrimaryUrl ?: urls.firstOrNull(),
+                finalUrl = visualEvidenceUrl.takeIf { it.isNotBlank() },
+                redirectChain = chain,
+                threatIntel = threatIntel,
+                providerStates = providerStates,
+                completeness = EvidenceCompleteness.FULL,
+                registryVersion = BrandKnowledgeRegistry.registryVersion(),
+                corpusVersion = BrandKnowledgeRegistry.corpusVersion(),
+                virusTotalConfigured = VIRUS_TOTAL_API_KEY.isNotBlank()
+            )
+        )
+        return result.withGate(
+            snapshot = snapshot,
+            gateResult = backendGateResultFromScanResponse(response),
+            rawInput = rawInput,
+            mergedThreatIntel = threatIntel
+        )
+    }
+
+    private fun buildPendingAssessmentFromOrchestratedResponse(
+        response: OrchestratedScanResponse,
+        rawInput: String,
+        urls: List<String>
+    ): OfflineAssessment {
+        val primaryUrl = normalizeCandidateUrl(response.preview?.finalUrl)
+            ?: urls.firstOrNull()?.let(::normalizeUrl)
+        val threatIntel = listOf(
+            ThreatIntelSourceResult(
+                source = "SigurScan Backend",
+                verdict = "Scanning",
+                severity = "unknown",
+                details = response.statusMessage ?: "Scanarea rulează."
+            )
+        )
+        val base = currentAssessmentForScan(response.scanId) ?: evaluateOfflineText(rawInput).copy(scanId = response.scanId)
+        return applyEvidenceGate(
+            current = base.copy(
+                scanId = response.scanId,
+                serverInfo = response.statusMessage ?: "Scanarea rulează. Așteptăm rezultatele complete.",
+                redirectChain = primaryUrl?.let { listOf(it) }.orEmpty(),
+                finalUrl = primaryUrl,
+                reputationVerdict = "Se verifică",
+                domainAgeText = "Se verifică",
+                sslStatus = primaryUrl?.let { if (it.startsWith("https", ignoreCase = true)) "Valid (HTTPS)" else "Neverificat" } ?: "Neverificat",
+                aiConfidence = "Analiză online în curs",
+                threatIntel = threatIntel,
+                screenshotUrl = response.preview?.screenshotUrl,
+                sandboxReportUrl = response.preview?.reportUrl
+            ),
+            rawInput = rawInput,
+            primaryUrl = urls.firstOrNull(),
+            finalUrl = response.preview?.finalUrl,
+            redirectChain = primaryUrl?.let { listOf(it) }.orEmpty(),
+            threatIntel = threatIntel,
+            providerStates = providerStatesFromOrchestratedPillars(response.pillars),
+            completeness = EvidenceCompleteness.PARTIAL_ONLINE
+        )
+    }
+
+    private suspend fun publishOrchestratedResponse(
+        response: OrchestratedScanResponse,
+        rawInput: String,
+        urls: List<String>,
+        existingScanId: String?
+    ) {
+        val providerStates = providerStatesFromOrchestratedPillars(response.pillars)
+        val preview = if (response.result != null) {
+            val stableScreenshot = withContext(Dispatchers.IO) {
+                downloadSandboxScreenshotProxy(response.preview?.screenshotUrl)
+            }
+            response.preview?.copy(screenshotUrl = stableScreenshot ?: response.preview.screenshotUrl)
+        } else {
+            response.preview
+        }
+        val updated = response.result?.let {
+            buildAssessmentFromBackendScanResponse(
+                response = it,
+                rawInput = rawInput,
+                urls = urls,
+                preview = preview,
+                providerStates = providerStates
+            )
+        } ?: buildPendingAssessmentFromOrchestratedResponse(response, rawInput, urls)
+        publishAssessmentResult(existingScanId ?: response.scanId, updated)
+    }
+
+    private suspend fun runBackendOrchestratedScan(rawInput: String, htmlPayload: String?, urls: List<String>) {
+        val preliminary = startBackendOrchestratedPendingAssessment(rawInput, urls)
+        var response = api.startOrchestratedScan(orchestratedRequest(rawInput, htmlPayload, urls))
+        publishOrchestratedResponse(response, rawInput, urls, preliminary?.scanId)
+
+        var attempts = 0
+        val maxAttempts = 18
+        while (response.result == null && response.status?.lowercase(Locale.US) == "scanning" && attempts < maxAttempts) {
+            attempts += 1
+            kotlinx.coroutines.delay(5000)
+            response = api.getOrchestratedScan(response.scanId)
+            publishOrchestratedResponse(response, rawInput, urls, response.scanId)
+        }
     }
 
     fun onScanClick() {
@@ -722,141 +1064,27 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
             val rawInput = text
             val htmlPayload = activeEvidenceHtml(rawInput)
             val urls = activeEvidenceLinks(rawInput).ifEmpty { extractUrls(rawInput) }
-            val preliminaryResult = if (urls.isNotEmpty()) {
-                startPreliminaryUrlAssessment(rawInput, urls)
-            } else {
-                null
-            }
             try {
-                val response = when {
-                    !htmlPayload.isNullOrBlank() -> api.scanEmailHtml(
-                        htmlPayload,
-                        activeEvidenceChannel(rawInput) ?: "android_html_share"
-                    )
-                    urls.isNotEmpty() && looksLikeUrlOnly(rawInput.trim(), urls.first()) -> {
-                        api.scanUrl(UrlScanRequest(normalizeUrl(urls.first())))
-                    }
-                    urls.isNotEmpty() -> api.scanText(ScanRequest(rawInput))
-                    else -> api.scanText(ScanRequest(rawInput))
-                }
-                val evidence = response.evidence
-                val extractedUrls = mapList(evidence?.get("extracted_urls")).ifEmpty {
-                    response.extractedUrls ?: emptyList()
-                }
-                val firstUrlEntry = extractedUrls.firstOrNull()
-                val backendPrimaryUrl = pickPrimaryThreatIntelUrl(response, rawInput)
-                    .takeIf { it.isNotBlank() }
-
-                val intelSummary = evidence?.get("external_intel_summary") as? Map<*, *>
-                val reputation = if (intelSummary.isNullOrEmpty()) "Curat (Nicio raportare)" else "Semnalat de ${intelSummary.size} surse"
-
-                val ageDays = (firstUrlEntry?.get("domain_age_days") as? Double)?.toInt()
-                val ageText = when {
-                    ageDays == null -> "Necunoscută"
-                    ageDays > 365 -> "${ageDays / 365} ani+"
-                    else -> "$ageDays zile"
-                }
-
-                val resolvedFinalUrl = normalizeCandidateUrl(firstUrlEntry?.get("final_url")?.toString())
-                    ?: backendPrimaryUrl
-                    ?: ""
-                val aiVerdict = response.aiVerdict ?: "Analiză automată finalizată"
-
-                val chain = mapList(firstUrlEntry?.get("redirect_chain"))
-                    .mapNotNull { normalizeCandidateUrl(it["url"]?.toString()) }
-                    .ifEmpty { listOfNotNull(backendPrimaryUrl) }
-                val threatIntel = buildThreatIntel(evidence, response)
-                val threatIntelTargetUrl = resolvedFinalUrl.ifBlank {
-                    firstUrlEntry?.get("url")?.toString()
-                        ?: firstUrlEntry?.get("final_url")?.toString()
-                        ?: backendPrimaryUrl
-                        ?: urls.firstOrNull()
-                        ?: ""
-                }
-                val visualEvidenceUrl = normalizeCandidateUrl(resolvedFinalUrl)
-                    ?: normalizeCandidateUrl(threatIntelTargetUrl)
-                    ?: threatIntelTargetUrl.takeIf { it.isNotBlank() }?.let { normalizeUrl(it) }
-                    ?: ""
-                val isSsl = visualEvidenceUrl.startsWith("https", ignoreCase = true)
-                val sslText = if (isSsl) "Valid (HTTPS)" else "Inexistent (HTTP)"
-
-        val offerInsight = response.offerAnalysis
-
-                val result = OfflineAssessment(
-                    scanId = preliminaryResult?.scanId ?: response.scanId,
-                    family = when {
-                        response.riskLevel == "critical" || response.riskLevel == "high" -> response.detectedFamily ?: "Scam Detectat"
-                        ageDays != null && ageDays > 180 && response.riskScore < 30 -> "Destinație cu risc scăzut"
-                        else -> "Analiză Link Extern"
-            },
-            riskScore = response.riskScore,
-            riskLevel = response.riskLevel,
-            reasons = response.reasons ?: emptyList(),
-            safeActions = response.safeActions ?: emptyList(),
-            keyDangers = response.keyDangers ?: emptyList(),
-            originalText = rawInput,
-            serverInfo = if (visualEvidenceUrl.isNotBlank()) "Se pregătește captura paginii finale..." else null,
-            redirectChain = chain,
-            finalUrl = visualEvidenceUrl.takeIf { it.isNotBlank() },
-            offerAnalysis = offerInsight,
-            reputationVerdict = reputation,
-            domainAgeText = ageText,
-            sslStatus = sslText,
-            aiConfidence = aiVerdict,
-            detectedButtons = mapButtons(response.buttons),
-                    emailAuth = mapEmailAuth(response.emailAuth),
-                    threatIntel = threatIntel
-                )
-                val guardedResult = applyEvidenceGate(
-                    current = result,
-                    rawInput = rawInput,
-                    primaryUrl = backendPrimaryUrl ?: threatIntelTargetUrl.takeIf { it.isNotBlank() } ?: urls.firstOrNull(),
-                    finalUrl = visualEvidenceUrl.takeIf { it.isNotBlank() },
-                    redirectChain = chain,
-                    threatIntel = threatIntel,
-                    completeness = if (visualEvidenceUrl.isNotBlank()) EvidenceCompleteness.PARTIAL_ONLINE else null
-                )
-                publishAssessmentResult(preliminaryResult?.scanId, guardedResult)
-
-                if (threatIntelTargetUrl.isNotBlank()) {
-                    viewModelScope.launch(Dispatchers.IO) {
-                        val enrichedThreatIntel = enrichThreatIntelFromServices(
-                            threatIntelTargetUrl,
-                            threatIntel,
-                            guardedResult.riskLevel
-                        )
-                        updateThreatIntelInHistory(guardedResult.scanId, enrichedThreatIntel)
-                    }
-                }
-                
-                if (visualEvidenceUrl.isNotBlank() && !isSameNormalizedUrl(visualEvidenceUrl, preliminaryResult?.finalUrl)) {
-                    triggerSandboxAnalysis(visualEvidenceUrl, guardedResult.scanId)
-                }
-            } catch (e: Exception) {
+                runBackendOrchestratedScan(rawInput, htmlPayload, urls)
+                return@launch
+            } catch (orchestratedError: Exception) {
                 val fallbackPrimaryUrl = urls.firstOrNull()?.let(::normalizeUrl)
                 val result = applyEvidenceGate(
                     current = evaluateOfflineText(rawInput).copy(
-                        scanId = preliminaryResult?.scanId ?: UUID.randomUUID().toString(),
-                        serverInfo = if (fallbackPrimaryUrl != null) {
-                            "Scanarea linkului continuă."
-                        } else {
-                            null
-                        },
+                        scanId = UUID.randomUUID().toString(),
+                        serverInfo = "Nu am putut obține rezultatele pilonilor. Reîncearcă scanarea.",
                         finalUrl = fallbackPrimaryUrl,
                         redirectChain = fallbackPrimaryUrl?.let { listOf(it) }.orEmpty()
                     ),
                     rawInput = rawInput,
                     primaryUrl = fallbackPrimaryUrl,
-                    finalUrl = fallbackPrimaryUrl,
+                    finalUrl = null,
                     redirectChain = fallbackPrimaryUrl?.let { listOf(it) }.orEmpty(),
-                    providerStates = if (preliminaryResult != null) backendUnavailableWhileSandboxRuns() else unavailableProviderStates(),
-                    completeness = if (fallbackPrimaryUrl != null) EvidenceCompleteness.PARTIAL_ONLINE else EvidenceCompleteness.LOCAL_ONLY
+                    providerStates = unavailableProviderStates(),
+                    completeness = EvidenceCompleteness.PARTIAL_ONLINE
                 )
-                publishAssessmentResult(preliminaryResult?.scanId, result)
-                
-                if (urls.isNotEmpty() && preliminaryResult == null) {
-                    triggerSandboxAnalysis(urls.first(), result.scanId)
-                }
+                publishAssessmentResult(null, result)
+                return@launch
             } finally {
                 loading = false
             }

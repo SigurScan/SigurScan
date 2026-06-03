@@ -1,0 +1,8 @@
+{"id":"eval_001","kind":"text","text":"ANAF: Aveti o plata restanta de 450 RON. Accesati portalul ANAF: https://anaf-spv-plati.info/login acum.","is_scam":true,"notes":"url nou + mesaj de urgenta"}
+{"id":"eval_002","kind":"text","text":"Buna ziua! Am procesat coletul FAN Courier. Verifica statusul la https://fancourier.ro/tracking/awb12345.","is_scam":false,"notes":"canal oficial fara indicii de risc"}
+{"id":"eval_003","kind":"url","url":"https://bit.ly/anaf-verifica-plata","is_scam":true,"notes":"link scurtat spre domeniu neoficial"}
+{"id":"eval_004","kind":"text","text":"Posta Romana: pachetul tau este la lockerer. Click aici si plateste taxa suplimentara: https://posta-romana-taxe.top/pay","is_scam":true,"notes":"fals pozitv; extensie .top + brand postal"}
+{"id":"eval_005","kind":"text","text":"Am platit pe OLX si trebuie sa plati taxa de livrare pe https://olx-ro-incasare.site/payment, confirmati datele cardului.","is_scam":true,"notes":"scam OLX prin card"}
+{"id":"eval_006","kind":"text","text":"Bună ziua, contul dvs. de Reddit a fost activat. Accesati https://microsoft.com pentru setari.","is_scam":false,"notes":"site oficial, risc scazut"}
+{"id":"eval_007","kind":"text","text":"Instagram: aveti o notificare de securitate. O data a fost blocat contul. Accesati http://instagram-security.xyz/login","is_scam":true,"notes":"link imitatie brand social media"}
+{"id":"eval_008","kind":"url","url":"https://revolut.com/security/verify","is_scam":false,"notes":"canal oficial"}

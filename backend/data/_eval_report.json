@@ -1,0 +1,317 @@
+{
+  "eval": {
+    "dataset_path": "data/eval_dataset.jsonl",
+    "items_evaluated": 8,
+    "options": {
+      "risk_threshold": 50,
+      "disable_redirects": false,
+      "disable_reputation": false
+    },
+    "rows": [
+      {
+        "id": "eval_001",
+        "kind": "text",
+        "source": null,
+        "actual_is_scam": true,
+        "risk_score": 100,
+        "risk_level": "critical",
+        "signal_ids": [
+          "email_domain_mismatch",
+          "url_behavior",
+          "ext_src:google_safe_browsing:clean",
+          "family:ro-2025-malware-apk"
+        ],
+        "reasons_count": 9,
+        "detected_family_id": "ro-2025-malware-apk",
+        "detected_family": "Malware / APK fals",
+        "predicted_is_scam": true
+      },
+      {
+        "id": "eval_002",
+        "kind": "text",
+        "source": null,
+        "actual_is_scam": false,
+        "risk_score": 25,
+        "risk_level": "medium",
+        "signal_ids": [
+          "ext_src:google_safe_browsing:clean",
+          "family:ro-2026-curier-fan-locker"
+        ],
+        "reasons_count": 3,
+        "detected_family_id": "ro-2026-curier-fan-locker",
+        "detected_family": "Curier fals / FAN Courier",
+        "predicted_is_scam": false
+      },
+      {
+        "id": "eval_003",
+        "kind": "url",
+        "source": null,
+        "actual_is_scam": true,
+        "risk_score": 60,
+        "risk_level": "high",
+        "signal_ids": [
+          "email_domain_mismatch",
+          "ext_src:google_safe_browsing:clean",
+          "family:ro-2025-malware-apk"
+        ],
+        "reasons_count": 3,
+        "detected_family_id": "ro-2025-malware-apk",
+        "detected_family": "Malware / APK fals",
+        "predicted_is_scam": true
+      },
+      {
+        "id": "eval_004",
+        "kind": "text",
+        "source": null,
+        "actual_is_scam": true,
+        "risk_score": 100,
+        "risk_level": "critical",
+        "signal_ids": [
+          "email_domain_mismatch",
+          "ext_src:google_safe_browsing:clean",
+          "family:ro-2025-posta-romana-sms"
+        ],
+        "reasons_count": 11,
+        "detected_family_id": "ro-2025-posta-romana-sms",
+        "detected_family": "Posta Romana falsa",
+        "predicted_is_scam": true
+      },
+      {
+        "id": "eval_005",
+        "kind": "text",
+        "source": null,
+        "actual_is_scam": true,
+        "risk_score": 100,
+        "risk_level": "critical",
+        "signal_ids": [
+          "email_domain_mismatch",
+          "ext_src:google_safe_browsing:clean",
+          "family:ro-2025-olx-marketplace-card"
+        ],
+        "reasons_count": 8,
+        "detected_family_id": "ro-2025-olx-marketplace-card",
+        "detected_family": "OLX / marketplace - card ca sa primesti bani",
+        "predicted_is_scam": true
+      },
+      {
+        "id": "eval_006",
+        "kind": "text",
+        "source": null,
+        "actual_is_scam": false,
+        "risk_score": 25,
+        "risk_level": "medium",
+        "signal_ids": [
+          "ext_src:google_safe_browsing:clean",
+          "family:ro-2025-job-task-scam"
+        ],
+        "reasons_count": 3,
+        "detected_family_id": "ro-2025-job-task-scam",
+        "detected_family": "Job / task scam / money mule",
+        "predicted_is_scam": false
+      },
+      {
+        "id": "eval_007",
+        "kind": "text",
+        "source": null,
+        "actual_is_scam": true,
+        "risk_score": 100,
+        "risk_level": "critical",
+        "signal_ids": [
+          "url_behavior",
+          "ext_src:google_safe_browsing:clean",
+          "family:ro-2025-whatsapp-voteaza"
+        ],
+        "reasons_count": 9,
+        "detected_family_id": "ro-2025-whatsapp-voteaza",
+        "detected_family": "WhatsApp takeover / voteaza",
+        "predicted_is_scam": true
+      },
+      {
+        "id": "eval_008",
+        "kind": "url",
+        "source": null,
+        "actual_is_scam": false,
+        "risk_score": 25,
+        "risk_level": "medium",
+        "signal_ids": [
+          "ext_src:google_safe_browsing:clean",
+          "family:ro-2026-revolut-call-email"
+        ],
+        "reasons_count": 3,
+        "detected_family_id": "ro-2026-revolut-call-email",
+        "detected_family": "Revolut fals / cont suspect",
+        "predicted_is_scam": false
+      }
+    ],
+    "metrics": {
+      "total": 8,
+      "labeled": 8,
+      "confusion_matrix": {
+        "tp": 5,
+        "fp": 0,
+        "fn": 0,
+        "tn": 3
+      },
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "accuracy": 1.0,
+      "by_kind": {
+        "text": 6,
+        "url": 2,
+        "email": 0,
+        "unknown": 0
+      },
+      "false_positives": [],
+      "false_negatives": [],
+      "top_false_positive_signals": [],
+      "top_false_negative_signals": []
+    }
+  },
+  "sweep": {
+    "dataset_path": "data/eval_dataset.jsonl",
+    "items_evaluated": 8,
+    "options": {
+      "sweep_start": 0,
+      "sweep_end": 100,
+      "sweep_step": 10,
+      "optimize_metric": "f1",
+      "disable_redirects": false,
+      "disable_reputation": false
+    },
+    "candidates": [
+      {
+        "risk_threshold": 0,
+        "precision": 0.625,
+        "recall": 1.0,
+        "f1": 0.7692307692307693,
+        "accuracy": 0.625,
+        "tp": 5,
+        "fp": 3,
+        "fn": 0,
+        "tn": 0
+      },
+      {
+        "risk_threshold": 10,
+        "precision": 0.625,
+        "recall": 1.0,
+        "f1": 0.7692307692307693,
+        "accuracy": 0.625,
+        "tp": 5,
+        "fp": 3,
+        "fn": 0,
+        "tn": 0
+      },
+      {
+        "risk_threshold": 20,
+        "precision": 0.625,
+        "recall": 1.0,
+        "f1": 0.7692307692307693,
+        "accuracy": 0.625,
+        "tp": 5,
+        "fp": 3,
+        "fn": 0,
+        "tn": 0
+      },
+      {
+        "risk_threshold": 30,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "accuracy": 1.0,
+        "tp": 5,
+        "fp": 0,
+        "fn": 0,
+        "tn": 3
+      },
+      {
+        "risk_threshold": 40,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "accuracy": 1.0,
+        "tp": 5,
+        "fp": 0,
+        "fn": 0,
+        "tn": 3
+      },
+      {
+        "risk_threshold": 50,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "accuracy": 1.0,
+        "tp": 5,
+        "fp": 0,
+        "fn": 0,
+        "tn": 3
+      },
+      {
+        "risk_threshold": 60,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "accuracy": 1.0,
+        "tp": 5,
+        "fp": 0,
+        "fn": 0,
+        "tn": 3
+      },
+      {
+        "risk_threshold": 70,
+        "precision": 1.0,
+        "recall": 0.8,
+        "f1": 0.888888888888889,
+        "accuracy": 0.875,
+        "tp": 4,
+        "fp": 0,
+        "fn": 1,
+        "tn": 3
+      },
+      {
+        "risk_threshold": 80,
+        "precision": 1.0,
+        "recall": 0.8,
+        "f1": 0.888888888888889,
+        "accuracy": 0.875,
+        "tp": 4,
+        "fp": 0,
+        "fn": 1,
+        "tn": 3
+      },
+      {
+        "risk_threshold": 90,
+        "precision": 1.0,
+        "recall": 0.8,
+        "f1": 0.888888888888889,
+        "accuracy": 0.875,
+        "tp": 4,
+        "fp": 0,
+        "fn": 1,
+        "tn": 3
+      },
+      {
+        "risk_threshold": 100,
+        "precision": 1.0,
+        "recall": 0.8,
+        "f1": 0.888888888888889,
+        "accuracy": 0.875,
+        "tp": 4,
+        "fp": 0,
+        "fn": 1,
+        "tn": 3
+      }
+    ],
+    "best": {
+      "risk_threshold": 30,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "accuracy": 1.0,
+      "tp": 5,
+      "fp": 0,
+      "fn": 0,
+      "tn": 3
+    }
+  }
+}

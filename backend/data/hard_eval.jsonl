@@ -1,0 +1,12 @@
+{"id":"hard_001","kind":"text","text":"Verifica: ai o alerta de acces. Deschide https://security-check.alert/login","is_scam":false,"notes":"URL cu TLD necunoscut, mesaj generic."}
+{"id":"hard_002","kind":"text","text":"Revolut: Pentru confirmare acces, te rugam sa accesezi https://www.revolut.com/security","is_scam":false,"notes":"Domeniu oficial + path security, fără semnale de risc."}
+{"id":"hard_003","kind":"text","text":"Ai o factura noua pe bnr.ro, vezi detalii la https://bnr.ro/facturi","is_scam":false,"notes":"Domeniu legitim local, fără nume de brand declarat."}
+{"id":"hard_004","kind":"text","text":"Contul tau BCR are restrictii. Acceseaza https://bnr.ro/facturi","is_scam":true,"notes":"Nume de brand real + domeniu neoficial apropiat."}
+{"id":"hard_005","kind":"url","url":"https://www.microsoft.com/","is_scam":false,"notes":"Domeniu oficial foarte curat."}
+{"id":"hard_006","kind":"text","text":"Revolut: actualizare urgenta cont, accesati https://revolutt.com/login","is_scam":true,"notes":"Typosquatting + urgenta."}
+{"id":"hard_007","kind":"text","text":"Sosesti la curier? Vezi statusul pe https://fancourier.ro/awb/123","is_scam":false,"notes":"FAN Courier official non-suspect."}
+{"id":"hard_008","kind":"text","text":"Instagram: acces blocat. Verifica: http://instagram-security.xyz/login","is_scam":true,"notes":"Domeniu imitator + path login."}
+{"id":"hard_009","kind":"text","text":"ANAF: Verifica declaratia. Acceseaza https://anaf-spv.info/plata cu codul 123","is_scam":false,"notes":"Dominu oficial cu punct introdus prin obfuscare in text."}
+{"id":"hard_010","kind":"text","text":"Revolut: alerta urgenta, apasa aici: https://bit.ly/revolut-support-verify/login","is_scam":true,"notes":"Link scurt + prompt de actiune imediata."}
+{"id":"hard_011","kind":"text","text":"Banca Transilvania: Actualizare card - accesati https://bt.ro/verify?next=/login pentru confirmare","is_scam":false,"notes":"Brand legit cu path scurt; fara urgenta."}
+{"id":"hard_012","kind":"text","text":"Revolut: contul a fost blocat temporar, acces rapid: http://revolutt-security.com/verify","is_scam":true,"notes":"Typosquat + protocol non-https."}

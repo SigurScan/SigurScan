@@ -71,17 +71,17 @@ android {
         buildConfigField(
             "String",
             "URLSCAN_API_KEY",
-            providerBuildConfigSafeString("SIGURSCAN_URLSCAN_API_KEY", "SIGURSCAN_URLSCAN_API_KEY")
+            "\"\""
         )
         buildConfigField(
             "String",
             "VIRUS_TOTAL_API_KEY",
-            providerBuildConfigSafeString("SIGURSCAN_VIRUS_TOTAL_API_KEY", "SIGURSCAN_VIRUS_TOTAL_API_KEY")
+            "\"\""
         )
         buildConfigField(
             "String",
             "GOOGLE_WEB_RISK_API_KEY",
-            providerBuildConfigSafeString("SIGURSCAN_GOOGLE_WEB_RISK_API_KEY", "SIGURSCAN_GOOGLE_WEB_RISK_API_KEY")
+            "\"\""
         )
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

@@ -1,0 +1,4379 @@
+import os
+import importlib
+import asyncio
+import re
+import ipaddress
+import time
+import urllib.parse
+from pathlib import Path
+from collections import Counter, defaultdict, deque
+import hashlib
+import traceback  # noqa: used in _on_startup for debug
+import requests
+from datetime import datetime, timezone
+from typing import Optional, List, Dict, Any, Callable
+
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv(Path(__file__).resolve().parent / ".env")
+except Exception:
+    pass
+
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse, JSONResponse, Response
+from pydantic import BaseModel
+from bs4 import BeautifulSoup
+import email
+from email import policy, message_from_bytes
+from email.message import Message
+from email.utils import parseaddr
+import logging
+import html
+from starlette.concurrency import run_in_threadpool
+import tldextract
+
+# Import our custom services
+from services.pii_redactor import redact_pii
+from services.redirect_resolver import (
+    resolve_redirects_safely,
+    is_known_shortener,
+    _is_scan_target_blocked,
+    get_spf_dns_record,
+    get_dmarc_policy,
+    check_dkim_dns_record,
+)
+from services.scam_atlas import BRAND_REGISTRY, ScamAtlasEngine
+from services.gemini_explainer import generate_ai_explanation, generate_fallback_explanation
+from services.offer_claim_verifier import verify_offer_claim
+from services.url_reputation import get_reputation_cache_stats, get_reputation_for_urls
+from services.telemetry import (
+    build_feedback_evaluation_rows,
+    summarize_feedback_trend,
+    load_feedback_records,
+    load_scan_records,
+    log_scan_event,
+    log_feedback_event,
+    find_scan_record_by_id,
+    run_feedback_threshold_sweep,
+    summarize_feedback_records,
+)
+from services import supabase_store
+from services.google_vision_ocr import (
+    has_vision_key,
+    extract_text_with_vision,
+    extract_text_from_pdf_with_vision,
+)
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("main")
+
+app = FastAPI(
+    title="SigurScan API",
+    description="Anti-scam detection engine localized for Romania (2025-2026)",
+    version="1.0"
+)
+
+MAX_IMAGE_BYTES = 10 * 1024 * 1024
+MAX_PDF_BYTES = 12 * 1024 * 1024
+MAX_TEXT_CHARS = int(os.getenv("MAX_TEXT_CHARS", "12000"))
+MAX_URLS_PER_SCAN = int(os.getenv("MAX_URLS_PER_SCAN", "15"))
+RISK_THRESHOLD = int(os.getenv("RISK_THRESHOLD", "50"))
+PRIVACY_SAFE_MODE = (
+    os.getenv("SIGURSCAN_SAFE_MODE")
+    or os.getenv("NUDACLICK_SAFE_MODE")
+    or "false"
+).strip().lower() in {"1", "true", "yes", "on"}
+ALLOWED_IMAGE_MIME_TYPES = {"image/jpeg", "image/png", "image/webp"}
+ALLOWED_IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp"}
+ALLOWED_PDF_EXTS = {".pdf"}
+ALLOWED_MOCK_OCR = os.getenv("ALLOW_MOCK_OCR", "false").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+EMAIL_AUTH_STATUS_FAILS = {"fail", "softfail", "permerror"}
+EMAIL_AUTH_STATUS_UNKNOWN = {"neutral", "none", "policy", "unknown", "temperror", "deferred", "error"}
+
+# Plain-text URL extraction noise list:
+# Some short Romanian tokens include a dot and can be wrongly matched as URLs by regex.
+PLAIN_URL_NOISE_LABELS = {
+    "dvs",
+}
+
+REQUIRE_API_KEY = os.getenv("REQUIRE_API_KEY", "false").strip().lower() in {"1", "true", "yes", "on"}
+ALLOWED_API_KEYS = {
+    key.strip()
+    for key in (
+        os.getenv("SIGURSCAN_API_KEYS")
+        or os.getenv("NUDACLICK_API_KEYS")
+        or ""
+    ).split(",")
+    if key.strip()
+}
+
+ENABLE_RATE_LIMIT = os.getenv("ENABLE_RATE_LIMIT", "true").strip().lower() in {"1", "true", "yes", "on"}
+RATE_LIMIT_PER_MINUTE = int(os.getenv("RATE_LIMIT_PER_MINUTE", "60"))
+RATE_LIMIT_WINDOW_SECONDS = 60
+URLSCAN_API_KEY = (
+    os.getenv("SIGURSCAN_URLSCAN_API_KEY")
+    or os.getenv("NUDACLICK_URLSCAN_API_KEY")
+    or os.getenv("URLSCAN_API_KEY")
+    or ""
+).strip()
+URLSCAN_TIMEOUT_SECONDS = float(os.getenv("URLSCAN_TIMEOUT_SECONDS", "8.0"))
+URLSCAN_VISIBILITY_DEFAULT = os.getenv("URLSCAN_VISIBILITY_DEFAULT", "private").strip().lower() or "private"
+URLSCAN_COUNTRY_DEFAULT = os.getenv("URLSCAN_COUNTRY_DEFAULT", "").strip().lower()
+URLSCAN_CUSTOM_AGENT_DEFAULT = os.getenv("URLSCAN_CUSTOM_AGENT", "").strip()
+ENABLE_CLOUD_AI_EXPLANATION = os.getenv("ENABLE_CLOUD_AI_EXPLANATION", "true").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+AI_EXPLANATION_TIMEOUT_SECONDS = float(os.getenv("AI_EXPLANATION_TIMEOUT_SECONDS", "2.5"))
+AI_OFFER_CLAIM_TIMEOUT_SECONDS = float(os.getenv("AI_OFFER_CLAIM_TIMEOUT_SECONDS", "5.0"))
+FAST_REPUTATION_MODE = os.getenv("FAST_REPUTATION_MODE", "true").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+FAST_REPUTATION_INCLUDE_URLHAUS = os.getenv("FAST_REPUTATION_INCLUDE_URLHAUS", "false").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+ENABLE_VT_FALLBACK = os.getenv("ENABLE_VT_FALLBACK", "true").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+VT_FALLBACK_RISK_SCORE = int(os.getenv("VT_FALLBACK_RISK_SCORE", "50"))
+
+DEFAULT_ALLOWED_ORIGINS = (
+    "https://sigurscan.ro,"
+    "https://www.sigurscan.ro,"
+    "https://sigurscan-backend.vercel.app,"
+    "https://nudaclick-backend.vercel.app"
+)
+ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv("ALLOWED_ORIGINS", DEFAULT_ALLOWED_ORIGINS).split(",")
+    if origin.strip()
+]
+if not ALLOWED_ORIGINS:
+    ALLOWED_ORIGINS = DEFAULT_ALLOWED_ORIGINS.split(",")
+
+_request_buckets: Dict[tuple, deque] = defaultdict(deque)
+
+TRACKING_QUERY_PARAMS = {
+    "utm_source",
+    "utm_medium",
+    "utm_campaign",
+    "utm_term",
+    "utm_content",
+    "utm_id",
+    "utm_referrer",
+    "gclid",
+    "fbclid",
+    "mc_eid",
+}
+_BACKEND_DIR = Path(__file__).resolve().parent
+EVAL_DATASET_DEFAULT_PATH = _BACKEND_DIR / "data" / "eval_dataset.jsonl"
+if PRIVACY_SAFE_MODE:
+    logger.warning("SIGURSCAN_SAFE_MODE activ: verificările externe pentru URL/reputație și Gemini sunt dezactivate.")
+
+# Enable CORS for local testing from React Native/Expo web
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials="*" not in ALLOWED_ORIGINS,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.middleware("http")
+async def security_guard(request: Request, call_next):
+    if request.url.path in {"/", "/health", "/healthz", "/privacy", "/privacy-policy", "/docs", "/openapi.json", "/redoc"}:
+        return await call_next(request)
+
+    # Optional shared API key gate
+    if REQUIRE_API_KEY:
+        api_key = request.headers.get("X-API-KEY")
+        if not api_key and request.headers.get("Authorization"):
+            candidate = request.headers.get("Authorization", "").strip()
+            if candidate.lower().startswith("bearer "):
+                api_key = candidate.split(" ", 1)[1]
+
+        if not api_key or (ALLOWED_API_KEYS and api_key not in ALLOWED_API_KEYS):
+            return JSONResponse(status_code=401, content={"detail": "Missing or invalid API key."})
+
+    # Basic per-client rate limit (best effort in single-instance mode)
+    if ENABLE_RATE_LIMIT:
+        client_key = (request.client.host if request.client else "anonymous", request.url.path)
+        now = time.time()
+        bucket = _request_buckets[client_key]
+        while bucket and now - bucket[0] > RATE_LIMIT_WINDOW_SECONDS:
+            bucket.popleft()
+
+        if len(bucket) >= RATE_LIMIT_PER_MINUTE:
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Too many requests. Try again later."},
+                headers={"Retry-After": str(RATE_LIMIT_WINDOW_SECONDS)},
+            )
+
+        bucket.append(now)
+
+    return await call_next(request)
+
+# Initialize engine
+engine = ScamAtlasEngine()
+
+# Regular expression to extract URLs from text
+URL_REGEX = re.compile(
+    r'(?:(?:https?://)|www\.|(?:[a-zA-Z0-9][a-zA-Z0-9+.-]*\.[a-zA-Z]{2,}))'
+    r'[a-zA-Z0-9-._~:/?#\[\]@!$&\'()*+,;=%]*',
+    re.IGNORECASE
+)
+_AUTH_RESULT_RE = re.compile(r"\b(spf|dkim|dmarc)\s*=\s*([a-z]+)", re.IGNORECASE)
+_DKIM_SIGNATURE_DOMAIN_RE = re.compile(r"\bd=([^;\\s]+)", re.IGNORECASE)
+_DKIM_SIGNATURE_SELECTOR_RE = re.compile(r"\bs=([^;\\s]+)", re.IGNORECASE)
+_OBFUSCATED_DOT_RE = re.compile(r"\[\.\]|\(\.\)|\{\.\}")
+_BUTTON_TYPES = {"button", "submit", "image"}
+_INLINE_CLICK_URL_RE = re.compile(r"https?://[^\s\"'<>]+|//[^\s\"'<>]+")
+_RE_LINK_TOKEN = re.compile(r"[\"']([^\"']+)[\"']")
+_JS_QUOTED_VALUE_RE = re.compile(r"'(?:[^'\\]|\\.)*'|\"(?:[^\"\\]|\\.)*\"|`(?:[^`\\]|\\.)*`")
+_JS_VARIABLE_RE = re.compile(
+    r"\b(?:var|let|const)\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*=\s*("
+    r"'(?:[^'\\]|\\.)*'|\"(?:[^\"]|\\.)*\"|`(?:[^`\\\\]|\\\\.)*`"
+    r")"
+)
+_JS_NAV_ASSIGN_RE = re.compile(
+    r"""
+    (?:(?:window|top|self)\s*
+      (?:\.\s*location|\[\s*['\"]location['\"]\s*\])
+      |
+      document\s*
+      (?:\.\s*location|\[\s*['\"]location['\"]\s*\])
+      |
+      location
+      |
+      document\.location
+    )
+    (?:\s*(?:\.\s*href|\[\s*['\"]href['\"]\s*\]))?\s*
+    =\s*([^;]+)
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
+_JS_NAV_ASSIGN_ALT_RE = re.compile(
+    r"(?:window\.|top\.|self\.)?(?:location\.(?:assign|replace)|open)\s*\(\s*([^,\)]+)",
+    re.IGNORECASE,
+)
+_JS_CLICK_LIKE_RE = re.compile(
+    r"""
+    \b(?:javascript:|window|document|top|self)\b
+    |
+    (?:^|\s)(?:var|let|const)\s+location\s*=
+    |
+    (?:^|\s)location\s*(?:=|\.|\[)
+    |
+    \b(?:open|assign|replace)\s*\(
+    """,
+    re.IGNORECASE | re.MULTILINE | re.VERBOSE,
+)
+_CLICKABLE_ROLES = {"button", "link"}
+_GENERIC_CLICK_ATTRS = ("onclick", "data-href", "data-url", "data-action", "data-link", "data-target")
+
+
+def _get_registrable_domain(extracted: "tldextract.ExtractResult") -> str:
+    domain = getattr(extracted, "top_domain_under_public_suffix", "")
+    if isinstance(domain, str) and domain.strip():
+        return domain.strip().lower()
+    return ""
+
+
+def _is_relative_click_url(raw_url: str) -> bool:
+    normalized = (raw_url or "").strip()
+    return normalized.startswith(("/", "./", "../", "?"))
+
+
+def _is_likely_js_url_token(token: str) -> bool:
+    """
+    Best-effort gate for string tokens extracted from JS snippets.
+    """
+    normalized = (token or "").strip().strip("`'\"")
+    if not normalized:
+        return False
+    lowered = normalized.lower()
+    if lowered.startswith(("http://", "https://", "//", "/", "./", "../", "?")):
+        return True
+    if any(char.isspace() for char in normalized):
+        return False
+    if "://" in lowered:
+        return True
+    return "." in normalized
+
+
+def _normalize_click_target_url(raw_url: str, base_url: str | None = None) -> Optional[str]:
+    """
+    Normalize click targets without dropping relative URLs.
+
+    If a relative target (like /verify) is found and no base is available, keep it
+    as-is so it can still be treated as a risky unresolved destination.
+    """
+    normalized = (raw_url or "").strip().strip(" ;\")'`")
+    if not normalized:
+        return None
+
+    if normalized.lower().startswith("javascript:"):
+        normalized = normalized[len("javascript:") :].strip()
+
+    if normalized.startswith("//"):
+        normalized = f"https:{normalized}"
+
+    if base_url and _is_relative_click_url(normalized):
+        normalized = urllib.parse.urljoin(base_url, normalized)
+
+    if _is_relative_click_url(normalized):
+        return normalized
+
+    return _canonicalize_url(normalized)
+
+
+def _normalise_obfuscated_text(value: str) -> str:
+    """
+    Make phishing-style obfuscated URLs more detectable.
+
+    Handles common tricks:
+    - hxxp:// / hxxps://
+    - example[.]com, example(.)com, example{.}com
+    - "http ://" spaces around separators
+    """
+    if not value:
+        return value
+
+    normalized = re.sub(
+        r"hxxp(s?)\s*://",
+        lambda match: f"http{'s' if match.group(1) else ''}://",
+        value,
+        flags=re.IGNORECASE,
+    )
+    normalized = _OBFUSCATED_DOT_RE.sub(".", normalized)
+    normalized = re.sub(r"\s*\.\s*", ".", normalized)
+    normalized = re.sub(
+        r"\b(https?)\s*:\s*/\s*/",
+        lambda match: f"{match.group(1)}://",
+        normalized,
+        flags=re.IGNORECASE,
+    )
+    return normalized
+
+
+def _dedupe_preserve_order(values: List[str]) -> List[str]:
+    seen = set()
+    output: List[str] = []
+    for value in values:
+        if not value:
+            continue
+        if value in seen:
+            continue
+        seen.add(value)
+        output.append(value)
+    return output
+
+
+def _is_noise_plain_url(raw_url: str, host: str) -> bool:
+    normalized_raw = (raw_url or "").strip().lower()
+    normalized_host = (host or "").lower()
+
+    if not normalized_raw:
+        return True
+
+    # We only hard-filter plain domain-like tokens without protocol/www prefix.
+    # This keeps protocol-based links and clear URI-like tokens intact.
+    if normalized_raw.startswith(("http://", "https://", "www.")):
+        return False
+
+    first_label = normalized_host.split(".")[0]
+    if first_label in PLAIN_URL_NOISE_LABELS:
+        return True
+
+    return False
+
+
+def _extract_domain(raw_address: str | None) -> str | None:
+    if not raw_address:
+        return None
+    parsed = parseaddr(raw_address)[1]
+    if "@" not in parsed:
+        return None
+    return parsed.split("@", 1)[1].strip().lower()
+
+
+def _extract_domain_root(raw_domain: str | None) -> str | None:
+    """Return the registrable/root domain used for relaxed alignment checks."""
+    if not raw_domain:
+        return None
+
+    normalized = str(raw_domain).strip().lower().strip(".")
+    if not normalized:
+        return None
+
+    extracted = tldextract.extract(normalized)
+    registrable_domain = _get_registrable_domain(extracted)
+    if registrable_domain:
+        return registrable_domain
+
+    return normalized
+
+
+def _coerce_int(raw_value: Any, default: int = 0) -> int:
+    try:
+        return int(raw_value)
+    except Exception:
+        return default
+
+
+def _is_domain_aligned(
+    left_domain: str | None,
+    right_domain: str | None,
+    alignment_mode: str | None = "r",
+) -> bool | None:
+    """
+    Evaluate SPF/DKIM domain alignment.
+
+    - strict: must match full domain exactly
+    - relaxed: must match registrable domain (org-domain)
+    """
+    mode = (alignment_mode or "r").lower().strip()
+    if mode not in {"r", "s", "strict", "relaxed"}:
+        mode = "r"
+
+    if not left_domain or not right_domain:
+        return None
+
+    left = str(left_domain).strip().lower().strip(".")
+    right = str(right_domain).strip().lower().strip(".")
+    if not left or not right:
+        return None
+
+    if left == right:
+        return True
+
+    if mode in {"s", "strict"}:
+        return False
+
+    return _extract_domain_root(left) == _extract_domain_root(right)
+
+
+def _normalize_auth_status(raw_status: str) -> str:
+    status = (raw_status or "").lower().strip()
+    if status in {"pass", "bestguesspass"}:
+        return "pass"
+    if status in EMAIL_AUTH_STATUS_FAILS:
+        return "fail"
+    if status in EMAIL_AUTH_STATUS_UNKNOWN:
+        return "unknown"
+    return "unknown"
+
+
+def _parse_auth_statuses(header_value: str, auth_results: Dict[str, str]) -> None:
+    for match in _AUTH_RESULT_RE.finditer(header_value or ""):
+        mechanism = match.group(1).lower()
+        normalized = _normalize_auth_status(match.group(2))
+        current = auth_results.get(mechanism, "missing")
+        # Prefer explicit fail signals over pass
+        if normalized == "fail":
+            auth_results[mechanism] = "fail"
+        elif normalized == "pass" and current != "fail":
+            auth_results[mechanism] = "pass"
+        elif mechanism not in auth_results:
+            auth_results[mechanism] = normalized
+
+
+def _parse_dkim_signature_fields(signature: str) -> Dict[str, str]:
+    parsed: Dict[str, str] = {}
+    if not signature:
+        return parsed
+
+    domain_match = _DKIM_SIGNATURE_DOMAIN_RE.search(signature)
+    selector_match = _DKIM_SIGNATURE_SELECTOR_RE.search(signature)
+    if domain_match:
+        parsed["domain"] = domain_match.group(1).strip().lower()
+    if selector_match:
+        parsed["selector"] = selector_match.group(1).strip().lower()
+    return parsed
+
+
+def _normalize_dns_text(value: str | None) -> str | None:
+    if not value:
+        return None
+    normalized = value.strip().lower()
+    return normalized or None
+
+
+def _extract_spf_all_mechanism(spf_record: str | None) -> str | None:
+    if not spf_record:
+        return None
+    normalized = spf_record.lower()
+    # SPF all mechanism appears usually at end: +all / -all / ~all / ?all
+    match = re.search(r"([+\-~?])all", normalized)
+    if match:
+        return match.group(1)
+    if " all" in normalized and normalized.split()[-1].endswith("all"):
+        return "all"
+    return None
+
+
+def _dmarc_policy_action_label(dmarc_policy: Dict[str, Any] | None) -> str:
+    if not isinstance(dmarc_policy, dict):
+        return "none"
+    return _normalize_dns_text(dmarc_policy.get("p")) or "none"
+
+
+def _build_auth_action_plan(email_ctx: Dict[str, Any]) -> Dict[str, Any]:
+    dns_checks = email_ctx.get("dns_checks", {}) or {}
+    if not isinstance(dns_checks, dict):
+        dns_checks = {}
+
+    dmarc_policy = dns_checks.get("dmarc_policy")
+    dmarc_action = _dmarc_policy_action_label(dmarc_policy)
+    spf_record = dns_checks.get("spf_record") or ""
+    spf_all = _extract_spf_all_mechanism(spf_record)
+
+    auth_status = email_ctx.get("auth_status", {})
+    if not isinstance(auth_status, dict):
+        auth_status = {}
+
+    dns_spf_present = bool(dns_checks.get("spf_record"))
+    dns_dkim_present = bool(dns_checks.get("dkim_dns"))
+    dns_dmarc_present = bool(dns_checks.get("dmarc_policy"))
+    dmarc_pct = _coerce_int(dmarc_policy.get("pct", 100), 100) if isinstance(dmarc_policy, dict) else 100
+
+    dkim_signature_domain = dns_checks.get("dkim_signature_domain")
+    return_path_domain = dns_checks.get("return_path_domain")
+    spf_alignment_mode = str(dns_checks.get("spf_alignment_mode", "r")).lower() or "r"
+    dkim_alignment_mode = str(dns_checks.get("dkim_alignment_mode", "r")).lower() or "r"
+    spf_aligned = dns_checks.get("spf_aligned")
+    dkim_aligned = dns_checks.get("dkim_aligned")
+    if not isinstance(spf_aligned, bool) and dns_checks.get("from_domain") and return_path_domain:
+        spf_aligned = _is_domain_aligned(
+            dns_checks.get("from_domain"),
+            return_path_domain,
+            spf_alignment_mode,
+        )
+    if not isinstance(dkim_aligned, bool) and dns_checks.get("from_domain") and dkim_signature_domain:
+        dkim_aligned = _is_domain_aligned(
+            dns_checks.get("from_domain"),
+            dkim_signature_domain,
+            dkim_alignment_mode,
+        )
+
+    spf_aligned = bool(spf_aligned) if isinstance(spf_aligned, bool) else None
+    dkim_aligned = bool(dkim_aligned) if isinstance(dkim_aligned, bool) else None
+
+    fails = {k: v for k, v in auth_status.items() if v == "fail"}
+    has_any_fail = bool(fails)
+    has_partial_or_missing = any(v in {"missing", "unknown"} for v in auth_status.values())
+
+    action = "monitor"
+    severity = "low"
+    score = 0
+    reasons = []
+
+    if has_any_fail:
+        action = "reject"
+        severity = "high"
+        score += 42
+        reasons.append("Autentificare SPF/DKIM/DMARC incompletă sau invalidă — risc de spoofing.")
+        reasons.extend([
+            f"{mechanism.upper()}={status}"
+            for mechanism, status in sorted(fails.items())
+        ])
+
+    # If strict DMARC is enabled but SPF/DKIM/DKIM not fully aligned, we escalate.
+    if dmarc_action == "reject":
+        if has_any_fail:
+            # Already rejected above; keep strong action and add explicit DMARC reason.
+            reasons.append("DMARC='reject' combinat cu autentificare eșuată: blocare recomandată.")
+        elif has_partial_or_missing:
+            action = "reject"
+            severity = "high"
+            score += 32
+            reasons.append("DMARC='reject' fără dovezi complete de autentificare: tratează mesajul ca potențial spoof.")
+        elif action == "monitor":
+            action = "monitor"
+            reasons.append("DMARC='reject' detectat și mesajul pare aliniat; păstrezi monitorizare activă.")
+
+    elif dmarc_action == "quarantine":
+        if has_any_fail or has_partial_or_missing:
+            action = "quarantine"
+            severity = "medium" if severity != "high" else severity
+            score += 20
+            reasons.append("DMARC='quarantine' + autentificare incompletă: mesaj nesigur.")
+
+    # If headers indicate pass but DNS checks are missing, keep this as medium-risk.
+    if not dns_spf_present:
+        score += 6
+        reasons.append("SPF DNS indisponibil: nu putem confirma politicile expeditorului.")
+
+    # DMARC alignment hints: even when SPF/DKIM pass, misalignment is a strong spoof signal.
+    if auth_status.get("spf") == "pass" and spf_aligned is False:
+        score += 10
+        reasons.append("SPF pass fără aliniere DMARC (SPF/From diferite).")
+    if email_ctx.get("has_dkim_signature") and auth_status.get("dkim") == "pass" and dkim_aligned is False:
+        score += 10
+        reasons.append("DKIM pass fără aliniere DMARC (semnătură din alt domeniu).")
+    if not dns_dkim_present and email_ctx.get("has_dkim_signature"):
+        score += 6
+        reasons.append("Semnătură DKIM prezentă fără înregistrare DNS validă.")
+    if not dns_dmarc_present:
+        score += 6
+        reasons.append("DMARC DNS lipsă: nu există politică de aliniere verificabilă.")
+
+    if dmarc_action == "reject" and not has_any_fail and (spf_aligned is False or dkim_aligned is False):
+        action = "reject"
+        severity = "high"
+        score += 18
+        reasons.append("DMARC='reject' + mecanisme non-aliniate: risc ridicat de phishing.")
+
+    # Strict SPF (-all) lowers residual risk when all checks passed.
+    if spf_all == "-" and "fail" not in (auth_status.get("spf"),):
+        score -= 4
+        reasons.append("SPF strict (-all) detectat: cadru de autentificare mai rigid.")
+
+    if not has_any_fail and not has_partial_or_missing and action == "monitor":
+        action = "monitor"
+        severity = "low"
+        score = max(score, 0)
+
+    # Strong sender policy with partial/missing headers is still suspicious even when DMARC is absent.
+    if not dmarc_action and has_partial_or_missing:
+        severity = "medium" if severity == "low" else severity
+        score += 10
+        reasons.append("DMARC absent + autentificare incompletă: risc moderat pentru e-mail nevalidat.")
+
+    return {
+        "dmarc_policy": dmarc_action,
+        "spf_all": spf_all,
+        "spf_dns_present": dns_spf_present,
+        "dkim_dns_present": dns_dkim_present,
+        "dmarc_dns_present": dns_dmarc_present,
+        "dmarc_pct": dmarc_pct,
+        "action": action,
+        "severity": severity,
+        "risk_score_delta": max(score, 0),
+        "policy_context": {
+            "adkim": str(dmarc_policy.get("adkim")) if isinstance(dmarc_policy, dict) else None,
+            "aspf": str(dmarc_policy.get("aspf")) if isinstance(dmarc_policy, dict) else None,
+            "provider": email_ctx.get("from_domain"),
+            "pct": dmarc_pct,
+            "spf_alignment_mode": spf_alignment_mode,
+            "dkim_alignment_mode": dkim_alignment_mode,
+            "spf_aligned": spf_aligned,
+            "dkim_aligned": dkim_aligned,
+        },
+        "reasons": _dedupe_preserve_order(reasons),
+    }
+
+
+def _extract_email_auth_context(msg: Message | None, is_forwarded_guess: bool = True) -> Dict[str, Any]:
+    """
+    Build authentication evidence from raw RFC822 headers.
+    If msg is None, returns a "missing" profile, to avoid false confidence.
+    """
+    if msg is None:
+        email_ctx = {
+            "auth_strength": "unavailable" if is_forwarded_guess else "missing",
+            "sender_auth_confidence": "low",
+            "auth_fail_reasons": [],
+            "has_dkim_signature": False,
+            "auth_status": {"spf": "missing", "dkim": "missing", "dmarc": "missing"},
+            "dkim_signature_fields": {},
+            "from_domain": None,
+            "reply_to_domain": None,
+            "alignment": {
+                "from_domain": None,
+                "return_path_domain": None,
+                "dkim_signature_domain": None,
+                "spf_alignment_mode": "r",
+                "dkim_alignment_mode": "r",
+                "spf_aligned": None,
+                "dkim_aligned": None,
+            },
+            "dns_checks": {
+                "spf_record": None,
+                "dmarc_policy": None,
+                "dkim_dns": None,
+                "dkim_signature": {},
+                "spf_dns_present": False,
+                "dkim_dns_present": False,
+                "dmarc_dns_present": False,
+            },
+            "is_forwarded_guess": is_forwarded_guess,
+            "headers_present": False,
+        }
+        email_ctx["auth_action_plan"] = {
+            "dmarc_policy": "none",
+            "spf_all": None,
+            "action": "monitor",
+            "severity": "low",
+            "risk_score_delta": 0,
+            "spf_dns_present": False,
+            "dkim_dns_present": False,
+            "dmarc_dns_present": False,
+            "policy_context": {
+                "provider": None,
+                "pct": None,
+                "adkim": None,
+                "aspf": None,
+                "spf_alignment_mode": "r",
+                "dkim_alignment_mode": "r",
+                "spf_aligned": None,
+                "dkim_aligned": None,
+            },
+            "reasons": [
+                "Antetele originale SPF/DKIM/DMARC nu au fost disponibile în conținutul partajat."
+            ],
+        }
+        return email_ctx
+
+    auth_results = {"spf": "missing", "dkim": "missing", "dmarc": "missing"}
+    auth_fail_reasons = []
+
+    from_domain = _extract_domain(msg.get("From"))
+    reply_to_domain = _extract_domain(msg.get("Reply-To"))
+
+    auth_headers = msg.get_all("Authentication-Results", [])
+    for auth_header in auth_headers:
+        _parse_auth_statuses(auth_header, auth_results)
+
+    received_spf = msg.get_all("Received-SPF") or []
+    for header in received_spf:
+        _parse_auth_statuses(f"spf={header}", auth_results)
+
+    dkim_signature = msg.get("DKIM-Signature") or ""
+    dkim_signature_fields = _parse_dkim_signature_fields(dkim_signature)
+    dkim_selector = dkim_signature_fields.get("selector", "default")
+    dkim_signature_domain = dkim_signature_fields.get("domain")
+    has_dkim_signature = bool(dkim_signature)
+    if has_dkim_signature and auth_results.get("dkim", "missing") == "missing":
+        auth_results["dkim"] = "unknown"
+
+    # DNS-level checks (SPF/DMARC/DKIM) increase confidence versus false positives.
+    # In privacy-safe mode, skip DNS lookups to avoid external lookups for message analysis.
+    aspf_mode = "r"
+    adkim_mode = "r"
+    spf_record = None
+    dmarc_policy: Dict[str, Any] = {}
+    dns_dkim_record = None
+
+    if PRIVACY_SAFE_MODE:
+        auth_fail_reasons.append(
+            "SIGURSCAN_SAFE_MODE: verificările DNS SPF/DMARC/DKIM sunt dezactivate pentru confidențialitate."
+        )
+        for mechanism in ("spf", "dkim", "dmarc"):
+            if auth_results.get(mechanism) == "pass":
+                auth_results[mechanism] = "unknown"
+    else:
+        spf_record = get_spf_dns_record(from_domain or "")
+        dmarc_policy = get_dmarc_policy(from_domain or "")
+        if has_dkim_signature and dkim_signature_domain and dkim_selector:
+            dns_dkim_record = check_dkim_dns_record(dkim_selector, dkim_signature_domain)
+        aspf_mode = str(dmarc_policy.get("aspf", "r") if isinstance(dmarc_policy, dict) else "r").lower().strip() or "r"
+        adkim_mode = str(dmarc_policy.get("adkim", "r") if isinstance(dmarc_policy, dict) else "r").lower().strip() or "r"
+
+    if reply_to_domain and from_domain and reply_to_domain != from_domain:
+        auth_fail_reasons.append(
+            f"Domain diferit în Reply-To ({reply_to_domain}) față de From ({from_domain})"
+        )
+        if auth_results.get("dmarc", "missing") == "pass":
+            auth_results["dmarc"] = "unknown"
+
+    return_path_domain = _extract_domain(msg.get("Return-Path"))
+    spf_aligned = _is_domain_aligned(from_domain, return_path_domain, aspf_mode)
+    dkim_aligned = None
+    if dkim_signature_domain:
+        dkim_aligned = _is_domain_aligned(from_domain, dkim_signature_domain, adkim_mode)
+
+    if from_domain and not spf_record:
+        auth_fail_reasons.append(
+            "SPF DNS nu a răspuns cu o politică validă pentru domeniul From."
+        )
+        if auth_results.get("spf", "missing") == "pass":
+            auth_results["spf"] = "unknown"
+
+    if from_domain and not dmarc_policy:
+        auth_fail_reasons.append(
+            "DMARC nu este publicat sau nu a putut fi verificat pentru domeniul From."
+        )
+        if auth_results.get("dmarc", "missing") == "pass":
+            auth_results["dmarc"] = "unknown"
+
+    if has_dkim_signature and dkim_signature_domain and not dns_dkim_record:
+        auth_fail_reasons.append(
+            f"Cheie DKIM DNS lipsă la {dkim_signature_domain} (selector {dkim_selector})."
+        )
+        if auth_results.get("dkim", "missing") == "pass":
+            auth_results["dkim"] = "unknown"
+
+    for mechanism, status in auth_results.items():
+        if status == "fail":
+            auth_fail_reasons.append(
+                f"{mechanism.upper()} nu validează: {status}"
+            )
+
+    failed_count = sum(1 for status in auth_results.values() if status == "fail")
+    passed_count = sum(1 for status in auth_results.values() if status == "pass")
+
+    if failed_count > 0:
+        auth_strength = "fail"
+        sender_confidence = "low"
+    elif (
+        from_domain
+        and spf_record
+        and dmarc_policy
+        and has_dkim_signature
+        and dns_dkim_record
+        and all(auth_results.get(key) == "pass" for key in ("spf", "dkim", "dmarc"))
+    ):
+        auth_strength = "pass"
+        sender_confidence = "high"
+    elif passed_count >= 2 and not failed_count:
+        auth_strength = "pass"
+        sender_confidence = "high"
+    elif passed_count > 0:
+        auth_strength = "partial"
+        sender_confidence = "medium"
+    elif "unknown" in auth_results.values():
+        auth_strength = "partial"
+        sender_confidence = "medium"
+    else:
+        auth_strength = "missing"
+        sender_confidence = "low"
+
+    email_ctx = {
+        "auth_strength": auth_strength,
+        "sender_auth_confidence": sender_confidence,
+        "auth_fail_reasons": auth_fail_reasons,
+        "has_dkim_signature": has_dkim_signature,
+        "dkim_signature_fields": dkim_signature_fields,
+        "auth_status": auth_results,
+        "dns_checks": {
+            "spf_record": spf_record,
+            "spf_dns_present": bool(spf_record),
+            "dmarc_policy": dmarc_policy,
+            "dmarc_dns_present": bool(dmarc_policy),
+            "dkim_dns": dns_dkim_record,
+            "dkim_signature": dkim_signature_fields,
+            "dkim_dns_present": bool(dns_dkim_record),
+            "from_domain": from_domain,
+            "return_path_domain": return_path_domain,
+            "spf_record_present": bool(spf_record),
+            "dkim_selector": dkim_selector,
+            "dkim_signature_domain": dkim_signature_domain,
+            "spf_record_source": "dns" if not PRIVACY_SAFE_MODE else "privacy_safe_disabled",
+            "dmarc_policy_source": "dns" if not PRIVACY_SAFE_MODE else "privacy_safe_disabled",
+            "dkim_dns_source": "dns" if not PRIVACY_SAFE_MODE else "privacy_safe_disabled",
+            "dns_checks_disabled": bool(PRIVACY_SAFE_MODE),
+            "reply_to_mismatch": bool(
+                reply_to_domain and from_domain and reply_to_domain != from_domain
+            ),
+            "policy_checks": {
+                "dkim_signature_present": bool(dkim_signature),
+                "spf_all": _extract_spf_all_mechanism(spf_record),
+                "spf_alignment_mode": aspf_mode,
+                "dkim_alignment_mode": adkim_mode,
+            },
+            "spf_alignment_mode": aspf_mode,
+            "dkim_alignment_mode": adkim_mode,
+            "spf_aligned": spf_aligned,
+            "dkim_aligned": dkim_aligned,
+        },
+        "from_domain": from_domain,
+        "reply_to_domain": reply_to_domain,
+        "alignment": {
+            "from_domain": from_domain,
+            "return_path_domain": return_path_domain,
+            "dkim_signature_domain": dkim_signature_domain,
+            "spf_alignment_mode": aspf_mode,
+            "dkim_alignment_mode": adkim_mode,
+            "spf_aligned": spf_aligned,
+            "dkim_aligned": dkim_aligned,
+        },
+        "is_forwarded_guess": is_forwarded_guess,
+        "headers_present": True,
+    }
+    email_ctx["auth_action_plan"] = _build_auth_action_plan(email_ctx)
+    return email_ctx
+
+
+def _is_allowed_origin(url: str) -> bool:
+    parsed = urllib.parse.urlparse(url)
+    scheme = (parsed.scheme or "").lower()
+    if scheme not in {"http", "https"}:
+        return False
+    if not parsed.hostname:
+        return False
+    return True
+
+
+def _canonicalize_url(raw_url: str) -> Optional[str]:
+    if not raw_url:
+        return None
+
+    # Remove trailing punctuation introduced by copy/paste or markdown
+    cleaned = raw_url.strip().strip(") ]}>;,:.!?")
+    if cleaned.startswith("//"):
+        cleaned = f"https:{cleaned}"
+    if not cleaned:
+        return None
+
+    # Handle bare domains or urls copied without scheme
+    if not re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*://", cleaned):
+        cleaned = f"https://{cleaned}"
+
+    parsed = urllib.parse.urlparse(cleaned)
+    if not _is_allowed_origin(cleaned):
+        return None
+
+    # Keep only security-relevant query params and strip noisy marketing ones
+    query_pairs = urllib.parse.parse_qsl(parsed.query, keep_blank_values=True)
+    filtered_query = [
+        (key, value)
+        for key, value in query_pairs
+        if (key or "").lower() not in TRACKING_QUERY_PARAMS
+    ]
+
+    normalized_path = parsed.path or ""
+    if not normalized_path:
+        normalized_path = "/"
+    normalized = parsed._replace(
+        query=urllib.parse.urlencode(filtered_query, doseq=True),
+        fragment="",
+        path=normalized_path.rstrip("/") or "/",
+    )
+    return urllib.parse.urlunparse(normalized)
+
+
+def extract_urls(text: str) -> List[str]:
+    """Helper to extract and sanitize HTTP/HTTPS links from text."""
+    normalized_text = _normalise_obfuscated_text(text or "")
+    # Some SMS clients/copy flows collapse whitespace after punctuation, producing
+    # strings like "0371237475.https://brand.ro/path". Split before URL schemes so
+    # the phone/previous sentence is not swallowed as part of the URL candidate.
+    normalized_text = re.sub(r"(?<!\s)(https?://|www\.)", r" \1", normalized_text, flags=re.IGNORECASE)
+    raw_urls = URL_REGEX.findall(normalized_text)
+    urls: List[str] = []
+    seen = set()
+
+    for raw_url in raw_urls:
+        url = _canonicalize_url(raw_url)
+        if not url or not _is_allowed_origin(url):
+            continue
+        parsed = urllib.parse.urlparse(url)
+        host = (parsed.hostname or "").lower()
+        if not host or _is_noise_plain_url(raw_url, host):
+            continue
+        try:
+            ipaddress.ip_address(host)
+        except Exception:
+            tld_suffix = tldextract.extract(host).suffix
+            has_explicit_scheme = bool(re.match(r"^https?://", str(raw_url).strip(), re.IGNORECASE))
+            if not tld_suffix and not has_explicit_scheme:
+                logger.debug("Skipping extracted token without valid public suffix: %s", host)
+                continue
+        if url not in seen:
+            seen.add(url)
+            urls.append(url)
+        if len(urls) >= MAX_URLS_PER_SCAN:
+            break
+    return urls
+
+
+def _extract_button_text(node: Any) -> str:
+    """
+    Extract an actionable label for a clickable node, using the most likely
+    human-visible text.
+    """
+    if node is None:
+        return ""
+    if getattr(node, "name", "").lower() == "input":
+        return (
+            (node.get("value") or "").strip()
+            or (node.get("alt") or "").strip()
+            or (node.get("aria-label") or "").strip()
+            or (node.get("title") or "").strip()
+        )
+
+    text = (node.get("aria-label") or node.get("title") or "").strip()
+    if text:
+        return text
+    return (node.get_text(separator=" ", strip=True) or "").strip()
+
+
+def _decode_js_string_literal(raw: str) -> str:
+    """
+    Decode a quoted JS string literal into a raw string.
+    """
+    if not raw:
+        return ""
+    quote = raw[0]
+    if quote not in {"'", '"', "`"} or len(raw) < 2:
+        return ""
+    body = raw[1:-1]
+    if quote == "`":
+        body = re.sub(r"\$\{[^}]*\}", "", body)
+    try:
+        return bytes(body, "utf-8").decode("unicode_escape")
+    except Exception:
+        return body
+
+
+def _split_js_plus_expression(expression: str) -> List[str]:
+    """
+    Best-effort split for JS concatenations around +, respecting quoted strings.
+    """
+    parts: List[str] = []
+    current = []
+    in_quote: str | None = None
+    escape = False
+    for ch in expression:
+        if escape:
+            current.append(ch)
+            escape = False
+            continue
+        if ch == "\\" and in_quote:
+            current.append(ch)
+            escape = True
+            continue
+        if in_quote:
+            current.append(ch)
+            if ch == in_quote:
+                in_quote = None
+            continue
+        if ch in {"'", '"', "`"}:
+            in_quote = ch
+            current.append(ch)
+            continue
+        if ch == "+":
+            segment = "".join(current).strip()
+            if segment:
+                parts.append(segment)
+            current = []
+            continue
+        current.append(ch)
+
+    segment = "".join(current).strip()
+    if segment:
+        parts.append(segment)
+    return parts
+
+
+def _resolve_js_concat_expression(expression: str, var_values: Dict[str, str]) -> List[str]:
+    """
+    Resolve simple JS concat expressions into concrete URL strings.
+    """
+    if not expression:
+        return []
+    normalized_expression = expression.strip().strip("()")
+    parts = _split_js_plus_expression(normalized_expression)
+    if not parts:
+        return []
+
+    resolved_parts: List[str] = []
+    has_unresolved = False
+    for part in parts:
+        token = part.strip().strip("()")
+        if not token:
+            continue
+        if token[0] in {"'", '"', "`"} and token[-1] == token[0]:
+            resolved_parts.append(_decode_js_string_literal(token))
+            continue
+        if token in var_values:
+            resolved_parts.append(var_values[token])
+            continue
+        # Ignore bare `window.location` or placeholder values we cannot evaluate
+        if token.lower().replace(" ", "") in {
+            "window.location",
+            "location",
+            "document.location",
+            "window.location.href",
+            "location.href",
+            "self.location",
+            "top.location",
+        }:
+            continue
+        has_unresolved = True
+
+    if has_unresolved:
+        return []
+    if not resolved_parts:
+        return []
+    return ["".join(resolved_parts)]
+
+
+def _extract_urls_from_js_code(raw_js: str, base_url: str | None = None) -> List[str]:
+    """
+    Extract URLs from JS snippets used in event handlers.
+    """
+    normalized = _normalise_obfuscated_text(html.unescape(raw_js or ""))
+    if not normalized:
+        return []
+
+    normalized = normalized.strip()
+    if normalized.lower().startswith("javascript:"):
+        normalized = normalized[len("javascript:") :].strip()
+
+    if normalized.startswith("(") and normalized.endswith(")"):
+        normalized = normalized[1:-1].strip()
+
+    variable_values: Dict[str, str] = {}
+    for match in _JS_VARIABLE_RE.finditer(normalized):
+        var_name = match.group(1)
+        raw_value = match.group(2)
+        if not raw_value:
+            continue
+        variable_values[var_name] = _decode_js_string_literal(raw_value)
+
+    expressions: List[str] = []
+    for match in _JS_NAV_ASSIGN_RE.finditer(normalized):
+        lhs = normalized[match.start():match.end()].split("=")[0].strip()
+        if re.search(r"\b(?:var|let|const)\s+location\b", lhs, re.IGNORECASE):
+            continue
+        expressions.append(match.group(1).strip())
+    expressions.extend(match.group(1).strip() for match in _JS_NAV_ASSIGN_ALT_RE.finditer(normalized))
+
+    url_candidates: List[str] = []
+    if not expressions:
+        # Fall back to quoted URLs inside function args or inline snippets.
+        for token in _RE_LINK_TOKEN.findall(normalized):
+            if not _is_likely_js_url_token(token):
+                continue
+            url_candidates.append(token)
+
+    for expr in expressions:
+        expr = expr.strip().strip(" ;")
+        if not expr:
+            continue
+        resolved = _resolve_js_concat_expression(expr, variable_values)
+        for resolved_expr in resolved:
+            candidate = _normalize_click_target_url(resolved_expr, base_url=base_url)
+            if candidate:
+                url_candidates.append(candidate)
+
+    seen_urls: set[str] = set()
+    urls: List[str] = []
+    for raw_url in url_candidates:
+        url = _normalize_click_target_url(raw_url, base_url=base_url)
+        if not url or url in seen_urls:
+            continue
+        seen_urls.add(url)
+        urls.append(url)
+    return urls
+
+
+def _extract_urls_from_click_attr(raw_value: str, base_url: str | None = None) -> List[str]:
+    normalized = _normalise_obfuscated_text(html.unescape(raw_value or ""))
+    if _is_relative_click_url(normalized):
+        resolved = _normalize_click_target_url(normalized, base_url=base_url)
+        if resolved:
+            return [resolved]
+
+    if normalized.lower().startswith("javascript:"):
+        normalized = normalized[len("javascript:") :].strip()
+
+    direct_urls = _extract_urls_from_js_code(raw_value, base_url=base_url)
+    is_inline_like = _JS_CLICK_LIKE_RE.search(normalized) is None
+    if not direct_urls and is_inline_like:
+        direct_urls = _INLINE_CLICK_URL_RE.findall(normalized)
+    if base_url and is_inline_like:
+        if normalized.startswith(("/", "./", "../", "?")):
+            direct_urls.append(urllib.parse.urljoin(base_url, normalized))
+
+    if base_url and is_inline_like:
+        for token in _RE_LINK_TOKEN.findall(normalized):
+            token = token.strip()
+            if not token:
+                continue
+            token = _normalise_obfuscated_text(token)
+            if token.lower().startswith(("http://", "https://")):
+                direct_urls.append(token)
+            elif token.startswith(("/", "./", "../", "?")):
+                direct_urls.append(urllib.parse.urljoin(base_url, token))
+
+    if direct_urls:
+        urls: List[str] = []
+        seen = set()
+        for raw_url in direct_urls:
+            url = _normalize_click_target_url(raw_url, base_url=base_url)
+            if not url or url in seen:
+                continue
+            seen.add(url)
+            urls.append(url)
+        return urls
+    return extract_urls(normalized)
+
+
+def _collect_click_targets_from_html(soup: BeautifulSoup) -> list[Dict[str, Any]]:
+    """
+    Extract actionable links hidden in HTML call-to-action elements, not only `<a href>`.
+    """
+    targets: list[Dict[str, Any]] = []
+    base_url = None
+    base_tag = soup.find("base", href=True)
+    if base_tag:
+        base_url = _canonicalize_url(base_tag.get("href") or "")
+        if base_url:
+            parsed_base = urllib.parse.urlparse(base_url)
+            if not parsed_base.scheme or not parsed_base.netloc:
+                base_url = None
+    seen_urls = set()
+
+    def append_target(button_text: str, raw_url: str, source_tag: str, source_attr: str) -> None:
+        for url in _extract_urls_from_click_attr(raw_url, base_url=base_url):
+            if url in seen_urls:
+                continue
+            seen_urls.add(url)
+            targets.append(
+                {
+                    "button_text": button_text,
+                    "original_url": url,
+                    "source_tag": source_tag,
+                    "source_attr": source_attr,
+                }
+            )
+
+    # Standard links
+    for link in soup.find_all("a"):
+        button_text = _extract_button_text(link) or "[Buton/Imagine fără text]"
+        href = link.get("href")
+        if href:
+            append_target(button_text, href, "a", "href")
+        for attr in ("data-href", "data-url", "data-action", "data-link", "data-target", "onclick"):
+            value = link.get(attr)
+            if value:
+                append_target(button_text, value, "a", attr)
+
+    # <button> and CTA-like input controls
+    for btn in soup.find_all("button"):
+        button_text = _extract_button_text(btn) or "[Buton/Imagine fără text]"
+        if btn.get("formaction"):
+            append_target(button_text, btn.get("formaction"), "button", "formaction")
+        if btn.get("onclick"):
+            append_target(button_text, btn.get("onclick"), "button", "onclick")
+        for attr in ("data-href", "data-url", "data-action", "data-link", "data-target"):
+            value = btn.get(attr)
+            if value:
+                append_target(button_text, value, "button", attr)
+
+    for inp in soup.find_all("input"):
+        input_type = (inp.get("type") or "").lower().strip()
+        if input_type and input_type not in _BUTTON_TYPES:
+            continue
+        button_text = _extract_button_text(inp) or "[Buton/Imagine fără text]"
+        if inp.get("formaction"):
+            append_target(button_text, inp.get("formaction"), "input", "formaction")
+        if inp.get("onclick"):
+            append_target(button_text, inp.get("onclick"), "input", "onclick")
+        for attr in ("data-href", "data-url", "data-action", "data-link", "data-target"):
+            value = inp.get(attr)
+            if value:
+                append_target(button_text, value, "input", attr)
+
+    # Clickable image maps and other semantic areas
+    for area in soup.find_all("area"):
+        button_text = _extract_button_text(area) or "[Buton/Imagine fără text]"
+        if area.get("href"):
+            append_target(button_text, area.get("href"), "area", "href")
+        if area.get("onclick"):
+            append_target(button_text, area.get("onclick"), "area", "onclick")
+
+    # Generic click-capable elements commonly used in branded phishing templates
+    for tag in soup.find_all(True):
+        tag_name = tag.name.lower()
+        if tag_name in {"a", "button", "input", "area", "form"}:
+            continue
+
+        role = (tag.get("role") or "").lower().strip()
+        has_interaction_attr = tag.has_attr("onclick") or any(tag.get(attr) for attr in _GENERIC_CLICK_ATTRS)
+        if role not in _CLICKABLE_ROLES and not has_interaction_attr:
+            continue
+
+        button_text = _extract_button_text(tag) or "[Buton/Imagine fără text]"
+        if tag.get("href"):
+            append_target(button_text, tag.get("href"), tag_name, "href")
+        if tag.get("onclick"):
+            append_target(button_text, tag.get("onclick"), tag_name, "onclick")
+        for attr in _GENERIC_CLICK_ATTRS:
+            value = tag.get(attr)
+            if value:
+                append_target(button_text, value, tag_name, attr)
+
+    # Fallback for form actions when no direct button action was found
+    for form in soup.find_all("form"):
+        if not form.get("action"):
+            continue
+        submit_like = form.find_all(["button", "input"], recursive=True)
+        button_text = "[Buton/Imagine fără text]"
+        for node in submit_like:
+            node_type = (node.get("type") or "").lower()
+            if not node_type or node_type in _BUTTON_TYPES or node.name == "button":
+                extracted = _extract_button_text(node)
+                if extracted:
+                    button_text = extracted
+                    break
+        append_target(button_text, form.get("action"), "form", "action")
+
+    return targets
+
+
+_APP_SCHEME_BRAND_HINTS = {
+    "uber": "Uber",
+    "ubereats": "Uber",
+    "revolut": "Revolut",
+    "whatsapp": "WhatsApp",
+}
+
+
+def _decode_repeated_url_value(value: str, max_rounds: int = 3) -> str:
+    current = value or ""
+    for _ in range(max_rounds):
+        decoded = urllib.parse.unquote(html.unescape(current))
+        if decoded == current:
+            break
+        current = decoded
+    return current
+
+
+def _brand_from_official_url(candidate: str) -> Optional[str]:
+    parsed = urllib.parse.urlparse(candidate if "://" in candidate else f"https://{candidate}")
+    host = (parsed.hostname or "").lower().removeprefix("www.")
+    if not host:
+        return None
+    for brand, domains in BRAND_REGISTRY.items():
+        for domain in domains:
+            normalized_domain = domain.lower().removeprefix("www.")
+            if host == normalized_domain or host.endswith(f".{normalized_domain}"):
+                return brand
+    return None
+
+
+def _infer_brand_hints_from_url(url: str) -> List[str]:
+    """
+    Extracts brand context from app deep-links and official fallback URLs.
+
+    This is not a whitelist: the inferred brand is used so downstream mismatch
+    checks can compare the target against official/partner domains. A malicious
+    domain with `fallback=https://brand.com` still becomes a brand-mismatch case.
+    """
+    hints: List[str] = []
+    parsed = urllib.parse.urlparse(url)
+    query_pairs = urllib.parse.parse_qsl(parsed.query, keep_blank_values=True)
+
+    def add_hint(value: Optional[str]) -> None:
+        if value and value not in hints:
+            hints.append(value)
+
+    for key, raw_value in query_pairs:
+        key_norm = key.lower().strip()
+        value = _decode_repeated_url_value(raw_value)
+        scheme = urllib.parse.urlparse(value).scheme.lower()
+
+        if key_norm in {"_dl", "deep_link", "deeplink", "app_link", "applink"}:
+            add_hint(_APP_SCHEME_BRAND_HINTS.get(scheme))
+
+        if key_norm in {
+            "_fallback_redirect",
+            "fallback_redirect",
+            "fallback",
+            "redirect",
+            "redirect_url",
+            "url",
+            "u",
+            "target",
+            "destination",
+        }:
+            add_hint(_brand_from_official_url(value))
+
+    return hints
+
+
+def _infer_brand_hints_from_click_targets(click_targets: List[Dict[str, Any]]) -> List[str]:
+    hints: List[str] = []
+    for target in click_targets:
+        raw_url = str(target.get("original_url") or "")
+        for hint in _infer_brand_hints_from_url(raw_url):
+            if hint not in hints:
+                hints.append(hint)
+    return hints
+
+
+def _safe_scan_url_list(urls: List[str]) -> List[Dict[str, Any]]:
+    resolved_urls: List[Dict[str, Any]] = []
+    if PRIVACY_SAFE_MODE:
+        for url in urls:
+            resolved_urls.append(_safe_mode_url_entry(url))
+        return resolved_urls
+    for url in urls:
+        try:
+            resolved_urls.append(resolve_redirects_safely(url))
+        except Exception as exc:
+            logger.warning(f"Redirect resolution failed for {url}: {exc}")
+            resolved_urls.append({
+                "original_url": url,
+                "final_url": url,
+                "final_hostname": urllib.parse.urlparse(url).hostname,
+                "final_registered_domain": urllib.parse.urlparse(url).hostname,
+                "domain_age_days": None,
+                "domain_created_date": None,
+                "has_mx_records": None,
+                "redirect_chain": [],
+                "redirect_count": 0,
+                "shortener_count": 0,
+                "uses_shortener": False,
+                "detected_soft_redirects": [],
+                "success": False,
+                "error_message": str(exc),
+            })
+    return resolved_urls
+
+
+def _resolve_eval_dataset_path(dataset_path: Optional[str]) -> Path:
+    if not dataset_path:
+        candidate = EVAL_DATASET_DEFAULT_PATH
+    else:
+        cleaned = str(dataset_path).strip()
+        if not cleaned:
+            candidate = EVAL_DATASET_DEFAULT_PATH
+        else:
+            candidate = Path(cleaned)
+            if not candidate.is_absolute():
+                candidate = (_BACKEND_DIR / candidate)
+
+    resolved = candidate.expanduser().resolve()
+    if not resolved.exists() or not resolved.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                f"Dataset file not found: {resolved}"
+                if os.path.isabs(str(resolved))
+                else "Dataset file not found"
+            ),
+        )
+    return resolved
+
+
+def _feedback_sample_payload(row: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        "scan_id": row.get("scan_id"),
+        "feedback": row.get("feedback"),
+        "actual_is_scam": row.get("actual_is_scam"),
+        "predicted_is_scam": row.get("predicted_is_scam"),
+        "predicted_risk_score": row.get("predicted_risk_score"),
+        "risk_score": row.get("risk_score"),
+        "risk_level": row.get("risk_level"),
+        "signal_ids": row.get("signal_ids", []),
+        "timestamp": row.get("timestamp"),
+        "scan_context": row.get("scan_context", {}),
+        "detected_family_id": row.get("detected_family_id"),
+        "detected_family": row.get("detected_family"),
+        "claimed_brand": row.get("claimed_brand"),
+        "input_type": row.get("input_type"),
+        "url_count": row.get("url_count", 0),
+        "error_category": row.get("error_category"),
+        "source_channel": row.get("source_channel"),
+    }
+
+
+def _gather_external_intel(
+    resolved_urls: List[Dict[str, Any]],
+    *,
+    include_virustotal: bool = True,
+    include_urlhaus: bool = True,
+    persist_partial: bool = False,
+) -> Dict[str, Dict[str, Any]]:
+    if PRIVACY_SAFE_MODE:
+        return {}
+    final_urls = [
+        entry.get("final_url")
+        for entry in resolved_urls
+        if isinstance(entry.get("final_url"), str) and entry.get("final_url")
+    ]
+    return get_reputation_for_urls(
+        final_urls,
+        include_virustotal=include_virustotal,
+        include_urlhaus=include_urlhaus,
+        persist_partial=persist_partial,
+    )
+
+
+def _gather_external_intel_safe(
+    resolved_urls: List[Dict[str, Any]],
+    *,
+    include_virustotal: bool,
+    include_urlhaus: bool,
+    persist_partial: bool = False,
+) -> Dict[str, Dict[str, Any]]:
+    try:
+        return _gather_external_intel(
+            resolved_urls,
+            include_virustotal=include_virustotal,
+            include_urlhaus=include_urlhaus,
+            persist_partial=persist_partial,
+        )
+    except TypeError:
+        # Compatibility for tests that monkeypatch the helper with the older
+        # single-argument signature.
+        return _gather_external_intel(resolved_urls)  # type: ignore[call-arg]
+
+
+def _analysis_needs_vt_fallback(analysis: Dict[str, Any]) -> bool:
+    if PRIVACY_SAFE_MODE or not ENABLE_VT_FALLBACK:
+        return False
+    if not os.getenv("VIRUSTOTAL_API_KEY", "").strip():
+        return False
+
+    risk_score = 0
+    try:
+        risk_score = int(analysis.get("risk_score", 0) or 0)
+    except Exception:
+        risk_score = 0
+    risk_level = str(analysis.get("risk_level", "")).lower()
+    if risk_level in {"high", "critical"} or risk_score >= VT_FALLBACK_RISK_SCORE:
+        return True
+
+    evidence = analysis.get("evidence", {}) if isinstance(analysis.get("evidence"), dict) else {}
+    if evidence.get("has_domain_mismatch"):
+        return True
+
+    reasons = " ".join(str(item).lower() for item in analysis.get("reasons", []) if item)
+    sensitive_markers = (
+        "card",
+        "cvv",
+        "cvc",
+        "otp",
+        "parol",
+        "login",
+        "plată",
+        "plata",
+        "cnp",
+        "iban",
+        "apk",
+        "remote",
+        "domeniu",
+        "neoficial",
+        "mismatch",
+    )
+    return any(marker in reasons for marker in sensitive_markers)
+
+
+def _analyze_with_reputation(
+    redacted_text: str,
+    resolved_urls: List[Dict[str, Any]],
+    *,
+    email_context: Optional[Dict[str, Any]] = None,
+    fast_reputation: bool = True,
+) -> Dict[str, Any]:
+    use_fast = bool(fast_reputation)
+    threat_intel = _gather_external_intel_safe(
+        resolved_urls,
+        include_virustotal=True,
+        include_urlhaus=(not use_fast) or FAST_REPUTATION_INCLUDE_URLHAUS,
+        persist_partial=False,
+    )
+    analyze_kwargs: Dict[str, Any] = {
+        "urls": resolved_urls,
+        "external_threat_intel": threat_intel,
+    }
+    if email_context is not None:
+        analyze_kwargs["email_context"] = email_context
+    analysis = engine.analyze(redacted_text, **analyze_kwargs)
+
+    if use_fast and _analysis_needs_vt_fallback(analysis):
+        deep_threat_intel = _gather_external_intel_safe(
+            resolved_urls,
+            include_virustotal=True,
+            include_urlhaus=True,
+            persist_partial=True,
+        )
+        if deep_threat_intel:
+            analyze_kwargs["external_threat_intel"] = deep_threat_intel
+            analysis = engine.analyze(redacted_text, **analyze_kwargs)
+            analysis.setdefault("evidence", {})["vt_fallback"] = True
+    else:
+        analysis.setdefault("evidence", {})["vt_fallback"] = False
+
+    analysis.setdefault("evidence", {})["fast_reputation_mode"] = use_fast
+    return analysis
+
+
+def _source_status(summary: Dict[str, Any], source_name: str) -> str:
+    raw = summary.get(source_name)
+    if not isinstance(raw, dict):
+        return "missing"
+    return str(raw.get("verdict") or raw.get("status") or "unknown").strip().lower()
+
+
+def _source_consulted(summary: Dict[str, Any], source_name: str) -> bool:
+    raw = summary.get(source_name)
+    return bool(isinstance(raw, dict) and raw.get("consulted", False))
+
+
+def _source_ready(summary: Dict[str, Any], source_name: str) -> bool:
+    status = _source_status(summary, source_name)
+    return _source_consulted(summary, source_name) and status not in {"missing", "unknown", "error"}
+
+
+def _provider_reason_has_sensitive_request_signal(reasons: List[str]) -> bool:
+    if not reasons:
+        return False
+
+    markers = (
+        "card",
+        "cvv",
+        "cvc",
+        "parol",
+        "otp",
+        "iban",
+        "login",
+        "autent",
+        "plata",
+        "plată",
+        "pin",
+        "remote",
+        "anydesk",
+        "teamviewer",
+        "apk",
+        "transfer",
+        "cont seif",
+        "cod",
+        "confirm",
+    )
+
+    for reason in reasons:
+        if not reason:
+            continue
+        text = str(reason).lower()
+        if any(marker in text for marker in markers):
+            return True
+    return False
+
+
+def _has_bad_provider_verdict(summary: Dict[str, Any]) -> bool:
+    provider_names = ("google_web_risk", "virustotal", "urlscan", "urlscan.io", "urlhaus")
+    return any(_source_status(summary, name) in {"malicious", "suspicious", "phishing", "malware"} for name in provider_names)
+
+
+def _official_destination_confirmed(resolved_urls: List[Dict[str, Any]], claimed_brand: str) -> bool:
+    for entry in resolved_urls:
+        reg_domain = str(entry.get("final_registered_domain") or entry.get("registered_domain") or "").lower()
+        hostname = str(entry.get("final_hostname") or entry.get("hostname") or "").lower()
+        if not hostname and (entry.get("final_url") or entry.get("url")):
+            hostname = urllib.parse.urlparse(str(entry.get("final_url") or entry.get("url") or "")).hostname or ""
+        if engine._is_context_allowed_domain(reg_domain, hostname=hostname, claimed_brand=claimed_brand):
+            return True
+    return False
+
+
+def _apply_provider_gate_verdict(analysis: Dict[str, Any], resolved_urls: List[Dict[str, Any]]) -> Dict[str, Any]:
+    evidence = analysis.setdefault("evidence", {})
+    summary = evidence.get("external_intel_summary")
+    if not isinstance(summary, dict):
+        summary = {}
+
+    claimed_brand = str(analysis.get("claimed_brand") or "Nespecificat")
+    has_urls = bool(resolved_urls)
+    offer = evidence.get("offer_claim_verification")
+    offer_status = str(offer.get("status", "")).lower() if isinstance(offer, dict) else ""
+    official_destination = _official_destination_confirmed(resolved_urls, claimed_brand)
+    has_domain_mismatch = bool(evidence.get("has_domain_mismatch"))
+    legacy_risk_level = str(analysis.get("risk_level") or "low").lower()
+    legacy_risk_score = int(analysis.get("risk_score") or 0)
+    web_risk_consulted = _source_ready(summary, "google_web_risk")
+    vt_consulted = _source_ready(summary, "virustotal")
+    urlscan_consulted = any(_source_ready(summary, name) for name in ("urlscan", "urlscan.io"))
+    bad_provider = _has_bad_provider_verdict(summary)
+    sensitive_request_signal = _provider_reason_has_sensitive_request_signal(list(analysis.get("reasons", []) or []))
+    claim_required = _claim_verifier_required(analysis)
+    claim_consulted = (not claim_required) or offer_status in {"confirmed", "not_found", "inconclusive", "skipped"}
+    missing_required_pillars = []
+    if has_urls and not web_risk_consulted:
+        missing_required_pillars.append("Google Web Risk")
+    if has_urls and not vt_consulted:
+        missing_required_pillars.append("VirusTotal")
+    if has_urls and not urlscan_consulted:
+        missing_required_pillars.append("urlscan preview")
+    if has_urls and not claim_consulted:
+        missing_required_pillars.append("verificare oferta/claim")
+    consulted_sources = [
+        name
+        for name in ("google_web_risk", "virustotal", "urlscan", "urlscan.io", "urlhaus")
+        if _source_ready(summary, name)
+    ]
+    consulted_sources = sorted(set(consulted_sources))
+    consulted_count = len(consulted_sources)
+
+    provider_gate = {
+        "version": "provider_gate_v1",
+        "official_destination": official_destination,
+        "web_risk_consulted": web_risk_consulted,
+        "virustotal_consulted": vt_consulted,
+        "urlscan_consulted": urlscan_consulted,
+        "claim_required": claim_required,
+        "claim_consulted": claim_consulted,
+        "missing_required_pillars": missing_required_pillars,
+        "consulted_sources": consulted_sources,
+        "consulted_count": consulted_count,
+        "legacy_risk_level": legacy_risk_level,
+        "offer_status": offer_status or "unknown",
+        "legacy_score_ignored": True,
+    }
+
+    if not has_urls:
+        if has_domain_mismatch or sensitive_request_signal or bad_provider:
+            risk_level = "high"
+            risk_score = 90
+            reasons = [
+                "Nu există link clar de verificat, dar au fost detectate semnale de risc",
+            ]
+            family = "Risc de bază"
+            family_id = "provider-gate-no-url-sensitive"
+        elif legacy_risk_level in {"high", "critical", "dangerous"}:
+            risk_level = "medium"
+            risk_score = max(legacy_risk_score, 55)
+            reasons = ["Nu există URL verificabil; verdictul se bazează pe riscuri din conținut."]
+            family = "Semnale text"
+            family_id = "provider-gate-no-url-legacy-high"
+        else:
+            risk_level = "medium"
+            risk_score = max(min(legacy_risk_score, 55), 35)
+            reasons = [
+                "Scanare limitată: mesajul nu conține o țintă completă de link și nu poate fi declarat sigur fără confirmare externă.",
+            ]
+            family = "Verificare limitată"
+            family_id = "provider-gate-no-url"
+    elif bad_provider:
+        risk_level = "high"
+        risk_score = 90
+        reasons = ["Scanarea a gasit semnale clare de risc pe destinatie."]
+        family = "Risc confirmat"
+        family_id = "provider-gate-bad-provider"
+    elif has_urls and missing_required_pillars:
+        risk_level = "medium"
+        risk_score = 50
+        reasons = [
+            "Scanare parțială: nu dăm verdict sigur până când piloanele necesare nu returnează date.",
+            f"Piloane indisponibile: {', '.join(missing_required_pillars)}",
+        ]
+        family = "Verificare parțială"
+        family_id = "provider-gate-partial-pillars"
+    elif official_destination and offer_status in {"confirmed", "inconclusive", "skipped", "unknown", ""}:
+        if sensitive_request_signal:
+            risk_level = "medium"
+            risk_score = 45
+            reasons = [
+                "Domeniul este oficial, dar mesajul cere acțiuni sensibile; verifică înainte de a introduce date.",
+            ]
+            family = "Semnal comportamental"
+            family_id = "provider-gate-official-sensitive"
+        else:
+            risk_level = "low"
+            risk_score = 10
+            reasons = ["Linkul ajunge pe o destinatie validata si nu au aparut semnale de risc."]
+            family = "Destinatie oficiala verificata"
+            family_id = "provider-gate-official-clean"
+    elif has_domain_mismatch or sensitive_request_signal:
+        risk_level = "medium"
+        risk_score = 55
+        reasons = [
+            "Linkul sau mesajul nu corespunde unei cerințe legitime și cere acțiuni sensibile; verifică prin canalul oficial.",
+        ]
+        family = "Incompatibilitate oficială"
+        family_id = "provider-gate-mismatch-or-sensitive"
+    elif legacy_risk_level in {"high", "critical", "dangerous"}:
+        risk_level = "medium"
+        risk_score = max(min(legacy_risk_score, 75), 50)
+        reasons = ["Semnale textuale indică risc, fără confirmare clară de la provider-ele tehnice."]
+        family = "Semnale text"
+        family_id = "provider-gate-legacy-high"
+    elif consulted_count:
+        # Nu mai blocăm pe lipsă de pillar; folosim dovezile disponibile + istoricul.
+        missing = []
+        if not web_risk_consulted:
+            missing.append("Google Web Risk")
+        if not vt_consulted:
+            missing.append("VirusTotal")
+        if not urlscan_consulted:
+            missing.append("urlscan preview")
+        if missing:
+            risk_level = "medium"
+            risk_score = 50
+            reasons = [
+                "Scanare parțială: unele piloane externe nu au fost disponibile.",
+                f"Piloane indisponibile: {', '.join(missing)}",
+            ]
+            family = "Verificare parțială"
+            family_id = "provider-gate-partial-pillars"
+        else:
+            risk_level = "low"
+            risk_score = 15
+            reasons = ["Verificare externă curată, fără semnale clare de risc."]
+            family = "Destinatie curată"
+            family_id = "provider-gate-clean"
+    else:
+        risk_level = "medium"
+        risk_score = 0
+        reasons = [
+            "Nu avem semnale clare de risc. Scanarea a fost limitată și nu există confirmare externă completă; "
+            "verifică înainte de a acționa."
+        ]
+        family = "Verificare limitată"
+        family_id = "provider-gate-unverified"
+
+    provider_gate.update({
+        "risk_level": risk_level,
+        "risk_score": risk_score,
+        "reason": reasons[0],
+    })
+    evidence["provider_gate"] = provider_gate
+    analysis["risk_level"] = risk_level
+    analysis["risk_score"] = risk_score
+    analysis["detected_family"] = family
+    analysis["detected_family_id"] = family_id
+    analysis["reasons"] = reasons
+    analysis["safe_actions"] = (
+        [
+            "Nu introduce date sensibile.",
+            "Nu deschide linkuri din mesaj dacă nu recunoști canalul oficial.",
+        ]
+        if risk_level == "high"
+        else [
+            "Verifică oferta pe canalul oficial al brandului înainte de orice acțiune.",
+            "Nu introduce date sensibile dacă mesajul cere card, cod sau date de acces.",
+        ]
+        if risk_level == "medium"
+        else [
+            "Păstrează vigilenta, dar nu acționa de pe acel link fără verificare suplimentară dacă nu este context clar de la tine.",
+            "Folosește opțiunea de raportare dacă mesajul pare suspect.",
+        ]
+    )
+    return analysis
+
+
+def _build_feedback_quality_payload(
+    source_channel: Optional[str] = None,
+    since_ts: Optional[int] = None,
+    until_ts: Optional[int] = None,
+    include_uncertain: bool = False,
+    include_examples: bool = True,
+    max_examples_per_type: int = 50,
+    run_sweep: bool = True,
+    sweep_start: int = 0,
+    sweep_end: int = 100,
+    sweep_step: int = 5,
+    sweep_metric: str = "f1",
+) -> Dict[str, Any]:
+    feedback_rows = load_feedback_records()
+    scan_rows = load_scan_records()
+    dataset_rows = build_feedback_evaluation_rows(
+        feedback_rows,
+        scan_rows,
+        source_channel=source_channel,
+        since_ts=since_ts,
+        until_ts=until_ts,
+        include_uncertain=include_uncertain,
+        fallback_threshold=RISK_THRESHOLD,
+    )
+
+    summary = summarize_feedback_records(
+        dataset_rows,
+        since_ts=None,
+        until_ts=None,
+        include_examples=include_examples,
+        max_examples_per_type=max_examples_per_type,
+    )
+
+    response = {
+        "items_evaluated": len(dataset_rows),
+        "source_channel": source_channel,
+        "prediction_baseline_threshold": RISK_THRESHOLD,
+        "summary": summary,
+    }
+
+    if run_sweep and dataset_rows:
+        sweep = run_feedback_threshold_sweep(
+            dataset_rows,
+            sweep_start=sweep_start,
+            sweep_end=sweep_end,
+            sweep_step=sweep_step,
+            optimize_metric=sweep_metric,
+        )
+        response["threshold_sweep"] = sweep
+        response["recommended_threshold"] = sweep["best"]["risk_threshold"]
+
+    return response
+
+
+def _safe_pct(value: Any, total: int) -> float:
+    if not total:
+        return 0.0
+    try:
+        return float(value) / total
+    except Exception:
+        return 0.0
+
+
+def _build_readiness_payload(
+    source_channel: Optional[str] = None,
+    since_ts: Optional[int] = None,
+    until_ts: Optional[int] = None,
+    include_uncertain: bool = False,
+    bucket_size_days: int = 1,
+    trend_top_signals: int = 10,
+    trend_min_bucket_support: int = 1,
+    trend_min_signal_support: int = 1,
+) -> Dict[str, Any]:
+    bucket_size_days = max(1, bucket_size_days)
+    feedback_rows = load_feedback_records()
+    scan_rows = load_scan_records()
+    dataset_rows = build_feedback_evaluation_rows(
+        feedback_rows,
+        scan_rows,
+        source_channel=source_channel,
+        since_ts=since_ts,
+        until_ts=until_ts,
+        include_uncertain=include_uncertain,
+        fallback_threshold=RISK_THRESHOLD,
+    )
+
+    feedback_summary = summarize_feedback_records(
+        dataset_rows,
+        source_channel=source_channel,
+        since_ts=None,
+        until_ts=None,
+        include_examples=False,
+        max_examples_per_type=0,
+    )
+
+    drift = summarize_feedback_trend(
+        dataset_rows,
+        source_channel=source_channel,
+        since_ts=None,
+        until_ts=None,
+        bucket_size_days=bucket_size_days,
+        include_uncertain=include_uncertain,
+        min_bucket_support=trend_min_bucket_support,
+        top_signals=trend_top_signals,
+        min_signal_support=trend_min_signal_support,
+    )
+
+    reputation_cache = get_reputation_cache_stats()
+    cache_items = max(1, int(reputation_cache.get("items", 0) or 0))
+    cache_valid_items = int(reputation_cache.get("valid_items", 0) or 0)
+    provider_error_rate = _safe_pct(
+        sum(int(v) for v in reputation_cache.get("provider_errors", {}).values()),
+        cache_items,
+    )
+
+    confusion = feedback_summary.get("confusion_matrix", {})
+    tp = int(confusion.get("tp", 0) or 0)
+    fp = int(confusion.get("fp", 0) or 0)
+    fn = int(confusion.get("fn", 0) or 0)
+    tn = int(confusion.get("tn", 0) or 0)
+    labeled_total = int(feedback_summary.get("coverage", {}).get("labeled_both", 0) or 0)
+
+    precision = float(feedback_summary.get("precision", 0.0) or 0.0)
+    recall = float(feedback_summary.get("recall", 0.0) or 0.0)
+    accuracy = float(feedback_summary.get("accuracy", 0.0) or 0.0)
+    f1 = float(feedback_summary.get("f1", 0.0) or 0.0)
+    quality_readiness = round((precision * 0.4 + recall * 0.25 + accuracy * 0.2 + f1 * 0.15), 4)
+
+    coverage_readiness = min(1.0, labeled_total / max(1, len(dataset_rows)))
+    reputation_readiness = 0.0
+    if reputation_cache.get("enabled") is True and cache_items > 0:
+        reputation_readiness = 1.0 - provider_error_rate
+    elif reputation_cache.get("enabled") is True:
+        reputation_readiness = 0.6
+
+    readiness_score = round(
+        0.65 * quality_readiness + 0.25 * coverage_readiness + 0.1 * reputation_readiness,
+        4,
+    )
+
+    critical_drifts = [
+        trend
+        for trend in drift.get("signal_trends", [])
+        if trend.get("trend") == "worsening"
+    ]
+
+    degraded_signals = [
+        item
+        for item in feedback_summary.get("signal_feedback_performance", [])
+        if (item.get("feedback_error_rate") or 0) >= 0.25
+    ]
+
+    if not dataset_rows:
+        status = "no_feedback"
+    elif readiness_score >= 0.8:
+        status = "healthy"
+    elif readiness_score >= 0.6:
+        status = "watch"
+    else:
+        status = "degraded"
+
+    return {
+        "status": status,
+        "readiness_score": readiness_score,
+        "readiness_components": {
+            "quality_score": quality_readiness,
+            "coverage_score": round(coverage_readiness, 4),
+            "reputation_score": round(reputation_readiness, 4),
+        },
+        "query": {
+            "source_channel": source_channel,
+            "since_ts": since_ts,
+            "until_ts": until_ts,
+            "include_uncertain": include_uncertain,
+            "bucket_size_days": bucket_size_days,
+            "trend_top_signals": trend_top_signals,
+            "trend_min_bucket_support": trend_min_bucket_support,
+            "trend_min_signal_support": trend_min_signal_support,
+        },
+        "feedback": {
+            "items": len(dataset_rows),
+            "items_labeled": labeled_total,
+            "precision": precision,
+            "recall": recall,
+            "f1": f1,
+            "accuracy": accuracy,
+            "confusion_matrix": {
+                "tp": tp,
+                "fp": fp,
+                "fn": fn,
+                "tn": tn,
+            },
+            "top_degraded_signals_by_feedback_error": degraded_signals[:trend_top_signals],
+            "coverage": feedback_summary.get("coverage", {}),
+        },
+        "trend": {
+            "bucket_size_days": bucket_size_days,
+            "bucket_count": drift.get("bucket_count", 0),
+            "critical_signal_drifts": critical_drifts[:trend_top_signals],
+            "signal_trends": drift.get("signal_trends", [])[:trend_top_signals],
+            "overall": drift.get("overall", {}),
+        },
+        "reputation": {
+            "enabled": bool(reputation_cache.get("enabled", False)),
+            "cache_items": cache_items,
+            "cache_valid_items": cache_valid_items,
+            "provider_errors": reputation_cache.get("provider_errors", {}),
+            "provider_error_rate": round(provider_error_rate, 4),
+            "cache_ttl_seconds": reputation_cache.get("ttl_seconds"),
+            "source_stats": reputation_cache.get("source_stats", {}),
+        },
+    }
+
+
+def _validate_text_input(field_name: str, value: str, max_chars: int) -> None:
+    if not value or not value.strip():
+        raise HTTPException(status_code=400, detail=f"{field_name} nu poate fi gol.")
+    if len(value) > max_chars:
+        raise HTTPException(
+            status_code=413,
+            detail=f"{field_name} depășește limita de {max_chars} caractere."
+        )
+
+
+def _new_scan_id(prefix: str) -> str:
+    return f"{prefix}_{int(time.time())}_{os.urandom(4).hex()}"
+
+
+def _normalize_user_facing_risk_level(risk_level: Optional[str]) -> str:
+    normalized = (risk_level or "unknown").strip().lower()
+    if normalized in {"high", "critical"}:
+        return "dangerous"
+    if normalized == "medium":
+        return "suspect"
+    if normalized in {"low", "safe"}:
+        return "safe"
+    return "unknown"
+
+
+def _user_risk_level_label(risk_level: str) -> str:
+    normalized = (risk_level or "").strip().lower()
+    if normalized in {"safe", "suspect", "dangerous"}:
+        user_level = normalized
+    else:
+        user_level = _normalize_user_facing_risk_level(normalized)
+
+    return {
+        "dangerous": "PERICULOS",
+        "suspect": "SUSPECT",
+        "safe": "SIGUR",
+    }.get(user_level, "NECUNOSCUT")
+
+
+def _user_risk_level_text(risk_level: str) -> str:
+    normalized = (risk_level or "").strip().lower()
+    if normalized in {"dangerous", "high", "critical"}:
+        return "Periculos"
+    if normalized in {"suspect", "medium"}:
+        return "Suspect"
+    if normalized in {"safe", "low"}:
+        return "Probabil sigur"
+    return "Neclar"
+
+
+def _user_recommended_action(risk_level: str) -> str:
+    normalized = (risk_level or "").strip().lower()
+    if normalized in {"dangerous", "high", "critical"}:
+        return "Nu apăsați pe nimic, nu introduceți date. Blocați mesajul și verificați direct în aplicația oficială."
+    if normalized in {"suspect", "medium"}:
+        return "Verificați cu atenție și confirmați doar prin canalele oficiale înainte de a accesa linkuri sau a acționa."
+    if normalized in {"safe", "low"}:
+        return "Mesajul pare mai puțin riscant, dar verificați întotdeauna expeditorul și linkul înainte de accesare."
+    return "Trimiteți mesajul în format original (sau emailul .eml) pentru o verificare completă."
+
+
+def _build_scan_response(
+    scan_id_prefix: str,
+    analysis_results: Dict[str, Any],
+    redacted_text: str,
+    ai_explanation: Dict[str, Any],
+    risk_score: Optional[int] = None,
+    risk_level: Optional[str] = None,
+    scan_id: Optional[str] = None,
+    reasons: Optional[List[str]] = None,
+    extra_fields: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    normalized_risk_level = risk_level if risk_level is not None else analysis_results.get("risk_level", "unknown")
+    user_facing_risk_level = _normalize_user_facing_risk_level(normalized_risk_level)
+    user_facing_risk_text = _user_risk_level_text(user_facing_risk_level)
+    payload = {
+        "scan_id": scan_id or _new_scan_id(scan_id_prefix),
+        "risk_score": risk_score if risk_score is not None else analysis_results.get("risk_score", 0),
+        "risk_level": normalized_risk_level,
+        "user_risk_level": user_facing_risk_level,
+        "user_risk_label": _user_risk_level_label(user_facing_risk_level),
+        "user_risk_text": user_facing_risk_text,
+        "user_recommended_action": _user_recommended_action(user_facing_risk_level),
+        "detected_family": analysis_results.get("detected_family", "Necunoscut"),
+        "detected_family_id": analysis_results.get("detected_family_id"),
+        "claimed_brand": analysis_results.get("claimed_brand", "Nespecificat"),
+        "reasons": _dedupe_preserve_order(
+            reasons if reasons is not None else analysis_results.get("reasons", [])
+        ),
+        "privacy_safe_mode": PRIVACY_SAFE_MODE,
+        "processing_mode": "privacy_safe" if PRIVACY_SAFE_MODE else "full",
+        "evidence": analysis_results.get("evidence", {}),
+        "redacted_text": redacted_text,
+        "ai_verdict": ai_explanation.get("verdict_summary"),
+        "ai_explanation": ai_explanation.get("explanation"),
+        "offer_analysis": ai_explanation.get("offer_analysis"),
+        "key_dangers": ai_explanation.get("key_dangers"),
+        "safe_actions": ai_explanation.get("safe_actions", analysis_results.get("safe_actions", [])),
+    }
+    if extra_fields:
+        payload.update(extra_fields)
+    return payload
+
+
+def _collect_signal_ids(analysis: Dict[str, Any]) -> List[str]:
+    signal_ids: List[str] = []
+    evidence = analysis.get("evidence", {})
+
+    if evidence.get("has_domain_mismatch"):
+        signal_ids.append("email_domain_mismatch")
+    if evidence.get("url_behaviour"):
+        signal_ids.append("url_behavior")
+    if evidence.get("url_transport"):
+        signal_ids.append("url_transport")
+    external_intel_hits = int(evidence.get("external_intel_hits", 0) or 0)
+    if external_intel_hits:
+        signal_ids.append("external_url_reputation")
+    external_intel_summary = analysis.get("evidence", {}).get("external_intel_summary") or {}
+    if isinstance(external_intel_summary, dict):
+        for src, details in external_intel_summary.items():
+            if not isinstance(details, dict):
+                continue
+            status = str(details.get("status", "")).lower()
+            if status in {"malicious", "suspicious", "clean"}:
+                signal_ids.append(f"ext_src:{src}:{status}")
+
+    if evidence.get("email_auth"):
+        email_auth = evidence.get("email_auth") or {}
+        if isinstance(email_auth, dict):
+            auth_status = email_auth.get("auth_status") or {}
+            if isinstance(auth_status, dict):
+                for mechanism in ("spf", "dkim", "dmarc"):
+                    status = str(auth_status.get(mechanism, "")).lower()
+                    if status == "fail":
+                        signal_ids.append(f"email_{mechanism}_fail")
+                    elif status == "pass":
+                        signal_ids.append(f"email_{mechanism}_pass")
+
+            policy = email_auth.get("auth_action_plan")
+            if isinstance(policy, dict):
+                action = str(policy.get("action", "")).lower()
+                if action:
+                    signal_ids.append(f"email_action_{action}")
+                severity = str(policy.get("severity", "")).lower()
+                if severity:
+                    signal_ids.append(f"email_action_severity_{severity}")
+                if policy.get("policy_context", {}).get("pct") is not None:
+                    signal_ids.append(f"email_dmarc_pct_{policy['policy_context']['pct']}")
+
+            dns_checks = email_auth.get("dns_checks")
+            if isinstance(dns_checks, dict):
+                dmarc_policy = dns_checks.get("dmarc_policy")
+                if isinstance(dmarc_policy, dict):
+                    dmarc_action = str(dmarc_policy.get("p", "")).lower()
+                    if dmarc_action:
+                        signal_ids.append(f"email_dmarc_{dmarc_action}")
+                if dns_checks.get("spf_dns_present"):
+                    signal_ids.append("email_spf_dns_present")
+                if dns_checks.get("dkim_dns_present"):
+                    signal_ids.append("email_dkim_dns_present")
+                if dns_checks.get("dmarc_dns_present"):
+                    signal_ids.append("email_dmarc_dns_present")
+                if dns_checks.get("reply_to_mismatch"):
+                    signal_ids.append("email_reply_to_mismatch")
+                if dns_checks.get("spf_aligned") is False:
+                    signal_ids.append("email_spf_alignment_mismatch")
+                if dns_checks.get("dkim_aligned") is False:
+                    signal_ids.append("email_dkim_alignment_mismatch")
+        signal_ids.append("email_authenticity")
+    if analysis.get("detected_family_id"):
+        signal_ids.append(f"family:{analysis.get('detected_family_id')}")
+    return _dedupe_preserve_order(signal_ids)
+
+
+def _extract_url_signal(payload: Dict[str, Any]) -> Dict[str, Any]:
+    final_url = payload.get("final_url") or ""
+    return {
+        "url_hash": hashlib.sha256(str(final_url).encode("utf-8")).hexdigest() if final_url else None,
+        "host": payload.get("final_hostname"),
+        "registered_domain": payload.get("final_registered_domain"),
+        "shortener_count": payload.get("shortener_count", 0),
+        "redirect_count": payload.get("redirect_count", 0),
+        "success": payload.get("success", True),
+    }
+
+
+def _emit_scan_event(
+    scan_id: str,
+    scan_payload: Dict[str, Any],
+    analysis: Dict[str, Any],
+    resolved_urls: List[Dict[str, Any]],
+    input_channel: str,
+    source_channel: Optional[str] = None,
+) -> None:
+    risk_score = scan_payload.get("risk_score")
+    try:
+        risk_score_int = int(risk_score) if risk_score is not None else 0
+    except (TypeError, ValueError):
+        risk_score_int = 0
+    risk_level = str(scan_payload.get("risk_level") or "low").lower()
+    predicted_is_scam = bool(risk_score_int >= RISK_THRESHOLD or risk_level in {"high", "critical"})
+
+    event = {
+        "scan_id": scan_id,
+        "input_type": input_channel,
+        "source_channel": source_channel,
+        "risk_score": risk_score_int,
+        "risk_level": scan_payload.get("risk_level"),
+        "user_risk_level": scan_payload.get("user_risk_level"),
+        "user_risk_label": scan_payload.get("user_risk_label"),
+        "detected_family_id": scan_payload.get("detected_family_id"),
+        "detected_family": scan_payload.get("detected_family"),
+        "claimed_brand": scan_payload.get("claimed_brand"),
+        "predicted_is_scam": predicted_is_scam,
+        "signal_ids": _collect_signal_ids(analysis),
+        "url_count": len(resolved_urls),
+        "urls": [_extract_url_signal(item) for item in resolved_urls],
+        "redacted_text_snippet": (scan_payload.get("redacted_text") or "")[:120],
+        "evidence": {
+            "external_intel": analysis.get("evidence", {}).get("external_intel", False),
+            "external_intel_hits": analysis.get("evidence", {}).get("external_intel_hits", 0),
+            "email_auth_strength": analysis.get("evidence", {}).get("email_auth", {}).get("auth_strength"),
+            "external_intel_sources": analysis.get("evidence", {}).get("external_intel_sources", []),
+            "external_intel_summary": analysis.get("evidence", {}).get("external_intel_summary", {}),
+            "external_intel_source_status": analysis.get("evidence", {}).get("external_intel_source_status", {}),
+            "email_auth_action": analysis.get("evidence", {}).get("email_auth", {}).get("auth_action_plan"),
+        },
+    }
+    log_scan_event(event)
+
+
+class TextScanRequest(BaseModel):
+    text: str
+    source_channel: Optional[str] = "manual"
+    consent_store_sample: Optional[bool] = False
+
+class URLScanRequest(BaseModel):
+    url: str
+    source_channel: Optional[str] = "url_scan"
+
+
+class UrlscanSandboxRequest(BaseModel):
+    url: str
+    visibility: Optional[str] = URLSCAN_VISIBILITY_DEFAULT
+    country: Optional[str] = URLSCAN_COUNTRY_DEFAULT or None
+    customagent: Optional[str] = URLSCAN_CUSTOM_AGENT_DEFAULT or None
+    source_channel: Optional[str] = "android_native"
+
+
+class OrchestratedScanRequest(BaseModel):
+    input_type: str = "text"
+    text: Optional[str] = None
+    url: Optional[str] = None
+    html_content: Optional[str] = None
+    source_channel: Optional[str] = "android_native"
+    visibility: Optional[str] = URLSCAN_VISIBILITY_DEFAULT
+    country: Optional[str] = URLSCAN_COUNTRY_DEFAULT or None
+    customagent: Optional[str] = URLSCAN_CUSTOM_AGENT_DEFAULT or None
+
+
+class FeedbackRequest(BaseModel):
+    scan_id: str
+    feedback: str
+    actual_is_scam: Optional[bool] = None
+    predicted_is_scam: Optional[bool] = None
+    predicted_risk_score: Optional[int] = None
+    risk_level: Optional[str] = None
+    signal_ids: Optional[List[str]] = None
+    notes: Optional[str] = None
+
+
+def mock_ocr_text_by_filename(filename: str) -> str:
+    """
+    Fallback text used when OCR cloud is unavailable.
+    Kept for deterministic demo/test behavior on common scam themes.
+    """
+    filename_lower = filename.lower()
+
+    if "anaf" in filename_lower or "spv" in filename_lower:
+        return (
+            "ANAF: Notificare de plata urgenta. Aveti o obligatie fiscala neachitata in valoare de 450 RON. "
+            "Neplata va atrage penalizări. Conectati-va in SPV si plătiti aici: http://anaf-spv-plati.info/login"
+        )
+    if "posta" in filename_lower:
+        return (
+            "Posta Romana: Pachetul dvs. a sosit in depozit dar adresa este incompleta. "
+            "Va rugam completati adresa corecta si achitati taxa de 2.45 RON: http://posta-romana-taxe.top"
+        )
+    if "revolut" in filename_lower:
+        return (
+            "Revolut: Contul tau a fost blocat temporar din motive de securitate. "
+            "Va rugam confirmati identitatea si deblocati aplicatia accesand link-ul: http://revolut-security.net/verify"
+        )
+    if "olx" in filename_lower:
+        return (
+            "Buna ziua, am efectuat plata prin OLX. Pentru a incasa banii de pe produs, va rugam faceti click pe link "
+            "si introduceti datele cardului dvs.: http://olx-ro-tranzactii.online/payment"
+        )
+    if "whatsapp" in filename_lower:
+        return (
+            "WhatsApp: Codul tau de verificare este [492-385]. Nu distribui acest cod cu nimeni."
+        )
+
+    return (
+        "Stimate client, coletul tau nr. RO-5829-X9 nu a putut fi livrat din cauza adresei incomplete. "
+        "Va rugam actualizati adresa si alegeti lockerul de ridicare aici: http://fan-locker-ridicare.ru/awb"
+    )
+
+
+def _validate_file_upload(
+    filename: str,
+    content_type: str | None,
+    file_bytes: bytes,
+    *,
+    max_bytes: int,
+    allowed_exts: set[str],
+    allowed_mime_types: set[str],
+) -> None:
+    if len(file_bytes) > max_bytes:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Fisierul este prea mare. Limita maxima este {max_bytes // 1024 // 1024} MB."
+        )
+
+    ext = os.path.splitext(filename.lower())[1]
+    if ext not in allowed_exts and (not content_type or content_type.lower() not in allowed_mime_types):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Tipul fisierului nu este acceptat. "
+                f"Extensii permise: {', '.join(sorted(allowed_exts))}"
+            )
+        )
+
+
+async def extract_text_for_scan(
+    filename: str,
+    file_bytes: bytes,
+    extract_fn: Callable[[bytes], str],
+) -> tuple[str, Optional[str]]:
+    """
+    Runs OCR through Google Vision when configured, with deterministic fallback.
+    Returns extracted text and an OCR warning if OCR was unavailable or partial.
+    """
+    ocr_warning: Optional[str] = None
+    ocr_text = ""
+
+    if PRIVACY_SAFE_MODE:
+        ocr_warning = "Mod sigur activ: OCR cloud dezactivat."
+    elif has_vision_key():
+        try:
+            ocr_text = await run_in_threadpool(extract_fn, file_bytes)
+            if not ocr_text.strip():
+                ocr_warning = "OCR cloud nu a extras text din fișier."
+        except Exception as exc:
+            logger.warning(f"Vision OCR failed for {filename}: {exc}")
+            ocr_warning = f"Fallback OCR pe nume fișier: {str(exc)}"
+    else:
+        ocr_warning = (
+            "Lipsește GOOGLE_CLOUD_VISION_API_KEY. Se folosește scenariu mock pe nume fișier."
+        )
+
+    if not ocr_text.strip() and ALLOWED_MOCK_OCR:
+        ocr_text = mock_ocr_text_by_filename(filename)
+    if not ocr_text.strip():
+        if ocr_warning is None:
+            ocr_warning = "OCR-ul nu a returnat niciun text din acest fisier."
+        raise HTTPException(
+            status_code=503,
+            detail=ocr_warning
+        )
+
+    return ocr_text, ocr_warning
+
+
+def _safe_mode_url_entry(url: str) -> Dict[str, Any]:
+    raw_url = (url or "").strip()
+    final_url = _canonicalize_url(raw_url) or raw_url
+    parsed = urllib.parse.urlparse(final_url)
+    hostname = (parsed.hostname or "").lower()
+    is_shortener = False
+    try:
+        is_shortener = is_known_shortener(final_url)
+    except Exception:
+        is_shortener = False
+
+    return {
+        "original_url": raw_url,
+        "final_url": final_url,
+        "final_hostname": hostname,
+        "final_registered_domain": _extract_domain_root(hostname),
+        "domain_age_days": None,
+        "domain_created_date": None,
+        "has_mx_records": None,
+        "redirect_chain": [],
+        "redirect_count": 0,
+        "shortener_count": 1 if is_shortener else 0,
+        "uses_shortener": is_shortener,
+        "detected_soft_redirects": [],
+        "success": True,
+        "error_message": (
+            "SIGURSCAN_SAFE_MODE: nu se face verificare externă a URL-ului."
+            if PRIVACY_SAFE_MODE
+            else None
+        ),
+    }
+
+
+def _build_ai_explanation(
+    text: str,
+    analysis: Dict[str, Any],
+    resolved_urls: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    if PRIVACY_SAFE_MODE:
+        return generate_fallback_explanation(text, analysis)
+    return generate_ai_explanation(text, analysis, resolved_urls)
+
+
+async def _build_ai_explanation_async(
+    text: str,
+    analysis: Dict[str, Any],
+    resolved_urls: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    if PRIVACY_SAFE_MODE or not ENABLE_CLOUD_AI_EXPLANATION or AI_EXPLANATION_TIMEOUT_SECONDS <= 0:
+        return generate_fallback_explanation(text, analysis)
+
+    try:
+        return await asyncio.wait_for(
+            run_in_threadpool(generate_ai_explanation, text, analysis, resolved_urls),
+            timeout=AI_EXPLANATION_TIMEOUT_SECONDS,
+        )
+    except asyncio.TimeoutError:
+        logger.warning("AI explanation timed out; using deterministic fallback.")
+    except Exception as exc:
+        logger.warning("AI explanation failed; using deterministic fallback: %s", exc)
+    return generate_fallback_explanation(text, analysis)
+
+
+def _attach_offer_claim_verification(
+    analysis: Dict[str, Any],
+    offer_claim: Dict[str, Any],
+) -> None:
+    evidence = analysis.setdefault("evidence", {})
+    evidence["offer_claim_verification"] = offer_claim
+    summary = evidence.setdefault("external_intel_summary", {})
+    if isinstance(summary, dict):
+        summary["ai_offer_web_check"] = {
+            "status": offer_claim.get("status", "inconclusive"),
+            "verdict": offer_claim.get("verdict", offer_claim.get("status", "inconclusive")),
+            "severity": offer_claim.get("severity", "unknown"),
+            "summary": offer_claim.get("summary", ""),
+            "details": offer_claim.get("details", ""),
+            "confidence": offer_claim.get("confidence", 0),
+            "claimed_brand": offer_claim.get("claimed_brand"),
+            "official_domains": offer_claim.get("official_domains", []),
+            "evidence_urls": offer_claim.get("evidence_urls", []),
+            "method": offer_claim.get("method", "unknown"),
+        }
+
+
+async def _enrich_offer_claim_verification_async(
+    text: str,
+    analysis: Dict[str, Any],
+    resolved_urls: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    if PRIVACY_SAFE_MODE or AI_OFFER_CLAIM_TIMEOUT_SECONDS <= 0:
+        offer_claim = {
+            "provider": "ai_offer_web_check",
+            "status": "skipped",
+            "verdict": "skipped",
+            "severity": "unknown",
+            "summary": "Claim web check skipped by privacy/timeout policy.",
+            "details": "Claim web check skipped by privacy/timeout policy.",
+            "confidence": 0,
+            "evidence_urls": [],
+            "method": "skipped",
+        }
+        _attach_offer_claim_verification(analysis, offer_claim)
+        return offer_claim
+
+    try:
+        offer_claim = await asyncio.wait_for(
+            run_in_threadpool(
+                verify_offer_claim,
+                text,
+                analysis,
+                resolved_urls,
+                brand_registry=BRAND_REGISTRY,
+            ),
+            timeout=AI_OFFER_CLAIM_TIMEOUT_SECONDS,
+        )
+    except asyncio.TimeoutError:
+        logger.warning("Offer claim web check timed out.")
+        offer_claim = {
+            "provider": "ai_offer_web_check",
+            "status": "inconclusive",
+            "verdict": "inconclusive",
+            "severity": "unknown",
+            "summary": "Offer claim web check timed out.",
+            "details": "Offer claim web check timed out.",
+            "confidence": 0,
+            "evidence_urls": [],
+            "method": "timeout",
+        }
+    except Exception as exc:
+        logger.warning("Offer claim web check failed: %s", exc)
+        offer_claim = {
+            "provider": "ai_offer_web_check",
+            "status": "inconclusive",
+            "verdict": "inconclusive",
+            "severity": "unknown",
+            "summary": f"Offer claim web check failed: {type(exc).__name__}.",
+            "details": f"Offer claim web check failed: {type(exc).__name__}.",
+            "confidence": 0,
+            "evidence_urls": [],
+            "method": "error",
+        }
+
+    _attach_offer_claim_verification(analysis, offer_claim)
+    return offer_claim
+
+
+@app.get("/")
+def read_root():
+    return {
+        "project": "SigurScan",
+        "status": "active",
+        "version": "1.0",
+        "api_docs": "/docs",
+        "privacy_policy": "/privacy",
+    }
+
+
+PRIVACY_POLICY_HTML = """<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Politica de confidentialitate SigurScan</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.6; margin: 0; color: #172033; background: #f7f9fc; }
+    main { max-width: 860px; margin: 0 auto; padding: 40px 20px 64px; }
+    section { background: #fff; border: 1px solid #dfe7f3; border-radius: 18px; padding: 24px; margin: 18px 0; }
+    h1, h2 { line-height: 1.2; }
+    h1 { font-size: 2rem; margin-bottom: 8px; }
+    h2 { font-size: 1.2rem; margin-top: 0; }
+    .muted { color: #647089; }
+    li { margin: 8px 0; }
+    code { background: #eef3ff; border-radius: 6px; padding: 2px 6px; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Politica de confidentialitate SigurScan</h1>
+  <p class="muted">Ultima actualizare: 3 iunie 2026</p>
+
+  <section>
+    <h2>Principiul de baza</h2>
+    <p>SigurScan scaneaza doar continut pe care utilizatorul alege explicit sa il verifice. Aplicatia nu citeste automat notificari, SMS-uri, inbox Gmail/Outlook/Yahoo, clipboard sau alte aplicatii in fundal.</p>
+  </section>
+
+  <section>
+    <h2>Ce date pot fi procesate</h2>
+    <ul>
+      <li>text sau link introdus manual;</li>
+      <li>continut primit prin Android Share Intent, inclusiv HTML daca aplicatia sursa il furnizeaza;</li>
+      <li>URL-uri vizibile si URL-uri ascunse in HTML sub butoane/linkuri;</li>
+      <li>imagini, coduri QR, PDF-uri sau fisiere selectate manual de utilizator;</li>
+      <li>feedback trimis explicit de utilizator despre un verdict.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Cum folosim datele</h2>
+    <p>Datele sunt folosite pentru a extrage linkuri, a urmari redirecturi, a verifica reputatia URL-urilor si a afisa un verdict simplu de risc. Inainte de analiza, backend-ul aplica redactare pentru date precum email, telefon, IBAN si coduri OTP unde este posibil.</p>
+  </section>
+
+  <section>
+    <h2>Servicii terte</h2>
+    <p>Pentru scanari declansate de utilizator, SigurScan poate folosi servicii terte prin backend:</p>
+    <ul>
+      <li><strong>urlscan.io</strong> pentru sandbox si preview securizat al paginii finale;</li>
+      <li><strong>Google Web Risk</strong> pentru verificari de malware/phishing/social engineering;</li>
+      <li><strong>VirusTotal</strong> doar ca fallback/intaritor cand este configurat cu licenta potrivita;</li>
+      <li><strong>Supabase</strong> pentru evenimente agregate, feedback si campanii comunitare;</li>
+      <li>provider AI optional pentru explicatii, cu fallback local cand este dezactivat.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Ce nu facem</h2>
+    <ul>
+      <li>nu monitorizam automat inbox, SMS-uri, notificari sau clipboard;</li>
+      <li>nu cerem permisiuni de citire SMS, contacte, apeluri sau media larga;</li>
+      <li>nu vindem date personale;</li>
+      <li>nu trimitem scanari fara actiunea explicita a utilizatorului.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Securitate si retentie</h2>
+    <p>Comunicarea cu backend-ul se face prin HTTPS. Cheile providerilor nu sunt incluse in aplicatia Android de productie. Cache-ul de reputatie foloseste hash-uri si TTL-uri pentru a reduce apelurile repetate la provideri.</p>
+  </section>
+
+  <section>
+    <h2>Contact</h2>
+    <p>Pentru solicitari privind confidentialitatea sau stergerea feedbackului trimis, contacteaza echipa SigurScan la <code>privacy@sigurscan.ro</code>.</p>
+  </section>
+</main>
+</body>
+</html>"""
+
+
+@app.get("/privacy", response_class=HTMLResponse)
+@app.get("/privacy-policy", response_class=HTMLResponse)
+def privacy_policy() -> HTMLResponse:
+    return HTMLResponse(content=PRIVACY_POLICY_HTML)
+
+
+@app.get("/health")
+@app.get("/healthz")
+def read_health():
+    return {
+        "status": "ok",
+        "service": "SigurScan API",
+        "version": "1.0",
+        "timestamp": int(time.time()),
+    }
+
+
+def _require_urlscan_key() -> None:
+    if PRIVACY_SAFE_MODE:
+        raise HTTPException(
+            status_code=503,
+            detail="Sandbox dezactivat in SIGURSCAN_SAFE_MODE.",
+        )
+    if not URLSCAN_API_KEY:
+        raise HTTPException(
+            status_code=503,
+            detail="urlscan.io nu este configurat pe backend.",
+        )
+
+
+def _validate_sandbox_url(raw_url: str) -> str:
+    url = _canonicalize_url(_normalise_obfuscated_text(raw_url or ""))
+    if not url:
+        raise HTTPException(status_code=400, detail="URL invalid sau format neacceptat.")
+    blocked_reason = _is_scan_target_blocked(url)
+    if blocked_reason:
+        raise HTTPException(status_code=400, detail=f"URL blocat pentru sandbox: {blocked_reason}")
+    return url
+
+
+def _safe_urlscan_visibility(raw_visibility: str | None) -> str:
+    visibility = (raw_visibility or URLSCAN_VISIBILITY_DEFAULT or "private").strip().lower()
+    if visibility not in {"private", "unlisted", "public"}:
+        return "private"
+    # Public submissions can expose user URLs. Keep backend default privacy-first.
+    return "unlisted" if visibility == "public" else visibility
+
+
+def _urlscan_headers() -> Dict[str, str]:
+    return {
+        "api-key": URLSCAN_API_KEY,
+        "accept": "application/json",
+    }
+
+
+def _urlscan_report_url(uuid: str) -> str:
+    return f"https://urlscan.io/result/{uuid}/"
+
+
+def _urlscan_direct_screenshot_url(uuid: str) -> str:
+    safe_uuid = re.sub(r"[^A-Za-z0-9._-]", "", uuid or "")
+    return f"https://urlscan.io/screenshots/{safe_uuid}.png"
+
+
+async def _urlscan_screenshot_is_ready(uuid: str) -> bool:
+    safe_uuid = re.sub(r"[^A-Za-z0-9._-]", "", uuid or "")
+    if not safe_uuid:
+        return False
+
+    def fetch_headline() -> bool:
+        response = requests.get(
+            _urlscan_direct_screenshot_url(safe_uuid),
+            headers={"api-key": URLSCAN_API_KEY},
+            timeout=min(URLSCAN_TIMEOUT_SECONDS, 4.0),
+            stream=True,
+        )
+        try:
+            content_type = (response.headers.get("content-type") or "").lower()
+            return response.status_code < 400 and ("image/" in content_type or "png" in content_type)
+        finally:
+            close = getattr(response, "close", None)
+            if callable(close):
+                close()
+
+    return bool(await run_in_threadpool(fetch_headline))
+
+
+def _summarize_urlscan_payload(payload: Dict[str, Any], uuid: str, request: Request) -> Dict[str, Any]:
+    page = payload.get("page") if isinstance(payload.get("page"), dict) else {}
+    task = payload.get("task") if isinstance(payload.get("task"), dict) else {}
+    verdicts = payload.get("verdicts") if isinstance(payload.get("verdicts"), dict) else {}
+    overall = verdicts.get("overall") if isinstance(verdicts.get("overall"), dict) else {}
+    urlscan = verdicts.get("urlscan") if isinstance(verdicts.get("urlscan"), dict) else {}
+    brands = payload.get("brands") if isinstance(payload.get("brands"), list) else []
+    lists = overall.get("categories") or urlscan.get("categories") or []
+    if not isinstance(lists, list):
+        lists = []
+
+    malicious = bool(overall.get("malicious") or urlscan.get("malicious"))
+    suspicious = bool(overall.get("suspicious") or urlscan.get("suspicious"))
+    score = int(overall.get("score") or urlscan.get("score") or 0)
+    categories = [str(item) for item in lists if item]
+
+    if malicious:
+        verdict = "Malicious phishing" if any("phish" in item.lower() for item in categories) else "Malicious"
+        severity = "high"
+    elif suspicious or score >= 50:
+        verdict = "Suspicious"
+        severity = "medium"
+    else:
+        verdict = "No malicious classification"
+        severity = "low"
+
+    final_url = page.get("url") or task.get("url")
+    server = page.get("server")
+    ip_address = page.get("ip")
+    country = page.get("country")
+    detail_parts = [
+        f"urlscan verdict={verdict}",
+        f"score={score}",
+    ]
+    if categories:
+        detail_parts.append(f"categories={','.join(categories[:4])}")
+    if brands:
+        detail_parts.append(f"brands={','.join(str(item) for item in brands[:4])}")
+    if ip_address:
+        detail_parts.append(f"ip={ip_address}")
+    if country:
+        detail_parts.append(f"country={country}")
+    if server:
+        detail_parts.append(f"server={server}")
+
+    return {
+        "uuid": uuid,
+        "status": "finished",
+        "verdict": verdict,
+        "severity": severity,
+        "details": "; ".join(detail_parts),
+        "final_url": final_url,
+        "report_url": _urlscan_report_url(uuid),
+        "screenshot_url": str(request.url_for("urlscan_screenshot", uuid=uuid)),
+        "score": score,
+        "categories": categories,
+        "brands": brands[:4],
+    }
+
+
+ORCHESTRATED_JOB_TTL_SECONDS = int(os.getenv("ORCHESTRATED_JOB_TTL_SECONDS", "900"))
+_ORCHESTRATED_SCAN_JOBS: Dict[str, Dict[str, Any]] = {}
+
+
+def _persist_orchestrated_job(job: Dict[str, Any]) -> None:
+    if not isinstance(job, dict) or not job.get("scan_id"):
+        return
+    _ORCHESTRATED_SCAN_JOBS[str(job["scan_id"])] = job
+    supabase_store.save_scan_job(job)
+
+
+def _load_orchestrated_job(scan_id: str) -> Optional[Dict[str, Any]]:
+    job = _ORCHESTRATED_SCAN_JOBS.get(scan_id)
+    if isinstance(job, dict):
+        return job
+    job = supabase_store.load_scan_job(scan_id)
+    if isinstance(job, dict):
+        _ORCHESTRATED_SCAN_JOBS[scan_id] = job
+        return job
+    return None
+
+
+def _prune_orchestrated_jobs() -> None:
+    now = int(time.time())
+    expired = [
+        scan_id
+        for scan_id, job in _ORCHESTRATED_SCAN_JOBS.items()
+        if now - int(job.get("created_at", now)) > ORCHESTRATED_JOB_TTL_SECONDS
+    ]
+    for scan_id in expired:
+        _ORCHESTRATED_SCAN_JOBS.pop(scan_id, None)
+
+
+def _pillar(status: str, *, required: bool = True, details: str = "", ref: Optional[str] = None) -> Dict[str, Any]:
+    payload: Dict[str, Any] = {
+        "status": status,
+        "required": bool(required),
+    }
+    if details:
+        payload["details"] = details
+    if ref:
+        payload["ref"] = ref
+    return payload
+
+
+def _provider_pillar_from_summary(summary: Dict[str, Any], source_name: str) -> Dict[str, Any]:
+    raw = summary.get(source_name)
+    if not isinstance(raw, dict):
+        return _pillar("error", details=f"{source_name} nu a returnat rezultat.")
+    status = _source_status(summary, source_name)
+    consulted = bool(raw.get("consulted", False))
+    if consulted and status not in {"missing", "unknown", "error"}:
+        return _pillar("ok", details=status)
+    if status == "error":
+        return _pillar("error", details=str(raw.get("error") or raw.get("details") or "provider error"))
+    return _pillar("pending" if not consulted else "error", details=status or "unknown")
+
+
+def _claim_verifier_required(analysis: Dict[str, Any]) -> bool:
+    claimed = str(analysis.get("claimed_brand") or "").strip().lower()
+    if claimed and claimed not in {"nespecificat", "unknown", "none"}:
+        return True
+    evidence = analysis.get("evidence", {}) if isinstance(analysis.get("evidence"), dict) else {}
+    if evidence.get("has_domain_mismatch"):
+        return True
+    reasons = " ".join(str(item).lower() for item in analysis.get("reasons", []) if item)
+    markers = (
+        "ofert",
+        "promo",
+        "voucher",
+        "campanie",
+        "catalog",
+        "curier",
+        "colet",
+        "anaf",
+        "banc",
+        "otp",
+        "card",
+        "plata",
+        "plată",
+        "cont",
+    )
+    return any(marker in reasons for marker in markers)
+
+
+def _build_orchestrated_pillars(job: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    analysis = job.get("analysis") if isinstance(job.get("analysis"), dict) else {}
+    evidence = analysis.get("evidence", {}) if isinstance(analysis.get("evidence"), dict) else {}
+    summary = evidence.get("external_intel_summary") if isinstance(evidence.get("external_intel_summary"), dict) else {}
+    resolved_urls = job.get("resolved_urls") if isinstance(job.get("resolved_urls"), list) else []
+    final_url = job.get("primary_final_url") or _first_final_url(resolved_urls)
+
+    claim = evidence.get("offer_claim_verification") if isinstance(evidence.get("offer_claim_verification"), dict) else {}
+    claim_status = str(claim.get("status") or "").strip().lower()
+    claim_required = bool(job.get("claim_verifier_required", _claim_verifier_required(analysis)))
+
+    urlscan_state = job.get("urlscan") if isinstance(job.get("urlscan"), dict) else {}
+    urlscan_status = str(urlscan_state.get("status") or "").strip().lower()
+    screenshot_ready = bool(urlscan_state.get("screenshot_ready"))
+    if urlscan_status == "finished" and screenshot_ready:
+        urlscan_pillar = _pillar("ok", details=str(urlscan_state.get("verdict") or "finished"), ref=urlscan_state.get("uuid"))
+    elif urlscan_status == "finished":
+        urlscan_pillar = _pillar("pending", details="urlscan result este gata, captura inca se proceseaza.", ref=urlscan_state.get("uuid"))
+    elif urlscan_status in {"error", "timeout", "rate_limited", "skipped"}:
+        urlscan_pillar = _pillar("error", details=str(urlscan_state.get("details") or urlscan_status), ref=urlscan_state.get("uuid"))
+    elif urlscan_state.get("uuid"):
+        urlscan_pillar = _pillar("pending", details="urlscan preview este in procesare.", ref=urlscan_state.get("uuid"))
+    else:
+        urlscan_pillar = _pillar("error", details="urlscan preview nu a pornit.")
+
+    return {
+        "final_url": _pillar("ok" if final_url else "pending", details=str(final_url or "se rezolva destinatia finala")),
+        "google_web_risk": _provider_pillar_from_summary(summary, "google_web_risk"),
+        "virustotal": _provider_pillar_from_summary(summary, "virustotal"),
+        "urlscan": urlscan_pillar,
+        "claim_verifier": _pillar(
+            "ok" if claim_status in {"confirmed", "not_found", "inconclusive", "skipped"} else ("pending" if claim_required else "not_required"),
+            required=claim_required,
+            details=claim_status or ("required" if claim_required else "not required"),
+        ),
+    }
+
+
+def _all_required_pillars_ok(pillars: Dict[str, Dict[str, Any]]) -> bool:
+    return all(
+        not pillar.get("required", True) or pillar.get("status") == "ok"
+        for pillar in pillars.values()
+    )
+
+
+def _has_required_pillar_error(pillars: Dict[str, Dict[str, Any]]) -> bool:
+    return any(
+        pillar.get("required", True) and pillar.get("status") == "error"
+        for pillar in pillars.values()
+    )
+
+
+def _first_final_url(resolved_urls: List[Dict[str, Any]]) -> Optional[str]:
+    for entry in resolved_urls:
+        final_url = entry.get("final_url") or entry.get("url") or entry.get("original_url")
+        if isinstance(final_url, str) and final_url.strip():
+            return final_url.strip()
+    return None
+
+
+def _select_primary_resolved_url(resolved_urls: List[Dict[str, Any]], analysis: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    if not resolved_urls:
+        return None
+    claimed_brand = str(analysis.get("claimed_brand") or "Nespecificat")
+
+    def suspicion_score(entry: Dict[str, Any]) -> int:
+        final_url = str(entry.get("final_url") or entry.get("url") or "")
+        parsed = urllib.parse.urlparse(final_url)
+        hostname = (entry.get("final_hostname") or parsed.hostname or "").lower()
+        reg_domain = str(entry.get("final_registered_domain") or entry.get("registered_domain") or "").lower()
+        score = 0
+        if not engine._is_context_allowed_domain(reg_domain, hostname=hostname, claimed_brand=claimed_brand):
+            score += 90
+        if entry.get("uses_shortener"):
+            score += 30
+        try:
+            score += min(int(entry.get("redirect_count") or 0), 5) * 5
+        except Exception:
+            pass
+        if any(token in final_url.lower() for token in ("unsubscribe", "dezabon", "privacy", "terms")):
+            score -= 40
+        return score
+
+    return max(resolved_urls, key=suspicion_score)
+
+
+def _urlscan_provider_payload(summary: Dict[str, Any]) -> Dict[str, Any]:
+    verdict = str(summary.get("verdict") or "").strip()
+    severity = str(summary.get("severity") or "unknown").strip().lower()
+    normalized_status = "clean"
+    if severity == "high" or any(token in verdict.lower() for token in ("malicious", "phishing", "malware")):
+        normalized_status = "malicious"
+    elif severity == "medium" or "suspicious" in verdict.lower():
+        normalized_status = "suspicious"
+
+    return {
+        "status": normalized_status,
+        "verdict": verdict or normalized_status,
+        "severity": severity or "unknown",
+        "consulted": True,
+        "details": summary.get("details", ""),
+        "score": summary.get("score", 0),
+        "final_url": summary.get("final_url"),
+        "report_url": summary.get("report_url"),
+        "screenshot_url": summary.get("screenshot_url"),
+    }
+
+
+def _orchestrated_status_payload(job: Dict[str, Any]) -> Dict[str, Any]:
+    pillars = _build_orchestrated_pillars(job)
+    preview = job.get("preview") if isinstance(job.get("preview"), dict) else {}
+    result = job.get("result") if isinstance(job.get("result"), dict) else None
+    if result is not None:
+        status = "complete"
+    elif _has_required_pillar_error(pillars):
+        status = "incomplete"
+    elif _all_required_pillars_ok(pillars):
+        status = "ready"
+    else:
+        status = "scanning"
+    job["status"] = status
+    return {
+        "scan_id": job["scan_id"],
+        "status": status,
+        "status_message": (
+            "Scanarea este finalizata."
+            if status == "complete"
+            else "Scanarea continua pana cand pilonii necesari returneaza date."
+            if status == "scanning"
+            else "Scanarea nu are toti pilonii necesari pentru verdict sigur."
+        ),
+        "pillars": pillars,
+        "preview": preview,
+        "result": result,
+    }
+
+
+async def _submit_orchestrated_urlscan(
+    url: str,
+    payload: OrchestratedScanRequest,
+    request: Request,
+) -> Dict[str, Any]:
+    try:
+        submission = await submit_urlscan_sandbox(
+            UrlscanSandboxRequest(
+                url=url,
+                visibility=payload.visibility,
+                country=payload.country,
+                customagent=payload.customagent,
+                source_channel=payload.source_channel,
+            ),
+            request,
+        )
+        return {
+            "uuid": submission.get("uuid"),
+            "status": "pending",
+            "submitted_url": submission.get("submitted_url") or url,
+            "report_url": submission.get("report_url"),
+            "result_url": submission.get("result_url"),
+            "screenshot_url": submission.get("screenshot_url"),
+        }
+    except HTTPException as exc:
+        return {
+            "status": "error",
+            "details": str(exc.detail),
+            "submitted_url": url,
+        }
+
+
+def _build_orchestrated_text_context(payload: OrchestratedScanRequest) -> Dict[str, Any]:
+    input_type = (payload.input_type or "text").strip().lower()
+    source_channel = payload.source_channel or "android_native"
+
+    if input_type == "url":
+        url = _canonicalize_url(_normalise_obfuscated_text(payload.url or payload.text or ""))
+        if not url:
+            raise HTTPException(status_code=400, detail="URL invalid sau format neacceptat.")
+        return {
+            "input_type": "url",
+            "source_channel": source_channel,
+            "raw_text": f"Link: {url}",
+            "urls": [url],
+            "extra_fields": {"input_url": payload.url or payload.text, "canonical_url": url},
+        }
+
+    if input_type in {"email", "email_html", "html"}:
+        html_to_parse = _normalise_obfuscated_text(payload.html_content or payload.text or "")
+        _validate_text_input("Conținutul HTML trimis", html_to_parse, MAX_TEXT_CHARS * 8)
+        soup = BeautifulSoup(html_to_parse, "html.parser")
+        click_targets = _collect_click_targets_from_html(soup)
+        discovered_urls: List[str] = []
+        buttons: List[Dict[str, Any]] = []
+        cta_words = ["verific", "confirm", "plăte", "plate", "cont", "login", "conect", "intrare", "detalii", "colet", "awb", "reactivare", "urgent"]
+        for target in click_targets:
+            raw_url = target.get("original_url")
+            if not raw_url or raw_url in discovered_urls:
+                continue
+            discovered_urls.append(raw_url)
+            button_text = str(target.get("button_text") or "")
+            buttons.append(
+                {
+                    "button_text": button_text,
+                    "original_url": raw_url,
+                    "is_sensitive_cta": any(word in button_text.lower() for word in cta_words),
+                    "source_tag": target.get("source_tag"),
+                    "source_attr": target.get("source_attr"),
+                }
+            )
+        visible_text = soup.get_text(separator=" ", strip=True)
+        for url in extract_urls(visible_text):
+            if url not in discovered_urls:
+                discovered_urls.append(url)
+        inferred_brand_hints = _infer_brand_hints_from_click_targets(click_targets)
+        raw_text = "\n".join(part for part in [visible_text, " ".join(inferred_brand_hints)] if part.strip())
+        return {
+            "input_type": "email",
+            "source_channel": source_channel,
+            "raw_text": raw_text,
+            "urls": discovered_urls,
+            "extra_fields": {
+                "buttons": buttons,
+                "inferred_brand_hints": inferred_brand_hints,
+                "is_forwarded_warning": True,
+            },
+        }
+
+    raw_text = _normalise_obfuscated_text((payload.text or payload.url or "").strip())
+    _validate_text_input("Textul trimis", raw_text, MAX_TEXT_CHARS)
+    return {
+        "input_type": "text",
+        "source_channel": source_channel,
+        "raw_text": raw_text,
+        "urls": extract_urls(raw_text),
+        "extra_fields": {},
+    }
+
+
+async def _create_orchestrated_job(payload: OrchestratedScanRequest, request: Request) -> Dict[str, Any]:
+    context = _build_orchestrated_text_context(payload)
+    urls = context["urls"]
+    resolved_urls = _safe_scan_url_list(urls)
+    redacted_text = redact_pii(context["raw_text"])
+    analysis = _analyze_with_reputation(redacted_text, resolved_urls, fast_reputation=True)
+    analysis.setdefault("evidence", {})["source_channel"] = context["source_channel"]
+    await _enrich_offer_claim_verification_async(redacted_text, analysis, resolved_urls)
+    claim_required = _claim_verifier_required(analysis)
+
+    primary_entry = _select_primary_resolved_url(resolved_urls, analysis)
+    primary_final_url = None
+    if primary_entry:
+        primary_final_url = primary_entry.get("final_url") or primary_entry.get("url") or primary_entry.get("original_url")
+
+    scan_id = _new_scan_id("orch")
+    urlscan_state: Dict[str, Any] = {"status": "skipped", "details": "Nu exista URL pentru preview."}
+    if primary_final_url:
+        urlscan_state = await _submit_orchestrated_urlscan(str(primary_final_url), payload, request)
+
+    extra_fields = dict(context.get("extra_fields") or {})
+    extra_fields.update(
+        {
+            "resolved_urls": resolved_urls,
+            "orchestrated": True,
+        }
+    )
+    job = {
+        "scan_id": scan_id,
+        "created_at": int(time.time()),
+        "expires_at": int(time.time()) + ORCHESTRATED_JOB_TTL_SECONDS,
+        "status": "scanning",
+        "input_type": context["input_type"],
+        "source_channel": context["source_channel"],
+        "redacted_text": redacted_text,
+        "analysis": analysis,
+        "resolved_urls": resolved_urls,
+        "primary_final_url": primary_final_url,
+        "claim_verifier_required": claim_required,
+        "urlscan": urlscan_state,
+        "preview": {
+            "screenshot_url": urlscan_state.get("screenshot_url"),
+            "report_url": urlscan_state.get("report_url"),
+            "final_url": primary_final_url,
+        },
+        "extra_fields": extra_fields,
+    }
+    _persist_orchestrated_job(job)
+    return job
+
+
+async def _refresh_orchestrated_job(job: Dict[str, Any], request: Request) -> Dict[str, Any]:
+    urlscan_state = job.get("urlscan") if isinstance(job.get("urlscan"), dict) else {}
+    if urlscan_state.get("uuid") and str(urlscan_state.get("status") or "").lower() == "pending":
+        result = await get_urlscan_result(str(urlscan_state["uuid"]), request)
+        if str(result.get("status") or "").lower() != "pending":
+            screenshot_ready = await _urlscan_screenshot_is_ready(str(urlscan_state["uuid"]))
+            urlscan_state.update(result)
+            urlscan_state["screenshot_ready"] = screenshot_ready
+            urlscan_state["status"] = "finished" if screenshot_ready else "pending"
+            if not screenshot_ready:
+                urlscan_state["details"] = "urlscan result este gata, dar captura paginii finale inca nu este disponibila."
+            job["urlscan"] = urlscan_state
+            preview = job.setdefault("preview", {})
+            preview["screenshot_url"] = result.get("screenshot_url") or preview.get("screenshot_url")
+            preview["report_url"] = result.get("report_url") or preview.get("report_url")
+            preview["final_url"] = result.get("final_url") or preview.get("final_url")
+            if result.get("final_url"):
+                job["primary_final_url"] = result.get("final_url")
+                resolved_urls = job.get("resolved_urls") if isinstance(job.get("resolved_urls"), list) else []
+                if resolved_urls:
+                    resolved_urls[0]["final_url"] = result.get("final_url")
+                    resolved_urls[0]["final_hostname"] = urllib.parse.urlparse(str(result.get("final_url"))).hostname
+                    resolved_urls[0]["final_registered_domain"] = _extract_domain_root(resolved_urls[0].get("final_hostname"))
+
+            analysis = job.get("analysis") if isinstance(job.get("analysis"), dict) else {}
+            evidence = analysis.setdefault("evidence", {})
+            summary = evidence.setdefault("external_intel_summary", {})
+            if isinstance(summary, dict):
+                summary["urlscan"] = _urlscan_provider_payload(result)
+
+    pillars = _build_orchestrated_pillars(job)
+    if _all_required_pillars_ok(pillars) and not isinstance(job.get("result"), dict):
+        analysis = job.get("analysis") if isinstance(job.get("analysis"), dict) else {}
+        resolved_urls = job.get("resolved_urls") if isinstance(job.get("resolved_urls"), list) else []
+        _apply_provider_gate_verdict(analysis, resolved_urls)
+        ai_explanation = await _build_ai_explanation_async(job.get("redacted_text", ""), analysis, resolved_urls)
+        scan_id = job["scan_id"]
+        response_payload = _build_scan_response(
+            "scan",
+            analysis,
+            job.get("redacted_text", ""),
+            ai_explanation,
+            scan_id=scan_id,
+            extra_fields=job.get("extra_fields") if isinstance(job.get("extra_fields"), dict) else {},
+        )
+        response_payload.setdefault("evidence", {}).setdefault("orchestration", {})
+        response_payload["evidence"]["orchestration"] = {
+            "pillars": pillars,
+            "preview": job.get("preview", {}),
+        }
+        job["result"] = response_payload
+        _emit_scan_event(
+            scan_id=scan_id,
+            scan_payload=response_payload,
+            analysis=analysis,
+            resolved_urls=resolved_urls,
+            input_channel=job.get("input_type", "text"),
+            source_channel=job.get("source_channel"),
+        )
+    return job
+
+
+@app.post("/v1/scan/orchestrated")
+async def start_orchestrated_scan(payload: OrchestratedScanRequest, request: Request):
+    """
+    Starts the product-grade scan pipeline:
+    intake -> URL extraction/final URL -> Web Risk/VT -> urlscan preview -> claim verifier -> gate.
+    It does not return a final safe verdict while required pillars are still pending.
+    """
+    _prune_orchestrated_jobs()
+    job = await _create_orchestrated_job(payload, request)
+    response = _orchestrated_status_payload(job)
+    _persist_orchestrated_job(job)
+    return response
+
+
+@app.get("/v1/scan/orchestrated/{scan_id}")
+async def get_orchestrated_scan(scan_id: str, request: Request):
+    _prune_orchestrated_jobs()
+    job = _load_orchestrated_job(scan_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Scanarea nu a fost gasita sau a expirat.")
+    job = await _refresh_orchestrated_job(job, request)
+    response = _orchestrated_status_payload(job)
+    _persist_orchestrated_job(job)
+    return response
+
+
+@app.post("/v1/sandbox/urlscan")
+async def submit_urlscan_sandbox(payload: UrlscanSandboxRequest, request: Request):
+    _require_urlscan_key()
+    url = _validate_sandbox_url(payload.url)
+    visibility = _safe_urlscan_visibility(payload.visibility)
+
+    def build_submit_payload(selected_visibility: str, include_persona: bool = True) -> Dict[str, Any]:
+        submit_payload: Dict[str, Any] = {
+            "url": url,
+            "visibility": selected_visibility,
+            "tags": ["sigurscan", "android", payload.source_channel or "android_native"],
+        }
+        if include_persona:
+            country = (payload.country or URLSCAN_COUNTRY_DEFAULT or "").strip().lower()
+            customagent = (payload.customagent or URLSCAN_CUSTOM_AGENT_DEFAULT or "").strip()
+            if country:
+                submit_payload["country"] = country[:2]
+            if customagent:
+                submit_payload["customagent"] = customagent[:512]
+        return submit_payload
+
+    def submit(selected_visibility: str, include_persona: bool = True) -> requests.Response:
+        return requests.post(
+            "https://urlscan.io/api/v1/scan/",
+            headers=_urlscan_headers(),
+            json=build_submit_payload(selected_visibility, include_persona=include_persona),
+            timeout=URLSCAN_TIMEOUT_SECONDS,
+        )
+
+    response = await run_in_threadpool(submit, visibility)
+    if response.status_code in {400, 422} and (payload.country or payload.customagent or URLSCAN_COUNTRY_DEFAULT or URLSCAN_CUSTOM_AGENT_DEFAULT):
+        response = await run_in_threadpool(submit, visibility, False)
+    if response.status_code in {400, 403, 422} and visibility == "private":
+        response = await run_in_threadpool(submit, "unlisted")
+
+    if response.status_code >= 400:
+        raise HTTPException(
+            status_code=502,
+            detail=f"urlscan.io submission failed: HTTP {response.status_code}",
+        )
+
+    body = response.json()
+    uuid = body.get("uuid")
+    if not uuid:
+        raise HTTPException(status_code=502, detail="urlscan.io nu a returnat uuid.")
+
+    return {
+        "uuid": uuid,
+        "status": "pending",
+        "report_url": _urlscan_report_url(uuid),
+        "result_url": str(request.url_for("get_urlscan_result", uuid=uuid)),
+        "screenshot_url": str(request.url_for("urlscan_screenshot", uuid=uuid)),
+        "submitted_url": url,
+    }
+
+
+@app.get("/v1/sandbox/urlscan/{uuid}", name="get_urlscan_result")
+async def get_urlscan_result(uuid: str, request: Request):
+    _require_urlscan_key()
+    safe_uuid = re.sub(r"[^A-Za-z0-9._-]", "", uuid or "")
+    if not safe_uuid:
+        raise HTTPException(status_code=400, detail="uuid invalid.")
+
+    def fetch_result() -> requests.Response:
+        return requests.get(
+            f"https://urlscan.io/api/v1/result/{safe_uuid}/",
+            headers=_urlscan_headers(),
+            timeout=URLSCAN_TIMEOUT_SECONDS,
+        )
+
+    response = await run_in_threadpool(fetch_result)
+    if response.status_code == 404:
+        return {
+            "uuid": safe_uuid,
+            "status": "pending",
+            "verdict": "Pending",
+            "severity": "unknown",
+            "details": "urlscan.io sandbox inca proceseaza rezultatul.",
+            "report_url": _urlscan_report_url(safe_uuid),
+            "screenshot_url": str(request.url_for("urlscan_screenshot", uuid=safe_uuid)),
+        }
+    if response.status_code >= 400:
+        raise HTTPException(
+            status_code=502,
+            detail=f"urlscan.io result failed: HTTP {response.status_code}",
+        )
+
+    payload = response.json()
+    return _summarize_urlscan_payload(payload, safe_uuid, request)
+
+
+@app.get("/v1/sandbox/urlscan/{uuid}/screenshot", name="urlscan_screenshot")
+async def urlscan_screenshot(uuid: str):
+    _require_urlscan_key()
+    safe_uuid = re.sub(r"[^A-Za-z0-9._-]", "", uuid or "")
+    if not safe_uuid:
+        raise HTTPException(status_code=400, detail="uuid invalid.")
+
+    def fetch_screenshot() -> requests.Response:
+        return requests.get(
+            f"https://urlscan.io/screenshots/{safe_uuid}.png",
+            headers={"api-key": URLSCAN_API_KEY},
+            timeout=URLSCAN_TIMEOUT_SECONDS,
+        )
+
+    response = await run_in_threadpool(fetch_screenshot)
+    if response.status_code >= 400:
+        raise HTTPException(
+            status_code=502,
+            detail=f"urlscan.io screenshot failed: HTTP {response.status_code}",
+        )
+    return Response(
+        content=response.content,
+        media_type=response.headers.get("content-type") or "image/png",
+        headers={"Cache-Control": "private, max-age=300"},
+    )
+
+
+@app.post("/v1/scan/text")
+async def scan_text(request: TextScanRequest):
+    """
+    Main endpoint to scan a suspicious text (SMS, WhatsApp message, etc.).
+    Extracts links, resolves redirects in safety, redacts PII, and generates AI explainers.
+    """
+    raw_text = _normalise_obfuscated_text((request.text or "").strip())
+    _validate_text_input("Textul trimis", raw_text, MAX_TEXT_CHARS)
+
+    logger.info(f"Scanning text from channel: {request.source_channel}")
+
+    # 1. Extract URLs from raw text
+    raw_urls = extract_urls(raw_text)
+    resolved_urls = _safe_scan_url_list(raw_urls)
+
+    # 3. Redact PII (emails, phones, IBANs, OTPs) for privacy by design
+    redacted_text = redact_pii(raw_text)
+
+    # 4. Run rule-based Scam Atlas analysis
+    analysis_results = _analyze_with_reputation(
+        redacted_text,
+        resolved_urls,
+        fast_reputation=True,
+    )
+
+    analysis_results.setdefault("evidence", {})["source_channel"] = request.source_channel
+    await _enrich_offer_claim_verification_async(redacted_text, analysis_results, resolved_urls)
+    _apply_provider_gate_verdict(analysis_results, resolved_urls)
+
+    # 5. Generate AI explainers via Gemini (with local fallback if key missing)
+    ai_explanation = await _build_ai_explanation_async(redacted_text, analysis_results, resolved_urls)
+
+    scan_id = _new_scan_id("scan")
+    response_payload = _build_scan_response(
+        "scan",
+        analysis_results,
+        redacted_text,
+        ai_explanation,
+        scan_id=scan_id,
+    )
+    _emit_scan_event(
+        scan_id=scan_id,
+        scan_payload=response_payload,
+        analysis=analysis_results,
+        resolved_urls=resolved_urls,
+        input_channel="text",
+        source_channel=request.source_channel,
+    )
+    return response_payload
+
+@app.post("/v1/scan/url")
+async def scan_url(request: URLScanRequest):
+    """
+    Follows redirects of a single URL safely and returns domain legitimacy report.
+    """
+    url = _canonicalize_url(_normalise_obfuscated_text(request.url or ""))
+    if not url:
+        raise HTTPException(status_code=400, detail="URL invalid sau format neacceptat.")
+
+    logger.info(f"Scanning single URL: {url}")
+    resolved_urls = _safe_scan_url_list([url])
+    resolved = resolved_urls[0]
+
+    redacted_text = redact_pii(f"Link: {url}")
+    analysis = _analyze_with_reputation(
+        redacted_text,
+        resolved_urls,
+        fast_reputation=True,
+    )
+    await _enrich_offer_claim_verification_async(redacted_text, analysis, resolved_urls)
+    _apply_provider_gate_verdict(analysis, resolved_urls)
+    ai_explanation = await _build_ai_explanation_async(redacted_text, analysis, resolved_urls)
+
+    scan_id = _new_scan_id("url")
+    response_payload = _build_scan_response(
+        "url",
+        analysis,
+        redacted_text,
+        ai_explanation,
+        scan_id=scan_id,
+        extra_fields={
+            "resolved_url_info": resolved,
+            "resolved_urls": resolved_urls,
+            "input_url": request.url,
+            "canonical_url": url,
+        },
+    )
+    _emit_scan_event(
+        scan_id=scan_id,
+        scan_payload=response_payload,
+        analysis=analysis,
+        resolved_urls=resolved_urls,
+        input_channel="url",
+        source_channel=request.source_channel,
+    )
+    return response_payload
+
+@app.post("/v1/scan/email")
+async def scan_email(
+    email_file: Optional[UploadFile] = File(None),
+    html_content: Optional[str] = Form(None),
+    source_channel: Optional[str] = Form("email"),
+):
+    """
+    Parses an email (.eml file or raw HTML content), extracts all links (hidden under buttons),
+    verifies brand legitimacy, and analyzes risk factors.
+    """
+    html_to_parse = ""
+    is_forwarded = True
+    parsed_message: Optional[Message] = None
+
+    if email_file is None and not html_content:
+        raise HTTPException(status_code=400, detail="Trebuie trimis email_file sau html_content.")
+
+    # 1. Ingest Email (.eml) or HTML
+    if email_file:
+        content = await email_file.read()
+        if len(content) > MAX_TEXT_CHARS * 4:
+            raise HTTPException(status_code=413, detail="Fișierul este prea mare.")
+        try:
+            # Parse RFC822 mail contents
+            parsed_message = message_from_bytes(content, policy=policy.default)
+            is_forwarded = False  # It's a raw file, not a copy-paste forward
+            
+            # Find html part
+            html_part = parsed_message.get_body(preferencelist=('html',))
+            if html_part:
+                html_to_parse = html_part.get_content()
+            else:
+                text_part = parsed_message.get_body(preferencelist=('plain',))
+                if text_part:
+                    # Treat plain text as raw text input
+                    html_to_parse = text_part.get_content()
+        except Exception as e:
+            logger.error(f"Error parsing .eml: {e}")
+            raise HTTPException(status_code=400, detail=f"Invalid .eml file format: {e}")
+    elif html_content:
+        if len(html_content) > MAX_TEXT_CHARS * 8:
+            raise HTTPException(status_code=413, detail="Conținutul HTML este prea mare.")
+        html_to_parse = html_content
+
+    html_to_parse = _normalise_obfuscated_text(html_to_parse)
+
+    email_context = _extract_email_auth_context(parsed_message, is_forwarded_guess=is_forwarded)
+
+    if not html_to_parse.strip():
+        fallback_analysis = engine.analyze(" ", urls=[], external_threat_intel={})
+        fallback_ai = await _build_ai_explanation_async(" ", fallback_analysis, [])
+        scan_id = _new_scan_id("email")
+        response_payload = _build_scan_response(
+            "email",
+            fallback_analysis,
+            "",
+            fallback_ai,
+            risk_score=0,
+            risk_level="unknown",
+            reasons=["Corpul e-mailului este gol sau nu a putut fi citit."],
+            scan_id=scan_id,
+            extra_fields={
+                "buttons": [],
+                "is_forwarded_warning": is_forwarded,
+                "safe_actions": ["Trimiteți e-mailul în format .eml original."],
+                "email_auth": email_context,
+                "resolved_urls": [],
+            },
+        )
+        _emit_scan_event(
+            scan_id=scan_id,
+            scan_payload=response_payload,
+            analysis=fallback_analysis,
+            resolved_urls=[],
+            input_channel="email",
+            source_channel=source_channel,
+        )
+        return response_payload
+
+    # 2. Parse HTML and extract clickable targets (links + button-like actions)
+    soup = BeautifulSoup(html_to_parse, 'html.parser')
+    extracted_buttons = []
+    resolved_urls = []
+    discovered_urls: set[str] = set()
+    
+    # Simple list of words that look like CTA buttons
+    cta_words = ["verific", "confirm", "plăte", "cont", "login", "conect", "intrare", "ajutor", "detalii", "colet", "awb", "anulare", "reactivare", "urgent"]
+
+    click_targets = _collect_click_targets_from_html(soup)
+
+    for target in click_targets:
+        raw_url = target["original_url"]
+        button_text = target["button_text"]
+
+        # Analyze CTA sensitivity
+        is_cta = any(word in button_text.lower() for word in cta_words)
+
+        if raw_url in discovered_urls:
+            continue
+        discovered_urls.add(raw_url)
+        resolved = _safe_scan_url_list([raw_url])[0]
+        resolved_urls.append(resolved)
+        
+        extracted_buttons.append({
+            "button_text": button_text,
+            "original_url": raw_url,
+            "final_url": resolved["final_url"],
+            "registered_domain": resolved["final_registered_domain"],
+            "is_sensitive_cta": is_cta,
+            "source_tag": target["source_tag"],
+            "source_attr": target["source_attr"],
+        })
+
+    # Get raw visible text of the email for brand detection
+    visible_text = soup.get_text(separator=' ', strip=True)
+    visible_text_urls = extract_urls(visible_text)
+    for url in visible_text_urls:
+        if url in discovered_urls:
+            continue
+        discovered_urls.add(url)
+        resolved_urls.append(_safe_scan_url_list([url])[0])
+
+    email_subject = parsed_message.get("Subject", "") if parsed_message else ""
+    inferred_brand_hints = _infer_brand_hints_from_click_targets(click_targets)
+    content_for_analysis = "\n".join(
+        part
+        for part in [
+            email_subject,
+            visible_text,
+            " ".join(inferred_brand_hints),
+        ]
+        if part.strip()
+    )
+    redacted_text = redact_pii(content_for_analysis)
+    
+    # 3. Analyze risk
+    analysis = _analyze_with_reputation(
+        redacted_text,
+        resolved_urls,
+        email_context=email_context,
+        fast_reputation=True,
+    )
+    await _enrich_offer_claim_verification_async(redacted_text, analysis, resolved_urls)
+    _apply_provider_gate_verdict(analysis, resolved_urls)
+    
+    # 4. Generate AI Explainer
+    ai_explanation = await _build_ai_explanation_async(redacted_text, analysis, resolved_urls)
+
+    scan_id = _new_scan_id("email")
+    response_payload = _build_scan_response(
+        "email",
+        analysis,
+        redacted_text,
+        ai_explanation,
+        scan_id=scan_id,
+        extra_fields={
+            "buttons": extracted_buttons,
+            "is_forwarded_warning": is_forwarded,
+            "email_auth": email_context,
+            "resolved_urls": resolved_urls,
+            "subject": email_subject,
+            "from": parsed_message.get("From") if parsed_message else None,
+            "reply_to": parsed_message.get("Reply-To") if parsed_message else None,
+            "message_id": parsed_message.get("Message-ID") if parsed_message else None,
+            "inferred_brand_hints": inferred_brand_hints,
+        },
+    )
+    _emit_scan_event(
+        scan_id=scan_id,
+        scan_payload=response_payload,
+        analysis=analysis,
+        resolved_urls=resolved_urls,
+        input_channel="email",
+        source_channel=source_channel,
+    )
+    return response_payload
+
+@app.post("/v1/scan/image")
+async def scan_image(
+    image_file: UploadFile = File(...),
+    source_channel: Optional[str] = Form("image_upload"),
+):
+    """
+    Accepts an uploaded screenshot, runs OCR via Google Vision (if configured),
+    and returns risk verdict with warning that hidden CTA button URLs cannot be inspected
+    from image inputs.
+    """
+    logger.info(f"Received image scan request: {image_file.filename}")
+    filename = image_file.filename or "screenshot.jpg"
+    image_bytes = await image_file.read()
+    if not image_bytes:
+        raise HTTPException(status_code=400, detail="Imaginea încărcată este goală.")
+
+    _validate_file_upload(
+        filename=filename,
+        content_type=image_file.content_type,
+        file_bytes=image_bytes,
+        max_bytes=MAX_IMAGE_BYTES,
+        allowed_exts=ALLOWED_IMAGE_EXTS,
+        allowed_mime_types=ALLOWED_IMAGE_MIME_TYPES,
+    )
+
+    ocr_text, ocr_warning = await extract_text_for_scan(
+        filename=filename,
+        file_bytes=image_bytes,
+        extract_fn=extract_text_with_vision,
+    )
+
+    # 1. Run URL extraction from OCR text
+    urls = extract_urls(ocr_text)
+    resolved_urls = _safe_scan_url_list(urls)
+
+    # 2. Analyze
+    redacted_text = redact_pii(ocr_text)
+    analysis = _analyze_with_reputation(
+        redacted_text,
+        resolved_urls,
+        fast_reputation=True,
+    )
+    await _enrich_offer_claim_verification_async(redacted_text, analysis, resolved_urls)
+    _apply_provider_gate_verdict(analysis, resolved_urls)
+    
+    # 3. Add OCR specific warnings
+    reasons = list(analysis["reasons"])
+    reasons.append("AVERTISMENT OCR: Din capturi de ecran nu se pot citi linkurile reale ascunse sub butoane (e.g. butoane grafice 'Apasă aici').")
+    if ocr_warning:
+        reasons.append(f"AVERTISMENT OCR: {ocr_warning}")
+    
+    risk_level = analysis["risk_level"]
+    score = analysis["risk_score"]
+    if not urls:
+        reasons.append("Verificare parțială: Nu au fost găsite link-uri scrise în text. Dacă imaginea conține butoane grafice, link-urile lor rămân ascunse.")
+
+    # 4. Generate AI explanations
+    ai_explanation = await _build_ai_explanation_async(redacted_text, analysis, resolved_urls)
+
+    scan_id = _new_scan_id("ocr")
+    response_payload = _build_scan_response(
+        "ocr",
+        analysis,
+        redacted_text,
+        ai_explanation,
+        risk_score=score,
+        risk_level=risk_level,
+        reasons=_dedupe_preserve_order(reasons),
+        scan_id=scan_id,
+        extra_fields={
+            "ocr_extracted_text": ocr_text,
+            "hidden_url_visibility": False,
+            "warning": "Pentru securitate deplină, nu vă bazați doar pe screenshot-uri. Trimiteți textul integral sau e-mailul original (.eml).",
+            "resolved_urls": resolved_urls,
+        },
+    )
+    _emit_scan_event(
+        scan_id=scan_id,
+        scan_payload=response_payload,
+        analysis=analysis,
+        resolved_urls=resolved_urls,
+        input_channel="image",
+        source_channel=source_channel,
+    )
+    return response_payload
+
+
+@app.post("/v1/scan/pdf")
+async def scan_pdf(
+    pdf_file: UploadFile = File(...),
+    source_channel: Optional[str] = Form("pdf_upload"),
+):
+    """
+    Accepts an uploaded PDF document, runs OCR via Google Vision (if configured),
+    and returns risk verdict based on extracted text.
+    """
+    logger.info(f"Received PDF scan request: {pdf_file.filename}")
+    filename = pdf_file.filename or "document.pdf"
+    pdf_bytes = await pdf_file.read()
+    if not pdf_bytes:
+        raise HTTPException(status_code=400, detail="PDF-ul încărcat este gol.")
+
+    _validate_file_upload(
+        filename=filename,
+        content_type=pdf_file.content_type,
+        file_bytes=pdf_bytes,
+        max_bytes=MAX_PDF_BYTES,
+        allowed_exts=ALLOWED_PDF_EXTS,
+        allowed_mime_types={"application/pdf"},
+    )
+
+    if not pdf_bytes.startswith(b"%PDF-"):
+        raise HTTPException(status_code=400, detail="Format PDF invalid.")
+
+    ocr_text, ocr_warning = await extract_text_for_scan(
+        filename=filename,
+        file_bytes=pdf_bytes,
+        extract_fn=extract_text_from_pdf_with_vision,
+    )
+
+    # 1. Run URL extraction from OCR text
+    urls = extract_urls(ocr_text)
+    resolved_urls = _safe_scan_url_list(urls)
+
+    # 2. Analyze
+    redacted_text = redact_pii(ocr_text)
+    analysis = _analyze_with_reputation(
+        redacted_text,
+        resolved_urls,
+        fast_reputation=True,
+    )
+    await _enrich_offer_claim_verification_async(redacted_text, analysis, resolved_urls)
+    _apply_provider_gate_verdict(analysis, resolved_urls)
+
+    # 3. Add OCR specific warnings
+    reasons = list(analysis["reasons"])
+    reasons.append("AVERTISMENT OCR: Din PDF-uri nu pot fi verificate linkurile ascunse în elemente grafice.")
+    if ocr_warning:
+        reasons.append(f"AVERTISMENT OCR: {ocr_warning}")
+
+    risk_level = analysis["risk_level"]
+    score = analysis["risk_score"]
+    if not urls:
+        reasons.append("Verificare parțială: Nu au fost găsite link-uri scrise în text. Dacă PDF-ul conține butoane grafice, link-urile lor rămân ascunse.")
+
+    # 4. Generate AI explanations
+    ai_explanation = await _build_ai_explanation_async(redacted_text, analysis, resolved_urls)
+
+    scan_id = _new_scan_id("ocr_pdf")
+    response_payload = _build_scan_response(
+        "ocr_pdf",
+        analysis,
+        redacted_text,
+        ai_explanation,
+        risk_score=score,
+        risk_level=risk_level,
+        reasons=_dedupe_preserve_order(reasons),
+        scan_id=scan_id,
+        extra_fields={
+            "ocr_extracted_text": ocr_text,
+            "hidden_url_visibility": False,
+            "warning": "Rezultatul din OCR pe PDF este parțial dacă documentul conține conținut grafic protejat sau imagini.",
+            "resolved_urls": resolved_urls,
+        },
+    )
+    _emit_scan_event(
+        scan_id=scan_id,
+        scan_payload=response_payload,
+        analysis=analysis,
+        resolved_urls=resolved_urls,
+        input_channel="pdf",
+        source_channel=source_channel,
+    )
+    return response_payload
+
+
+@app.post("/v1/feedback")
+async def submit_feedback(payload: FeedbackRequest):
+    normalized = (payload.feedback or "").strip().lower()
+    if normalized not in {"correct", "false_positive", "false_negative", "uncertain"}:
+        raise HTTPException(
+            status_code=400,
+            detail="feedback trebuie sa fie: correct, false_positive, false_negative sau uncertain.",
+        )
+
+    scan_record = find_scan_record_by_id(payload.scan_id)
+    predicted_is_scam = payload.predicted_is_scam
+    predicted_risk_score = payload.predicted_risk_score
+    risk_level = payload.risk_level
+    signal_ids = payload.signal_ids
+    actual_is_scam = payload.actual_is_scam
+
+    if scan_record:
+        if predicted_is_scam is None:
+            scan_predicted = scan_record.get("predicted_is_scam")
+            if isinstance(scan_predicted, bool):
+                predicted_is_scam = scan_predicted
+        if predicted_risk_score is None:
+            predicted_risk_score = scan_record.get("risk_score")
+        if risk_level is None:
+            risk_level = scan_record.get("risk_level")
+        if not signal_ids:
+            signal_ids = scan_record.get("signal_ids")
+
+    if actual_is_scam is None:
+        if normalized == "false_positive":
+            actual_is_scam = False
+        elif normalized == "false_negative":
+            actual_is_scam = True
+        elif normalized == "correct" and isinstance(predicted_is_scam, bool):
+            actual_is_scam = predicted_is_scam
+
+    log_feedback_event(
+        {
+            "scan_id": payload.scan_id,
+            "feedback": normalized,
+            "actual_is_scam": actual_is_scam,
+            "predicted_is_scam": predicted_is_scam,
+            "predicted_risk_score": predicted_risk_score,
+            "risk_level": risk_level,
+            "signal_ids": signal_ids or [],
+            "source_channel": scan_record.get("source_channel") if scan_record else None,
+            "notes": payload.notes,
+        }
+    )
+    return {
+        "status": "ok",
+        "scan_id": payload.scan_id,
+        "feedback": normalized,
+    }
+
+
+@app.get("/v1/feedback/summary")
+def feedback_summary(
+    source_channel: Optional[str] = None,
+    since_ts: Optional[int] = None,
+    until_ts: Optional[int] = None,
+    include_examples: bool = False,
+    max_examples_per_type: int = 20,
+):
+    rows = load_feedback_records()
+    summary = summarize_feedback_records(
+        rows,
+        source_channel=source_channel,
+        since_ts=since_ts,
+        until_ts=until_ts,
+        include_examples=include_examples,
+        max_examples_per_type=max_examples_per_type,
+    )
+    return {"summary": summary}
+
+
+@app.get("/v1/reputation/cache/stats")
+def reputation_cache_stats() -> Dict[str, Any]:
+    return {"cache": get_reputation_cache_stats()}
+
+
+@app.get("/v1/evaluation/feedback")
+def feedback_evaluation_quality(
+    source_channel: Optional[str] = None,
+    since_ts: Optional[int] = None,
+    until_ts: Optional[int] = None,
+    include_uncertain: bool = False,
+    include_examples: bool = True,
+    max_examples_per_type: int = 50,
+    run_sweep: bool = True,
+    sweep_start: int = 0,
+    sweep_end: int = 100,
+    sweep_step: int = 5,
+    sweep_metric: str = "f1",
+):
+    return _build_feedback_quality_payload(
+        source_channel=source_channel,
+        since_ts=since_ts,
+        until_ts=until_ts,
+        include_uncertain=include_uncertain,
+        include_examples=include_examples,
+        max_examples_per_type=max_examples_per_type,
+        run_sweep=run_sweep,
+        sweep_start=sweep_start,
+        sweep_end=sweep_end,
+        sweep_step=sweep_step,
+        sweep_metric=sweep_metric,
+    )
+
+
+@app.get("/v1/evaluation/run")
+def run_evaluation_endpoint(
+    dataset_path: Optional[str] = None,
+    risk_threshold: int = RISK_THRESHOLD,
+    max_rows: Optional[int] = None,
+    disable_redirects: bool = False,
+    disable_reputation: bool = False,
+    run_sweep: bool = False,
+    sweep_start: int = 0,
+    sweep_end: int = 100,
+    sweep_step: int = 5,
+    sweep_metric: str = "f1",
+):
+    if max_rows is not None and max_rows <= 0:
+        raise HTTPException(status_code=400, detail="max_rows trebuie sa fie strict pozitiv.")
+    if sweep_step <= 0:
+        raise HTTPException(status_code=400, detail="sweep_step trebuie sa fie strict pozitiv.")
+    if sweep_end < sweep_start:
+        raise HTTPException(status_code=400, detail="sweep_end trebuie sa fie mai mare sau egal cu sweep_start.")
+
+    path = _resolve_eval_dataset_path(dataset_path)
+    evaluate_module = importlib.import_module("eval.evaluate")
+    run_evaluation = getattr(evaluate_module, "run_evaluation")
+    run_threshold_sweep = getattr(evaluate_module, "run_threshold_sweep")
+
+    baseline = run_evaluation(
+        path,
+        risk_threshold=risk_threshold,
+        max_rows=max_rows,
+        disable_redirects=disable_redirects,
+        disable_reputation=disable_reputation,
+    )
+
+    response = {
+        "dataset_path": str(path),
+        "generated_at": int(time.time()),
+        "run_options": {
+            "risk_threshold": risk_threshold,
+            "max_rows": max_rows,
+            "disable_redirects": disable_redirects,
+            "disable_reputation": disable_reputation,
+        },
+        "baseline": baseline,
+    }
+
+    if run_sweep:
+        sweep = run_threshold_sweep(
+            path,
+            disable_redirects=disable_redirects,
+            disable_reputation=disable_reputation,
+            sweep_start=sweep_start,
+            sweep_end=sweep_end,
+            sweep_step=sweep_step,
+            optimize_metric=sweep_metric,
+            max_rows=max_rows,
+        )
+        response["threshold_sweep"] = sweep
+        response["recommended_threshold"] = sweep["best"]["risk_threshold"]
+
+        best_threshold = sweep["best"].get("risk_threshold")
+        if isinstance(best_threshold, int):
+            response["best_eval"] = run_evaluation(
+                path,
+                risk_threshold=best_threshold,
+                max_rows=max_rows,
+                disable_redirects=disable_redirects,
+                disable_reputation=disable_reputation,
+            )
+
+    return response
+
+
+@app.get("/v1/feedback/samples")
+def feedback_samples(
+    source_channel: Optional[str] = None,
+    since_ts: Optional[int] = None,
+    until_ts: Optional[int] = None,
+    include_uncertain: bool = False,
+    include_examples: bool = True,
+    max_examples_per_type: int = 50,
+    error_category: Optional[str] = None,
+):
+    feedback_rows = load_feedback_records()
+    scan_rows = load_scan_records()
+    dataset_rows = build_feedback_evaluation_rows(
+        feedback_rows,
+        scan_rows,
+        source_channel=source_channel,
+        since_ts=since_ts,
+        until_ts=until_ts,
+        include_uncertain=include_uncertain,
+        fallback_threshold=RISK_THRESHOLD,
+    )
+
+    normalized_error_category = (error_category or "").strip().lower() or None
+    if normalized_error_category and normalized_error_category not in {
+        "correct",
+        "false_positive",
+        "false_negative",
+        "uncertain",
+    }:
+        raise HTTPException(status_code=400, detail="error_category trebuie sa fie: correct, false_positive, false_negative sau uncertain.")
+
+    sample_buckets: Dict[str, List[Dict[str, Any]]] = {
+        "correct": [],
+        "false_positive": [],
+        "false_negative": [],
+        "uncertain": [],
+    }
+    category_counts: Counter[str] = Counter()
+
+    if max_examples_per_type < 0:
+        max_examples_per_type = 0
+
+    for row in dataset_rows:
+        if not isinstance(row, dict):
+            continue
+
+        category = row.get("error_category") or "uncertain"
+        if category not in sample_buckets:
+            continue
+
+        if normalized_error_category is not None and category != normalized_error_category:
+            continue
+
+        category_counts[category] += 1
+        if not include_examples:
+            continue
+        bucket = sample_buckets[category]
+        if len(bucket) >= max_examples_per_type:
+            continue
+
+        bucket.append(_feedback_sample_payload(row))
+
+    samples: Dict[str, Any] = {}
+    if normalized_error_category is not None:
+        samples[normalized_error_category] = sample_buckets[normalized_error_category]
+    else:
+        for category_name, bucket in sample_buckets.items():
+            if bucket:
+                samples[category_name] = bucket
+
+    response = {
+        "items_evaluated": len(dataset_rows),
+        "source_channel": source_channel,
+        "category_counts": dict(category_counts),
+        "samples": samples,
+    }
+    if normalized_error_category is not None:
+        response["error_category"] = normalized_error_category
+    return response
+
+
+@app.get("/v1/feedback/quality")
+def feedback_quality(
+    source_channel: Optional[str] = None,
+    since_ts: Optional[int] = None,
+    until_ts: Optional[int] = None,
+    include_uncertain: bool = False,
+    include_examples: bool = True,
+    max_examples_per_type: int = 50,
+    run_sweep: bool = True,
+    sweep_start: int = 0,
+    sweep_end: int = 100,
+    sweep_step: int = 5,
+    sweep_metric: str = "f1",
+    ):
+    return _build_feedback_quality_payload(
+        source_channel=source_channel,
+        since_ts=since_ts,
+        until_ts=until_ts,
+        include_uncertain=include_uncertain,
+        include_examples=include_examples,
+        max_examples_per_type=max_examples_per_type,
+        run_sweep=run_sweep,
+        sweep_start=sweep_start,
+        sweep_end=sweep_end,
+        sweep_step=sweep_step,
+        sweep_metric=sweep_metric,
+    )
+
+
+@app.get("/v1/evaluation/feedback/trend")
+def feedback_trend(
+    source_channel: Optional[str] = None,
+    since_ts: Optional[int] = None,
+    until_ts: Optional[int] = None,
+    include_uncertain: bool = False,
+    bucket_size_days: int = 1,
+    min_bucket_support: int = 1,
+    top_signals: int = 10,
+    min_signal_support: int = 1,
+):
+    if bucket_size_days <= 0:
+        raise HTTPException(status_code=400, detail="bucket_size_days trebuie sa fie mai mare ca 0.")
+    if min_bucket_support < 0:
+        raise HTTPException(status_code=400, detail="min_bucket_support trebuie sa fie >= 0.")
+    if top_signals < 0:
+        raise HTTPException(status_code=400, detail="top_signals trebuie sa fie >= 0.")
+    if min_signal_support < 0:
+        raise HTTPException(status_code=400, detail="min_signal_support trebuie sa fie >= 0.")
+
+    feedback_rows = load_feedback_records()
+    scan_rows = load_scan_records()
+    dataset_rows = build_feedback_evaluation_rows(
+        feedback_rows,
+        scan_rows,
+        source_channel=source_channel,
+        since_ts=since_ts,
+        until_ts=until_ts,
+        include_uncertain=include_uncertain,
+        fallback_threshold=RISK_THRESHOLD,
+    )
+
+    trend = summarize_feedback_trend(
+        dataset_rows,
+        source_channel=source_channel,
+        since_ts=None,
+        until_ts=None,
+        bucket_size_days=bucket_size_days,
+        include_uncertain=include_uncertain,
+        min_bucket_support=min_bucket_support,
+        top_signals=top_signals,
+        min_signal_support=min_signal_support,
+    )
+
+    return {
+        "source_channel": source_channel,
+        "query": {
+            "since_ts": since_ts,
+            "until_ts": until_ts,
+            "include_uncertain": include_uncertain,
+            "bucket_size_days": bucket_size_days,
+            "min_bucket_support": min_bucket_support,
+            "top_signals": top_signals,
+            "min_signal_support": min_signal_support,
+        },
+        "items_evaluated": len(dataset_rows),
+        "trend": trend,
+    }
+
+
+@app.get("/v1/evaluation/readiness")
+def evaluation_readiness(
+    source_channel: Optional[str] = None,
+    since_ts: Optional[int] = None,
+    until_ts: Optional[int] = None,
+    include_uncertain: bool = False,
+    bucket_size_days: int = 1,
+    trend_top_signals: int = 10,
+    trend_min_bucket_support: int = 1,
+    trend_min_signal_support: int = 1,
+):
+    if bucket_size_days <= 0:
+        raise HTTPException(status_code=400, detail="bucket_size_days trebuie sa fie mai mare ca 0.")
+    if trend_top_signals < 0:
+        raise HTTPException(status_code=400, detail="trend_top_signals trebuie sa fie >= 0.")
+    if trend_min_bucket_support < 0:
+        raise HTTPException(status_code=400, detail="trend_min_bucket_support trebuie sa fie >= 0.")
+    if trend_min_signal_support < 0:
+        raise HTTPException(status_code=400, detail="trend_min_signal_support trebuie sa fie >= 0.")
+
+    return _build_readiness_payload(
+        source_channel=source_channel,
+        since_ts=since_ts,
+        until_ts=until_ts,
+        include_uncertain=include_uncertain,
+        bucket_size_days=bucket_size_days,
+        trend_top_signals=trend_top_signals,
+        trend_min_bucket_support=trend_min_bucket_support,
+        trend_min_signal_support=trend_min_signal_support,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Community endpoints (for iOS app)
+# ---------------------------------------------------------------------------
+
+class CommunityReportRequest(BaseModel):
+    hash: str
+    risk_level: str
+    family: Optional[str] = None
+    source: str = "ios"
+    timestamp: Optional[str] = None
+
+
+class PushRegisterRequest(BaseModel):
+    token: str
+    platform: str = "ios"
+    locale: str = "ro-RO"
+
+
+@app.post("/v1/community/report")
+def community_report(payload: CommunityReportRequest):
+    has_supabase = supabase_store.is_supabase_enabled()
+    if not has_supabase:
+        return {"status": "ok", "note": "supabase not configured, report stored locally"}
+
+    try:
+        existing = supabase_store._get_json("community_reports", {"hash": f"eq.{payload.hash}"})
+        if existing:
+            row_id = existing[0]["id"]
+            requests.patch(
+                supabase_store._table_url("community_reports") + f"?id=eq.{row_id}",
+                headers=supabase_store._headers("return=minimal"),
+                json={
+                    "report_count": existing[0].get("report_count", 0) + 1,
+                    "last_reported_at": datetime.now(timezone.utc).isoformat(),
+                },
+                timeout=supabase_store.SUPABASE_TIMEOUT_SECONDS,
+            )
+        else:
+            supabase_store._post_json("community_reports", {
+                "hash": payload.hash,
+                "risk_level": payload.risk_level,
+                "family": payload.family,
+                "source": payload.source,
+            })
+    except Exception:
+        pass
+    return {"status": "ok"}
+
+
+@app.get("/v1/community/campaigns")
+def community_campaigns(status: str = "active", limit: int = 20):
+    has_supabase = supabase_store.is_supabase_enabled()
+    if not has_supabase:
+        logger.warning("community_campaigns: supabase not enabled")
+        return []
+
+    _status_map = {
+        "active": "activă",
+        "confirmed": "confirmată",
+        "watch": "monitorizare",
+    }
+
+    try:
+        params: Dict[str, Any] = {"select": "*", "order": "last_seen.desc"}
+        if status:
+            mapped = _status_map.get(status, status)
+            params["status"] = f"eq.{mapped}"
+        if limit > 0:
+            params["limit"] = str(limit)
+        rows = supabase_store._get_json("scam_campaigns", params)
+        logger.info(f"community_campaigns: got {len(rows)} rows for status={status}")
+        if not rows:
+            logger.warning(f"community_campaigns: empty result. url={supabase_store.SUPABASE_URL}")
+            try:
+                debug_resp = requests.get(
+                    supabase_store._table_url("scam_campaigns"),
+                    headers=supabase_store._headers(),
+                    params={"select": "count", "limit": "1"},
+                    timeout=supabase_store.SUPABASE_TIMEOUT_SECONDS,
+                )
+                logger.warning(f"community_campaigns debug: status={debug_resp.status_code} body={debug_resp.text[:200]}")
+            except Exception as e:
+                logger.warning(f"community_campaigns debug error: {e}")
+        return [
+            {
+                "id": r.get("id", ""),
+                "title": r.get("title", ""),
+                "brand": r.get("brand", ""),
+                "riskLevel": r.get("risk_level", "dangerous"),
+                "region": r.get("region"),
+                "lat": r.get("lat"),
+                "lon": r.get("lon"),
+                "scanCount": r.get("scan_count", 0),
+                "firstSeen": r.get("first_seen", ""),
+                "lastSeen": r.get("last_seen", ""),
+                "status": r.get("status", "activă"),
+                "description": r.get("description", ""),
+                "safeAction": r.get("safe_action", ""),
+            }
+            for r in rows
+        ]
+    except Exception as e:
+        logger.error(f"community_campaigns error: {e}")
+        return []
+
+
+@app.post("/v1/push/register")
+def push_register(payload: PushRegisterRequest):
+    if not supabase_store.is_supabase_enabled():
+        return {"status": "ok", "note": "supabase not configured"}
+
+    try:
+        supabase_store._post_json("push_devices", {
+            "token": payload.token,
+            "platform": payload.platform,
+            "locale": payload.locale,
+            "last_seen_at": datetime.now(timezone.utc).isoformat(),
+        }, prefer="resolution=merge-duplicates,return=minimal")
+    except Exception:
+        pass
+    return {"status": "ok"}
