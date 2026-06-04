@@ -8,3 +8,4 @@ beautifulsoup4
 python-multipart
 email-validator
 python-dotenv
+pypdf

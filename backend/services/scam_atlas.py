@@ -148,6 +148,13 @@ DEFAULT_BRAND_KNOWLEDGE = {
         "DHL": ["dhl.ro", "dhl.com", "dhl-express.ro"],
         "eMAG": ["emag.ro", "emag.delivery"],
         "Uber": ["uber.com", "ubereats.com"],
+        "Bolt": ["bolt.eu"],
+        "Fashion Days": ["fashiondays.ro"],
+        "Mega Image": ["mega-image.ro"],
+        "DPD": ["dpd.com"],
+        "Netflix": ["netflix.com"],
+        "Spotify": ["spotify.com"],
+        "Electrica": ["electricafurnizare.ro"],
         "YOXO": ["yoxo.ro", "buyback.yoxo.ro", "orange.ro"],
         "OLX": ["olx.ro"],
         "Google": ["google.com", "google.ro", "gmail.com"],
@@ -180,6 +187,15 @@ DEFAULT_BRAND_KNOWLEDGE = {
         "emag": "eMAG",
         "uber": "Uber",
         "ubereats": "Uber",
+        "bolt": "Bolt",
+        "fashiondays": "Fashion Days",
+        "mega-image": "Mega Image",
+        "megaimage": "Mega Image",
+        "dpd": "DPD",
+        "netflix": "Netflix",
+        "spotify": "Spotify",
+        "electrica": "Electrica",
+        "electricafurnizare": "Electrica",
         "yoxo": "YOXO",
         "orange": "YOXO",
         "olx": "OLX",
@@ -201,6 +217,13 @@ DEFAULT_BRAND_KNOWLEDGE = {
         "FAN Courier": ["fan courier", "fan"],
         "Sameday": ["sameday", "easybox"],
         "Uber": ["uber", "uber eats"],
+        "Bolt": ["bolt"],
+        "Fashion Days": ["fashion days", "fashiondays"],
+        "Mega Image": ["mega image", "mega-image"],
+        "DPD": ["dpd"],
+        "Netflix": ["netflix"],
+        "Spotify": ["spotify"],
+        "Electrica": ["electrica", "electrica furnizare"],
         "YOXO": ["yoxo", "buy back yoxo"],
         "Revolut": ["revolut"],
         "BCR": ["bcr"],
@@ -287,6 +310,16 @@ SUSPICIOUS_PATH_SEGMENTS = {
     "reactiveare",
     "reactivare",
     "cont",
+    "date",
+    "card",
+    "cod",
+    "formular",
+    "form",
+    "plata",
+    "plată",
+    "pay",
+    "identitate",
+    "confirmare",
     "update",
     "suspendat",
     "suspendare",
@@ -934,13 +967,31 @@ class ScamAtlasEngine:
             signals.append("Solicitare date sensibile (card, CVC, PIN, cod de securitate)")
         elif any(pattern.search(text) for pattern in SENSITIVE_CREDENTIAL_PATTERNS):
             signals.append("Solicitare date sensibile (card, CVC, PIN, cod de securitate)")
+
+        if re.search(r"\b(?:cnp|iban|date\s+personale|num[aă]r(?:ul)?\s+(?:de\s+)?(?:buletin|card|telefon))\b", text, re.IGNORECASE):
+            signals.append("Solicitare date personale sensibile (CNP, IBAN sau identificare)")
+
+        if re.search(r"\b(?:verificare|confirmare|validare)\s+(?:identitate|date|cont|client)\b", text, re.IGNORECASE):
+            signals.append("Solicitare verificare identitate/date de cont")
+
+        if re.search(r"\b(?:completeaz[aă]|completeaza|introdu|trimite)\b.*\b(?:nume|adres[aă]|telefon|cnp|iban|date\w*)\b", text, re.IGNORECASE):
+            signals.append("Solicitare completare date personale")
+
+        if re.search(r"\b(?:cod(?:ul)?\s+sms|cod\s+otp|otp|cod(?:ul)?\s+de\s+confirmare)\b", text, re.IGNORECASE):
+            signals.append("Solicitare cod SMS/OTP")
+
+        if re.search(r"\b(?:pl[aă]te[sș]te|plateste|plati[țt]i|achit[aă]|tax[aă])\b", text, re.IGNORECASE):
+            signals.append("Solicitare de plată/taxă")
         
         # WhatsApp verification codes
         if any(pattern.search(text) for pattern in SENSITIVE_WHATSAPP_PATTERNS):
             signals.append("Solicitare cod de confirmare WhatsApp (takeover cont)")
             
         # Remote access apps
-        if REMOTE_ACCESS_PATTERNS[0].search(text) and REMOTE_ACCESS_PATTERNS[1].search(text):
+        if REMOTE_ACCESS_PATTERNS[0].search(text) and (
+            REMOTE_ACCESS_PATTERNS[1].search(text)
+            or re.search(r"\b(?:broker|consultant|investi[a-z]*|profit|banc[aă]|suport)\b", text, re.IGNORECASE)
+        ):
             signals.append("Instrucțiuni de instalare a unei aplicații de acces la distanță (e.g., AnyDesk)")
             
         # Money transfers and payments (e.g., plata, plateste, platesc, platit, transfera)
@@ -1387,6 +1438,37 @@ class ScamAtlasEngine:
 
         # Classify scam family
         family, confidence = self.classify_scam_family(text, claimed_brand)
+        family_id = str(family.get("id") or "")
+
+        high_risk_text_only_families = {
+            "RO_SCN_004_BNR_POLICE_SAFE_ACCOUNT",
+            "RO_SCN_005_CREDIT_FRAUDULOS",
+            "RO_SCN_006_VOTEAZA_ADELINE",
+            "RO_SCN_007_PETITIE_WHATSAPP",
+            "RO_SCN_008_TELEFON_STRICAT",
+            "RO_SCN_009_ACCIDENT_NEPOT",
+            "RO_SCN_011_HIDRO_INVESTMENT",
+            "RO_SCN_012_CRYPTO_BROKER_REMOTE",
+            "RO_SCN_013_FAKE_BANK_APK",
+            "RO_SCN_018_REVOLUT_CALL_OTP",
+        }
+        if not urls and confidence >= 0.25 and family_id in high_risk_text_only_families:
+            score += 75
+            reasons.append(
+                "Scenariu de fraudă socială confirmat în corpusul România: fără link de scanat, "
+                "dar mesajul cere bani, acces, control la distanță sau date sensibile."
+            )
+        elif not urls:
+            normalized_for_text_only = text.lower()
+            if (
+                re.search(r"\b(?:cod|otp)\b.*\b(?:sms|whatsapp|revolut)\b|\b(?:sms|whatsapp|revolut)\b.*\b(?:cod|otp)\b", normalized_for_text_only)
+                or re.search(r"\b(?:bnr|poli[țt]ie|banc[aă])\b.*\b(?:proteja[țt]i|cont\s+sigur|banii|transfer)\b", normalized_for_text_only)
+                or re.search(r"\b(?:urgent|acum)\b.*\b(?:bani|lei|împrumut|imprumut)\b|\b(?:bani|lei|împrumut|imprumut)\b.*\b(?:urgent|acum)\b", normalized_for_text_only)
+            ):
+                score += 75
+                reasons.append(
+                    "Semnal text-only puternic: mesajul cere coduri, bani sau acțiune financiară urgentă fără canal verificabil."
+                )
 
         if confidence >= 0.2 and family.get("id") == "ro-2025-qr-quishing":
             if any(pattern.search(text) for pattern in SENSITIVE_QR_PATTERNS):

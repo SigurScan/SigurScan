@@ -76,3 +76,20 @@ Conclusion: backend no longer blocks forever. It does not call the message safe 
 - `PERICULOS` can finalize from hard provider evidence even when urlscan fails.
 - `SIGUR` requires urlscan preview to be ready.
 - urlscan screenshot timeout produces `SUSPECT`, not `SIGUR` and not infinite `scanning`.
+
+## Capped Opt-In Runner
+
+Live smoke is now scriptable, but intentionally opt-in:
+
+```bash
+python3 backend/eval/live_provider_smoke_runner.py --dry-run
+SIGURSCAN_RUN_LIVE_PROVIDER_SMOKE=1 python3 backend/eval/live_provider_smoke_runner.py --output build/reports/live_provider_smoke.json
+```
+
+Rules:
+
+- Do not run fixture packs through live providers.
+- Do not run `.test`, `.invalid`, or `.example` live targets.
+- Keep the set capped and user-approved.
+- Use `SIGURSCAN_LIVE_SMOKE_API_KEY` if production requires `X-API-KEY`.
+- Use `SIGURSCAN_LIVE_SMOKE_BASE_URL` to switch between Vercel environments.

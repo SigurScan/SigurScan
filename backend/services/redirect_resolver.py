@@ -6,6 +6,7 @@ import urllib.parse
 import ipaddress
 import socket
 import datetime
+from concurrent.futures import ThreadPoolExecutor
 
 try:
     import certifi
@@ -593,8 +594,13 @@ def resolve_redirects_safely(
     has_mx_records = None
     
     if final_reg_domain:
-        domain_age_days, domain_created_date = check_domain_age(final_reg_domain)
-        has_mx_records = check_mx_records(final_reg_domain)
+        # WHOIS/RDAP and MX are independent reputation signals; running them together
+        # keeps the resolver inside the serverless poll budget.
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            age_future = executor.submit(check_domain_age, final_reg_domain)
+            mx_future = executor.submit(check_mx_records, final_reg_domain)
+            domain_age_days, domain_created_date = age_future.result()
+            has_mx_records = mx_future.result()
     
     return {
         "original_url": url,

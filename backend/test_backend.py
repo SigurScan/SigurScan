@@ -51,6 +51,7 @@ from main import (
     extract_urls,
     _build_scan_response,
     _apply_provider_gate_verdict,
+    _project_provider_gate_verdict,
 )
 
 def test_pii_redaction():
@@ -298,6 +299,232 @@ def test_provider_gate_marks_yoxo_official_clean_pillars_as_low_risk():
     assert result["risk_level"] == "low"
     assert result["risk_score"] == 10
     assert result["detected_family_id"] == "provider-gate-official-clean"
+
+
+def test_provider_gate_projection_is_pure_and_matches_apply():
+    analysis = {
+        "claimed_brand": "YOXO",
+        "risk_level": "medium",
+        "risk_score": 72,
+        "detected_family": "Text marketing suspect",
+        "evidence": {
+            "offer_claim_verification": {"status": "confirmed"},
+            "external_intel_summary": {
+                "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
+                "virustotal": {"status": "clean", "verdict": "clean", "consulted": True},
+                "urlscan": {"status": "clean", "verdict": "clean", "consulted": True},
+            },
+        },
+    }
+    original = json.loads(json.dumps(analysis))
+    resolved_urls = [
+        {
+            "url": "https://buyback.yoxo.ro",
+            "final_url": "https://buyback.yoxo.ro",
+            "hostname": "buyback.yoxo.ro",
+            "final_hostname": "buyback.yoxo.ro",
+            "registered_domain": "yoxo.ro",
+            "final_registered_domain": "yoxo.ro",
+        }
+    ]
+
+    projection = _project_provider_gate_verdict(analysis, resolved_urls)
+    applied = _apply_provider_gate_verdict(json.loads(json.dumps(analysis)), resolved_urls)
+
+    assert analysis == original
+    assert projection["risk_level"] == applied["risk_level"]
+    assert projection["risk_score"] == applied["risk_score"]
+    assert projection["detected_family_id"] == applied["detected_family_id"]
+    assert projection["provider_gate"]["official_destination"] is True
+
+
+def test_provider_gate_virustotal_malicious_is_decisive_provider_risk():
+    analysis = {
+        "claimed_brand": "Nespecificat",
+        "risk_level": "low",
+        "risk_score": 5,
+        "detected_family": "Necunoscut",
+        "evidence": {
+            "external_intel_summary": {
+                "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
+                "virustotal": {
+                    "status": "malicious",
+                    "verdict": "malicious",
+                    "severity": "high",
+                    "consulted": True,
+                    "details": "5 engines malicious",
+                },
+            },
+        },
+    }
+    resolved_urls = [
+        {
+            "url": "https://malware-example.test/login",
+            "final_url": "https://malware-example.test/login",
+            "hostname": "malware-example.test",
+            "final_hostname": "malware-example.test",
+            "registered_domain": "malware-example.test",
+            "final_registered_domain": "malware-example.test",
+        }
+    ]
+
+    result = _apply_provider_gate_verdict(analysis, resolved_urls)
+
+    assert result["risk_level"] == "high"
+    assert result["risk_score"] == 90
+    assert result["detected_family_id"] == "provider-gate-bad-provider"
+    assert result["evidence"]["provider_gate"]["virustotal_consulted"] is True
+
+
+def test_scam_atlas_text_only_social_fraud_escalates_to_high_risk():
+    local_engine = ScamAtlasEngine()
+    samples = [
+        "Transcriere apel: apelantul plânge, spune că este nepotul, că a lovit pe cineva cu mașina și că avocatul cere 12.000 lei cash. Cere să nu fie sunată poliția.",
+        "Transcriere apel: persoana spune că lucrează la banca mea, că am un credit aprobat fraudulos și că trebuie să confirm datele de acces în aplicația bancară.",
+        "Transcriere apel: consultantul promite profit garantat la Hidroelectrica și îmi cere să instalez AnyDesk ca să mă ajute să cumpăr acțiuni.",
+    ]
+
+    for text in samples:
+        result = local_engine.analyze(text, urls=[])
+        assert result["risk_level"] in {"high", "critical"}
+        assert result["risk_score"] >= 75
+        assert "fraudă socială" in " ".join(result["reasons"])
+
+
+def test_provider_gate_brand_mismatch_sensitive_payment_is_high_risk():
+    analysis = {
+        "claimed_brand": "Poșta Română",
+        "risk_level": "high",
+        "risk_score": 75,
+        "detected_family": "delivery_phishing / Poșta Română",
+        "detected_family_id": "RO_SCN_002_POSTA_PHISHING",
+        "reasons": [
+            "Mismatch de Domeniu: Pretinde a fi de la Poșta Română, dar link-ul duce către un domeniu neoficial",
+            "Pretext de livrare a unui colet sau taxe vamale neachitate",
+        ],
+        "evidence": {
+            "has_domain_mismatch": True,
+            "offer_claim_verification": {"status": "not_found"},
+            "external_intel_summary": {
+                "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
+                "urlscan": {"status": "clean", "verdict": "clean", "consulted": True},
+            },
+        },
+    }
+    resolved_urls = [
+        {
+            "url": "https://conflict-posta.test/pay",
+            "final_url": "https://conflict-posta.test/pay",
+            "hostname": "conflict-posta.test",
+            "final_hostname": "conflict-posta.test",
+            "registered_domain": "conflict-posta.test",
+            "final_registered_domain": "conflict-posta.test",
+        }
+    ]
+
+    result = _apply_provider_gate_verdict(
+        analysis,
+        resolved_urls,
+        raw_text="Poșta: plătește 5 lei pentru relivrare colet.",
+    )
+
+    assert result["risk_level"] == "high"
+    assert result["risk_score"] >= 88
+    assert result["detected_family_id"] == "provider-gate-decisive-structural-danger"
+
+
+def test_provider_gate_keeps_text_only_social_fraud_high_risk():
+    local_engine = ScamAtlasEngine()
+    analysis = local_engine.analyze(
+        "Bună, mama. Sunt eu. am făcut accident și scriu de pe numărul acesta temporar. "
+        "Te rog nu mă suna acum. Am nevoie urgent de 1800 lei și îți trimit IBAN-ul unui prieten.",
+        urls=[],
+    )
+
+    result = _apply_provider_gate_verdict(analysis, [], raw_text="am făcut accident urgent bani IBAN prieten")
+
+    assert result["risk_level"] == "high"
+    assert result["risk_score"] >= 85
+    assert result["detected_family_id"] in {
+        "provider-gate-no-url-social-danger",
+        "provider-gate-no-url-sensitive",
+    }
+
+
+def test_provider_gate_official_safety_education_does_not_trigger_false_positive():
+    analysis = {
+        "claimed_brand": "Bolt",
+        "risk_level": "high",
+        "risk_score": 65,
+        "detected_family": "Marketing",
+        "detected_family_id": "marketing",
+        "reasons": [
+            "Solicitare date personale sensibile (CNP, IBAN sau identificare)",
+            "Solicitare date sensibile (card, CVC, PIN, cod de securitate)",
+        ],
+        "evidence": {
+            "has_domain_mismatch": False,
+            "offer_claim_verification": {"status": "confirmed"},
+            "external_intel_summary": {
+                "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
+                "urlscan": {"status": "clean", "verdict": "clean", "consulted": True},
+                "virustotal": {"status": "clean", "verdict": "clean", "consulted": True},
+            },
+        },
+    }
+    resolved_urls = [
+        {
+            "url": "https://bolt.eu/ro-ro/food/promo-test",
+            "final_url": "https://bolt.eu/ro-ro/food/promo-test",
+            "hostname": "bolt.eu",
+            "final_hostname": "bolt.eu",
+            "registered_domain": "bolt.eu",
+            "final_registered_domain": "bolt.eu",
+        }
+    ]
+
+    result = _apply_provider_gate_verdict(
+        analysis,
+        resolved_urls,
+        raw_text="Ai o ofertă Bolt. Nu îți cerem CNP, PIN, CVV sau coduri SMS.",
+    )
+
+    assert result["risk_level"] == "low"
+    assert result["detected_family_id"] == "provider-gate-official-clean"
+
+
+def test_provider_gate_sensitive_url_path_on_unofficial_domain_is_high_risk():
+    analysis = {
+        "claimed_brand": "Nespecificat",
+        "risk_level": "low",
+        "risk_score": 15,
+        "detected_family": "Necunoscut",
+        "detected_family_id": "unknown",
+        "reasons": ["Verificare externă curată."],
+        "evidence": {
+            "has_domain_mismatch": False,
+            "offer_claim_verification": {"status": "not_found"},
+            "external_intel_summary": {
+                "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
+                "urlscan": {"status": "clean", "verdict": "clean", "consulted": True},
+            },
+        },
+    }
+    resolved_urls = [
+        {
+            "url": "https://vama-pachet.test/card",
+            "final_url": "https://vama-pachet.test/card",
+            "hostname": "vama-pachet.test",
+            "final_hostname": "vama-pachet.test",
+            "registered_domain": "vama-pachet.test",
+            "final_registered_domain": "vama-pachet.test",
+        }
+    ]
+
+    result = _apply_provider_gate_verdict(analysis, resolved_urls)
+
+    assert result["risk_level"] == "high"
+    assert result["detected_family_id"] == "provider-gate-sensitive-unofficial-form"
 
 
 def test_provider_gate_can_mark_official_destination_clean_without_virustotal():
@@ -780,6 +1007,43 @@ def test_persist_orchestrated_job_merges_urlscan_uuid_after_optimistic_conflict(
     assert saved_jobs[1]["urlscan"]["uuid"] == "urlscan-keep-me"
 
 
+def test_persist_orchestrated_job_retries_merged_conflict_save_twice(monkeypatch):
+    scan_id = "orch_conflict_retry"
+    current_job = {
+        "scan_id": scan_id,
+        "created_at": 10,
+        "_storage_updated_at": "stale",
+        "pipeline_stage": "urlscan_submitted",
+        "urlscan": {
+            "uuid": "urlscan-keep-me",
+            "status": "pending",
+            "report_url": "https://urlscan.io/result/urlscan-keep-me/",
+        },
+    }
+    reloaded_job = {
+        "scan_id": scan_id,
+        "created_at": 10,
+        "_storage_updated_at": "fresh",
+        "pipeline_stage": "analysis_ready",
+        "urlscan": {"status": "queued"},
+    }
+    saved_jobs = []
+
+    def fake_save(job):
+        saved_jobs.append(json.loads(json.dumps(job)))
+        return len(saved_jobs) >= 3
+
+    with monkeypatch.context() as patched:
+        patched.setattr(app_main.supabase_store, "save_scan_job", fake_save)
+        patched.setattr(app_main.supabase_store, "load_scan_job", lambda sid: dict(reloaded_job))
+        patched.setattr(app_main, "_emit_orchestrated_telemetry", lambda *args, **kwargs: None)
+        merged = app_main._persist_orchestrated_job(current_job)
+
+    assert len(saved_jobs) == 3
+    assert merged["urlscan"]["uuid"] == "urlscan-keep-me"
+    assert merged["orchestration_metrics"]["conflict_merge_retry_count"] == 2
+
+
 def test_orchestrated_provisional_finalize_reuses_ai_explanation_cache(monkeypatch):
     scan_id = "orch_ai_cache"
     analysis = {
@@ -844,6 +1108,82 @@ def test_orchestrated_provisional_finalize_reuses_ai_explanation_cache(monkeypat
 
     assert calls["count"] == 1
     assert job["result"]["is_final"] is False
+
+
+def test_orchestrated_urlscan_reservation_reclaims_after_ttl(monkeypatch):
+    job = {
+        "scan_id": "orch_urlscan_reclaim",
+        "created_at": int(time.time()),
+        "pipeline_stage": "urlscan_submitting",
+        "status": "scanning",
+        "input_type": "text",
+        "source_channel": "android_native",
+        "urls": ["https://buyback.yoxo.ro"],
+        "redacted_text": "YOXO buyback https://buyback.yoxo.ro",
+        "analysis": {},
+        "resolved_urls": [],
+        "primary_final_url": "https://buyback.yoxo.ro",
+        "claim_verifier_required": False,
+        "urlscan": {
+            "status": "submitting",
+            "submitted_url": "https://buyback.yoxo.ro",
+            "submit_owner": "dead-instance",
+            "submit_started_at": int(time.time()) - 31,
+        },
+        "preview": {},
+        "extra_fields": {},
+        "sandbox_options": {},
+    }
+
+    with monkeypatch.context() as patched:
+        patched.setattr(app_main, "ORCHESTRATED_URLSCAN_SUBMIT_RESERVATION_TIMEOUT_SECONDS", 30)
+        patched.setattr(app_main, "_persist_orchestrated_job", lambda candidate: candidate)
+        patched.setattr(app_main, "_emit_orchestrated_telemetry", lambda *args, **kwargs: None)
+        refreshed = asyncio.run(app_main._refresh_orchestrated_job(job, None))
+
+    assert refreshed["pipeline_stage"] == "analysis_ready"
+    assert refreshed["urlscan"]["status"] == "queued"
+    assert refreshed["orchestration_metrics"]["urlscan_reclaim_count"] == 1
+
+
+def test_orchestration_telemetry_payload_flags_anomalies(monkeypatch):
+    records = [
+        {
+            "scan_id": "orch_a",
+            "event_type": "orchestrated_verdict_final",
+            "metadata": {
+                "pipeline_stage": "urlscan_submitted",
+                "poll_count": 5,
+                "age_ms": 12000,
+                "urlscan_status": "timeout",
+                "stage_durations_ms": {"queued": 1000, "resolved": 3000},
+            },
+        },
+        {
+            "scan_id": "orch_a",
+            "event_type": "orchestrated_urlscan_reservation_guard",
+            "metadata": {"pipeline_stage": "urlscan_submitting"},
+        },
+        {
+            "scan_id": "orch_b",
+            "event_type": "orchestrated_conflict_merge",
+            "metadata": {"pipeline_stage": "resolved", "conflict_merge_retry_failures": 1},
+        },
+    ]
+
+    with monkeypatch.context() as patched:
+        patched.setattr(app_main, "load_scan_records", lambda limit=None: records)
+        payload = app_main._build_orchestration_telemetry_payload(limit=100, urlscan_timeout_rate_alert=0.1)
+
+    assert payload["events_considered"] == 3
+    assert payload["scan_count"] == 2
+    assert payload["urlscan"]["reservation_guard_hits"] == 1
+    assert payload["conflicts"]["merge_events"] == 1
+    assert payload["conflicts"]["retry_failures"] == 1
+    alert_codes = {alert["code"] for alert in payload["alerts"]}
+    assert "urlscan_reservation_guard_hits" in alert_codes
+    assert "conflict_merge_retry_failures" in alert_codes
+    assert "urlscan_timeout_rate_high" in alert_codes
 
 
 def test_orchestrated_urlscan_submit_requires_owned_reservation(monkeypatch):
@@ -913,6 +1253,72 @@ def test_orchestrated_urlscan_submit_requires_owned_reservation(monkeypatch):
 
     assert refreshed["urlscan"]["submit_owner"] == "other-instance"
     assert refreshed["urlscan"]["status"] == "submitting"
+
+
+def test_orchestrated_urlscan_submit_success_sets_submitted_stage(monkeypatch):
+    job = {
+        "scan_id": "orch_urlscan_submit_success",
+        "created_at": int(time.time()),
+        "pipeline_stage": "analysis_ready",
+        "status": "scanning",
+        "input_type": "text",
+        "source_channel": "android_native",
+        "urls": ["https://buyback.yoxo.ro"],
+        "redacted_text": "YOXO buyback https://buyback.yoxo.ro",
+        "analysis": {
+            "risk_score": 10,
+            "risk_level": "low",
+            "detected_family": "Provideri curați",
+            "detected_family_id": "provider-gate-official-clean",
+            "claimed_brand": "YOXO",
+            "reasons": [],
+            "safe_actions": [],
+            "evidence": {
+                "offer_claim_verification": {"status": "confirmed"},
+                "external_intel_summary": {
+                    "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
+                    "virustotal": {"status": "clean", "verdict": "clean", "consulted": True},
+                },
+            },
+        },
+        "resolved_urls": [
+            {
+                "url": "https://buyback.yoxo.ro",
+                "final_url": "https://buyback.yoxo.ro",
+                "hostname": "buyback.yoxo.ro",
+                "final_hostname": "buyback.yoxo.ro",
+                "registered_domain": "yoxo.ro",
+                "final_registered_domain": "yoxo.ro",
+            }
+        ],
+        "primary_final_url": "https://buyback.yoxo.ro",
+        "claim_verifier_required": False,
+        "urlscan": {"status": "queued"},
+        "preview": {},
+        "extra_fields": {},
+        "sandbox_options": {},
+    }
+
+    async def fake_submit(url, payload, request):
+        return {
+            "uuid": "urlscan-submit-ok",
+            "status": "pending",
+            "submitted_url": url,
+            "report_url": "https://urlscan.io/result/urlscan-submit-ok/",
+            "screenshot_url": "/v1/sandbox/urlscan/urlscan-submit-ok/screenshot",
+        }
+
+    with monkeypatch.context() as patched:
+        patched.setattr(app_main, "_persist_orchestrated_job", lambda candidate: candidate)
+        patched.setattr(app_main, "_submit_orchestrated_urlscan", fake_submit)
+        patched.setattr(app_main, "_emit_orchestrated_telemetry", lambda *args, **kwargs: None)
+        patched.setattr(app_main, "_emit_scan_event", lambda *args, **kwargs: None)
+        refreshed = asyncio.run(app_main._refresh_orchestrated_job(job, None))
+
+    assert refreshed["pipeline_stage"] == "urlscan_submitted"
+    assert refreshed["urlscan"]["status"] == "pending"
+    assert refreshed["urlscan"]["uuid"] == "urlscan-submit-ok"
+    assert refreshed["preview"]["report_url"] == "https://urlscan.io/result/urlscan-submit-ok/"
 
 
 def _clean_external_intel_for_resolved_urls(resolved_urls, *args, **kwargs):
@@ -2278,6 +2684,24 @@ def test_evaluation_readiness_payload(monkeypatch):
     assert result["trend"]["bucket_count"] >= 1
 
 
+def test_health_reports_provider_config_without_secrets(monkeypatch):
+    with monkeypatch.context() as patched:
+        patched.setenv("MISTRAL_API_KEY", "super-secret-mistral")
+        patched.setenv("GEMINI_API_KEY", "super-secret-gemini")
+        patched.setenv("GOOGLE_WEB_RISK_API_KEY", "super-secret-webrisk")
+        patched.setenv("VIRUSTOTAL_API_KEY", "super-secret-vt")
+        patched.setattr(app_main, "URLSCAN_API_KEY", "super-secret-urlscan")
+        patched.setattr(app_main, "PRIVACY_SAFE_MODE", False)
+        payload = app_main.read_health()
+
+    serialized = json.dumps(payload)
+    assert payload["config"]["providers"]["urlscan"]["configured"] is True
+    assert payload["config"]["providers"]["google_web_risk"]["configured"] is True
+    assert payload["config"]["providers"]["virustotal"]["configured"] is True
+    assert payload["config"]["providers"]["ai_explanation"]["configured"] is True
+    assert "super-secret" not in serialized
+
+
 def test_threshold_sweep_finds_best():
     print("Testing threshold sweep calibration...")
     sweep = run_threshold_sweep(
@@ -2338,6 +2762,16 @@ def test_feedback_evaluation_rows_from_logs():
             "timestamp": 1700000000,
         },
         {
+            "scan_id": "fb1",
+            "event_type": "orchestrated_poll",
+            "risk_score": 0,
+            "risk_level": None,
+            "predicted_is_scam": False,
+            "signal_ids": [],
+            "source_channel": "text",
+            "timestamp": 1700000099,
+        },
+        {
             "scan_id": "fb2",
             "risk_score": 20,
             "risk_level": "low",
@@ -2366,6 +2800,7 @@ def test_feedback_evaluation_rows_from_logs():
     )
     assert len(rows) == 3
     assert rows[0]["actual_is_scam"] is False
+    assert rows[0]["scan_context"]["risk_score"] == 85
     assert rows[1]["actual_is_scam"] is True
     assert rows[2]["actual_is_scam"] is False
 

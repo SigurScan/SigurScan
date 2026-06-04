@@ -103,6 +103,8 @@ EMAIL_AUTH_STATUS_UNKNOWN = {"neutral", "none", "policy", "unknown", "temperror"
 # Some short Romanian tokens include a dot and can be wrongly matched as URLs by regex.
 PLAIN_URL_NOISE_LABELS = {
     "dvs",
+    "eu",
+    "rog",
 }
 
 REQUIRE_API_KEY = os.getenv("REQUIRE_API_KEY", "false").strip().lower() in {"1", "true", "yes", "on"}
@@ -172,6 +174,48 @@ if not ALLOWED_ORIGINS:
     ALLOWED_ORIGINS = DEFAULT_ALLOWED_ORIGINS.split(",")
 
 _request_buckets: Dict[tuple, deque] = defaultdict(deque)
+
+
+def _env_present(*names: str) -> bool:
+    return any(os.getenv(name, "").strip() for name in names)
+
+
+def _provider_config_status() -> Dict[str, Any]:
+    """Expose provider readiness without leaking secrets."""
+
+    web_risk_configured = _env_present("GOOGLE_WEB_RISK_API_KEY", "GOOGLE_API_KEY")
+    virustotal_configured = _env_present("VIRUSTOTAL_API_KEY")
+    mistral_configured = _env_present("MISTRAL_API_KEY")
+    gemini_configured = _env_present("GEMINI_API_KEY")
+    offer_claim_configured = gemini_configured
+    return {
+        "privacy_safe_mode": PRIVACY_SAFE_MODE,
+        "rate_limit_enabled": ENABLE_RATE_LIMIT,
+        "api_key_required": REQUIRE_API_KEY,
+        "providers": {
+            "urlscan": {
+                "configured": bool(URLSCAN_API_KEY) and not PRIVACY_SAFE_MODE,
+                "visibility": URLSCAN_VISIBILITY_DEFAULT,
+            },
+            "google_web_risk": {
+                "configured": web_risk_configured and not PRIVACY_SAFE_MODE,
+                "extended_threat_types_env": bool(os.getenv("GOOGLE_WEB_RISK_THREAT_TYPES", "").strip()),
+            },
+            "virustotal": {
+                "configured": virustotal_configured and not PRIVACY_SAFE_MODE and ENABLE_VT_FALLBACK,
+                "policy": "fallback_or_required_by_orchestrated_reputation",
+            },
+            "ai_explanation": {
+                "configured": (mistral_configured or gemini_configured) and ENABLE_CLOUD_AI_EXPLANATION,
+                "mistral_configured": mistral_configured,
+                "gemini_configured": gemini_configured,
+            },
+            "offer_claim_verifier": {
+                "configured": offer_claim_configured and not PRIVACY_SAFE_MODE,
+                "timeout_seconds": AI_OFFER_CLAIM_TIMEOUT_SECONDS,
+            },
+        },
+    }
 
 TRACKING_QUERY_PARAMS = {
     "utm_source",
@@ -1738,6 +1782,9 @@ def _provider_reason_has_sensitive_request_signal(reasons: List[str]) -> bool:
         "cont seif",
         "cod",
         "confirm",
+        "date personale",
+        "date de cont",
+        "identitate",
     )
 
     for reason in reasons:
@@ -1863,6 +1910,32 @@ def _brand_warning_matches_text(claimed_brand: str, raw_text: str, reasons: List
     }
 
 
+def _looks_like_official_safety_education(raw_text: str) -> bool:
+    normalized = _normalise_obfuscated_text(raw_text or "").lower()
+    if not normalized:
+        return False
+    sensitive_terms = r"(?:cnp|pin|cvv|cvc|otp|coduri?\s+sms|coduri?|parol[ăa]|date\s+de\s+card|date\s+bancare)"
+    negative_claim = (
+        r"(?:nu\s+(?:iti|îți|va|vă|iti\s+)?\s*(?:cerem|solicit[aă]m|trimitem|pretindem)"
+        r"|nu\s+(?:ti|ți|vi|vă)?\s*se\s+solicit[aă]"
+        r"|nu\s+(?:cerem|solicit[aă]m)"
+        r"|niciodat[aă]\s+nu\s+(?:cerem|solicit[aă]m))"
+    )
+    return bool(re.search(negative_claim + r"(?:\W+\w+){0,10}\W+" + sensitive_terms, normalized, re.IGNORECASE))
+
+
+def _has_direct_sensitive_request(raw_text: str) -> bool:
+    normalized = _normalise_obfuscated_text(raw_text or "").lower()
+    if not normalized or _looks_like_official_safety_education(normalized):
+        return False
+    verbs = r"(?:introdu|completeaz[aă]|completeaza|trimite|spune|comunic[aă]|confirma|confirm[aă]|valideaz[aă]|verific[aă])"
+    sensitive = r"(?:parol[ăa]|password|otp|cod(?:ul)?(?:\s+sms|\s+de\s+verificare|\s+de\s+confirmare)?|pin|cvv|cvc|date\s+card|num[aă]r\s+card|cnp|iban)"
+    return bool(
+        re.search(verbs + r"(?:\W+\w+){0,8}\W+" + sensitive, normalized, re.IGNORECASE)
+        or re.search(sensitive + r"(?:\W+\w+){0,8}\W+" + verbs, normalized, re.IGNORECASE)
+    )
+
+
 def _has_decisive_sensitive_intent(text: str) -> bool:
     normalized = _normalise_obfuscated_text(text or "").lower()
     money_or_delivery_markers = (
@@ -1873,6 +1946,12 @@ def _has_decisive_sensitive_intent(text: str) -> bool:
         "neachit",
         "plata",
         "plată",
+        "plateste",
+        "plătește",
+        "platiti",
+        "plătiți",
+        "plati",
+        "plăti",
         "achita",
         "achită",
         "card",
@@ -1893,6 +1972,52 @@ def _has_decisive_sensitive_intent(text: str) -> bool:
         "awb",
     )
     return any(marker in normalized for marker in money_or_delivery_markers)
+
+
+def _has_sensitive_url_path(resolved_urls: List[Dict[str, Any]]) -> bool:
+    sensitive_path_tokens = (
+        "card",
+        "cvv",
+        "cvc",
+        "otp",
+        "cod",
+        "login",
+        "auth",
+        "parola",
+        "password",
+        "date",
+        "formular",
+        "form",
+        "pay",
+        "plata",
+        "plată",
+        "identitate",
+        "confirmare",
+        "validare",
+    )
+    for entry in resolved_urls or []:
+        url = str(entry.get("final_url") or entry.get("url") or "")
+        parsed = urllib.parse.urlparse(url)
+        path = urllib.parse.unquote(parsed.path or "").lower()
+        if any(token in path for token in sensitive_path_tokens):
+            return True
+    return False
+
+
+def _is_text_only_decisive_scam_family(analysis: Dict[str, Any]) -> bool:
+    family_id = str(analysis.get("detected_family_id") or "").upper()
+    decisive_families = {
+        "RO_SCN_005_CREDIT_FRAUDULOS",
+        "RO_SCN_008_TELEFON_STRICAT",
+        "RO_SCN_009_ACCIDENT_NEPOT",
+        "RO_SCN_012_CRYPTO_BROKER_REMOTE",
+        "RO_SCN_013_FAKE_BANK_APK",
+        "RO_SCN_018_REVOLUT_CALL_OTP",
+    }
+    if family_id in decisive_families:
+        return True
+    reasons_text = " ".join(str(item).lower() for item in analysis.get("reasons", []) if item)
+    return "fraudă socială" in reasons_text or "frauda sociala" in reasons_text
 
 
 def _required_pillar_error_names(pillars: Optional[Dict[str, Dict[str, Any]]]) -> List[str]:
@@ -2067,7 +2192,10 @@ def _apply_provider_gate_verdict(
     urlscan_consulted = any(_source_ready(summary, name) for name in ("urlscan", "urlscan.io"))
     bad_provider = _has_bad_provider_verdict(summary)
     sensitive_request_signal = _provider_reason_has_sensitive_request_signal(list(analysis.get("reasons", []) or []))
+    sensitive_url_path = _has_sensitive_url_path(resolved_urls)
     brand_warning = _brand_warning_matches_text(claimed_brand, raw_text, list(analysis.get("reasons", []) or []))
+    official_safety_education = _looks_like_official_safety_education(raw_text)
+    direct_sensitive_request = _has_direct_sensitive_request(raw_text)
     evidence["brand_warning"] = brand_warning
     _attach_brand_warning_summary(summary, brand_warning)
     claim_required = _claim_verifier_required(analysis)
@@ -2101,6 +2229,9 @@ def _apply_provider_gate_verdict(
         "legacy_score_ignored": True,
         "infrastructure_flags": infra_flags,
         "brand_warning": brand_warning,
+        "official_safety_education": official_safety_education,
+        "direct_sensitive_request": direct_sensitive_request,
+        "sensitive_url_path": sensitive_url_path,
     }
     provider_error_names = _required_pillar_error_names(pillars)
     decisive_structural_danger = _is_decisive_structural_danger(
@@ -2120,11 +2251,20 @@ def _apply_provider_gate_verdict(
             family = "Risc de bază"
             family_id = "provider-gate-no-url-sensitive"
         elif legacy_risk_level in {"high", "critical", "dangerous"}:
-            risk_level = "medium"
-            risk_score = max(legacy_risk_score, 55)
-            reasons = ["Nu există URL verificabil; verdictul se bazează pe riscuri din conținut."]
-            family = "Semnale text"
-            family_id = "provider-gate-no-url-legacy-high"
+            if _is_text_only_decisive_scam_family(analysis):
+                risk_level = "high"
+                risk_score = max(legacy_risk_score, 85)
+                reasons = [
+                    "Nu există link de scanat, dar mesajul se potrivește cu un scenariu de fraudă socială confirmat în corpusul România.",
+                ]
+                family = "Fraudă socială text-only"
+                family_id = "provider-gate-no-url-social-danger"
+            else:
+                risk_level = "medium"
+                risk_score = max(legacy_risk_score, 55)
+                reasons = ["Nu există URL verificabil; verdictul se bazează pe riscuri din conținut."]
+                family = "Semnale text"
+                family_id = "provider-gate-no-url-legacy-high"
         else:
             risk_level = "medium"
             risk_score = max(min(legacy_risk_score, 55), 35)
@@ -2164,7 +2304,13 @@ def _apply_provider_gate_verdict(
         family = "Verificare parțială"
         family_id = "provider-gate-partial-pillars"
     elif official_destination and offer_status in {"confirmed", "inconclusive", "skipped", "unknown", ""}:
-        if sensitive_request_signal or brand_warning.get("triggered"):
+        if offer_status == "confirmed" and consulted_count and not direct_sensitive_request:
+            risk_level = "low"
+            risk_score = 10
+            reasons = ["Linkul ajunge pe o destinatie validata si nu au aparut semnale de risc."]
+            family = "Destinatie oficiala verificata"
+            family_id = "provider-gate-official-clean"
+        elif (direct_sensitive_request or sensitive_request_signal or brand_warning.get("triggered") or sensitive_url_path) and not official_safety_education:
             risk_level = "medium"
             risk_score = 45
             reasons = [
@@ -2188,6 +2334,14 @@ def _apply_provider_gate_verdict(
         ]
         family = "Imitare de domeniu / typosquatting"
         family_id = "provider-gate-lookalike-domain"
+    elif has_urls and not official_destination and (sensitive_request_signal or sensitive_url_path) and offer_status == "not_found":
+        risk_level = "high"
+        risk_score = max(88, legacy_risk_score)
+        reasons = [
+            "Destinația nu este validată oficial și cere date sensibile sau plată; nu introduce date.",
+        ]
+        family = "Formular sensibil pe domeniu neoficial"
+        family_id = "provider-gate-sensitive-unofficial-form"
     elif has_urls and (
         infra_flags.get("homoglyph") or
         infra_flags.get("punycode") or
@@ -2235,6 +2389,14 @@ def _apply_provider_gate_verdict(
             ]
             family = "Verificare parțială"
             family_id = "provider-gate-partial-pillars"
+        elif has_urls and not official_destination and offer_status in {"inconclusive", "unknown", ""}:
+            risk_level = "medium"
+            risk_score = 50
+            reasons = [
+                "Providerii nu au confirmat risc, dar destinația nu este validată oficial și claim-ul nu poate fi confirmat complet.",
+            ]
+            family = "Destinație neverificată"
+            family_id = "provider-gate-unofficial-inconclusive"
         else:
             risk_level = "low"
             risk_score = 15
@@ -2279,6 +2441,43 @@ def _apply_provider_gate_verdict(
         ]
     )
     return analysis
+
+
+def _project_provider_gate_verdict(
+    analysis: Dict[str, Any],
+    resolved_urls: List[Dict[str, Any]],
+    *,
+    raw_text: str = "",
+    pillars: Optional[Dict[str, Dict[str, Any]]] = None,
+) -> Dict[str, Any]:
+    """Pure projection of the provider gate decision over a snapshot of evidence.
+
+    The orchestrator can call this in tests or diagnostics without mutating the
+    live scan job. It intentionally reuses the same gate implementation on deep
+    copies so the projection cannot drift from the production path.
+    """
+
+    analysis_copy = _deep_copy_jsonable(analysis if isinstance(analysis, dict) else {})
+    resolved_copy = _deep_copy_jsonable(resolved_urls if isinstance(resolved_urls, list) else [])
+    pillars_copy = _deep_copy_jsonable(pillars) if isinstance(pillars, dict) else None
+    projected = _apply_provider_gate_verdict(
+        analysis_copy,
+        resolved_copy,
+        raw_text=raw_text,
+        pillars=pillars_copy,
+    )
+    evidence = projected.get("evidence") if isinstance(projected.get("evidence"), dict) else {}
+    return {
+        "risk_level": projected.get("risk_level"),
+        "risk_score": projected.get("risk_score"),
+        "detected_family": projected.get("detected_family"),
+        "detected_family_id": projected.get("detected_family_id"),
+        "reasons": list(projected.get("reasons") or []),
+        "safe_actions": list(projected.get("safe_actions") or []),
+        "provider_gate": _deep_copy_jsonable(evidence.get("provider_gate") or {}),
+        "external_intel_summary": _deep_copy_jsonable(evidence.get("external_intel_summary") or {}),
+        "brand_warning": _deep_copy_jsonable(evidence.get("brand_warning") or {}),
+    }
 
 
 def _build_feedback_quality_payload(
@@ -2492,6 +2691,136 @@ def _build_readiness_payload(
             "cache_ttl_seconds": reputation_cache.get("ttl_seconds"),
             "source_stats": reputation_cache.get("source_stats", {}),
         },
+    }
+
+
+def _build_orchestration_telemetry_payload(
+    *,
+    limit: int = 1000,
+    urlscan_timeout_rate_alert: float = 0.15,
+) -> Dict[str, Any]:
+    records = [
+        row
+        for row in load_scan_records(limit)
+        if isinstance(row, dict) and str(row.get("event_type") or "").startswith("orchestrated_")
+    ]
+    by_event: Counter[str] = Counter()
+    by_stage: Counter[str] = Counter()
+    scan_ids: set[str] = set()
+    final_poll_counts: List[int] = []
+    final_age_ms: List[int] = []
+    stage_durations: Dict[str, List[int]] = defaultdict(list)
+    conflict_merge_events = 0
+    conflict_retry_failures = 0
+    reclaim_events = 0
+    reservation_guard_hits = 0
+    urlscan_timeout_events = 0
+
+    for row in records:
+        event_type = str(row.get("event_type") or "unknown")
+        by_event[event_type] += 1
+        scan_id = str(row.get("scan_id") or "").strip()
+        if scan_id:
+            scan_ids.add(scan_id)
+        metadata = row.get("metadata") if isinstance(row.get("metadata"), dict) else {}
+        stage = str(metadata.get("pipeline_stage") or metadata.get("stage") or "").strip().lower()
+        if stage:
+            by_stage[stage] += 1
+
+        if event_type == "orchestrated_conflict_merge":
+            conflict_merge_events += 1
+        if event_type == "orchestrated_urlscan_reclaimed":
+            reclaim_events += 1
+        if event_type == "orchestrated_urlscan_reservation_guard":
+            reservation_guard_hits += 1
+        if event_type in {"orchestrated_urlscan_polled", "orchestrated_verdict_final"}:
+            if str(metadata.get("urlscan_status") or "").strip().lower() == "timeout":
+                urlscan_timeout_events += 1
+
+        conflict_retry_failures += int(metadata.get("conflict_merge_retry_failures") or 0)
+
+        if event_type == "orchestrated_verdict_final":
+            try:
+                final_poll_counts.append(int(metadata.get("poll_count") or 0))
+            except Exception:
+                pass
+            try:
+                final_age_ms.append(int(metadata.get("age_ms") or 0))
+            except Exception:
+                pass
+
+        durations = metadata.get("stage_durations_ms")
+        if isinstance(durations, dict):
+            for stage_name, duration_ms in durations.items():
+                try:
+                    stage_durations[str(stage_name)].append(int(duration_ms))
+                except Exception:
+                    continue
+
+    total_scans = max(1, len(scan_ids))
+    urlscan_timeout_rate = urlscan_timeout_events / total_scans
+    alerts = []
+    if reservation_guard_hits > 0:
+        alerts.append({
+            "severity": "watch",
+            "code": "urlscan_reservation_guard_hits",
+            "message": "Au aparut poll-uri concurente care au fost oprite de guard-ul anti-dublu-submit.",
+            "count": reservation_guard_hits,
+        })
+    if conflict_retry_failures > 0:
+        alerts.append({
+            "severity": "high",
+            "code": "conflict_merge_retry_failures",
+            "message": "Exista conflict-merge care nu a putut fi persistat dupa retry bounded.",
+            "count": conflict_retry_failures,
+        })
+    if urlscan_timeout_rate > urlscan_timeout_rate_alert:
+        alerts.append({
+            "severity": "watch",
+            "code": "urlscan_timeout_rate_high",
+            "message": "Rata urlscan pending->timeout este peste pragul configurat.",
+            "rate": round(urlscan_timeout_rate, 4),
+            "threshold": urlscan_timeout_rate_alert,
+        })
+
+    def avg(values: List[int]) -> Optional[float]:
+        return round(sum(values) / len(values), 2) if values else None
+
+    return {
+        "generated_at": int(time.time()),
+        "events_considered": len(records),
+        "scan_count": len(scan_ids),
+        "by_event_type": dict(by_event),
+        "by_stage": dict(by_stage),
+        "polls_to_final": {
+            "avg": avg(final_poll_counts),
+            "max": max(final_poll_counts) if final_poll_counts else None,
+            "samples": len(final_poll_counts),
+        },
+        "time_to_final_ms": {
+            "avg": avg(final_age_ms),
+            "max": max(final_age_ms) if final_age_ms else None,
+            "samples": len(final_age_ms),
+        },
+        "stage_latency_ms": {
+            stage_name: {
+                "avg": avg(values),
+                "max": max(values) if values else None,
+                "samples": len(values),
+            }
+            for stage_name, values in sorted(stage_durations.items())
+        },
+        "urlscan": {
+            "reservation_guard_hits": reservation_guard_hits,
+            "reclaim_events": reclaim_events,
+            "pending_timeout_events": urlscan_timeout_events,
+            "pending_timeout_rate": round(urlscan_timeout_rate, 4),
+        },
+        "conflicts": {
+            "merge_events": conflict_merge_events,
+            "retry_failures": conflict_retry_failures,
+        },
+        "alerts": alerts,
     }
 
 
@@ -3153,6 +3482,7 @@ def read_health():
         "service": "SigurScan API",
         "version": "1.0",
         "timestamp": int(time.time()),
+        "config": _provider_config_status(),
     }
 
 
@@ -3332,7 +3662,7 @@ ORCHESTRATED_REQUIRED_PILLAR_TIMEOUT_SECONDS = int(
     os.getenv("ORCHESTRATED_REQUIRED_PILLAR_TIMEOUT_SECONDS", "90")
 )
 ORCHESTRATED_URLSCAN_SUBMIT_RESERVATION_TIMEOUT_SECONDS = int(
-    os.getenv("ORCHESTRATED_URLSCAN_SUBMIT_RESERVATION_TIMEOUT_SECONDS", "15")
+    os.getenv("ORCHESTRATED_URLSCAN_SUBMIT_RESERVATION_TIMEOUT_SECONDS", "30")
 )
 _ORCHESTRATED_SCAN_JOBS: Dict[str, Dict[str, Any]] = {}
 _ORCHESTRATED_SCAN_LOCKS: Dict[str, asyncio.Lock] = {}
@@ -3351,6 +3681,95 @@ _ORCHESTRATED_STAGE_RANK = {
 
 def _orchestrated_stage_rank(stage: Any) -> int:
     return _ORCHESTRATED_STAGE_RANK.get(str(stage or "").strip().lower(), -1)
+
+
+def _orchestrated_metrics(job: Dict[str, Any]) -> Dict[str, Any]:
+    metrics = job.get("orchestration_metrics")
+    if not isinstance(metrics, dict):
+        metrics = {}
+        job["orchestration_metrics"] = metrics
+    metrics.setdefault("poll_count", 0)
+    metrics.setdefault("stage_durations_ms", {})
+    metrics.setdefault("stage_sequence", [])
+    metrics.setdefault("conflict_merge_count", 0)
+    metrics.setdefault("conflict_merge_retry_count", 0)
+    metrics.setdefault("conflict_merge_retry_failures", 0)
+    metrics.setdefault("urlscan_reclaim_count", 0)
+    metrics.setdefault("urlscan_reservation_guard_hits", 0)
+    metrics.setdefault("urlscan_timeout_count", 0)
+    metrics.setdefault("stage_entered_at", int(job.get("created_at") or int(time.time())))
+    return metrics
+
+
+def _increment_orchestrated_metric(job: Dict[str, Any], key: str, amount: int = 1) -> None:
+    metrics = _orchestrated_metrics(job)
+    try:
+        metrics[key] = int(metrics.get(key, 0) or 0) + int(amount)
+    except Exception:
+        metrics[key] = int(amount)
+
+
+def _set_orchestrated_stage(job: Dict[str, Any], next_stage: str) -> None:
+    if not isinstance(job, dict):
+        return
+    next_stage = str(next_stage or "").strip().lower() or "queued"
+    now = int(time.time())
+    metrics = _orchestrated_metrics(job)
+    previous_stage = str(job.get("pipeline_stage") or "").strip().lower()
+    previous_entered_at = int(metrics.get("stage_entered_at") or job.get("created_at") or now)
+    if previous_stage and previous_stage != next_stage:
+        durations = metrics.setdefault("stage_durations_ms", {})
+        durations[previous_stage] = int(durations.get(previous_stage, 0) or 0) + max(0, now - previous_entered_at) * 1000
+        metrics["stage_entered_at"] = now
+        sequence = metrics.setdefault("stage_sequence", [])
+        if isinstance(sequence, list):
+            sequence.append({"stage": next_stage, "at": now})
+    elif not previous_stage:
+        metrics["stage_entered_at"] = now
+        sequence = metrics.setdefault("stage_sequence", [])
+        if isinstance(sequence, list):
+            sequence.append({"stage": next_stage, "at": now})
+    job["pipeline_stage"] = next_stage
+
+
+def _emit_orchestrated_telemetry(event_type: str, job: Dict[str, Any], **metadata: Any) -> None:
+    if not isinstance(job, dict):
+        return
+    scan_id = str(job.get("scan_id") or "").strip()
+    if not scan_id:
+        return
+    try:
+        metrics = _orchestrated_metrics(job)
+        urlscan_state = job.get("urlscan") if isinstance(job.get("urlscan"), dict) else {}
+        log_scan_event(
+            {
+                "scan_id": scan_id,
+                "event_type": event_type,
+                "input_type": job.get("input_type", "unknown"),
+                "source_channel": job.get("source_channel"),
+                "risk_score": 0,
+                "risk_level": None,
+                "url_count": len(job.get("urls") if isinstance(job.get("urls"), list) else []),
+                "metadata": {
+                    "pipeline_stage": job.get("pipeline_stage"),
+                    "status": job.get("status"),
+                    "poll_count": metrics.get("poll_count"),
+                    "age_ms": max(0, int(time.time()) - int(job.get("created_at") or int(time.time()))) * 1000,
+                    "stage_durations_ms": metrics.get("stage_durations_ms", {}),
+                    "urlscan_status": urlscan_state.get("status"),
+                    "urlscan_uuid": urlscan_state.get("uuid"),
+                    "conflict_merge_count": metrics.get("conflict_merge_count", 0),
+                    "conflict_merge_retry_count": metrics.get("conflict_merge_retry_count", 0),
+                    "conflict_merge_retry_failures": metrics.get("conflict_merge_retry_failures", 0),
+                    "urlscan_reclaim_count": metrics.get("urlscan_reclaim_count", 0),
+                    "urlscan_reservation_guard_hits": metrics.get("urlscan_reservation_guard_hits", 0),
+                    "urlscan_timeout_count": metrics.get("urlscan_timeout_count", 0),
+                    **metadata,
+                },
+            }
+        )
+    except Exception:
+        return
 
 
 def _deep_copy_jsonable(value: Any) -> Any:
@@ -3405,6 +3824,30 @@ def _merge_orchestrated_conflict_job(reloaded: Dict[str, Any], local: Dict[str, 
         _merge_missing_dict_values(merged_preview, local_preview)
         merged["preview"] = merged_preview
 
+    local_metrics = local.get("orchestration_metrics") if isinstance(local.get("orchestration_metrics"), dict) else {}
+    if local_metrics:
+        merged_metrics = dict(merged.get("orchestration_metrics") if isinstance(merged.get("orchestration_metrics"), dict) else {})
+        for key, value in local_metrics.items():
+            if key == "stage_durations_ms" and isinstance(value, dict):
+                durations = dict(merged_metrics.get("stage_durations_ms") if isinstance(merged_metrics.get("stage_durations_ms"), dict) else {})
+                for stage_name, duration_ms in value.items():
+                    try:
+                        durations[str(stage_name)] = max(int(durations.get(stage_name, 0) or 0), int(duration_ms))
+                    except Exception:
+                        continue
+                merged_metrics["stage_durations_ms"] = durations
+            elif key == "stage_sequence" and isinstance(value, list):
+                existing_sequence = merged_metrics.get("stage_sequence")
+                if not isinstance(existing_sequence, list) or len(value) > len(existing_sequence):
+                    merged_metrics["stage_sequence"] = _deep_copy_jsonable(value)
+            else:
+                try:
+                    merged_metrics[key] = max(int(merged_metrics.get(key, 0) or 0), int(value))
+                except Exception:
+                    if merged_metrics.get(key) in (None, "", [], {}):
+                        merged_metrics[key] = _deep_copy_jsonable(value)
+        merged["orchestration_metrics"] = merged_metrics
+
     return merged
 
 
@@ -3432,11 +3875,27 @@ def _persist_orchestrated_job(job: Dict[str, Any]) -> Dict[str, Any]:
     scan_id = str(job["scan_id"])
     saved = supabase_store.save_scan_job(job)
     if saved is False:
+        _increment_orchestrated_metric(job, "conflict_merge_count")
         reloaded = supabase_store.load_scan_job(scan_id)
         if isinstance(reloaded, dict):
             merged = _merge_orchestrated_conflict_job(reloaded, job)
             if merged != reloaded:
-                supabase_store.save_scan_job(merged)
+                retry_saved = False
+                for _ in range(2):
+                    _increment_orchestrated_metric(merged, "conflict_merge_retry_count")
+                    retry_saved = supabase_store.save_scan_job(merged)
+                    if retry_saved is not False:
+                        break
+                    latest = supabase_store.load_scan_job(scan_id)
+                    if isinstance(latest, dict):
+                        merged = _merge_orchestrated_conflict_job(latest, merged)
+                if retry_saved is False:
+                    _increment_orchestrated_metric(merged, "conflict_merge_retry_failures")
+                _emit_orchestrated_telemetry(
+                    "orchestrated_conflict_merge",
+                    merged,
+                    retry_saved=retry_saved is not False,
+                )
             _ORCHESTRATED_SCAN_JOBS[scan_id] = merged
             return merged
         return job
@@ -3659,7 +4118,8 @@ def _mark_required_pillars_timeout(job: Dict[str, Any]) -> Dict[str, Any]:
         ]
         analysis.setdefault("evidence", {}).setdefault("provider_gate", {})["required_timeout"] = True
     job["analysis"] = analysis
-    job["pipeline_stage"] = "done"
+    _set_orchestrated_stage(job, "done")
+    _emit_orchestrated_telemetry("orchestrated_required_timeout", job)
     return job
 
 
@@ -3840,6 +4300,22 @@ async def _finalize_orchestrated_job_if_ready(job: Dict[str, Any], request: Requ
     response_payload["is_final"] = _orchestrated_result_is_final(job, analysis)
     job["result"] = response_payload
     job["result_fingerprint"] = fingerprint
+    if response_payload["is_final"]:
+        _emit_orchestrated_telemetry(
+            "orchestrated_verdict_final",
+            job,
+            user_risk_label=response_payload.get("user_risk_label"),
+            risk_level=response_payload.get("risk_level"),
+            result_fingerprint=fingerprint,
+        )
+    else:
+        _emit_orchestrated_telemetry(
+            "orchestrated_verdict_provisional",
+            job,
+            user_risk_label=response_payload.get("user_risk_label"),
+            risk_level=response_payload.get("risk_level"),
+            result_fingerprint=fingerprint,
+        )
     _emit_scan_event(
         scan_id=scan_id,
         scan_payload=response_payload,
@@ -3993,13 +4469,28 @@ async def _create_orchestrated_job(payload: OrchestratedScanRequest) -> Dict[str
             "country": payload.country,
             "customagent": payload.customagent,
         },
+        "orchestration_metrics": {
+            "poll_count": 0,
+            "stage_entered_at": int(time.time()),
+            "stage_sequence": [{"stage": "queued", "at": int(time.time())}],
+            "stage_durations_ms": {},
+            "conflict_merge_count": 0,
+            "conflict_merge_retry_count": 0,
+            "conflict_merge_retry_failures": 0,
+            "urlscan_reclaim_count": 0,
+            "urlscan_reservation_guard_hits": 0,
+            "urlscan_timeout_count": 0,
+        },
     }
     job = _persist_orchestrated_job(job)
+    _emit_orchestrated_telemetry("orchestrated_created", job)
     return job
 
 
 async def _refresh_orchestrated_job(job: Dict[str, Any], request: Request) -> Dict[str, Any]:
+    _increment_orchestrated_metric(job, "poll_count")
     stage = str(job.get("pipeline_stage") or "queued").strip().lower()
+    _emit_orchestrated_telemetry("orchestrated_poll", job, stage=stage)
     existing_result = job.get("result") if isinstance(job.get("result"), dict) else None
     if not existing_result and _orchestrated_required_pillars_timed_out(job):
         job = _mark_required_pillars_timeout(job)
@@ -4010,8 +4501,9 @@ async def _refresh_orchestrated_job(job: Dict[str, Any], request: Request) -> Di
         resolved_urls = _safe_scan_url_list([str(url) for url in urls if str(url).strip()])
         job["resolved_urls"] = resolved_urls
         job.setdefault("extra_fields", {})["resolved_urls"] = resolved_urls
-        job["pipeline_stage"] = "resolved"
+        _set_orchestrated_stage(job, "resolved")
         job = _persist_orchestrated_job(job)
+        _emit_orchestrated_telemetry("orchestrated_stage_resolved", job)
         return job
 
     if stage == "resolved":
@@ -4042,8 +4534,9 @@ async def _refresh_orchestrated_job(job: Dict[str, Any], request: Request) -> Di
             )
             job["analysis"] = analysis
             job["claim_verifier_required"] = False
-            job["pipeline_stage"] = "analysis_ready"
+            _set_orchestrated_stage(job, "analysis_ready")
             job = _persist_orchestrated_job(job)
+            _emit_orchestrated_telemetry("orchestrated_stage_analysis_ready", job, decisive_provider=True)
             return await _finalize_orchestrated_job_if_ready(job, request)
 
         job["analysis"] = {
@@ -4060,8 +4553,9 @@ async def _refresh_orchestrated_job(job: Dict[str, Any], request: Request) -> Di
             },
         }
         job["claim_verifier_required"] = False
-        job["pipeline_stage"] = "reputation_ready"
+        _set_orchestrated_stage(job, "reputation_ready")
         job = _persist_orchestrated_job(job)
+        _emit_orchestrated_telemetry("orchestrated_stage_reputation_ready", job)
         return job
 
     if stage == "reputation_ready":
@@ -4098,8 +4592,9 @@ async def _refresh_orchestrated_job(job: Dict[str, Any], request: Request) -> Di
         job["primary_final_url"] = primary_final_url
         preview = job.setdefault("preview", {})
         preview["final_url"] = primary_final_url
-        job["pipeline_stage"] = "analysis_ready"
+        _set_orchestrated_stage(job, "analysis_ready")
         job = _persist_orchestrated_job(job)
+        _emit_orchestrated_telemetry("orchestrated_stage_analysis_ready", job, claim_required=claim_required)
         return await _finalize_orchestrated_job_if_ready(job, request)
 
     if stage == "analysis_ready":
@@ -4115,10 +4610,12 @@ async def _refresh_orchestrated_job(job: Dict[str, Any], request: Request) -> Di
                 "submit_started_at": int(time.time()),
                 "details": "urlscan submit rezervat pentru instanta curenta.",
             }
-            job["pipeline_stage"] = "urlscan_submitting"
+            _set_orchestrated_stage(job, "urlscan_submitting")
             job = _persist_orchestrated_job(job)
             urlscan_state = job.get("urlscan") if isinstance(job.get("urlscan"), dict) else {}
             if urlscan_state.get("submit_owner") != submit_owner or urlscan_state.get("uuid"):
+                _increment_orchestrated_metric(job, "urlscan_reservation_guard_hits")
+                _emit_orchestrated_telemetry("orchestrated_urlscan_reservation_guard", job)
                 return await _finalize_orchestrated_job_if_ready(job, request)
 
             primary_final_url = job.get("primary_final_url")
@@ -4140,8 +4637,9 @@ async def _refresh_orchestrated_job(job: Dict[str, Any], request: Request) -> Di
             preview["final_url"] = primary_final_url
         elif not primary_final_url:
             job["urlscan"] = {"status": "skipped", "details": "Nu exista URL pentru preview."}
-        job["pipeline_stage"] = "urlscan_submitted"
+        _set_orchestrated_stage(job, "urlscan_submitted")
         job = _persist_orchestrated_job(job)
+        _emit_orchestrated_telemetry("orchestrated_urlscan_submitted", job)
         return await _finalize_orchestrated_job_if_ready(job, request)
 
     if stage == "urlscan_submitting":
@@ -4157,8 +4655,10 @@ async def _refresh_orchestrated_job(job: Dict[str, Any], request: Request) -> Di
                 "status": "queued",
                 "details": "Rezervarea anterioara pentru urlscan a expirat; submitul va fi reluat.",
             }
-            job["pipeline_stage"] = "analysis_ready"
+            _increment_orchestrated_metric(job, "urlscan_reclaim_count")
+            _set_orchestrated_stage(job, "analysis_ready")
             job = _persist_orchestrated_job(job)
+            _emit_orchestrated_telemetry("orchestrated_urlscan_reclaimed", job, submit_age_seconds=submit_age)
             return job
         return await _finalize_orchestrated_job_if_ready(job, request)
 
@@ -4181,6 +4681,7 @@ async def _refresh_orchestrated_job(job: Dict[str, Any], request: Request) -> Di
                     urlscan_state["details"] = "urlscan result este gata, dar captura inca se proceseaza."
                     if _urlscan_pending_has_timed_out(job):
                         urlscan_state["status"] = "timeout"
+                        _increment_orchestrated_metric(job, "urlscan_timeout_count")
                         urlscan_state["details"] = (
                             "urlscan result este gata, dar captura paginii finale nu a finalizat "
                             "in timpul maxim permis."
@@ -4210,6 +4711,7 @@ async def _refresh_orchestrated_job(job: Dict[str, Any], request: Request) -> Di
                         summary["urlscan"]["details"] = urlscan_state.get("details", "urlscan preview timeout")
             elif _urlscan_pending_has_timed_out(job):
                 urlscan_state["status"] = "timeout"
+                _increment_orchestrated_metric(job, "urlscan_timeout_count")
                 urlscan_state["details"] = (
                     "urlscan preview nu a finalizat captura in timpul maxim permis; "
                     "verdictul ramane bazat pe piloanele blocking."
@@ -4217,6 +4719,7 @@ async def _refresh_orchestrated_job(job: Dict[str, Any], request: Request) -> Di
                 job["urlscan"] = urlscan_state
         elif _urlscan_pending_has_timed_out(job):
             urlscan_state["status"] = "timeout"
+            _increment_orchestrated_metric(job, "urlscan_timeout_count")
             urlscan_state["details"] = (
                 "urlscan preview nu a finalizat captura in timpul maxim permis; "
                 "verdictul ramane bazat pe piloanele blocking."
@@ -4224,6 +4727,7 @@ async def _refresh_orchestrated_job(job: Dict[str, Any], request: Request) -> Di
             job["urlscan"] = urlscan_state
 
     job = _persist_orchestrated_job(job)
+    _emit_orchestrated_telemetry("orchestrated_urlscan_polled", job)
     return await _finalize_orchestrated_job_if_ready(job, request)
 
 
@@ -4901,6 +5405,23 @@ def feedback_summary(
 @app.get("/v1/reputation/cache/stats")
 def reputation_cache_stats() -> Dict[str, Any]:
     return {"cache": get_reputation_cache_stats()}
+
+
+@app.get("/v1/orchestration/telemetry")
+def orchestration_telemetry(
+    limit: int = 1000,
+    urlscan_timeout_rate_alert: float = 0.15,
+) -> Dict[str, Any]:
+    if limit <= 0:
+        raise HTTPException(status_code=400, detail="limit trebuie sa fie strict pozitiv.")
+    if limit > 10000:
+        raise HTTPException(status_code=400, detail="limit maxim este 10000.")
+    if urlscan_timeout_rate_alert < 0 or urlscan_timeout_rate_alert > 1:
+        raise HTTPException(status_code=400, detail="urlscan_timeout_rate_alert trebuie sa fie intre 0 si 1.")
+    return {"orchestration": _build_orchestration_telemetry_payload(
+        limit=limit,
+        urlscan_timeout_rate_alert=urlscan_timeout_rate_alert,
+    )}
 
 
 @app.get("/v1/evaluation/feedback")

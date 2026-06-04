@@ -327,6 +327,8 @@ def build_feedback_evaluation_rows(
     for row in scans:
         if not isinstance(row, dict):
             continue
+        if row.get("event_type", "scan_completed") != "scan_completed":
+            continue
         scan_id = str(row.get("scan_id") or "").strip()
         if not scan_id:
             continue

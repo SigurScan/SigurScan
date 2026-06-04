@@ -43,6 +43,27 @@
       "emag.ro",
       "marketplace.emag.ro"
     ],
+    "Bolt": [
+      "bolt.eu"
+    ],
+    "Fashion Days": [
+      "fashiondays.ro"
+    ],
+    "Mega Image": [
+      "mega-image.ro"
+    ],
+    "DPD": [
+      "dpd.com"
+    ],
+    "Netflix": [
+      "netflix.com"
+    ],
+    "Spotify": [
+      "spotify.com"
+    ],
+    "Electrica": [
+      "electricafurnizare.ro"
+    ],
     "Altex": [
       "altex.ro"
     ],
@@ -211,6 +232,15 @@
     "olx": "OLX România",
     "olxromania": "OLX România",
     "emag": "eMAG",
+    "bolt": "Bolt",
+    "fashiondays": "Fashion Days",
+    "mega-image": "Mega Image",
+    "megaimage": "Mega Image",
+    "dpd": "DPD",
+    "netflix": "Netflix",
+    "spotify": "Spotify",
+    "electrica": "Electrica",
+    "electricafurnizare": "Electrica",
     "altex": "Altex",
     "revolut": "Revolut",
     "bcr": "BCR",
@@ -327,6 +357,30 @@
       "eMAG",
       "emag marketplace",
       "marketplace emag"
+    ],
+    "Bolt": [
+      "Bolt"
+    ],
+    "Fashion Days": [
+      "Fashion Days",
+      "fashiondays"
+    ],
+    "Mega Image": [
+      "Mega Image",
+      "mega-image"
+    ],
+    "DPD": [
+      "DPD"
+    ],
+    "Netflix": [
+      "Netflix"
+    ],
+    "Spotify": [
+      "Spotify"
+    ],
+    "Electrica": [
+      "Electrica",
+      "Electrica Furnizare"
     ],
     "Altex": [
       "Altex",
