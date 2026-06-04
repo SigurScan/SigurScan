@@ -2875,6 +2875,20 @@ def _attach_offer_claim_verification(
         }
 
 
+def _skipped_offer_claim_payload(reason: str) -> Dict[str, Any]:
+    return {
+        "provider": "ai_offer_web_check",
+        "status": "skipped",
+        "verdict": "skipped",
+        "severity": "unknown",
+        "summary": reason,
+        "details": reason,
+        "confidence": 0,
+        "evidence_urls": [],
+        "method": "skipped",
+    }
+
+
 def _attach_brand_warning_summary(
     summary: Dict[str, Any],
     brand_warning: Dict[str, Any],
@@ -2907,17 +2921,7 @@ async def _enrich_offer_claim_verification_async(
     resolved_urls: List[Dict[str, Any]],
 ) -> Dict[str, Any]:
     if PRIVACY_SAFE_MODE or AI_OFFER_CLAIM_TIMEOUT_SECONDS <= 0:
-        offer_claim = {
-            "provider": "ai_offer_web_check",
-            "status": "skipped",
-            "verdict": "skipped",
-            "severity": "unknown",
-            "summary": "Claim web check skipped by privacy/timeout policy.",
-            "details": "Claim web check skipped by privacy/timeout policy.",
-            "confidence": 0,
-            "evidence_urls": [],
-            "method": "skipped",
-        }
+        offer_claim = _skipped_offer_claim_payload("Claim web check skipped by privacy/timeout policy.")
         _attach_offer_claim_verification(analysis, offer_claim)
         return offer_claim
 
@@ -3384,7 +3388,13 @@ def _build_orchestrated_pillars(job: Dict[str, Any]) -> Dict[str, Dict[str, Any]
         "virustotal": virustotal_pillar,
         "urlscan": urlscan_pillar,
         "claim_verifier": _pillar(
-            "ok" if claim_status in {"confirmed", "not_found", "inconclusive", "skipped"} else ("pending" if claim_required else "not_required"),
+            (
+                "not_required"
+                if not claim_required
+                else "ok"
+                if claim_status in {"confirmed", "not_found", "inconclusive", "skipped"}
+                else "pending"
+            ),
             required=claim_required,
             details=claim_status or ("required" if claim_required else "not required"),
         ),
@@ -3824,8 +3834,18 @@ async def _refresh_orchestrated_job(job: Dict[str, Any], request: Request) -> Di
         resolved_urls = job.get("resolved_urls") if isinstance(job.get("resolved_urls"), list) else []
         analysis = _analyze_with_reputation(redacted_text, resolved_urls, fast_reputation=True)
         analysis.setdefault("evidence", {})["source_channel"] = job.get("source_channel")
-        await _enrich_offer_claim_verification_async(redacted_text, analysis, resolved_urls)
         claim_required = _claim_verifier_required(analysis)
+        evidence = analysis.get("evidence", {}) if isinstance(analysis.get("evidence"), dict) else {}
+        summary = evidence.get("external_intel_summary") if isinstance(evidence.get("external_intel_summary"), dict) else {}
+        if claim_required and not _has_bad_provider_verdict(summary):
+            await _enrich_offer_claim_verification_async(redacted_text, analysis, resolved_urls)
+        else:
+            reason = (
+                "Claim web check skipped because hard reputation evidence is already decisive."
+                if _has_bad_provider_verdict(summary)
+                else "Claim web check skipped because no concrete offer/brand claim was detected."
+            )
+            _attach_offer_claim_verification(analysis, _skipped_offer_claim_payload(reason))
 
         primary_entry = _select_primary_resolved_url(resolved_urls, analysis)
         primary_final_url = None

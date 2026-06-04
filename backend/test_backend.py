@@ -893,7 +893,11 @@ def test_orchestrated_hard_malicious_provider_finalizes_even_when_urlscan_reject
         patched.setattr(app_main, "URLSCAN_API_KEY", "server-only-key")
         patched.setattr(app_main, "_safe_scan_url_list", _fake_google_test_phishing_scan)
         patched.setattr(app_main, "_gather_external_intel_safe", _malicious_web_risk_and_vt_for_resolved_urls)
-        patched.setattr(app_main, "_enrich_offer_claim_verification_async", _fake_inconclusive_offer_claim)
+        patched.setattr(
+            app_main,
+            "_enrich_offer_claim_verification_async",
+            lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("Hard provider risk must not wait for claim verifier")),
+        )
         patched.setattr(app_main.requests, "post", _fake_urlscan_post_rejects_domain)
 
         start = client.post(
@@ -911,6 +915,7 @@ def test_orchestrated_hard_malicious_provider_finalizes_even_when_urlscan_reject
     assert payload["pillars"]["google_web_risk"]["status"] == "ok"
     assert payload["pillars"]["virustotal"]["status"] == "ok"
     assert payload["pillars"]["urlscan"]["status"] == "error"
+    assert payload["pillars"]["claim_verifier"]["status"] == "not_required"
     assert payload["result"]["user_risk_label"] == "PERICULOS"
     assert payload["result"]["risk_level"] == "high"
     assert payload["result"]["detected_family_id"] == "provider-gate-bad-provider"
