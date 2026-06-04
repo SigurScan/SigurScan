@@ -597,7 +597,7 @@ def test_orchestrated_text_scan_completes_safe_after_urlscan_preview(monkeypatch
             "/v1/scan/orchestrated",
             json={"input_type": "text", "text": message, "source_channel": "android_native"},
         ).json()
-        response, payload = _poll_orchestrated(client, start["scan_id"], count=4)
+        response, payload = _poll_orchestrated(client, start["scan_id"], count=5)
 
     assert response.status_code == 200
     assert payload["status"] == "complete"
@@ -662,7 +662,7 @@ def test_orchestrated_urlscan_late_risk_upgrades_provisional_safe_verdict(monkey
             "/v1/scan/orchestrated",
             json={"input_type": "text", "text": message, "source_channel": "android_native"},
         ).json()
-        _, provisional = _poll_orchestrated(client, start["scan_id"], count=2)
+        _, provisional = _poll_orchestrated(client, start["scan_id"], count=3)
         _, upgraded = _poll_orchestrated(client, start["scan_id"], count=2)
 
     assert provisional["status"] == "scanning"
@@ -698,7 +698,7 @@ def test_orchestrated_scan_keeps_clean_verdict_when_urlscan_screenshot_times_out
             "/v1/scan/orchestrated",
             json={"input_type": "text", "text": message, "source_channel": "android_native"},
         ).json()
-        _poll_orchestrated(client, start["scan_id"], count=3)
+        _poll_orchestrated(client, start["scan_id"], count=4)
         app_main._ORCHESTRATED_SCAN_JOBS[start["scan_id"]]["created_at"] -= 5
         response, payload = _poll_orchestrated(client, start["scan_id"], count=1)
 
@@ -871,7 +871,7 @@ def test_orchestrated_fan_payment_scam_finalizes_dangerous_when_urlscan_rejects_
             "/v1/scan/orchestrated",
             json={"input_type": "text", "text": message, "source_channel": "android_native"},
         ).json()
-        response, payload = _poll_orchestrated(client, start["scan_id"], count=3)
+        response, payload = _poll_orchestrated(client, start["scan_id"], count=4)
 
     assert response.status_code == 200
     assert payload["status"] == "complete"

@@ -1582,14 +1582,17 @@ def _analyze_with_reputation(
     *,
     email_context: Optional[Dict[str, Any]] = None,
     fast_reputation: bool = True,
+    threat_intel_override: Optional[Dict[str, Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
     use_fast = bool(fast_reputation)
-    threat_intel = _gather_external_intel_safe(
-        resolved_urls,
-        include_virustotal=True,
-        include_urlhaus=(not use_fast) or FAST_REPUTATION_INCLUDE_URLHAUS,
-        persist_partial=False,
-    )
+    threat_intel = threat_intel_override
+    if threat_intel is None:
+        threat_intel = _gather_external_intel_safe(
+            resolved_urls,
+            include_virustotal=True,
+            include_urlhaus=(not use_fast) or FAST_REPUTATION_INCLUDE_URLHAUS,
+            persist_partial=False,
+        )
     analyze_kwargs: Dict[str, Any] = {
         "urls": resolved_urls,
         "external_threat_intel": threat_intel,
@@ -1614,6 +1617,83 @@ def _analyze_with_reputation(
 
     analysis.setdefault("evidence", {})["fast_reputation_mode"] = use_fast
     return analysis
+
+
+def _external_intel_summary_from_threat_intel(threat_intel: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+    summary: Dict[str, Dict[str, Any]] = {}
+
+    def severity_rank(status: str) -> int:
+        normalized = status.strip().lower()
+        if normalized in {"malicious", "phishing", "malware"}:
+            return 4
+        if normalized == "suspicious":
+            return 3
+        if normalized in {"clean", "no_match", "no-match"}:
+            return 2
+        if normalized in {"error", "unknown"}:
+            return 1
+        return 0
+
+    for threat in threat_intel.values():
+        if not isinstance(threat, dict):
+            continue
+        sources = threat.get("sources")
+        if not isinstance(sources, dict):
+            continue
+        for source_name, source_data in sources.items():
+            if not isinstance(source_data, dict):
+                continue
+            status = str(source_data.get("status") or "unknown").strip().lower()
+            existing = summary.get(source_name)
+            existing_status = str(existing.get("status") or "unknown") if isinstance(existing, dict) else "unknown"
+            if not isinstance(existing, dict) or severity_rank(status) >= severity_rank(existing_status):
+                summary[source_name] = {
+                    "source": source_name,
+                    "status": status,
+                    "verdict": str(source_data.get("verdict") or status),
+                    "consulted": bool(source_data.get("consulted", False)),
+                    "risk_score": int(source_data.get("score") or source_data.get("risk_score") or 0),
+                    "threat_type": str(source_data.get("threat_type") or "unknown"),
+                    "details": source_data.get("details") if isinstance(source_data.get("details"), dict) else {},
+                    "url_count": 1,
+                    "malicious_hit_count": 1 if status in {"malicious", "suspicious", "phishing", "malware"} else 0,
+                }
+            elif existing is not None:
+                existing["url_count"] = int(existing.get("url_count") or 0) + 1
+                if status in {"malicious", "suspicious", "phishing", "malware"}:
+                    existing["malicious_hit_count"] = int(existing.get("malicious_hit_count") or 0) + 1
+    return summary
+
+
+def _decisive_reputation_analysis(
+    redacted_text: str,
+    resolved_urls: List[Dict[str, Any]],
+    summary: Dict[str, Dict[str, Any]],
+) -> Dict[str, Any]:
+    return {
+        "risk_score": 90,
+        "risk_level": "high",
+        "detected_family": "Risc confirmat",
+        "detected_family_id": "provider-gate-bad-provider",
+        "claimed_brand": "Nespecificat",
+        "reasons": [
+            "Scanarea a gasit semnale clare de risc pe destinatie.",
+        ],
+        "safe_actions": [
+            "Nu apasa linkul.",
+            "Nu introduce date pe pagina.",
+            "Verifica manual canalul oficial.",
+        ],
+        "key_dangers": [
+            "Providerii de reputatie au marcat destinatia ca risc.",
+        ],
+        "evidence": {
+            "external_intel_summary": summary,
+            "provider_short_circuit": True,
+            "has_domain_mismatch": False,
+            "extracted_urls": resolved_urls,
+        },
+    }
 
 
 def _source_status(summary: Dict[str, Any], source_name: str) -> str:
@@ -3559,8 +3639,6 @@ def _orchestrated_status_payload(job: Dict[str, Any]) -> Dict[str, Any]:
         status = "complete"
     elif result is not None:
         status = "scanning"
-    elif _all_required_pillars_ok(pillars):
-        status = "ready"
     elif _has_required_pillar_error(pillars):
         status = "incomplete"
     else:
@@ -3832,7 +3910,63 @@ async def _refresh_orchestrated_job(job: Dict[str, Any], request: Request) -> Di
     if stage == "resolved":
         redacted_text = str(job.get("redacted_text") or "")
         resolved_urls = job.get("resolved_urls") if isinstance(job.get("resolved_urls"), list) else []
-        analysis = _analyze_with_reputation(redacted_text, resolved_urls, fast_reputation=True)
+        threat_intel = _gather_external_intel_safe(
+            resolved_urls,
+            include_virustotal=True,
+            include_urlhaus=False,
+            persist_partial=False,
+        )
+        summary = _external_intel_summary_from_threat_intel(threat_intel)
+        primary_entry = _select_primary_resolved_url(resolved_urls, {"claimed_brand": "Nespecificat"})
+        primary_final_url = None
+        if primary_entry:
+            primary_final_url = primary_entry.get("final_url") or primary_entry.get("url") or primary_entry.get("original_url")
+        job["threat_intel"] = threat_intel
+        job["primary_final_url"] = primary_final_url
+        preview = job.setdefault("preview", {})
+        preview["final_url"] = primary_final_url
+
+        if _has_bad_provider_verdict(summary):
+            analysis = _decisive_reputation_analysis(redacted_text, resolved_urls, summary)
+            analysis.setdefault("evidence", {})["source_channel"] = job.get("source_channel")
+            _attach_offer_claim_verification(
+                analysis,
+                _skipped_offer_claim_payload("Claim web check skipped because hard reputation evidence is already decisive."),
+            )
+            job["analysis"] = analysis
+            job["claim_verifier_required"] = False
+            job["pipeline_stage"] = "analysis_ready"
+            job = _persist_orchestrated_job(job)
+            return await _finalize_orchestrated_job_if_ready(job, request)
+
+        job["analysis"] = {
+            "risk_score": 0,
+            "risk_level": "low",
+            "detected_family": "Reputatie in curs",
+            "detected_family_id": "provider-gate-reputation-ready",
+            "claimed_brand": "Nespecificat",
+            "reasons": [],
+            "safe_actions": [],
+            "evidence": {
+                "external_intel_summary": summary,
+                "source_channel": job.get("source_channel"),
+            },
+        }
+        job["claim_verifier_required"] = False
+        job["pipeline_stage"] = "reputation_ready"
+        job = _persist_orchestrated_job(job)
+        return job
+
+    if stage == "reputation_ready":
+        redacted_text = str(job.get("redacted_text") or "")
+        resolved_urls = job.get("resolved_urls") if isinstance(job.get("resolved_urls"), list) else []
+        threat_intel = job.get("threat_intel") if isinstance(job.get("threat_intel"), dict) else None
+        analysis = _analyze_with_reputation(
+            redacted_text,
+            resolved_urls,
+            fast_reputation=True,
+            threat_intel_override=threat_intel,
+        )
         analysis.setdefault("evidence", {})["source_channel"] = job.get("source_channel")
         claim_required = _claim_verifier_required(analysis)
         evidence = analysis.get("evidence", {}) if isinstance(analysis.get("evidence"), dict) else {}
