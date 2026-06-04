@@ -460,6 +460,17 @@ DELIVERY_MANIPULATION_PATTERNS = (
     re.compile(r"\b(?:taxe|taxa|vam[a-z]*|locker)\b.*\b(?:colet|livrare|parcel|pachet)\b", re.IGNORECASE),
 )
 
+KNOWN_DEEPLINK_PROVIDERS = {
+    "onelink.me",
+    "app.link",
+    "branch.link",
+    "bnc.lt",
+    "go.link",
+    "page.link",
+    "smart.link",
+    "sng.link",
+}
+
 
 def _dedupe_preserve_order(values: List[str]) -> List[str]:
     seen = set()
@@ -587,6 +598,29 @@ class ScamAtlasEngine:
                     return True
         return False
 
+    def _is_brand_delegated_deeplink(
+        self,
+        claimed_brand: str,
+        reg_domain: str,
+        hostname: str | None = None,
+    ) -> bool:
+        if not claimed_brand or not reg_domain or reg_domain not in KNOWN_DEEPLINK_PROVIDERS:
+            return False
+        normalized_host = (hostname or "").strip().lower().strip(".")
+        if not normalized_host.endswith(f".{reg_domain}"):
+            return False
+        subdomain = normalized_host[: -(len(reg_domain) + 1)].split(".")[-1]
+        if not subdomain:
+            return False
+        brand_tokens = {str(claimed_brand).strip().lower().replace(" ", ""), str(claimed_brand).strip().lower()}
+        brand_tokens.update(self._claimed_brand_base_candidates(claimed_brand))
+        brand_tokens.update(alias.replace(" ", "") for alias in _loaded_aliases.get(claimed_brand, []))
+        return subdomain.replace("-", "").replace("_", "") in {
+            token.replace("-", "").replace("_", "")
+            for token in brand_tokens
+            if token
+        }
+
     def _is_context_allowed_domain(
         self,
         reg_domain: str,
@@ -596,6 +630,8 @@ class ScamAtlasEngine:
         if self._is_whitelisted_domain(reg_domain, hostname=hostname):
             return True
         if claimed_brand and self._is_brand_allowed_domain(claimed_brand, reg_domain, hostname):
+            return True
+        if claimed_brand and self._is_brand_delegated_deeplink(claimed_brand, reg_domain, hostname):
             return True
         return False
 
@@ -958,17 +994,34 @@ class ScamAtlasEngine:
         Handles Romanian inflections (e.g., card/cardul/cardurile, cod/codul/codurile).
         """
         signals = []
+        lower_text = text.lower()
         
         # Credit Card CVC/OTP/PIN/Password (articulated or inflected)
-        if (
-            re.search(r"\bcard\b", text, re.IGNORECASE)
-            and re.search(r"\b(?:numar|numărul|datele|detaliile|cvv|cvc|plat[aă]|trimite|transfer|scaneaz)\b", text, re.IGNORECASE)
-        ):
+        card_request = re.search(
+            r"\b(?:introdu\w*|completeaz\w*|trimite\w*|spune\w*|comunic\w*|confirm\w*|verific\w*|valideaz\w*)\b"
+            r"(?:\W+\w+){0,10}\W+"
+            r"(?:date(?:le)?\s+(?:de\s+)?card(?:ului)?|num[aă]r(?:ul)?\s+(?:de\s+)?card(?:ului)?|card(?:ul|ului)?|cvv|cvc)",
+            text,
+            re.IGNORECASE,
+        ) or re.search(
+            r"(?:date(?:le)?\s+(?:de\s+)?card(?:ului)?|num[aă]r(?:ul)?\s+(?:de\s+)?card(?:ului)?|card(?:ul|ului)?|cvv|cvc)"
+            r"(?:\W+\w+){0,10}\W+"
+            r"\b(?:introdu\w*|completeaz\w*|trimite\w*|spune\w*|comunic\w*|confirm\w*|verific\w*|valideaz\w*)\b",
+            text,
+            re.IGNORECASE,
+        )
+        if card_request:
             signals.append("Solicitare date sensibile (card, CVC, PIN, cod de securitate)")
         elif any(pattern.search(text) for pattern in SENSITIVE_CREDENTIAL_PATTERNS):
             signals.append("Solicitare date sensibile (card, CVC, PIN, cod de securitate)")
 
-        if re.search(r"\b(?:cnp|iban|date\s+personale|num[aă]r(?:ul)?\s+(?:de\s+)?(?:buletin|card|telefon))\b", text, re.IGNORECASE):
+        if re.search(
+            r"\b(?:introdu\w*|completeaz\w*|trimite\w*|spune\w*|comunic\w*|confirm\w*|verific\w*|valideaz\w*)\b"
+            r"(?:\W+\w+){0,10}\W+"
+            r"(?:cnp|iban|date\s+personale|num[aă]r(?:ul)?\s+(?:de\s+)?(?:buletin|card|telefon)|copie\s+act|act(?:ul)?\s+(?:de\s+)?identitate)",
+            text,
+            re.IGNORECASE,
+        ):
             signals.append("Solicitare date personale sensibile (CNP, IBAN sau identificare)")
 
         if re.search(r"\b(?:verificare|confirmare|validare)\s+(?:identitate|date|cont|client)\b", text, re.IGNORECASE):
@@ -1014,7 +1067,9 @@ class ScamAtlasEngine:
             signals.append("Solicitare de scanare/plată prin QR într-un context de risc")
 
         # Sextortion (digital blackmail)
-        if any(pattern.search(text) for pattern in SENSITIVE_SEXTORTION_PATTERNS):
+        sextortion_context = re.search(r"\b(?:ameninț|amenint|șantaj|santaj|compromis|poze|video|camera|parole)\b", lower_text, re.IGNORECASE)
+        sextortion_payment = re.search(r"\b(?:plat[aă]|bani|sum[aă]|ron|eur|crypto)\b", lower_text, re.IGNORECASE)
+        if sextortion_context and sextortion_payment and any(pattern.search(text) for pattern in SENSITIVE_SEXTORTION_PATTERNS):
             signals.append("Semnal de șantaj digital: amenințare + cerere de plată")
 
         # SIM swap / telecom impersonation

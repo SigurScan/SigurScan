@@ -616,6 +616,124 @@ def test_provider_gate_yoxo_onelink_subscription_notice_is_low_risk():
     assert result["evidence"]["brand_warning"]["triggered"] is False
 
 
+def test_scam_atlas_yoxo_onelink_surface_domain_is_not_brand_mismatch():
+    engine = ScamAtlasEngine()
+    text = (
+        "In 24 de ore se va efectua automat plata abonamentului tau Orange YOXO cu numarul 0755287867. "
+        "Asigura-te ca ai suficienti bani pe card. Poti vizualiza factura aici "
+        "https://yoxo.onelink.me/f8ly/ijiwsfwu"
+    )
+    resolved_urls = [
+        {
+            "url": "https://yoxo.onelink.me/f8ly/ijiwsfwu",
+            "final_url": "https://yoxo.onelink.me/f8ly/ijiwsfwu",
+            "hostname": "yoxo.onelink.me",
+            "final_hostname": "yoxo.onelink.me",
+            "registered_domain": "onelink.me",
+            "final_registered_domain": "onelink.me",
+        }
+    ]
+
+    result = engine.analyze(text, resolved_urls)
+
+    assert result["claimed_brand"] == "YOXO"
+    assert result["evidence"]["has_domain_mismatch"] is False
+    assert "Solicitare date sensibile" not in " ".join(result["reasons"])
+    assert "șantaj digital" not in " ".join(result["reasons"]).lower()
+
+
+def test_scan_text_yoxo_onelink_fast_path_is_safe_when_deeplink_is_delegated(monkeypatch):
+    client = TestClient(app_main.app)
+    text = (
+        "In 24 de ore se va efectua automat plata abonamentului tau Orange YOXO cu numarul 0755287867. "
+        "Asigura-te ca ai suficienti bani pe card. Poti vizualiza factura aici "
+        "https://yoxo.onelink.me/f8ly/ijiwsfwu"
+    )
+
+    def fake_stale_yoxo_onelink_scan(urls):
+        return [
+            {
+                "url": "https://yoxo.onelink.me/f8ly/ijiwsfwu",
+                "original_url": "https://yoxo.onelink.me/f8ly/ijiwsfwu",
+                "final_url": "https://yoxo.onelink.me/f8ly/ijiwsfwu",
+                "hostname": "yoxo.onelink.me",
+                "final_hostname": "yoxo.onelink.me",
+                "registered_domain": "onelink.me",
+                "final_registered_domain": "onelink.me",
+                "success": False,
+                "error_message": "Too many redirects (library-level)",
+                "redirect_chain": [],
+                "redirect_count": 0,
+                "shortener_count": 0,
+                "uses_shortener": False,
+                "detected_soft_redirects": [],
+            }
+        ]
+
+    async def fake_ai_explanation(text, analysis_payload, resolved_urls):
+        return {
+            "verdict_summary": "Pare sigur.",
+            "explanation": "Domeniul deep-link este delegat YOXO și providerii sunt curați.",
+            "offer_analysis": "Inconclusiv.",
+            "key_dangers": [],
+            "safe_actions": [],
+        }
+
+    with monkeypatch.context() as patched:
+        patched.setattr(app_main, "PRIVACY_SAFE_MODE", False)
+        patched.setattr(app_main, "_safe_scan_url_list", fake_stale_yoxo_onelink_scan)
+        patched.setattr(app_main, "_gather_external_intel_safe", _clean_external_intel_for_resolved_urls)
+        patched.setattr(app_main, "_enrich_offer_claim_verification_async", _fake_inconclusive_offer_claim)
+        patched.setattr(app_main, "_build_ai_explanation_async", fake_ai_explanation)
+        patched.setattr(app_main, "_emit_scan_event", lambda *args, **kwargs: None)
+        response = client.post("/v1/scan/text", json={"text": text, "source_channel": "android_native"})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["user_risk_label"] == "SIGUR"
+    assert payload["risk_level"] == "low"
+    assert payload["detected_family_id"] == "provider-gate-official-clean"
+    assert payload["evidence"]["provider_gate"]["official_destination"] is True
+
+
+def test_provider_gate_deeplink_to_untrusted_destination_stays_suspicious():
+    analysis = {
+        "claimed_brand": "YOXO",
+        "risk_level": "medium",
+        "risk_score": 55,
+        "detected_family": "Deep-link suspect",
+        "reasons": ["Destinație finală neoficială."],
+        "evidence": {
+            "has_domain_mismatch": True,
+            "offer_claim_verification": {"status": "not_found"},
+            "external_intel_summary": {
+                "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
+                "virustotal": {"status": "clean", "verdict": "clean", "consulted": True},
+                "urlscan": {"status": "clean", "verdict": "clean", "consulted": True},
+            },
+        },
+    }
+    resolved_urls = [
+        {
+            "url": "https://yoxo.onelink.me/f8ly/fake",
+            "final_url": "https://promo-yoxo-login.example.test/verify",
+            "hostname": "yoxo.onelink.me",
+            "final_hostname": "promo-yoxo-login.example.test",
+            "registered_domain": "onelink.me",
+            "final_registered_domain": "example.test",
+        }
+    ]
+
+    result = _apply_provider_gate_verdict(
+        analysis,
+        resolved_urls,
+        raw_text="YOXO: confirmă datele contului aici https://yoxo.onelink.me/f8ly/fake",
+    )
+
+    assert result["risk_level"] != "low"
+    assert result["evidence"]["provider_gate"]["official_destination"] is False
+
+
 def test_provider_gate_keeps_official_bank_domain_suspect_when_message_requests_password_and_otp():
     analysis = {
         "claimed_brand": "ING Bank România",

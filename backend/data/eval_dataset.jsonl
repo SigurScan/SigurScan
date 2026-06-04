@@ -6,3 +6,4 @@
 {"id":"eval_006","kind":"text","text":"Bună ziua, contul dvs. de Reddit a fost activat. Accesati https://microsoft.com pentru setari.","is_scam":false,"notes":"site oficial, risc scazut"}
 {"id":"eval_007","kind":"text","text":"Instagram: aveti o notificare de securitate. O data a fost blocat contul. Accesati http://instagram-security.xyz/login","is_scam":true,"notes":"link imitatie brand social media"}
 {"id":"eval_008","kind":"url","url":"https://revolut.com/security/verify","is_scam":false,"notes":"canal oficial"}
+{"id":"eval_009","kind":"text","text":"In 24 de ore se va efectua automat plata abonamentului tau Orange YOXO cu numarul 0755287867. Asigura-te ca ai suficienti bani pe card. Poti vizualiza factura aici https://yoxo.onelink.me/f8ly/ijiwsfwu","is_scam":false,"notes":"YOXO OneLink delegat; in sandbox/server fallback-ul poate ajunge la App Store YOXO, nu trebuie tratat ca brand mismatch"}
