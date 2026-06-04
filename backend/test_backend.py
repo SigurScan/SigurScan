@@ -1186,6 +1186,39 @@ def test_orchestration_telemetry_payload_flags_anomalies(monkeypatch):
     assert "urlscan_timeout_rate_high" in alert_codes
 
 
+def test_orchestration_dashboard_renders_minimal_html(monkeypatch):
+    with monkeypatch.context() as patched:
+        patched.setattr(
+            app_main,
+            "_build_orchestration_telemetry_payload",
+            lambda **kwargs: {
+                "generated_at": 123,
+                "events_considered": 4,
+                "scan_count": 2,
+                "by_event_type": {"orchestrated_poll": 2, "orchestrated_verdict_final": 1},
+                "by_stage": {"resolved": 2},
+                "polls_to_final": {"avg": 4, "max": 5, "samples": 1},
+                "time_to_final_ms": {"avg": 1200, "max": 1300, "samples": 1},
+                "stage_latency_ms": {"resolved": {"avg": 100, "max": 150, "samples": 2}},
+                "urlscan": {
+                    "reservation_guard_hits": 0,
+                    "reclaim_events": 1,
+                    "pending_timeout_events": 0,
+                    "pending_timeout_rate": 0,
+                },
+                "conflicts": {"merge_events": 0, "retry_failures": 0},
+                "alerts": [],
+            },
+        )
+        response = app_main.orchestration_dashboard(limit=100)
+
+    body = response.body.decode("utf-8")
+    assert "SigurScan Orchestration Dashboard" in body
+    assert "Scanări urmărite" in body
+    assert "orchestrated_poll" in body
+    assert "Nu există alerte" in body
+
+
 def test_orchestrated_urlscan_submit_requires_owned_reservation(monkeypatch):
     job = {
         "scan_id": "orch_urlscan_reservation",

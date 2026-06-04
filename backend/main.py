@@ -5424,6 +5424,163 @@ def orchestration_telemetry(
     )}
 
 
+def _html_escape(value: Any) -> str:
+    return (
+        str(value if value is not None else "")
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+        .replace("'", "&#x27;")
+    )
+
+
+@app.get("/v1/orchestration/dashboard", response_class=HTMLResponse)
+def orchestration_dashboard(
+    limit: int = 1000,
+    urlscan_timeout_rate_alert: float = 0.15,
+) -> HTMLResponse:
+    if limit <= 0:
+        raise HTTPException(status_code=400, detail="limit trebuie sa fie strict pozitiv.")
+    if limit > 10000:
+        raise HTTPException(status_code=400, detail="limit maxim este 10000.")
+    payload = _build_orchestration_telemetry_payload(
+        limit=limit,
+        urlscan_timeout_rate_alert=urlscan_timeout_rate_alert,
+    )
+    alerts = payload.get("alerts") if isinstance(payload.get("alerts"), list) else []
+    stage_latency = payload.get("stage_latency_ms") if isinstance(payload.get("stage_latency_ms"), dict) else {}
+    by_event = payload.get("by_event_type") if isinstance(payload.get("by_event_type"), dict) else {}
+
+    def card(title: str, value: Any, hint: str = "") -> str:
+        return (
+            "<section class='card'>"
+            f"<span>{_html_escape(title)}</span>"
+            f"<strong>{_html_escape(value)}</strong>"
+            f"<small>{_html_escape(hint)}</small>"
+            "</section>"
+        )
+
+    alert_html = "".join(
+        f"<li class='{_html_escape(alert.get('severity', 'watch'))}'>"
+        f"<strong>{_html_escape(alert.get('code'))}</strong> - {_html_escape(alert.get('message'))}"
+        "</li>"
+        for alert in alerts
+    ) or "<li class='ok'>Nu există alerte pe fereastra curentă.</li>"
+
+    latency_rows = "".join(
+        "<tr>"
+        f"<td>{_html_escape(stage)}</td>"
+        f"<td>{_html_escape(values.get('avg'))}</td>"
+        f"<td>{_html_escape(values.get('max'))}</td>"
+        f"<td>{_html_escape(values.get('samples'))}</td>"
+        "</tr>"
+        for stage, values in stage_latency.items()
+    ) or "<tr><td colspan='4'>Nu există încă date de latență pe stage.</td></tr>"
+
+    event_rows = "".join(
+        f"<tr><td>{_html_escape(event)}</td><td>{_html_escape(count)}</td></tr>"
+        for event, count in sorted(by_event.items())
+    ) or "<tr><td colspan='2'>Nu există evenimente orchestrated.</td></tr>"
+
+    urlscan = payload.get("urlscan", {}) if isinstance(payload.get("urlscan"), dict) else {}
+    conflicts = payload.get("conflicts", {}) if isinstance(payload.get("conflicts"), dict) else {}
+    polls = payload.get("polls_to_final", {}) if isinstance(payload.get("polls_to_final"), dict) else {}
+    time_to_final = payload.get("time_to_final_ms", {}) if isinstance(payload.get("time_to_final_ms"), dict) else {}
+
+    html = f"""
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SigurScan Orchestration Dashboard</title>
+  <style>
+    :root {{
+      color-scheme: light;
+      --bg: #f6f8fc;
+      --card: #ffffff;
+      --ink: #172033;
+      --muted: #62708a;
+      --line: #dde5f1;
+      --blue: #316bff;
+      --red: #c7332f;
+      --amber: #ad6500;
+      --green: #087f5b;
+    }}
+    body {{
+      margin: 0;
+      padding: 32px;
+      background: var(--bg);
+      color: var(--ink);
+      font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }}
+    header {{ margin-bottom: 24px; }}
+    h1 {{ margin: 0 0 6px; font-size: 28px; }}
+    p {{ margin: 0; color: var(--muted); }}
+    .grid {{
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      margin: 24px 0;
+    }}
+    .card {{
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 12px 30px rgba(24, 39, 75, .06);
+    }}
+    .card span, small {{ color: var(--muted); display: block; }}
+    .card strong {{ display: block; font-size: 30px; margin: 8px 0; }}
+    section.panel {{
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 20px;
+      margin: 16px 0;
+    }}
+    table {{ width: 100%; border-collapse: collapse; }}
+    th, td {{ border-bottom: 1px solid var(--line); padding: 10px; text-align: left; }}
+    th {{ color: var(--muted); font-weight: 700; }}
+    li {{ margin: 8px 0; }}
+    .high {{ color: var(--red); }}
+    .watch {{ color: var(--amber); }}
+    .ok {{ color: var(--green); }}
+    code {{ background: #eef3ff; color: var(--blue); padding: 2px 6px; border-radius: 8px; }}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>SigurScan Orchestration Dashboard</h1>
+    <p>Dashboard minimal peste <code>scan_events</code>. Nu expune secrete și nu rulează providerii.</p>
+  </header>
+  <div class="grid">
+    {card("Scanări urmărite", payload.get("scan_count"), f"limit={limit} evenimente")}
+    {card("Evenimente", payload.get("events_considered"), "orchestrated_*")}
+    {card("Poll-uri până la verdict", polls.get("avg"), f"max={polls.get('max')}")}
+    {card("Timp până la verdict", time_to_final.get("avg"), f"max={time_to_final.get('max')} ms")}
+    {card("urlscan timeout rate", urlscan.get("pending_timeout_rate"), f"events={urlscan.get('pending_timeout_events')}")}
+    {card("Conflict merge", conflicts.get("merge_events"), f"retry failures={conflicts.get('retry_failures')}")}
+  </div>
+  <section class="panel">
+    <h2>Alerte</h2>
+    <ul>{alert_html}</ul>
+  </section>
+  <section class="panel">
+    <h2>Latențe pe stage</h2>
+    <table><thead><tr><th>Stage</th><th>Avg ms</th><th>Max ms</th><th>Samples</th></tr></thead><tbody>{latency_rows}</tbody></table>
+  </section>
+  <section class="panel">
+    <h2>Evenimente</h2>
+    <table><thead><tr><th>Event</th><th>Count</th></tr></thead><tbody>{event_rows}</tbody></table>
+  </section>
+</body>
+</html>
+"""
+    return HTMLResponse(content=html)
+
+
 @app.get("/v1/evaluation/feedback")
 def feedback_evaluation_quality(
     source_channel: Optional[str] = None,
