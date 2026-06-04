@@ -412,7 +412,13 @@ def _normalise_obfuscated_text(value: str) -> str:
         flags=re.IGNORECASE,
     )
     normalized = _OBFUSCATED_DOT_RE.sub(".", normalized)
-    normalized = re.sub(r"\s*\.\s*", ".", normalized)
+    # Keep phishing-style "brand . ro" detectable, but do not join normal
+    # sentence boundaries such as "nu pot vorbi. Am nevoie" into fake domains.
+    normalized = re.sub(
+        r"(?<=[A-Za-z0-9-])\s*\.\s*(?=(?:[a-z]{2,24}|[A-Z]{2,24})(?:\b|/))",
+        ".",
+        normalized,
+    )
     normalized = re.sub(
         r"\b(https?)\s*:\s*/\s*/",
         lambda match: f"{match.group(1)}://",
@@ -1762,37 +1768,73 @@ def _provider_reason_has_sensitive_request_signal(reasons: List[str]) -> bool:
     if not reasons:
         return False
 
-    markers = (
-        "card",
-        "cvv",
-        "cvc",
-        "parol",
-        "otp",
-        "iban",
-        "login",
-        "autent",
-        "plata",
-        "plată",
-        "pin",
-        "remote",
+    combined = _normalise_obfuscated_text(" ".join(str(reason) for reason in reasons if reason)).lower()
+    if not combined:
+        return False
+
+    hard_markers = (
         "anydesk",
         "teamviewer",
         "apk",
-        "transfer",
         "cont seif",
-        "cod",
-        "confirm",
-        "date personale",
-        "date de cont",
-        "identitate",
+        "remote access",
+        "acces remote",
     )
+    if any(marker in combined for marker in hard_markers):
+        return True
 
-    for reason in reasons:
-        if not reason:
-            continue
-        text = str(reason).lower()
-        if any(marker in text for marker in markers):
-            return True
+    request_verbs = (
+        r"cere\w*",
+        r"solicit\w*",
+        r"introdu\w*",
+        r"trimite\w*",
+        r"transmite\w*",
+        r"comunic\w*",
+        r"r[aă]spunde\w*",
+        r"completeaz\w*",
+        r"actualiz\w*",
+        r"verific\w*",
+        r"valideaz\w*",
+        r"confirm\w*",
+        r"spune\w*",
+    )
+    sensitive_assets = (
+        r"date(?:le)?\s+(?:de\s+)?card(?:ului)?",
+        r"num[aă]r(?:ul)?\s+(?:de\s+)?card(?:ului)?",
+        r"ultimele\s+\d+\s+cifre\s+(?:ale\s+)?card(?:ului)?",
+        r"card(?:ul|ului)?",
+        r"cvv",
+        r"cvc",
+        r"parol[aă]",
+        r"otp",
+        r"cod(?:ul)?\s+(?:otp|sms|whatsapp|2fa|de\s+autentificare|de\s+verificare)",
+        r"pin(?:-ul|ul)?",
+        r"iban",
+        r"login",
+        r"date(?:le)?\s+(?:personale|de\s+cont|de\s+autentificare)",
+        r"copie\s+act",
+        r"act(?:ul)?\s+(?:de\s+)?identitate",
+        r"identitate",
+    )
+    verb_near_asset = re.compile(
+        rf"(?:{'|'.join(request_verbs)})(?:\W+\w+){{0,10}}\W+(?:{'|'.join(sensitive_assets)})",
+        re.IGNORECASE,
+    )
+    asset_near_verb = re.compile(
+        rf"(?:{'|'.join(sensitive_assets)})(?:\W+\w+){{0,10}}\W+(?:{'|'.join(request_verbs)})",
+        re.IGNORECASE,
+    )
+    if verb_near_asset.search(combined) or asset_near_verb.search(combined):
+        return True
+
+    transfer_money = re.search(
+        r"(?:transfer[aă]|mut[aă]|depune|trimite)(?:\W+\w+){0,8}\W+(?:bani|fonduri|sume|economii)",
+        combined,
+        re.IGNORECASE,
+    )
+    if transfer_money:
+        return True
+
     return False
 
 
@@ -1824,6 +1866,25 @@ def _official_destination_confirmed(resolved_urls: List[Dict[str, Any]], claimed
         if not hostname and (entry.get("final_url") or entry.get("url")):
             hostname = urllib.parse.urlparse(str(entry.get("final_url") or entry.get("url") or "")).hostname or ""
         if engine._is_context_allowed_domain(reg_domain, hostname=hostname, claimed_brand=claimed_brand):
+            return True
+        original_hostname = str(entry.get("hostname") or "").lower()
+        original_reg_domain = str(entry.get("registered_domain") or "").lower()
+        if not original_hostname and entry.get("url"):
+            original_hostname = urllib.parse.urlparse(str(entry.get("url") or "")).hostname or ""
+        original_is_brand_delegated = engine._is_context_allowed_domain(
+            original_reg_domain,
+            hostname=original_hostname,
+            claimed_brand=claimed_brand,
+        )
+        final_url = str(entry.get("final_url") or "")
+        final_hostname = str(entry.get("final_hostname") or hostname or "").lower()
+        normalized_brand = _normalize_claimed_brand(claimed_brand)
+        if (
+            original_is_brand_delegated
+            and "yoxo" in normalized_brand
+            and final_hostname in {"apps.apple.com", "play.google.com"}
+            and "yoxo" in urllib.parse.unquote(final_url).lower()
+        ):
             return True
     return False
 
@@ -1866,8 +1927,38 @@ def _brand_warning_matches_text(claimed_brand: str, raw_text: str, reasons: List
     matched_assets: List[str] = []
 
     def _hit_card_request() -> bool:
-        return (
-            "card" in combined and any(token in combined for token in ("introdu", "complete", "actualiz", "verific", "date", "detalii", "numar"))
+        if "card" not in combined:
+            return False
+        benign_card_context = (
+            "ai suficienti bani pe card",
+            "ai suficienți bani pe card",
+            "bani pe card",
+            "plata abonamentului",
+            "plată abonamentului",
+            "se va efectua automat plata",
+            "plata se va efectua automat",
+            "plată se va efectua automat",
+        )
+        if any(token in combined for token in benign_card_context) and not re.search(
+            r"(?:introdu|completeaz[aă]|completeaza|trimite|actualiz|verific[aă]|valideaz[aă]|confirm[aă])"
+            r"(?:\W+\w+){0,8}\W+(?:date(?:le)?\s+(?:de\s+)?card|num[aă]r(?:ul)?\s+(?:de\s+)?card|cardul|cvv|cvc)",
+            combined,
+            re.IGNORECASE,
+        ):
+            return False
+        return bool(
+            re.search(
+                r"(?:introdu|completeaz[aă]|completeaza|trimite|actualiz|verific[aă]|valideaz[aă]|confirm[aă])"
+                r"(?:\W+\w+){0,8}\W+(?:date(?:le)?\s+(?:de\s+)?card|num[aă]r(?:ul)?\s+(?:de\s+)?card|cardul|cvv|cvc)",
+                combined,
+                re.IGNORECASE,
+            )
+            or re.search(
+                r"(?:date(?:le)?\s+(?:de\s+)?card|num[aă]r(?:ul)?\s+(?:de\s+)?card|cvv|cvc)"
+                r"(?:\W+\w+){0,8}\W+(?:introdu|completeaz[aă]|completeaza|trimite|actualiz|verific[aă]|valideaz[aă]|confirm[aă])",
+                combined,
+                re.IGNORECASE,
+            )
         )
 
     detectors = {
@@ -1918,6 +2009,7 @@ def _looks_like_official_safety_education(raw_text: str) -> bool:
     negative_claim = (
         r"(?:nu\s+(?:iti|îți|va|vă|iti\s+)?\s*(?:cerem|solicit[aă]m|trimitem|pretindem)"
         r"|nu\s+(?:ti|ți|vi|vă)?\s*se\s+solicit[aă]"
+        r"|nu\s+introduc\w*"
         r"|nu\s+(?:cerem|solicit[aă]m)"
         r"|niciodat[aă]\s+nu\s+(?:cerem|solicit[aă]m))"
     )
@@ -1928,8 +2020,14 @@ def _has_direct_sensitive_request(raw_text: str) -> bool:
     normalized = _normalise_obfuscated_text(raw_text or "").lower()
     if not normalized or _looks_like_official_safety_education(normalized):
         return False
-    verbs = r"(?:introdu|completeaz[aă]|completeaza|trimite|spune|comunic[aă]|confirma|confirm[aă]|valideaz[aă]|verific[aă])"
-    sensitive = r"(?:parol[ăa]|password|otp|cod(?:ul)?(?:\s+sms|\s+de\s+verificare|\s+de\s+confirmare)?|pin|cvv|cvc|date\s+card|num[aă]r\s+card|cnp|iban)"
+    verbs = r"(?:introdu\w*|completeaz\w*|trimite\w*|spune\w*|comunic\w*|confirm\w*|valideaz\w*|verific\w*)"
+    sensitive = (
+        r"(?:parol[ăa]|password|otp|cod(?:ul)?(?:\s+sms|\s+de\s+verificare|\s+de\s+confirmare)?|"
+        r"pin(?:-ul|ul)?|cvv|cvc|date(?:le)?\s+(?:de\s+)?card(?:ului)?|"
+        r"num[aă]r(?:ul)?\s+(?:de\s+)?card(?:ului)?|"
+        r"ultimele\s+\d+\s+cifre\s+(?:ale\s+)?card(?:ului)?|"
+        r"cnp|iban|copie\s+act|act(?:ul)?\s+(?:de\s+)?identitate)"
+    )
     return bool(
         re.search(verbs + r"(?:\W+\w+){0,8}\W+" + sensitive, normalized, re.IGNORECASE)
         or re.search(sensitive + r"(?:\W+\w+){0,8}\W+" + verbs, normalized, re.IGNORECASE)
@@ -2242,7 +2340,13 @@ def _apply_provider_gate_verdict(
     )
 
     if not has_urls:
-        if has_domain_mismatch or sensitive_request_signal or bad_provider or brand_warning.get("triggered"):
+        if (
+            has_domain_mismatch
+            or sensitive_request_signal
+            or direct_sensitive_request
+            or bad_provider
+            or brand_warning.get("triggered")
+        ):
             risk_level = "high"
             risk_score = 90
             reasons = [
@@ -2326,7 +2430,7 @@ def _apply_provider_gate_verdict(
             family_id = "provider-gate-official-clean"
     elif has_urls and (
         infra_flags.get("homoglyph") or infra_flags.get("punycode") or infra_flags.get("typosquat")
-    ) and (has_domain_mismatch or sensitive_request_signal):
+    ) and (has_domain_mismatch or sensitive_request_signal or direct_sensitive_request):
         risk_level = "high"
         risk_score = max(86, legacy_risk_score)
         reasons = [
@@ -2334,7 +2438,12 @@ def _apply_provider_gate_verdict(
         ]
         family = "Imitare de domeniu / typosquatting"
         family_id = "provider-gate-lookalike-domain"
-    elif has_urls and not official_destination and (sensitive_request_signal or sensitive_url_path) and offer_status == "not_found":
+    elif (
+        has_urls
+        and not official_destination
+        and (direct_sensitive_request or sensitive_request_signal or sensitive_url_path)
+        and offer_status == "not_found"
+    ):
         risk_level = "high"
         risk_score = max(88, legacy_risk_score)
         reasons = [
@@ -2359,7 +2468,7 @@ def _apply_provider_gate_verdict(
         ]
         family = "Semnale infrastructură"
         family_id = "provider-gate-infrastructure-review"
-    elif has_domain_mismatch or sensitive_request_signal or brand_warning.get("triggered"):
+    elif has_domain_mismatch or direct_sensitive_request or sensitive_request_signal or brand_warning.get("triggered"):
         risk_level = "medium"
         risk_score = 60 if brand_warning.get("triggered") else 55
         reasons = [

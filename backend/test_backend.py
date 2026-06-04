@@ -97,6 +97,19 @@ def test_extract_urls_keeps_link_when_phone_period_is_adjacent_to_https():
     print("PII Redactor Tests: ALL PASS\n")
 
 
+def test_extract_urls_does_not_join_sentence_boundary_into_fake_domain():
+    text = (
+        "Bună, mama. Sunt eu. am făcut accident și scriu de pe numărul acesta temporar. "
+        "Te rog nu mă suna acum, nu pot vorbi. Am nevoie urgent de 1800 lei până seara."
+    )
+
+    assert extract_urls(text) == []
+
+
+def test_extract_urls_keeps_obfuscated_plain_domain_with_spaced_dot():
+    assert extract_urls("Vezi oferta pe emag . ro azi") == ["https://emag.ro/"]
+
+
 def test_detection_helpers():
     print("Testing URL and email helper utilities...")
 
@@ -559,6 +572,48 @@ def test_provider_gate_can_mark_official_destination_clean_without_virustotal():
     assert "VirusTotal" not in result["evidence"]["provider_gate"]["missing_required_pillars"]
     assert result["evidence"]["provider_gate"]["official_destination"] is True
     assert result["evidence"]["provider_gate"]["legacy_score_ignored"] is True
+
+
+def test_provider_gate_yoxo_onelink_subscription_notice_is_low_risk():
+    analysis = {
+        "claimed_brand": "Orange / YOXO",
+        "risk_level": "critical",
+        "risk_score": 91,
+        "detected_family": "Marketing sau abonament telecom",
+        "detected_family_id": "telecom-subscription-notice",
+        "reasons": ["Mesajul menționează cardul în contextul unei plăți automate de abonament."],
+        "evidence": {
+            "has_domain_mismatch": False,
+            "offer_claim_verification": {"status": "inconclusive"},
+            "external_intel_summary": {
+                "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
+                "virustotal": {"status": "clean", "verdict": "clean", "consulted": True},
+                "urlscan": {"status": "clean", "verdict": "No malicious classification", "consulted": True},
+            },
+        },
+    }
+    resolved_urls = [
+        {
+            "url": "https://yoxo.onelink.me/f8ly/ijiwsfwu",
+            "final_url": "https://apps.apple.com/us/app/yoxo-voce-internet-roaming/id1481946568",
+            "hostname": "yoxo.onelink.me",
+            "final_hostname": "apps.apple.com",
+            "registered_domain": "onelink.me",
+            "final_registered_domain": "apple.com",
+        }
+    ]
+    raw_text = (
+        "In 24 de ore se va efectua automat plata abonamentului tau Orange YOXO cu numarul 0755287867. "
+        "Asigura-te ca ai suficienti bani pe card. Poti vizualiza factura aici "
+        "https://yoxo.onelink.me/f8ly/ijiwsfwu"
+    )
+
+    result = _apply_provider_gate_verdict(analysis, resolved_urls, raw_text=raw_text)
+
+    assert result["risk_level"] == "low"
+    assert result["detected_family_id"] == "provider-gate-official-clean"
+    assert result["evidence"]["provider_gate"]["official_destination"] is True
+    assert result["evidence"]["brand_warning"]["triggered"] is False
 
 
 def test_provider_gate_keeps_official_bank_domain_suspect_when_message_requests_password_and_otp():
