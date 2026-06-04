@@ -576,7 +576,7 @@ def test_provider_gate_can_mark_official_destination_clean_without_virustotal():
 
 def test_provider_gate_yoxo_onelink_subscription_notice_is_low_risk():
     analysis = {
-        "claimed_brand": "Orange / YOXO",
+        "claimed_brand": "YOXO",
         "risk_level": "critical",
         "risk_score": 91,
         "detected_family": "Marketing sau abonament telecom",
@@ -1163,6 +1163,100 @@ def test_orchestrated_provisional_finalize_reuses_ai_explanation_cache(monkeypat
 
     assert calls["count"] == 1
     assert job["result"]["is_final"] is False
+
+
+def test_orchestrated_urlscan_final_url_can_downgrade_stale_structural_danger(monkeypatch):
+    scan_id = "orch_yoxo_late_official"
+    text = (
+        "In 24 de ore se va efectua automat plata abonamentului tau Orange YOXO. "
+        "Asigura-te ca ai suficienti bani pe card. "
+        "Poti vizualiza factura aici https://yoxo.onelink.me/f8ly/ijiwsfwu"
+    )
+    analysis = {
+        "risk_score": 91,
+        "risk_level": "high",
+        "detected_family": "Impostură brand cu acțiune sensibilă",
+        "detected_family_id": "provider-gate-decisive-structural-danger",
+        "claimed_brand": "YOXO",
+        "reasons": ["Stale structural verdict înainte de urlscan final URL."],
+        "safe_actions": [],
+        "evidence": {
+            "has_domain_mismatch": True,
+            "offer_claim_verification": {"status": "inconclusive"},
+            "external_intel_summary": {
+                "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
+                "virustotal": {"status": "clean", "verdict": "clean", "consulted": True},
+                "urlscan": {
+                    "status": "clean",
+                    "verdict": "No malicious classification",
+                    "consulted": True,
+                    "final_url": "https://apps.apple.com/us/app/yoxo-voce-internet-roaming/id1481946568",
+                },
+            },
+        },
+    }
+    job = {
+        "scan_id": scan_id,
+        "created_at": int(time.time()),
+        "pipeline_stage": "urlscan_submitted",
+        "status": "scanning",
+        "input_type": "text",
+        "source_channel": "android_native",
+        "urls": ["https://yoxo.onelink.me/f8ly/ijiwsfwu"],
+        "redacted_text": text,
+        "analysis": analysis,
+        "resolved_urls": [
+            {
+                "url": "https://yoxo.onelink.me/f8ly/ijiwsfwu",
+                "final_url": "https://apps.apple.com/us/app/yoxo-voce-internet-roaming/id1481946568",
+                "hostname": "yoxo.onelink.me",
+                "final_hostname": "apps.apple.com",
+                "registered_domain": "onelink.me",
+                "final_registered_domain": "apple.com",
+            }
+        ],
+        "primary_final_url": "https://apps.apple.com/us/app/yoxo-voce-internet-roaming/id1481946568",
+        "claim_verifier_required": True,
+        "urlscan": {
+            "uuid": "urlscan-yoxo-app-store",
+            "status": "finished",
+            "screenshot_ready": True,
+            "verdict": "No malicious classification",
+        },
+        "preview": {
+            "final_url": "https://apps.apple.com/us/app/yoxo-voce-internet-roaming/id1481946568",
+            "report_url": "https://urlscan.io/result/urlscan-yoxo-app-store/",
+            "screenshot_url": "https://example.test/screenshot.png",
+        },
+        "result": {
+            "is_final": True,
+            "user_risk_label": "PERICULOS",
+            "risk_level": "high",
+            "detected_family_id": "provider-gate-decisive-structural-danger",
+        },
+        "extra_fields": {},
+    }
+
+    async def fake_ai_explanation(text, analysis_payload, resolved_urls):
+        return {
+            "verdict_summary": "Pare sigur.",
+            "explanation": "Pilonii sunt curați, iar final URL este o destinație oficială YOXO.",
+            "offer_analysis": "Inconclusiv, dar fără semnale de risc.",
+            "key_dangers": [],
+            "safe_actions": [],
+        }
+
+    with monkeypatch.context() as patched:
+        patched.setattr(app_main, "_build_ai_explanation_async", fake_ai_explanation)
+        patched.setattr(app_main, "_emit_scan_event", lambda *args, **kwargs: None)
+        patched.setattr(app_main, "_emit_orchestrated_telemetry", lambda *args, **kwargs: None)
+        asyncio.run(app_main._finalize_orchestrated_job_if_ready(job, None))
+
+    assert job["result"]["is_final"] is True
+    assert job["result"]["user_risk_label"] == "SIGUR"
+    assert job["result"]["risk_level"] == "low"
+    assert job["result"]["detected_family_id"] == "provider-gate-official-clean"
+    assert job["result"]["evidence"]["provider_gate"]["official_destination"] is True
 
 
 def test_orchestrated_urlscan_reservation_reclaims_after_ttl(monkeypatch):

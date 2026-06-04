@@ -4355,10 +4355,17 @@ def _orchestrated_can_finalize_result(job: Dict[str, Any], pillars: Dict[str, Di
 
 def _orchestrated_result_is_final(job: Dict[str, Any], analysis: Dict[str, Any]) -> bool:
     risk_level = str(analysis.get("risk_level") or "").strip().lower()
-    if risk_level in {"high", "critical", "dangerous"}:
-        return True
     urlscan_state = job.get("urlscan") if isinstance(job.get("urlscan"), dict) else {}
     urlscan_status = str(urlscan_state.get("status") or "").strip().lower()
+    if risk_level in {"high", "critical", "dangerous"}:
+        family_id = str(analysis.get("detected_family_id") or "").strip()
+        evidence = analysis.get("evidence", {}) if isinstance(analysis.get("evidence"), dict) else {}
+        summary = evidence.get("external_intel_summary") if isinstance(evidence.get("external_intel_summary"), dict) else {}
+        if _has_bad_provider_verdict(summary):
+            return True
+        if family_id == "provider-gate-decisive-structural-danger":
+            return urlscan_status in {"finished", "error", "timeout", "rate_limited", "skipped"}
+        return True
     if not (job.get("urls") if isinstance(job.get("urls"), list) else []):
         return True
     return urlscan_status in {"finished", "error", "timeout", "rate_limited", "skipped"}
@@ -4368,7 +4375,8 @@ async def _finalize_orchestrated_job_if_ready(job: Dict[str, Any], request: Requ
     pillars = _build_orchestrated_pillars(job)
     existing_result = job.get("result") if isinstance(job.get("result"), dict) else None
     if existing_result and existing_result.get("is_final", True) is not False:
-        return job
+        if not _urlscan_enhancement_done(job):
+            return job
     if not _orchestrated_can_finalize_result(job, pillars):
         return job
 
