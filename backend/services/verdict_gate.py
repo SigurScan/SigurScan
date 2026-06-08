@@ -15,6 +15,7 @@ PROVIDER_MALICIOUS = {"malicious", "phishing", "malware", "dangerous", "blacklis
 PROVIDER_CLEAN = {"clean", "no_match", "safe"}
 PENDING_VALUES = {"pending", "running", "queued", "scanning"}
 INCOMPLETE_RESOLUTION = {"failed", "partial", "pending", "unknown", ""}
+ESTABLISHED_DOMAIN_AGE_DAYS = 365
 
 
 def _section(bundle: Dict[str, Any], name: str) -> Dict[str, Any]:
@@ -105,6 +106,22 @@ def _semantic_risk(semantic: Dict[str, Any]) -> str:
     return "unknown"
 
 
+def _domain_age_days(identity: Dict[str, Any]) -> int | None:
+    try:
+        value = identity.get("domain_age_days")
+        return int(value) if value is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _domain_is_established(identity: Dict[str, Any]) -> bool:
+    reputation = _norm(identity.get("domain_reputation"))
+    age_days = _domain_age_days(identity)
+    return reputation == "established" or (
+        age_days is not None and age_days >= ESTABLISHED_DOMAIN_AGE_DAYS
+    )
+
+
 def verdict(bundle: Dict[str, Any]) -> Dict[str, Any]:
     """Pure SigurScan verdict reducer.
 
@@ -165,6 +182,20 @@ def verdict(bundle: Dict[str, Any]) -> Dict[str, Any]:
         and not (hard_sensitive and wrong_channel)
     ):
         return _result("SIGUR", ["official_clean"], confidence=92)
+
+    # Clean providers + an established destination domain + no sensitive ask is
+    # safe enough even when the brand is not in our manual registry. This is the
+    # general false-positive guard for legitimate small businesses and event
+    # campaigns such as hipo.ro.
+    if (
+        identity_status == "unknown"
+        and provider_verdict in PROVIDER_CLEAN
+        and sensitive == "none"
+        and not tld_suspicious
+        and _domain_is_established(identity)
+        and semantic_risk in {"unknown", "benign", "low"}
+    ):
+        return _result("SIGUR", ["clean_established_domain"], confidence=86)
 
     # Semantic similarity is a structured evidence pillar, not free-form text.
     if semantic_risk == "high" and (hard_sensitive or value_sensitive or identity_status in BAD_IDENTITY):

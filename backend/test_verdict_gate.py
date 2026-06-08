@@ -171,3 +171,85 @@ def test_context_words_cannot_override_official_clean_evidence():
     }
 
     assert verdict(bundle)["label"] == "SIGUR"
+
+
+def test_unknown_clean_established_domain_is_safe_without_manual_registry():
+    bundle = {
+        "schema": "sigurscan_evidence_bundle_v2",
+        "input": {
+            "type": "sms",
+            "redacted_text": "Hipo iti recomanda evenimentul Angajatori de TOP. Inscrie-te https://www.hipo.ro/ADT_TM",
+        },
+        "resolution": {"status": "resolved", "completeness": True, "final_url": "https://www.hipo.ro/ADT_TM"},
+        "providers": {"verdict": "clean", "hits": ["google_web_risk", "virustotal", "urlhaus"], "completeness": True},
+        "identity": {
+            "claimed_brand": None,
+            "status": "unknown",
+            "tld_suspicious": False,
+            "domain_age_days": 2400,
+            "domain_reputation": "established",
+            "completeness": True,
+        },
+        "request": {"sensitive": "none", "channel": "official", "completeness": True},
+        "context": {
+            "urgency": False,
+            "passive_payment": False,
+            "apk_or_remote_mention": False,
+        },
+        "semantic_review": {
+            "status": "done",
+            "claim_matches_known_scam_family": False,
+            "matched_family": None,
+            "claim_matches_legit_template": False,
+            "matched_template": None,
+            "reason_codes": ["semantic:unknown"],
+            "risk_class": "unknown",
+            "completeness": True,
+        },
+    }
+
+    result = verdict(bundle)
+
+    assert result["label"] == "SIGUR"
+    assert result["reason_codes"] == ["clean_established_domain"]
+
+
+def test_unknown_clean_new_domain_stays_suspect_without_manual_registry():
+    bundle = {
+        "schema": "sigurscan_evidence_bundle_v2",
+        "input": {
+            "type": "sms",
+            "redacted_text": "Inscrie-te la campanie pe https://promo-nou.example",
+        },
+        "resolution": {"status": "resolved", "completeness": True, "final_url": "https://promo-nou.example"},
+        "providers": {"verdict": "clean", "hits": ["google_web_risk", "virustotal", "urlhaus"], "completeness": True},
+        "identity": {
+            "claimed_brand": None,
+            "status": "unknown",
+            "tld_suspicious": False,
+            "domain_age_days": 20,
+            "domain_reputation": "new",
+            "completeness": True,
+        },
+        "request": {"sensitive": "none", "channel": "official", "completeness": True},
+        "context": {
+            "urgency": False,
+            "passive_payment": False,
+            "apk_or_remote_mention": False,
+        },
+        "semantic_review": {
+            "status": "done",
+            "claim_matches_known_scam_family": False,
+            "matched_family": None,
+            "claim_matches_legit_template": False,
+            "matched_template": None,
+            "reason_codes": ["semantic:unknown"],
+            "risk_class": "unknown",
+            "completeness": True,
+        },
+    }
+
+    result = verdict(bundle)
+
+    assert result["label"] == "SUSPECT"
+    assert result["reason_codes"] == ["unknown_but_clean"]
