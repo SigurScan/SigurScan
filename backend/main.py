@@ -5244,7 +5244,7 @@ async def _refresh_orchestrated_job(job: Dict[str, Any], request: Request) -> Di
         threat_intel = _gather_external_intel_safe(
             resolved_urls,
             include_virustotal=True,
-            include_urlhaus=False,
+            include_urlhaus=True,
             persist_partial=False,
         )
         summary = _external_intel_summary_from_threat_intel(threat_intel)

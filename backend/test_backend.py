@@ -1126,6 +1126,52 @@ def test_orchestrated_post_accepts_without_running_providers(monkeypatch):
     assert payload["preview"]["screenshot_url"] is None
 
 
+def test_orchestrated_resolved_stage_collects_urlhaus_once(monkeypatch):
+    calls = []
+    job = {
+        "scan_id": "orch_urlhaus_initial",
+        "created_at": int(time.time()),
+        "pipeline_stage": "resolved",
+        "status": "scanning",
+        "input_type": "text",
+        "source_channel": "test",
+        "urls": ["https://example.com/login"],
+        "redacted_text": "Verifica aici https://example.com/login",
+        "resolved_urls": [
+            {
+                "url": "https://example.com/login",
+                "final_url": "https://example.com/login",
+                "final_hostname": "example.com",
+                "final_registered_domain": "example.com",
+                "success": True,
+            }
+        ],
+        "analysis": {},
+        "preview": {},
+        "urlscan": {"status": "queued"},
+        "orchestration_metrics": {"poll_count": 0, "stage_sequence": [], "stage_durations_ms": {}},
+    }
+
+    def fake_external_intel(resolved_urls, *args, **kwargs):
+        calls.append(kwargs)
+        return _clean_web_risk_and_vt_for_resolved_urls(resolved_urls)
+
+    with monkeypatch.context() as patched:
+        patched.setattr(app_main, "_gather_external_intel_safe", fake_external_intel)
+        patched.setattr(app_main, "_persist_orchestrated_job", lambda candidate: candidate)
+        patched.setattr(app_main, "_emit_orchestrated_telemetry", lambda *args, **kwargs: None)
+        refreshed = asyncio.run(app_main._refresh_orchestrated_job(job, None))
+
+    assert refreshed["pipeline_stage"] == "reputation_ready"
+    assert calls == [
+        {
+            "include_virustotal": True,
+            "include_urlhaus": True,
+            "persist_partial": False,
+        }
+    ]
+
+
 def test_orchestrated_reputation_stage_runs_mistral_as_semantic_pillar(monkeypatch):
     job = {
         "scan_id": "orch_semantic_test",
