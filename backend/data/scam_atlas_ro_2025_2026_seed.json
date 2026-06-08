@@ -1,7 +1,8 @@
 {
   "metadata": {
     "generated_from": "app/src/main/assets/knowledge/romania_knowledge_layer_compact.json",
-    "generator": "backend/tools/build_runtime_knowledge.py"
+    "generator": "backend/tools/build_runtime_knowledge.py",
+    "role": "semantic knowledge only; verdict-like oracle fields are excluded"
   },
   "scam_families": [
     {
@@ -42,8 +43,6 @@
       "signals": [],
       "sources": [],
       "examples": [],
-      "max_verdict_without_provider_scan": null,
-      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "SMS cu domeniu .test care cere cod WhatsApp/card; sandbox form OTP/card."
     },
     {
@@ -80,8 +79,6 @@
       "signals": [],
       "sources": [],
       "examples": [],
-      "max_verdict_without_provider_scan": null,
-      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "SMS Poșta cu link .test și formular card/CVV."
     },
     {
@@ -120,8 +117,6 @@
       "signals": [],
       "sources": [],
       "examples": [],
-      "max_verdict_without_provider_scan": null,
-      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "Email ANAF cu buton ascuns către .test; provider scan form card."
     },
     {
@@ -161,8 +156,6 @@
       "signals": [],
       "sources": [],
       "examples": [],
-      "max_verdict_without_provider_scan": null,
-      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "Transcript apel lipit: pretins BNR + transfer cont sigur; fără URL => Suspect hard, cu link/form => Periculos."
     },
     {
@@ -199,8 +192,6 @@
       "signals": [],
       "sources": [],
       "examples": [],
-      "max_verdict_without_provider_scan": null,
-      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "SMS/telefon claim credit + cod OTP."
     },
     {
@@ -232,8 +223,6 @@
       "signals": [],
       "sources": [],
       "examples": [],
-      "max_verdict_without_provider_scan": null,
-      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "WhatsApp cu link .test + cere cod WhatsApp."
     },
     {
@@ -264,8 +253,6 @@
       "signals": [],
       "sources": [],
       "examples": [],
-      "max_verdict_without_provider_scan": null,
-      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "Mesaj petiție + cod WhatsApp; provider form OTP."
     },
     {
@@ -294,8 +281,6 @@
       "signals": [],
       "sources": [],
       "examples": [],
-      "max_verdict_without_provider_scan": null,
-      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "Text-only fără URL; verdict Suspect + acțiune nu răspunde/sună numărul vechi."
     },
     {
@@ -321,8 +306,6 @@
       "signals": [],
       "sources": [],
       "examples": [],
-      "max_verdict_without_provider_scan": null,
-      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "Transcript user-initiated: nepot accident, cere bani."
     },
     {
@@ -361,8 +344,6 @@
       "signals": [],
       "sources": [],
       "examples": [],
-      "max_verdict_without_provider_scan": null,
-      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "Link .test cu formular card/CVV pentru încasare."
     },
     {
@@ -399,8 +380,6 @@
       "signals": [],
       "sources": [],
       "examples": [],
-      "max_verdict_without_provider_scan": null,
-      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "Ad/email cu .test și formular investiții/date card."
     },
     {
@@ -440,8 +419,6 @@
       "signals": [],
       "sources": [],
       "examples": [],
-      "max_verdict_without_provider_scan": null,
-      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "Text cere AnyDesk + transfer crypto; link APK => Periculos."
     },
     {
@@ -479,8 +456,6 @@
       "signals": [],
       "sources": [],
       "examples": [],
-      "max_verdict_without_provider_scan": null,
-      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "URL .test/app.apk + claim bancar."
     },
     {
@@ -515,8 +490,6 @@
       "signals": [],
       "sources": [],
       "examples": [],
-      "max_verdict_without_provider_scan": null,
-      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "Domeniu .test + cere card pentru premiu."
     },
     {
@@ -547,8 +520,6 @@
       "signals": [],
       "sources": [],
       "examples": [],
-      "max_verdict_without_provider_scan": null,
-      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "Text-only job/task; fără provider nu Periculos; cu link platformă .test + deposit crypto => Periculos."
     },
     {
@@ -587,8 +558,6 @@
       "signals": [],
       "sources": [],
       "examples": [],
-      "max_verdict_without_provider_scan": null,
-      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "PDF/SMS cu factură falsă .test și formular card."
     },
     {
@@ -624,8 +593,6 @@
       "signals": [],
       "sources": [],
       "examples": [],
-      "max_verdict_without_provider_scan": null,
-      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "SMS ghiseul .test; provider form card."
     },
     {
@@ -661,8 +628,6 @@
       "signals": [],
       "sources": [],
       "examples": [],
-      "max_verdict_without_provider_scan": null,
-      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "Transcript apel Revolut + cod; dacă link clonă/form: Periculos."
     },
     {
@@ -684,8 +649,6 @@
       "signals": [],
       "sources": [],
       "examples": [],
-      "max_verdict_without_provider_scan": null,
-      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "Email legit cu domeniu oficial și fără cereri sensibile."
     },
     {
@@ -715,8 +678,6 @@
       "signals": [],
       "sources": [],
       "examples": [],
-      "max_verdict_without_provider_scan": null,
-      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "Domeniu oficial/app; card payment legit context; nu hard-block."
     },
     {
@@ -779,8 +740,6 @@
         "Avertizare: cont SPV suspendat. Reactivați contul în 24h: https://spv-anaf-login.invalid/reactivare",
         "E-mail cu Reply-To diferit: no-reply@anaf.ro vizibil, dar return-path fiscal-ro@test-mail.example; CTA către https://verificare-taxare.test"
       ],
-      "max_verdict_without_provider_scan": "SUSPECT",
-      "max_verdict_with_provider_scan": "PERICULOS dacă linkul neoficial + formular date/card/SPV sau provider/sandbox confirmă phishing",
       "acceptance_test_idea": null
     },
     {
@@ -849,8 +808,6 @@
         "Apel: «Nu sunați la sediu, procedura este securizată doar prin telefon.»",
         "SMS: «ANAF: cod dosar AF-9182. Operatorul bancar vă va cere codul de confirmare.»"
       ],
-      "max_verdict_without_provider_scan": "SUSPECT/NO_REPLY",
-      "max_verdict_with_provider_scan": "PERICULOS dacă se cer date card/OTP/transfer sau remote access",
       "acceptance_test_idea": null
     },
     {
@@ -913,8 +870,6 @@
         "E-mail: «Confirmare taxe vamale» cu logo; câmpuri card/CVV pe domeniu neoficial.",
         "SMS: «Cod colet RO734... necesită plată suplimentară pentru depozitare.» Link: https://posta-depozitare.invalid"
       ],
-      "max_verdict_without_provider_scan": "SUSPECT",
-      "max_verdict_with_provider_scan": "PERICULOS dacă cere card/PIN/plată prin link neoficial",
       "acceptance_test_idea": null
     },
     {
@@ -981,8 +936,6 @@
         "Mesaj: «Recuperare acces FANBOX» + cere cod primit în WhatsApp.",
         "E-mail: «Solicitare CVC pentru verificare plată ramburs» pe domeniu neoficial."
       ],
-      "max_verdict_without_provider_scan": "SUSPECT",
-      "max_verdict_with_provider_scan": "PERICULOS dacă linkul e neoficial + card/CVC/cod WhatsApp/OTP",
       "acceptance_test_idea": null
     },
     {
@@ -1042,8 +995,6 @@
         "Mesaj social ad: «SAMEDAY oferă livrare gratuită dacă verifici cardul.»",
         "Email cu Reply-To generic și link ascuns: text sameday.ro, href https://sameday-client.invalid"
       ],
-      "max_verdict_without_provider_scan": "SUSPECT",
-      "max_verdict_with_provider_scan": "PERICULOS dacă cere plată/card prin link SMS/social neoficial",
       "acceptance_test_idea": null
     },
     {
@@ -1102,8 +1053,6 @@
         "Email: «AWB blocat la vamă» + document .zip/.html.",
         "SMS: «Curierul nu a putut livra. Răspunde cu CNP și adresă completă.»"
       ],
-      "max_verdict_without_provider_scan": "SUSPECT",
-      "max_verdict_with_provider_scan": "PERICULOS dacă există atașament executabil/APK sau card form pe domeniu neoficial",
       "acceptance_test_idea": null
     },
     {
@@ -1176,8 +1125,6 @@
         "SMS: «Cardul tău a fost folosit la o plată de 1.899 RON. Anulează aici.»",
         "E-mail HTML cu logo bancă, Reply-To gratuit, link ascuns în buton."
       ],
-      "max_verdict_without_provider_scan": "SUSPECT/NO_ENTER_DATA",
-      "max_verdict_with_provider_scan": "PERICULOS dacă linkul neoficial cere login/card/OTP/PIN/CVV",
       "acceptance_test_idea": null
     },
     {
@@ -1240,8 +1187,6 @@
         "«Dă-mi codul, sunt de la suport și văd eu problema.»",
         "«Dacă nu confirmi codul în 5 minute, contul va fi suspendat.»"
       ],
-      "max_verdict_without_provider_scan": "SUSPECT/NO_REPLY",
-      "max_verdict_with_provider_scan": "PERICULOS dacă este combinat cu brand impersonation/link neoficial/account takeover flow",
       "acceptance_test_idea": null
     },
     {
@@ -1314,8 +1259,6 @@
         "PDF: «Proces verbal IPJ» trimis pe WhatsApp + cerere date card.",
         "«Înregistrați un credit de protecție și îl anulăm după anchetă.»"
       ],
-      "max_verdict_without_provider_scan": "SUSPECT/NO_REPLY",
-      "max_verdict_with_provider_scan": "PERICULOS dacă cere transfer, credit, coduri, remote access sau date bancare",
       "acceptance_test_idea": null
     },
     {
@@ -1378,8 +1321,6 @@
         "Imagine cu siglă MAI + număr de dosar inventat.",
         "«Dacă închideți apelul, procedura se blochează și pierdeți banii.»"
       ],
-      "max_verdict_without_provider_scan": "SUSPECT/NO_REPLY",
-      "max_verdict_with_provider_scan": "PERICULOS dacă documentul acompaniază cerere de bani/card/OTP/transfer",
       "acceptance_test_idea": null
     },
     {
@@ -1433,8 +1374,6 @@
         "«Votează urgent, am nevoie să ajung în finală.»",
         "«Alege poza 7 și confirmă numărul tău.» link neoficial."
       ],
-      "max_verdict_without_provider_scan": "SUSPECT/NO_REPLY",
-      "max_verdict_with_provider_scan": "PERICULOS dacă linkul cere cod WhatsApp/dispozitiv sau provider/sandbox confirmă",
       "acceptance_test_idea": null
     },
     {
@@ -1485,8 +1424,6 @@
         "«Te rog nu ignora, animalele vor fi eutanasiate azi.»",
         "«Confirmă identitatea cu codul WhatsApp ca să nu fie semnături false.»"
       ],
-      "max_verdict_without_provider_scan": "SUSPECT/NO_REPLY",
-      "max_verdict_with_provider_scan": "PERICULOS dacă cere cod WhatsApp sau link neoficial + cod/login",
       "acceptance_test_idea": null
     },
     {
@@ -1544,8 +1481,6 @@
         "«Am nevoie până la 17:00, altfel pierd rezervarea.»",
         "«Nu pot răspunde la apel, microfonul e stricat.»"
       ],
-      "max_verdict_without_provider_scan": "SUSPECT/NO_REPLY",
-      "max_verdict_with_provider_scan": "PERICULOS dacă cere transfer/voucher/card sau combinat cu contact compromis",
       "acceptance_test_idea": null
     },
     {
@@ -1602,8 +1537,6 @@
         "«Vă rog păstrați secretul, e anchetă.»",
         "«Răspundeți cu adresa unde putem trimite omul după bani.»"
       ],
-      "max_verdict_without_provider_scan": "SUSPECT/NO_REPLY",
-      "max_verdict_with_provider_scan": "PERICULOS dacă cere bani/cash/transfer și blochează verificarea independentă",
       "acceptance_test_idea": null
     },
     {
@@ -1673,8 +1606,6 @@
         "«Am plătit produsul, dar trebuie să confirmi prin pagina OLX.» link .example",
         "«Dacă nu confirmi în 30 minute, plata se anulează.»"
       ],
-      "max_verdict_without_provider_scan": "SUSPECT/NO_ENTER_DATA",
-      "max_verdict_with_provider_scan": "PERICULOS dacă cere card/CVV/OTP pe link neoficial",
       "acceptance_test_idea": null
     },
     {
@@ -1740,8 +1671,6 @@
         "WhatsApp: «am primit și eu, pare real, intră repede.»",
         "«Taxa de procesare 7,99 lei pentru premiu.» + formular card/CVV."
       ],
-      "max_verdict_without_provider_scan": "SUSPECT",
-      "max_verdict_with_provider_scan": "PERICULOS dacă domeniu neoficial + card/CVV/login/taxă premiu",
       "acceptance_test_idea": null
     },
     {
@@ -1812,8 +1741,6 @@
         "«Dovediți identitatea cu poză buletin și card.»",
         "«Profit garantat 2.000 lei/săptămână, fără risc.»"
       ],
-      "max_verdict_without_provider_scan": "SUSPECT/NO_ENTER_DATA",
-      "max_verdict_with_provider_scan": "PERICULOS dacă cere date bancare/remote access/depunere sau provider confirmă pagină frauduloasă",
       "acceptance_test_idea": null
     },
     {
@@ -1886,8 +1813,6 @@
         "«Platforma TXEX/TradeX confirmă profitul, trebuie doar să plătiți comisionul.»",
         "«Nu discutați cu banca, ei nu cunosc această promoție.»"
       ],
-      "max_verdict_without_provider_scan": "SUSPECT/NO_ENTER_DATA",
-      "max_verdict_with_provider_scan": "PERICULOS dacă apare remote access/APK/depunere crypto/card",
       "acceptance_test_idea": null
     },
     {
@@ -1958,8 +1883,6 @@
         "«Curierul nu poate livra fără aplicația de confirmare.»",
         "«Banca vă trimite update de urgență prin SMS.»"
       ],
-      "max_verdict_without_provider_scan": "SUSPECT/NO_ENTER_DATA",
-      "max_verdict_with_provider_scan": "PERICULOS dacă APK/remote access/out-of-store install este detectat",
       "acceptance_test_idea": null
     },
     {
@@ -2018,8 +1941,6 @@
         "«Link oficial loteria-ro-bonus.example». ",
         "«Câștig garantat dacă activezi azi contul.»"
       ],
-      "max_verdict_without_provider_scan": "SUSPECT/NO_ENTER_DATA",
-      "max_verdict_with_provider_scan": "PERICULOS dacă cere card/depunere pe domeniu neoficial",
       "acceptance_test_idea": null
     },
     {
@@ -2087,8 +2008,6 @@
         "«Nu spune băncii că lucrezi cu noi, ei blochează comisioanele.»",
         "«Instalează aplicația noastră de taskuri din link.» APK."
       ],
-      "max_verdict_without_provider_scan": "SUSPECT",
-      "max_verdict_with_provider_scan": "PERICULOS dacă cere depuneri/crypto/acces cont/card/remote access",
       "acceptance_test_idea": null
     },
     {
@@ -2154,8 +2073,6 @@
         "Email cu expeditor generic și link ascuns sub «Plătește factura». ",
         "SMS: «Ultima avertizare pentru serviciile de internet.» domeniu .invalid."
       ],
-      "max_verdict_without_provider_scan": "SUSPECT",
-      "max_verdict_with_provider_scan": "PERICULOS dacă domeniu neoficial + card/CVV/login/debitare urgentă",
       "acceptance_test_idea": null
     },
     {
@@ -2216,8 +2133,6 @@
         "«Solicitați date acces» pe domeniu care nu este ghiseul.ro.",
         "«Verificați CNP-ul și cardul pentru plata rapidă.»"
       ],
-      "max_verdict_without_provider_scan": "SUSPECT",
-      "max_verdict_with_provider_scan": "PERICULOS dacă link neoficial + date card/login/CNP",
       "acceptance_test_idea": null
     },
     {
@@ -2279,8 +2194,6 @@
         "QR pe colet: «confirmă livrarea» + cod WhatsApp.",
         "QR în e-mail marketing — trebuie verificat, nu periculos singur."
       ],
-      "max_verdict_without_provider_scan": "SUSPECT",
-      "max_verdict_with_provider_scan": "PERICULOS dacă QR duce la domeniu neoficial + card/login/APK/brand impersonation",
       "acceptance_test_idea": null
     },
     {
@@ -2334,8 +2247,6 @@
         "«Dacă nu trimiți acum, pierd contractul.»",
         "«Nu spune familiei, nu vor înțelege relația noastră.»"
       ],
-      "max_verdict_without_provider_scan": "SUSPECT",
-      "max_verdict_with_provider_scan": "PERICULOS dacă cere bani/vouchere/crypto sau date bancare",
       "acceptance_test_idea": null
     },
     {
@@ -2385,8 +2296,7 @@
           "sample_text": "Parcare Sector 1 — scanează pentru plată rapidă: https://parcare-bucuresti-pay.test/p/RO-B-4821",
           "expected_targets": [
             "parcare-bucuresti-pay.test"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "PARKQR-02",
@@ -2394,8 +2304,7 @@
           "sample_text": "Plată parcare online. Introdu numărul auto și cardul: https://cmpb-plati-rapide.example/qr",
           "expected_targets": [
             "cmpb-plati-rapide.example"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "PARKQR-03",
@@ -2403,8 +2312,7 @@
           "sample_text": "Ai 10 minute să achiți parcarea pentru a evita sancțiunea: https://parking-romania-secure.test/pay",
           "expected_targets": [
             "parking-romania-secure.test"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "PARKQR-04",
@@ -2412,8 +2320,7 @@
           "sample_text": "Parcare București — confirmă cardul pentru activarea tichetului: https://pay-park-buc.invalid/start",
           "expected_targets": [
             "pay-park-buc.invalid"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "PARKQR-05",
@@ -2421,8 +2328,7 @@
           "sample_text": "Achită 3.00 RON pentru parcarea curentă: https://smartparking-bucuresti.test/checkout",
           "expected_targets": [
             "smartparking-bucuresti.test"
-          ],
-          "suggested_expected_verdict": "SUSPECT"
+          ]
         },
         {
           "example_id": "PARKQR-06",
@@ -2430,8 +2336,7 @@
           "sample_text": "Scanare parcometru: card, CVC, expirare pentru autorizare: https://parkmetru-pay.example/card",
           "expected_targets": [
             "parkmetru-pay.example"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "PARKQR-07",
@@ -2439,8 +2344,7 @@
           "sample_text": "Zona 0 București — confirmă plata în aplicație: https://bucuresti-parking-app.invalid/install",
           "expected_targets": [
             "bucuresti-parking-app.invalid"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "PARKQR-08",
@@ -2448,8 +2352,7 @@
           "sample_text": "Ticket parcare expirat. Plătește acum penalitatea: https://parking-alerts-romania.test",
           "expected_targets": [
             "parking-alerts-romania.test"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "PARKQR-09",
@@ -2457,19 +2360,15 @@
           "sample_text": "Parcare — autentifică-te cu SMS primit de la bancă: https://parcare-validare-card.example",
           "expected_targets": [
             "parcare-validare-card.example"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "PARKQR-10",
           "channel": "QR",
           "sample_text": "Info parcare oficial: verifică tariful pe site-ul primăriei.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         }
       ],
-      "max_verdict_without_provider_scan": "SUSPECT",
-      "max_verdict_with_provider_scan": "PERICULOS",
       "acceptance_test_idea": "Sticker QR lipit peste sau lângă zona de plată. Userul ajunge pe o pagină care imită interfața de plată a parcării și cere card/CVC; plata reală nu se procesează."
     },
     {
@@ -2520,8 +2419,7 @@
           "sample_text": "Ghișeul.ro: aveți o amendă restantă de 150 RON. Achitați azi pentru a evita penalități: https://ghiseul-plata-amenzi.test",
           "expected_targets": [
             "ghiseul-plata-amenzi.test"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "FINE-02",
@@ -2529,8 +2427,7 @@
           "sample_text": "MTI: încălcări trafic asociate vehiculului dvs. Verificați nr. de înmatriculare: https://mti-verificare-auto.example",
           "expected_targets": [
             "mti-verificare-auto.example"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "FINE-03",
@@ -2538,8 +2435,7 @@
           "sample_text": "Atenție! Penalizare +30% dacă nu achitați amenda în 24h: https://plati-contraventii-ro.invalid",
           "expected_targets": [
             "plati-contraventii-ro.invalid"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "FINE-04",
@@ -2547,8 +2443,7 @@
           "sample_text": "Amenda auto identificată. Introduceți numărul de înmatriculare pentru detalii: https://ghiseu-ro-alert.test",
           "expected_targets": [
             "ghiseu-ro-alert.test"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "FINE-05",
@@ -2556,8 +2451,7 @@
           "sample_text": "Autoritate Rutieră: sancțiune emisă. Plata rapidă card: https://rutier-plata.example/pay",
           "expected_targets": [
             "rutier-plata.example"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "FINE-06",
@@ -2565,8 +2459,7 @@
           "sample_text": "Ghișeul: contul are obligații restante. Acces: https://ghiseulro-plati.invalid/start",
           "expected_targets": [
             "ghiseulro-plati.invalid"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "FINE-07",
@@ -2574,8 +2467,7 @@
           "sample_text": "Ultima notificare pentru amendă 150 lei. Neplata duce la suspendare: https://amenda-auto-verificare.test",
           "expected_targets": [
             "amenda-auto-verificare.test"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "FINE-08",
@@ -2583,8 +2475,7 @@
           "sample_text": "Portal Plăți Publice: plătiți aici: https://portal-plati-ro.example/card",
           "expected_targets": [
             "portal-plati-ro.example"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "FINE-09",
@@ -2592,8 +2483,7 @@
           "sample_text": "Pentru anularea penalizării introduceți CNP și card: https://ghiseu-verificare.invalid",
           "expected_targets": [
             "ghiseu-verificare.invalid"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "FINE-10",
@@ -2601,12 +2491,9 @@
           "sample_text": "Am primit link pentru amendă, dar domeniul e ghiseul.ro și l-am introdus manual în browser.",
           "expected_targets": [
             "ghiseul.ro"
-          ],
-          "suggested_expected_verdict": "SIGUR"
+          ]
         }
       ],
-      "max_verdict_without_provider_scan": "SUSPECT",
-      "max_verdict_with_provider_scan": "PERICULOS",
       "acceptance_test_idea": "SMS alarmist care pretinde amendă restantă sau încălcări de circulație; userul este dus pe pagină care cere număr de înmatriculare, apoi sumă rapidă și card."
     },
     {
@@ -2654,8 +2541,7 @@
           "sample_text": "CNAIR: rovinietă restantă. Plata urgentă previne amenda: https://cnair-taxare-drum.test",
           "expected_targets": [
             "cnair-taxare-drum.test"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "ROV-02",
@@ -2663,8 +2549,7 @@
           "sample_text": "Taxă de drum neachitată pentru vehiculul dvs. Achitați 19.99 RON: https://rovinieta-plata.example",
           "expected_targets": [
             "rovinieta-plata.example"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "ROV-03",
@@ -2672,8 +2557,7 @@
           "sample_text": "Ultima avertizare: confiscare vehicul posibilă dacă nu plătiți: https://taxa-drum-ro.invalid",
           "expected_targets": [
             "taxa-drum-ro.invalid"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "ROV-04",
@@ -2681,8 +2565,7 @@
           "sample_text": "Verificare rovinietă — introduceți cardul pentru confirmare: https://e-rovinieta-card.test",
           "expected_targets": [
             "e-rovinieta-card.test"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "ROV-05",
@@ -2690,8 +2573,7 @@
           "sample_text": "Factura rovinietă atașată. Pentru anulare accesați: https://cnadnr-plata.example",
           "expected_targets": [
             "cnadnr-plata.example"
-          ],
-          "suggested_expected_verdict": "SUSPECT"
+          ]
         },
         {
           "example_id": "ROV-06",
@@ -2699,8 +2581,7 @@
           "sample_text": "Vehiculul AB12XYZ are restanță. Plătește până la 18:00: https://e-taxadedeum.invalid",
           "expected_targets": [
             "e-taxadedeum.invalid"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "ROV-07",
@@ -2708,15 +2589,13 @@
           "sample_text": "CNAIR-notificare: date card necesare pentru taxă drum: https://cnair-secure-pay.test",
           "expected_targets": [
             "cnair-secure-pay.test"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "ROV-08",
           "channel": "SMS",
           "sample_text": "Rovinieta expiră curând. Verificați în aplicația sau site-ul oficial.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "ROV-09",
@@ -2724,8 +2603,7 @@
           "sample_text": "Amendă rovinietă emisă automat. Achită 120 lei aici: https://amenda-rovinieta.example/pay",
           "expected_targets": [
             "amenda-rovinieta.example"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "ROV-10",
@@ -2733,12 +2611,9 @@
           "sample_text": "Utilizator întreabă: am primit SMS cu link scurt bit.ly pentru rovinietă.",
           "expected_targets": [
             "bit.ly"
-          ],
-          "suggested_expected_verdict": "SUSPECT"
+          ]
         }
       ],
-      "max_verdict_without_provider_scan": "SUSPECT",
-      "max_verdict_with_provider_scan": "PERICULOS",
       "acceptance_test_idea": "Mesajul pretinde restanță rovinietă sau taxă drum, amenință cu amendă/confiscare și trimite spre un link de plată. Conform avertizării citate, CNAIR nu trimite SMS-uri cu linkuri de plată și nu cere date bancare/personale prin SMS."
     },
     {
@@ -2782,22 +2657,19 @@
           "example_id": "OSIM-01",
           "channel": "Email",
           "sample_text": "Subiect: Notificare urgentă OSIM — taxa de menținere marcă expiră azi. IBAN: RO00 TEST 0000 0000 0000",
-          "expected_targets": [],
-          "suggested_expected_verdict": "PERICULOS"
+          "expected_targets": []
         },
         {
           "example_id": "OSIM-02",
           "channel": "Email",
           "sample_text": "Vă rugăm achitați taxa pentru marca dvs. în contul partenerului extern indicat în anexă.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "OSIM-03",
           "channel": "PDF",
           "sample_text": "Factura menținere marcă — neplata atrage anularea protecției. Plată prin transfer bancar urgent.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "OSIM-04",
@@ -2805,8 +2677,7 @@
           "sample_text": "Oficiul mărci: documentele dvs. sunt atașate, descărcați: https://osim-registry-payment.test/file",
           "expected_targets": [
             "osim-registry-payment.test"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "OSIM-05",
@@ -2814,15 +2685,13 @@
           "sample_text": "Taxă marcă 2026. Domeniu expeditor: osim-taxe.example, link plată card.",
           "expected_targets": [
             "osim-taxe.example"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "OSIM-06",
           "channel": "Email",
           "sample_text": "Ultima notificare înainte de radierea mărcii. Achitați până la ora 17:00.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "OSIM-07",
@@ -2830,8 +2699,7 @@
           "sample_text": "Registru European Mărci România — confirmă card firma: https://brand-protect-ro.invalid",
           "expected_targets": [
             "brand-protect-ro.invalid"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "OSIM-08",
@@ -2839,26 +2707,21 @@
           "sample_text": "OSIM: accesați procedura oficială pe osim.ro din browser, fără link de plată în email.",
           "expected_targets": [
             "osim.ro"
-          ],
-          "suggested_expected_verdict": "SIGUR"
+          ]
         },
         {
           "example_id": "OSIM-09",
           "channel": "Email",
           "sample_text": "Plată taxă menținere marcă către cont personal. Atașament invoice.docm",
-          "expected_targets": [],
-          "suggested_expected_verdict": "PERICULOS"
+          "expected_targets": []
         },
         {
           "example_id": "OSIM-10",
           "channel": "Email",
           "sample_text": "Reminder marcă: verificați statusul în contul oficial OSIM. Fără cerere de plată în mesaj.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SIGUR"
+          "expected_targets": []
         }
       ],
-      "max_verdict_without_provider_scan": "SUSPECT",
-      "max_verdict_with_provider_scan": "PERICULOS",
       "acceptance_test_idea": "Email care imită OSIM sau un registru de mărci și cere plată urgentă într-un cont extern pentru menținerea/protecția unei mărci; poate include PDF cu antet și amenințări."
     },
     {
@@ -2911,8 +2774,7 @@
           "sample_text": "Pagina ta va fi dezactivată. Confirmă dreptul de proprietate: https://meta-page-verify.test/appeal",
           "expected_targets": [
             "meta-page-verify.test"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "SOCIAL-02",
@@ -2920,8 +2782,7 @@
           "sample_text": "Facebook Business: copyright infringement. Completează formularul în 12h: https://business-helpdesk.example",
           "expected_targets": [
             "business-helpdesk.example"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "SOCIAL-03",
@@ -2929,15 +2790,13 @@
           "sample_text": "Your page has been reported. Login with Facebook to continue: https://fb-support-case.invalid",
           "expected_targets": [
             "fb-support-case.invalid"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "SOCIAL-04",
           "channel": "Email",
           "sample_text": "Meta Ads: payment disabled. Confirmă parola și codul primit prin SMS.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "PERICULOS"
+          "expected_targets": []
         },
         {
           "example_id": "SOCIAL-05",
@@ -2945,8 +2804,7 @@
           "sample_text": "Am primit avertizare de pagină, dar linkul este facebook.com/business/help.",
           "expected_targets": [
             "facebook.com"
-          ],
-          "suggested_expected_verdict": "SIGUR"
+          ]
         },
         {
           "example_id": "SOCIAL-06",
@@ -2954,40 +2812,33 @@
           "sample_text": "Business Suite Policy — apel respins dacă nu validezi azi: https://meta-policy-ro.test",
           "expected_targets": [
             "meta-policy-ro.test"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "SOCIAL-07",
           "channel": "Messenger",
           "sample_text": "Confirm Ownership Form: introduceți email, parolă, OTP.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "PERICULOS"
+          "expected_targets": []
         },
         {
           "example_id": "SOCIAL-08",
           "channel": "Email",
           "sample_text": "Pagina dvs. a încălcat standardele comunității. Descărcați documentul .html atașat.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "SOCIAL-09",
           "channel": "Text",
           "sample_text": "Client pastează doar: „pagina va fi închisă, verifică aici” fără URL complet.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "SOCIAL-10",
           "channel": "Email",
           "sample_text": "Meta notification: verificați direct în aplicația Meta Business Suite. Nu conține link extern.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SIGUR"
+          "expected_targets": []
         }
       ],
-      "max_verdict_without_provider_scan": "SUSPECT",
-      "max_verdict_with_provider_scan": "PERICULOS",
       "acceptance_test_idea": "Victima admin de pagină primește mesaj aparent oficial despre confirmarea drepturilor de proprietate, copyright, policy violation sau dezactivare; formularul fals colectează parole/OTP/tokenuri și duce la preluarea paginii."
     },
     {
@@ -3037,15 +2888,13 @@
           "sample_text": "DISPOZITIV BLOCAT. Plătiți amenda 2500 RON pentru deblocare: https://politia-romana-amenda.test",
           "expected_targets": [
             "politia-romana-amenda.test"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "POPUP-02",
           "channel": "web popup",
           "sample_text": "DNSC: activitate ilegală detectată. Card necesar pentru proces-verbal.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "PERICULOS"
+          "expected_targets": []
         },
         {
           "example_id": "POPUP-03",
@@ -3053,15 +2902,13 @@
           "sample_text": "https://dnsc-unlock-device.example/pay",
           "expected_targets": [
             "dnsc-unlock-device.example"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "POPUP-04",
           "channel": "HTML",
           "sample_text": "Camera dvs. a fost activată. Plată în 15 minute.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "PERICULOS"
+          "expected_targets": []
         },
         {
           "example_id": "POPUP-05",
@@ -3069,15 +2916,13 @@
           "sample_text": "Poliția: dispozitiv asociat cu conținut ilegal. Achită aici: https://amenda-online.invalid",
           "expected_targets": [
             "amenda-online.invalid"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "POPUP-06",
           "channel": "web",
           "sample_text": "Avertizare sistem: pentru a evita dosarul penal, introduceți cardul.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "PERICULOS"
+          "expected_targets": []
         },
         {
           "example_id": "POPUP-07",
@@ -3085,33 +2930,27 @@
           "sample_text": "Pop-up educațional DNSC pe dnsc.ro, fără cerere de plată.",
           "expected_targets": [
             "dnsc.ro"
-          ],
-          "suggested_expected_verdict": "SIGUR"
+          ]
         },
         {
           "example_id": "POPUP-08",
           "channel": "HTML",
           "sample_text": "Autoritate Europeană: plătiți amendă prin crypto QR.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "PERICULOS"
+          "expected_targets": []
         },
         {
           "example_id": "POPUP-09",
           "channel": "web",
           "sample_text": "Dispozitiv blocat temporar. Deblocare prin voucher Paysafecard.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "PERICULOS"
+          "expected_targets": []
         },
         {
           "example_id": "POPUP-10",
           "channel": "web",
           "sample_text": "Browser warning legit despre site nesigur, fără plată.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         }
       ],
-      "max_verdict_without_provider_scan": "SUSPECT",
-      "max_verdict_with_provider_scan": "PERICULOS",
       "acceptance_test_idea": "Pagina/popup spune că dispozitivul este blocat pentru conținut ilegal și cere plata unei amenzi urgente, de obicei cu logo Poliția/DNSC; se bazează pe rușine și panică."
     },
     {
@@ -3159,8 +2998,7 @@
           "example_id": "TICKET-01",
           "channel": "Messenger",
           "sample_text": "Vând 2 bilete sold-out la concert. Transfer rapid Revolut și îți trimit QR print-screen.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "TICKET-02",
@@ -3168,8 +3006,7 @@
           "sample_text": "Bilete Metallica 70% reducere azi: https://tickets-romania-live.test",
           "expected_targets": [
             "tickets-romania-live.test"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "TICKET-03",
@@ -3177,29 +3014,25 @@
           "sample_text": "Ai câștigat acces gratuit, achită taxa procesare 9.99 lei: https://free-concert-pass.example",
           "expected_targets": [
             "free-concert-pass.example"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "TICKET-04",
           "channel": "Messenger",
           "sample_text": "Am bilet PDF, dar accept doar transfer instant înainte să-l trimit.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "TICKET-05",
           "channel": "Email",
           "sample_text": "Platformă ticketing oficială, domeniu oficial, fără cerere date sensibile în email.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SIGUR"
+          "expected_targets": []
         },
         {
           "example_id": "TICKET-06",
           "channel": "Facebook group",
           "sample_text": "Last minute Revelion, 80 lei, plătiți în crypto pentru rezervare.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "PERICULOS"
+          "expected_targets": []
         },
         {
           "example_id": "TICKET-07",
@@ -3207,33 +3040,27 @@
           "sample_text": "https://eventim-romania-voucher.invalid/pay",
           "expected_targets": [
             "eventim-romania-voucher.invalid"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "TICKET-08",
           "channel": "Messenger",
           "sample_text": "Admin grup verificat? profil creat ieri, cerere avans 50%.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "TICKET-09",
           "channel": "PDF",
           "sample_text": "Bilet cu QR primit ca imagine, fără transfer prin platformă.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "TICKET-10",
           "channel": "Email",
           "sample_text": "Confirmare comandă din platformă autorizată, fără atașament executabil, domeniu oficial.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SIGUR"
+          "expected_targets": []
         }
       ],
-      "max_verdict_without_provider_scan": "SUSPECT",
-      "max_verdict_with_provider_scan": "PERICULOS",
       "acceptance_test_idea": "Profiluri/pagini/grupuri nou-create vând bilete inexistente, duplicate, print-screen sau evenimente inexistente. De obicei cer plată rapidă, transfer instant, Revolut/crypto, apoi trimit PDF/QR invalid."
     },
     {
@@ -3281,8 +3108,7 @@
           "example_id": "VAC-01",
           "channel": "WhatsApp",
           "sample_text": "Bună, apartamentul este liber. Trimite 500 lei avans acum și îți blochez datele.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "VAC-02",
@@ -3290,8 +3116,7 @@
           "sample_text": "Cazare Mamaia 99 lei/noapte, rezervă aici: https://vacante-litoral-ieftin.test",
           "expected_targets": [
             "vacante-litoral-ieftin.test"
-          ],
-          "suggested_expected_verdict": "SUSPECT"
+          ]
         },
         {
           "example_id": "VAC-03",
@@ -3299,15 +3124,13 @@
           "sample_text": "Booking: confirmă cardul pentru a nu pierde rezervarea: https://booking-confirmare.example",
           "expected_targets": [
             "booking-confirmare.example"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "VAC-04",
           "channel": "WhatsApp",
           "sample_text": "Nu plăti pe platformă, îți fac reducere dacă trimiți direct în cont.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "VAC-05",
@@ -3315,29 +3138,25 @@
           "sample_text": "Rezervarea ta expiră în 15 minute. Card necesar: https://hotel-payment.invalid",
           "expected_targets": [
             "hotel-payment.invalid"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "VAC-06",
           "channel": "Facebook",
           "sample_text": "Oferta pare reală, dar pagina are zero review-uri și cere avans integral.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "VAC-07",
           "channel": "Email",
           "sample_text": "Unitatea te roagă să verifici doar în aplicația oficială Booking/Airbnb.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SIGUR"
+          "expected_targets": []
         },
         {
           "example_id": "VAC-08",
           "channel": "WhatsApp",
           "sample_text": "Trimite poză buletin + card față/spate pentru garanție.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "PERICULOS"
+          "expected_targets": []
         },
         {
           "example_id": "VAC-09",
@@ -3345,19 +3164,15 @@
           "sample_text": "https://airbnb-romania-secure.test/reservation",
           "expected_targets": [
             "airbnb-romania-secure.test"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "VAC-10",
           "channel": "Text",
           "sample_text": "Cazare cu plată rambursabilă prin platforma recunoscută, fără link extern.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SIGUR"
+          "expected_targets": []
         }
       ],
-      "max_verdict_without_provider_scan": "SUSPECT",
-      "max_verdict_with_provider_scan": "PERICULOS",
       "acceptance_test_idea": "Cazare prea ieftină sau foarte urgentă; cere avans prin transfer, comunicare pe WhatsApp în afara platformei, link clonă sau documente false. Există și compromise ale canalelor de comunicare la hotel/platformă."
     },
     {
@@ -3404,29 +3219,25 @@
           "example_id": "RENT-01",
           "channel": "WhatsApp",
           "sample_text": "Am mulți doritori. Trimite garanția azi și îți rezerv apartamentul.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "RENT-02",
           "channel": "Classified",
           "sample_text": "Garsonieră ultracentral 250 euro, poze perfecte, plata garanției înainte de vizionare.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "RENT-03",
           "channel": "Email",
           "sample_text": "Contract atașat. Semnează și plătește IBAN înainte să vezi apartamentul.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "RENT-04",
           "channel": "WhatsApp",
           "sample_text": "Nu sunt în țară, trimit cheile prin curier după avans.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "PERICULOS"
+          "expected_targets": []
         },
         {
           "example_id": "RENT-05",
@@ -3434,47 +3245,39 @@
           "sample_text": "https://inchirieri-studenti-cluj.test/reserva",
           "expected_targets": [
             "inchirieri-studenti-cluj.test"
-          ],
-          "suggested_expected_verdict": "SUSPECT"
+          ]
         },
         {
           "example_id": "RENT-06",
           "channel": "WhatsApp",
           "sample_text": "Trimite CNP + poză buletin pentru precontract, apoi garanție.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "RENT-07",
           "channel": "Text",
           "sample_text": "Apartament vizionat, contract verificat, plată după semnare.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SIGUR"
+          "expected_targets": []
         },
         {
           "example_id": "RENT-08",
           "channel": "Messenger",
           "sample_text": "Pozele apar și pe Airbnb, dar vânzătorul cere plata în cont personal.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "RENT-09",
           "channel": "WhatsApp",
           "sample_text": "Ai reducere dacă plătești 2 luni în avans până diseară.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "RENT-10",
           "channel": "Email",
           "sample_text": "Proprietar trimite documente neclare și refuză apel video/vizionare.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         }
       ],
-      "max_verdict_without_provider_scan": "SUSPECT",
-      "max_verdict_with_provider_scan": "PERICULOS",
       "acceptance_test_idea": "Proprietar-fantomă relistează un apartament real de pe Airbnb/altă platformă pe site-uri de anunțuri, folosește acte false și cere garanție/avans înainte de contract/notar/vizită reală."
     },
     {
@@ -3527,29 +3330,25 @@
           "example_id": "TASK-01",
           "channel": "WhatsApp",
           "sample_text": "Bună, sunt Amelia HR. Vrei un job flexibil online? 300-800 lei/zi pentru review-uri.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "TASK-02",
           "channel": "Telegram",
           "sample_text": "Finalizează 3 task-uri și primești bonus. Pentru nivelul 2 depune 100 lei.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "PERICULOS"
+          "expected_targets": []
         },
         {
           "example_id": "TASK-03",
           "channel": "SMS",
           "sample_text": "Lucru de acasă, fără experiență. Detalii pe WhatsApp: +40 XXX.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "TASK-04",
           "channel": "WhatsApp",
           "sample_text": "Pentru retragere trebuie să alimentezi contul cu 250 lei.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "PERICULOS"
+          "expected_targets": []
         },
         {
           "example_id": "TASK-05",
@@ -3557,47 +3356,39 @@
           "sample_text": "https://work-from-home-romania.test/tasks",
           "expected_targets": [
             "work-from-home-romania.test"
-          ],
-          "suggested_expected_verdict": "SUSPECT"
+          ]
         },
         {
           "example_id": "TASK-06",
           "channel": "WhatsApp",
           "sample_text": "Compania noastră e partener Booking. Dai rating la hoteluri și câștigi.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "TASK-07",
           "channel": "Telegram",
           "sample_text": "Ai sold 750 lei blocat, plătește taxa de activare.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "PERICULOS"
+          "expected_targets": []
         },
         {
           "example_id": "TASK-08",
           "channel": "Email",
           "sample_text": "Aplicare job pe site oficial companie, fără taxă, domeniu verificat.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SIGUR"
+          "expected_targets": []
         },
         {
           "example_id": "TASK-09",
           "channel": "WhatsApp",
           "sample_text": "Nu spune nimănui despre platformă, e ofertă internă.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "TASK-10",
           "channel": "Telegram",
           "sample_text": "Primești plata în USDT după ce cumperi pachetul VIP.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "PERICULOS"
+          "expected_targets": []
         }
       ],
-      "max_verdict_without_provider_scan": "SUSPECT",
-      "max_verdict_with_provider_scan": "PERICULOS",
       "acceptance_test_idea": "Mesaj nesolicitat de la recruiter; promite bani rapizi pentru like-uri, review-uri, rezervări, testare aplicații. Victima primește mici sume, apoi trebuie să depună bani ca să deblocheze câștiguri."
     },
     {
@@ -3647,36 +3438,31 @@
           "example_id": "ROM-01",
           "channel": "WhatsApp",
           "sample_text": "Mi-am pierdut portofelul la aeroport, trimite-mi 300 euro și vin la tine mâine.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "ROM-02",
           "channel": "Messenger",
           "sample_text": "Sunt medic în misiune, contul meu e blocat. Am nevoie de card cadou.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "PERICULOS"
+          "expected_targets": []
         },
         {
           "example_id": "ROM-03",
           "channel": "Dating chat",
           "sample_text": "Te iubesc, dar pentru biletul de avion am nevoie urgent de ajutor.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "ROM-04",
           "channel": "WhatsApp",
           "sample_text": "Nu pot face video, camera e stricată. Trimite bani prin crypto.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "PERICULOS"
+          "expected_targets": []
         },
         {
           "example_id": "ROM-05",
           "channel": "Messenger",
           "sample_text": "Copilul meu are operație, te rog nu spune nimănui.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "ROM-06",
@@ -3684,40 +3470,33 @@
           "sample_text": "Hai să investim împreună într-o platformă: https://love-invest-romania.test",
           "expected_targets": [
             "love-invest-romania.test"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "ROM-07",
           "channel": "Instagram",
           "sample_text": "Profil cu poze perfecte, cere CNP pentru colet cadou.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "ROM-08",
           "channel": "Chat",
           "sample_text": "Relație reală, fără cereri de bani sau date, cu verificare video.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SIGUR"
+          "expected_targets": []
         },
         {
           "example_id": "ROM-09",
           "channel": "WhatsApp",
           "sample_text": "Trimite IBAN-ul și poza cardului să îți trimit cadou.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "PERICULOS"
+          "expected_targets": []
         },
         {
           "example_id": "ROM-10",
           "channel": "Messenger",
           "sample_text": "Sunt blocat la vamă și am nevoie de taxă pentru colet.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         }
       ],
-      "max_verdict_without_provider_scan": "SUSPECT",
-      "max_verdict_with_provider_scan": "PERICULOS",
       "acceptance_test_idea": "Profil fals construiește relație emoțională pe termen lung, apoi cere bani pentru urgență medicală, bilet avion, vamă, copil bolnav, blocaj cont sau investiție comună. Poate cere și date sau acces conturi."
     },
     {
@@ -3766,8 +3545,7 @@
           "example_id": "CHAR-01",
           "channel": "Facebook",
           "sample_text": "Ajutor urgent pentru operația lui Max. Donează în cont personal până diseară.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "CHAR-02",
@@ -3775,15 +3553,13 @@
           "sample_text": "Adăpostul nostru arde, trimite 50 lei aici: https://adapost-salvare.test/doneaza",
           "expected_targets": [
             "adapost-salvare.test"
-          ],
-          "suggested_expected_verdict": "SUSPECT"
+          ]
         },
         {
           "example_id": "CHAR-03",
           "channel": "Facebook group",
           "sample_text": "Poze dramatice repetate în multe grupuri, același IBAN personal.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "CHAR-04",
@@ -3791,29 +3567,25 @@
           "sample_text": "Donează cu cardul pe link necunoscut pentru animale: https://donatii-urgente-animale.example",
           "expected_targets": [
             "donatii-urgente-animale.example"
-          ],
-          "suggested_expected_verdict": "SUSPECT"
+          ]
         },
         {
           "example_id": "CHAR-05",
           "channel": "Messenger",
           "sample_text": "Te rog nu verifica, câinele moare în 2 ore.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "CHAR-06",
           "channel": "Facebook",
           "sample_text": "ONG cunoscut, domeniu oficial, transparent, date fiscale publice.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SIGUR"
+          "expected_targets": []
         },
         {
           "example_id": "CHAR-07",
           "channel": "WhatsApp",
           "sample_text": "Colectăm pentru spital, dar banii merg în cont de Revolut personal.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "CHAR-08",
@@ -3821,26 +3593,21 @@
           "sample_text": "https://crucea-rosie-ajutor-invalid.test/pay",
           "expected_targets": [
             "crucea-rosie-ajutor-invalid.test"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "CHAR-09",
           "channel": "Facebook",
           "sample_text": "Cerere donație fără CUI, fără site, fără dovadă actualizată.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "CHAR-10",
           "channel": "Email",
           "sample_text": "Campanie oficială ONG cu domeniu verificat, nu cere card în email.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SIGUR"
+          "expected_targets": []
         }
       ],
-      "max_verdict_without_provider_scan": "SUSPECT",
-      "max_verdict_with_provider_scan": "PERICULOS",
       "acceptance_test_idea": "Pagini/grupuri folosesc poze emoționale cu animale/copii/urgențe medicale și cer donații rapide în cont personal sau prin link necunoscut. În România există semnale publice/noisy pe grupuri, dar trebuie tratate ca pattern discovery."
     },
     {
@@ -3884,22 +3651,19 @@
           "example_id": "PET-01",
           "channel": "Messenger",
           "sample_text": "Pui de pomeranian gratuit, plătești doar transportul 180 lei.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "PET-02",
           "channel": "Facebook",
           "sample_text": "Cățel salvat, ai 30 min să achiți cusca de transport.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "PET-03",
           "channel": "WhatsApp",
           "sample_text": "Nu poți vedea animalul, e la curier. Trimite avans.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "PET-04",
@@ -3907,36 +3671,31 @@
           "sample_text": "https://transport-animale-adoptie.test/pay",
           "expected_targets": [
             "transport-animale-adoptie.test"
-          ],
-          "suggested_expected_verdict": "SUSPECT"
+          ]
         },
         {
           "example_id": "PET-05",
           "channel": "Messenger",
           "sample_text": "Cere card/CVV pentru rezervare adopție.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "PERICULOS"
+          "expected_targets": []
         },
         {
           "example_id": "PET-06",
           "channel": "Facebook",
           "sample_text": "Adăpost local verificabil, vizită fizică, contract adopție.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SIGUR"
+          "expected_targets": []
         },
         {
           "example_id": "PET-07",
           "channel": "WhatsApp",
           "sample_text": "Pozele apar pe mai multe pagini, nume diferite.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "PET-08",
           "channel": "Messenger",
           "sample_text": "Taxă asigurare 400 lei înainte să primești animalul.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "PET-09",
@@ -3944,19 +3703,15 @@
           "sample_text": "Ai fost ales pentru adopție, plătește microcip: https://adoptie-pet.example",
           "expected_targets": [
             "adoptie-pet.example"
-          ],
-          "suggested_expected_verdict": "SUSPECT"
+          ]
         },
         {
           "example_id": "PET-10",
           "channel": "Facebook",
           "sample_text": "Vânzător insistă pe plata prin crypto/gift card.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "PERICULOS"
+          "expected_targets": []
         }
       ],
-      "max_verdict_without_provider_scan": "SUSPECT",
-      "max_verdict_with_provider_scan": "PERICULOS",
       "acceptance_test_idea": "Anunț cu animal foarte dorit sau de rasă, gratuit/ieftin. Vânzătorul cere taxă transport, cușcă, vaccin, microcip sau asigurare înainte de livrare; animalul nu există sau documentele sunt false."
     },
     {
@@ -4011,8 +3766,7 @@
           "sample_text": "Felicitări! Ai câștigat o cutie misterioasă eMAG. Plătește livrarea 9.99 lei: https://emag-cadou.test",
           "expected_targets": [
             "emag-cadou.test"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "GIFT-02",
@@ -4020,8 +3774,7 @@
           "sample_text": "Răspunde la 3 întrebări și primești voucher 500 lei: https://voucher-romania.example",
           "expected_targets": [
             "voucher-romania.example"
-          ],
-          "suggested_expected_verdict": "SUSPECT"
+          ]
         },
         {
           "example_id": "GIFT-03",
@@ -4029,15 +3782,13 @@
           "sample_text": "Black Friday 90% reducere doar azi: https://altex-sale-invalid.test",
           "expected_targets": [
             "altex-sale-invalid.test"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "GIFT-04",
           "channel": "Facebook",
           "sample_text": "Cutie surpriză gratuită, card necesar pentru verificare vârstă.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "PERICULOS"
+          "expected_targets": []
         },
         {
           "example_id": "GIFT-05",
@@ -4045,29 +3796,25 @@
           "sample_text": "Ai fost selectat pentru premiu. Achită taxa de procesare: https://premiu-rapid.example",
           "expected_targets": [
             "premiu-rapid.example"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "GIFT-06",
           "channel": "Email",
           "sample_text": "Newsletter eMAG real-like, domeniu oficial/partener, fără cerere card.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SIGUR"
+          "expected_targets": []
         },
         {
           "example_id": "GIFT-07",
           "channel": "Instagram",
           "sample_text": "Like/share și câștigă iPhone, link în bio spre formular card.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "PERICULOS"
+          "expected_targets": []
         },
         {
           "example_id": "GIFT-08",
           "channel": "WhatsApp",
           "sample_text": "Voucher Lidl 750 lei. Trimite mai departe la 10 contacte.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "GIFT-09",
@@ -4075,19 +3822,15 @@
           "sample_text": "https://mysterybox-romania.invalid/card",
           "expected_targets": [
             "mysterybox-romania.invalid"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "GIFT-10",
           "channel": "Email",
           "sample_text": "Campanie retail oficială cu termenii promoției pe domeniu oficial.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SIGUR"
+          "expected_targets": []
         }
       ],
-      "max_verdict_without_provider_scan": "SUSPECT",
-      "max_verdict_with_provider_scan": "PERICULOS",
       "acceptance_test_idea": "Campanii care promit voucher, cadou, cutie misterioasă, sondaj cu premiu sau reduceri imposibile; cer taxă mică de livrare/procesare și date card."
     },
     {
@@ -4143,22 +3886,19 @@
           "sample_text": "Președintele recomandă investiție garantată de la 1250 lei: https://profit-national.test",
           "expected_targets": [
             "profit-national.test"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "DEEP-02",
           "channel": "Fake news page",
           "sample_text": "BNR lansează program secret de câștig zilnic. Lasă telefonul.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "DEEP-03",
           "channel": "TikTok",
           "sample_text": "Clip cu politician care promite 700 lei/zi prin platformă AI.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "DEEP-04",
@@ -4166,8 +3906,7 @@
           "sample_text": "Uite linkul de la ProTV cu investiția Hidroelectrica: https://stiri-protv-invest.example",
           "expected_targets": [
             "stiri-protv-invest.example"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "DEEP-05",
@@ -4175,47 +3914,39 @@
           "sample_text": "https://neptun-deep-profit.invalid/register",
           "expected_targets": [
             "neptun-deep-profit.invalid"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "DEEP-06",
           "channel": "Facebook",
           "sample_text": "Articol economic real pe site de presă verificat, fără formular investiție.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SIGUR"
+          "expected_targets": []
         },
         {
           "example_id": "DEEP-07",
           "channel": "Ad",
           "sample_text": "Completează număr telefon și consultantul BNR te sună.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "PERICULOS"
+          "expected_targets": []
         },
         {
           "example_id": "DEEP-08",
           "channel": "Messenger",
           "sample_text": "Ai fost acceptat în programul guvernamental crypto.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "PERICULOS"
+          "expected_targets": []
         },
         {
           "example_id": "DEEP-09",
           "channel": "Web",
           "sample_text": "După completare, cere AnyDesk pentru „activare cont”.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "PERICULOS"
+          "expected_targets": []
         },
         {
           "example_id": "DEEP-10",
           "channel": "Email",
           "sample_text": "Newsletter bursier generic fără garanții, domeniu real, fără depunere.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SIGUR"
+          "expected_targets": []
         }
       ],
-      "max_verdict_without_provider_scan": "SUSPECT",
-      "max_verdict_with_provider_scan": "PERICULOS",
       "acceptance_test_idea": "Reclame sau articole false folosesc imaginea presei/persoanelor publice/politicienilor/BNR pentru a promova investiții rapide, platforme de trading, gaz, energie, crypto sau acțiuni."
     },
     {
@@ -4261,29 +3992,25 @@
           "example_id": "INV-01",
           "channel": "Email",
           "sample_text": "Bună, vă rugăm achitați factura restantă în noul IBAN atașat.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "INV-02",
           "channel": "Email",
           "sample_text": "Reply-To diferit de domeniul furnizorului + PDF factură.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "INV-03",
           "channel": "Email",
           "sample_text": "Factura lunară Digi/Vodafone/energie, domeniu oficial, fără schimbare IBAN.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SIGUR"
+          "expected_targets": []
         },
         {
           "example_id": "INV-04",
           "channel": "Email",
           "sample_text": "Plată urgentă până azi, altfel suspendare. IBAN personal.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "INV-05",
@@ -4291,47 +4018,39 @@
           "sample_text": "https://factura-furnizor-secure.test/download",
           "expected_targets": [
             "factura-furnizor-secure.test"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "INV-06",
           "channel": "WhatsApp",
           "sample_text": "Contabila: trimite plata în contul acesta, emailul nu merge azi.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "INV-07",
           "channel": "Email",
           "sample_text": "Document .html atașat pentru vizualizare factură.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "INV-08",
           "channel": "Email",
           "sample_text": "Factura cere macro enable pentru a vedea suma.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "PERICULOS"
+          "expected_targets": []
         },
         {
           "example_id": "INV-09",
           "channel": "Email",
           "sample_text": "Mesaj intern cu domeniu companie verificat și procedură normală.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SIGUR"
+          "expected_targets": []
         },
         {
           "example_id": "INV-10",
           "channel": "Email",
           "sample_text": "Furnizor nou cere avans integral fără contract.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         }
       ],
-      "max_verdict_without_provider_scan": "SUSPECT",
-      "max_verdict_with_provider_scan": "PERICULOS",
       "acceptance_test_idea": "Email care imită furnizorul/contabilul și cere plata unei facturi sau actualizarea IBAN-ului. Pentru România 2025-2026 nu am găsit în această rundă o campanie oficială unică, dar patternul este relevant pentru firme."
     },
     {
@@ -4374,29 +4093,25 @@
           "example_id": "SEX-01",
           "channel": "Email",
           "sample_text": "Am acces la camera ta. Trimite 900 EUR în BTC în 24h.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "SEX-02",
           "channel": "Email",
           "sample_text": "Am lista ta de contacte și videoclipul. Nu suna la poliție.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "SEX-03",
           "channel": "web popup",
           "sample_text": "Dispozitiv blocat pentru conținut ilegal, plătește amendă.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "PERICULOS"
+          "expected_targets": []
         },
         {
           "example_id": "SEX-04",
           "channel": "Email",
           "sample_text": "Include o parolă veche dintr-o breșă și cere crypto.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "SEX-05",
@@ -4404,47 +4119,39 @@
           "sample_text": "https://politia-deblocare-device.test/pay",
           "expected_targets": [
             "politia-deblocare-device.test"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "SEX-06",
           "channel": "Email",
           "sample_text": "Amenintare generică fără date reale, fără link.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "SEX-07",
           "channel": "SMS",
           "sample_text": "Plătește prin voucher pentru a opri trimiterea filmării.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "SEX-08",
           "channel": "Email",
           "sample_text": "Avertizare legitimă de la un serviciu despre breach, fără șantaj.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SIGUR"
+          "expected_targets": []
         },
         {
           "example_id": "SEX-09",
           "channel": "web",
           "sample_text": "Pop-up cere date card pentru „deblocare DNSC”.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "PERICULOS"
+          "expected_targets": []
         },
         {
           "example_id": "SEX-10",
           "channel": "Email",
           "sample_text": "Solicită instalarea aplicației pentru curățare urme.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "PERICULOS"
+          "expected_targets": []
         }
       ],
-      "max_verdict_without_provider_scan": "SUSPECT",
-      "max_verdict_with_provider_scan": "PERICULOS",
       "acceptance_test_idea": "Email sau pop-up pretinde că a înregistrat victima pe site-uri adulte și cere plata în crypto/card/voucher ca să nu trimită materialul contactelor. În România se suprapune cu pop-up-ul „amendă Poliția”."
     },
     {
@@ -4497,22 +4204,19 @@
           "example_id": "AUTHDOC-01",
           "channel": "WhatsApp",
           "sample_text": "V-am trimis legitimația de polițist. Urmați instrucțiunile BNR pentru cont sigur.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "PERICULOS"
+          "expected_targets": []
         },
         {
           "example_id": "AUTHDOC-02",
           "channel": "Email",
           "sample_text": "Interpol România: citație atașată, plătiți taxa de procedură.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "AUTHDOC-03",
           "channel": "PDF",
           "sample_text": "Document cu siglă DNSC cere card pentru verificare identitate.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "PERICULOS"
+          "expected_targets": []
         },
         {
           "example_id": "AUTHDOC-04",
@@ -4520,54 +4224,45 @@
           "sample_text": "ANAF/Poliție: verificați dosarul aici: https://dosar-oficial-romania.test",
           "expected_targets": [
             "dosar-oficial-romania.test"
-          ],
-          "suggested_expected_verdict": "PERICULOS"
+          ]
         },
         {
           "example_id": "AUTHDOC-05",
           "channel": "Email",
           "sample_text": "Document oficial real primit dintr-un canal instituțional verificat, fără cerere de card.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SIGUR"
+          "expected_targets": []
         },
         {
           "example_id": "AUTHDOC-06",
           "channel": "WhatsApp",
           "sample_text": "Nu contactați banca, ancheta e confidențială.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "PERICULOS"
+          "expected_targets": []
         },
         {
           "example_id": "AUTHDOC-07",
           "channel": "Call transcript",
           "sample_text": "Operatorul pretinde că este de la Europol și cere transfer într-un cont temporar.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "PERICULOS"
+          "expected_targets": []
         },
         {
           "example_id": "AUTHDOC-08",
           "channel": "Email",
           "sample_text": "Logo MAI + atașament .html pentru autentificare.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "PERICULOS"
+          "expected_targets": []
         },
         {
           "example_id": "AUTHDOC-09",
           "channel": "Messenger",
           "sample_text": "Sunteți implicat într-un caz de fraudă, trimiteți poză buletin.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SUSPECT"
+          "expected_targets": []
         },
         {
           "example_id": "AUTHDOC-10",
           "channel": "Email",
           "sample_text": "Comunicare generică de presă a unei instituții, fără link formular.",
-          "expected_targets": [],
-          "suggested_expected_verdict": "SIGUR"
+          "expected_targets": []
         }
       ],
-      "max_verdict_without_provider_scan": "SUSPECT",
-      "max_verdict_with_provider_scan": "PERICULOS",
       "acceptance_test_idea": "Atacatorii folosesc sigle, legitimații, PDF-uri și documente false pentru credibilitate; de multe ori se combină cu BNR/cont sigur, amendă, investigație penală sau plată urgentă."
     }
   ]

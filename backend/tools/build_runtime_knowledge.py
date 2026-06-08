@@ -29,6 +29,12 @@ REQUESTED_ASSET_TERMS = {
     "safe_account_transfer": ["cont sigur", "transfer sigur"],
 }
 
+VERDICT_LIKE_FIELDS = {
+    "max_verdict_without_provider_scan",
+    "max_verdict_with_provider_scan",
+    "suggested_expected_verdict",
+}
+
 
 def _load_android_knowledge() -> dict:
     with ANDROID_KNOWLEDGE_PATH.open("r", encoding="utf-8") as handle:
@@ -67,6 +73,18 @@ def _dedupe_preserve_order(values: list[str]) -> list[str]:
         seen.add(fingerprint)
         output.append(normalized)
     return output
+
+
+def _strip_verdict_like_fields(value):
+    if isinstance(value, dict):
+        return {
+            key: _strip_verdict_like_fields(item)
+            for key, item in value.items()
+            if key not in VERDICT_LIKE_FIELDS
+        }
+    if isinstance(value, list):
+        return [_strip_verdict_like_fields(item) for item in value]
+    return value
 
 
 def _merge_map_of_lists(*items: dict[str, list[str]]) -> dict[str, list[str]]:
@@ -219,9 +237,7 @@ def build_seed_payload(knowledge: dict) -> dict:
                 "requested_asset": entry.get("requested_asset") or [],
                 "signals": entry.get("signals") or [],
                 "sources": entry.get("sources") or entry.get("source_ids") or [],
-                "examples": entry.get("examples") or [],
-                "max_verdict_without_provider_scan": entry.get("max_verdict_without_provider_scan"),
-                "max_verdict_with_provider_scan": entry.get("max_verdict_with_provider_scan"),
+                "examples": _strip_verdict_like_fields(entry.get("examples") or []),
                 "acceptance_test_idea": entry.get("acceptance_test_idea"),
             }
         )
@@ -229,6 +245,7 @@ def build_seed_payload(knowledge: dict) -> dict:
         "metadata": {
             "generated_from": str(ANDROID_KNOWLEDGE_PATH.relative_to(ROOT)),
             "generator": "backend/tools/build_runtime_knowledge.py",
+            "role": "semantic knowledge only; verdict-like oracle fields are excluded",
         },
         "scam_families": families,
     }

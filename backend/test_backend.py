@@ -407,6 +407,23 @@ def test_scam_atlas_text_only_social_fraud_escalates_to_high_risk():
         assert "fraudă socială" in " ".join(result["reasons"])
 
 
+def test_legitimate_otp_safety_message_does_not_create_circular_brand_warning():
+    text = (
+        "BT: codul tău de autentificare este 532424. Nu îl comunica nimănui, "
+        "nici măcar unei persoane care pretinde că este de la bancă. Dacă nu ai "
+        "inițiat tu operațiunea, ignoră mesajul și verifică aplicația oficială."
+    )
+    local_engine = ScamAtlasEngine()
+    analysis = local_engine.analyze(text, urls=[])
+    analysis["claimed_brand"] = "BT"
+
+    final = _apply_provider_gate_verdict(analysis, [], raw_text=text)
+
+    assert final["risk_level"] != "high"
+    assert final["evidence"]["provider_gate"]["brand_warning"]["triggered"] is False
+    assert final["evidence"]["provider_gate"]["direct_sensitive_request"] is False
+
+
 def test_provider_gate_brand_mismatch_sensitive_payment_is_high_risk():
     analysis = {
         "claimed_brand": "Poșta Română",

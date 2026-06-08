@@ -1929,7 +1929,10 @@ def _brand_warning_matches_text(claimed_brand: str, raw_text: str, reasons: List
     if not isinstance(never_ask_for, dict):
         return {"triggered": False, "matched_assets": [], "brand_id": rule.get("brand_id")}
 
-    combined = _normalise_obfuscated_text(" ".join([raw_text or "", *[str(item) for item in reasons if item]])).lower()
+    # Brand warnings must be grounded in user input only. Feeding prior atlas
+    # reasons back into this detector creates circular evidence: a weak family
+    # match can mention an asset that the original message never requested.
+    combined = _normalise_obfuscated_text(raw_text or "").lower()
     matched_assets: List[str] = []
 
     def _hit_card_request() -> bool:
@@ -2011,15 +2014,21 @@ def _looks_like_official_safety_education(raw_text: str) -> bool:
     normalized = _normalise_obfuscated_text(raw_text or "").lower()
     if not normalized:
         return False
-    sensitive_terms = r"(?:cnp|pin|cvv|cvc|otp|coduri?\s+sms|coduri?|parol[ăa]|date\s+de\s+card|date\s+bancare)"
+    sensitive_terms = r"(?:cnp|pin|cvv|cvc|otp|cod(?:ul|uri?)?(?:\s+sms)?|parol[ăa]|date\s+de\s+card|date\s+bancare)"
     negative_claim = (
         r"(?:nu\s+(?:iti|îți|va|vă|iti\s+)?\s*(?:cerem|solicit[aă]m|trimitem|pretindem)"
         r"|nu\s+(?:ti|ți|vi|vă)?\s*se\s+solicit[aă]"
         r"|nu\s+introduc\w*"
+        r"|nu\s+(?:(?:il|îl|le)\s+)?comunic\w*"
+        r"|nu\s+(?:(?:il|îl|le)\s+)?trimite\w*"
         r"|nu\s+(?:cerem|solicit[aă]m)"
         r"|niciodat[aă]\s+nu\s+(?:cerem|solicit[aă]m))"
     )
-    return bool(re.search(negative_claim + r"(?:\W+\w+){0,10}\W+" + sensitive_terms, normalized, re.IGNORECASE))
+    window = r"(?:\W+\w+){0,12}\W+"
+    return bool(
+        re.search(negative_claim + window + sensitive_terms, normalized, re.IGNORECASE)
+        or re.search(sensitive_terms + window + negative_claim, normalized, re.IGNORECASE)
+    )
 
 
 def _has_direct_sensitive_request(raw_text: str) -> bool:

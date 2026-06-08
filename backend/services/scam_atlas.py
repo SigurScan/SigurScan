@@ -70,14 +70,67 @@ def _load_json_map(raw_path: Optional[str], fallback: Dict[str, Any]) -> Dict[st
 def _coerce_str_list(values: Any) -> List[str]:
     if not values:
         return []
+    if isinstance(values, (str, int, float)):
+        values = [values]
     out: List[str] = []
     for item in values:
         if not item:
             continue
+        if isinstance(item, dict):
+            item = (
+                item.get("text")
+                or item.get("sample_text")
+                or item.get("example")
+                or item.get("value")
+                or ""
+            )
         text = str(item).strip()
         if text:
             out.append(text)
     return out
+
+
+def _normalize_atlas_family(raw: Any) -> Optional[Dict[str, Any]]:
+    """Normalize mixed research schemas into the runtime semantic contract.
+
+    Runtime knowledge deliberately excludes verdict-like oracle fields. Atlas
+    families may enrich semantic_review, but only verdict_gate emits a label.
+    """
+
+    if not isinstance(raw, dict):
+        return None
+
+    family_id = str(raw.get("id") or raw.get("family_id") or raw.get("scenario_id") or "").strip()
+    family_name = str(raw.get("family") or raw.get("title") or raw.get("name") or "").strip()
+    if not family_id or not family_name:
+        return None
+
+    signals = _coerce_str_list(raw.get("signals"))
+    examples = _coerce_str_list(raw.get("examples"))
+    hook_parts = _coerce_str_list(
+        [
+            raw.get("hook"),
+            raw.get("claimed_brand_or_role"),
+            *signals,
+            *examples,
+        ]
+    )
+    asks_for = _coerce_str_list(raw.get("asks_for") or raw.get("requested_asset"))
+
+    return {
+        "id": family_id,
+        "title": str(raw.get("title") or family_name).strip(),
+        "family": family_name,
+        "hook": " | ".join(_dedupe_preserve_order(hook_parts)),
+        "asks_for": _dedupe_preserve_order(asks_for),
+        "safe_actions": _dedupe_preserve_order(_coerce_str_list(raw.get("safe_actions"))),
+        "channels": _dedupe_preserve_order(_coerce_str_list(raw.get("channels"))),
+        "claimed_brand_or_role": str(raw.get("claimed_brand_or_role") or "").strip() or None,
+        "requested_asset": _dedupe_preserve_order(_coerce_str_list(raw.get("requested_asset"))),
+        "signals": _dedupe_preserve_order(signals),
+        "sources": _dedupe_preserve_order(_coerce_str_list(raw.get("sources") or raw.get("source_ids"))),
+        "examples": _dedupe_preserve_order(examples),
+    }
 
 
 def _merge_map_of_lists(*items: Dict[str, List[str]]) -> Dict[str, List[str]]:
@@ -460,6 +513,42 @@ DELIVERY_MANIPULATION_PATTERNS = (
     re.compile(r"\b(?:taxe|taxa|vam[a-z]*|locker)\b.*\b(?:colet|livrare|parcel|pachet)\b", re.IGNORECASE),
 )
 
+HIGH_RISK_TEXT_ONLY_SIGNAL_MARKERS = {
+    "ACCIDENT_CLAIM",
+    "APK_INSTALL_REQUEST",
+    "BANK_HANDOFF",
+    "CARD_OR_BANKING_REQUEST",
+    "CARD_OR_ID_REQUEST",
+    "CREDENTIAL_REQUEST",
+    "CRYPTO_PAYMENT_REQUEST",
+    "DO_NOT_VERIFY_PRESSURE",
+    "FAMILY_EMERGENCY_CLAIM",
+    "GUARANTEED_RETURN_PROMISE",
+    "OTP_REQUEST",
+    "PASSWORD_REQUEST",
+    "REMOTE_ACCESS_APP_REQUEST",
+    "SAFE_ACCOUNT_TRANSFER_REQUEST",
+    "URGENT_CASH_REQUEST",
+    "WHATSAPP_VERIFICATION_CODE_REQUEST",
+}
+
+HIGH_RISK_TEXT_ONLY_ASK_MARKERS = {
+    "anydesk",
+    "apk",
+    "banking pin",
+    "card",
+    "cash",
+    "crypto",
+    "cvv",
+    "iban",
+    "money transfer",
+    "otp",
+    "password",
+    "remote access",
+    "teamviewer",
+    "whatsapp code",
+}
+
 KNOWN_DEEPLINK_PROVIDERS = {
     "onelink.me",
     "app.link",
@@ -529,7 +618,12 @@ class ScamAtlasEngine:
             try:
                 with open(SEED_PATH, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                    self.families = data.get("scam_families", [])
+                    raw_families = data.get("scam_families", []) if isinstance(data, dict) else data
+                    self.families = [
+                        normalized
+                        for raw in (raw_families if isinstance(raw_families, list) else [])
+                        if (normalized := _normalize_atlas_family(raw)) is not None
+                    ]
             except Exception as e:
                 print(f"Error loading Scam Atlas seed: {e}")
                 self.families = []
@@ -1154,6 +1248,20 @@ class ScamAtlasEngine:
         confidence = min(highest_score, 1.0)
         return best_match, confidence
 
+    @staticmethod
+    def _family_supports_high_risk_text_only(family: Dict[str, Any]) -> bool:
+        signals = {str(value).strip().upper() for value in family.get("signals") or [] if str(value).strip()}
+        asks_for = {str(value).strip().lower() for value in family.get("asks_for") or [] if str(value).strip()}
+        requested_assets = {
+            str(value).strip().lower().replace("_", " ")
+            for value in family.get("requested_asset") or []
+            if str(value).strip()
+        }
+        return bool(
+            signals.intersection(HIGH_RISK_TEXT_ONLY_SIGNAL_MARKERS)
+            or (asks_for | requested_assets).intersection(HIGH_RISK_TEXT_ONLY_ASK_MARKERS)
+        )
+
     def analyze(
         self,
         text: str,
@@ -1495,7 +1603,7 @@ class ScamAtlasEngine:
         family, confidence = self.classify_scam_family(text, claimed_brand)
         family_id = str(family.get("id") or "")
 
-        high_risk_text_only_families = {
+        legacy_high_risk_text_only_families = {
             "RO_SCN_004_BNR_POLICE_SAFE_ACCOUNT",
             "RO_SCN_005_CREDIT_FRAUDULOS",
             "RO_SCN_006_VOTEAZA_ADELINE",
@@ -1507,7 +1615,11 @@ class ScamAtlasEngine:
             "RO_SCN_013_FAKE_BANK_APK",
             "RO_SCN_018_REVOLUT_CALL_OTP",
         }
-        if not urls and confidence >= 0.25 and family_id in high_risk_text_only_families:
+        high_risk_text_only_family = (
+            family_id in legacy_high_risk_text_only_families
+            or self._family_supports_high_risk_text_only(family)
+        )
+        if not urls and confidence >= 0.25 and high_risk_text_only_family:
             score += 75
             reasons.append(
                 "Scenariu de fraudă socială confirmat în corpusul România: fără link de scanat, "

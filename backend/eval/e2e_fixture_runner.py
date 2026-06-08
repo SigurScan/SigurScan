@@ -56,7 +56,7 @@ SEVERITY_TO_USER_STATUS = {
     "NEUTRAL": "SIGUR",
     "CAUTION": "SUSPECT",
     "UNKNOWN": "SUSPECT",
-    "WARNING": "PERICULOS",
+    "WARNING": "SUSPECT",
     "DANGER": "PERICULOS",
 }
 
@@ -468,7 +468,7 @@ def _actual_user_status(analysis: Dict[str, Any]) -> str:
     risk_level = str(analysis.get("risk_level") or "").lower()
     if risk_level in {"critical", "dangerous", "high"}:
         return "PERICULOS"
-    if risk_level in {"medium", "warning", "unknown"}:
+    if risk_level in {"medium", "warning", "unknown", "pending"}:
         return "SUSPECT"
     return "SIGUR"
 
