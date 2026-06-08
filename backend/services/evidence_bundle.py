@@ -130,10 +130,13 @@ def build_evidence_bundle(
     analysis = analysis if isinstance(analysis, dict) else {}
     evidence = analysis.get("evidence") if isinstance(analysis.get("evidence"), dict) else {}
     provider_gate = evidence.get("provider_gate") if isinstance(evidence.get("provider_gate"), dict) else {}
+    decision_bundle = evidence.get("decision_bundle") if isinstance(evidence.get("decision_bundle"), dict) else {}
     claimed_brand = _safe_str(analysis.get("claimed_brand") or "Nespecificat")
 
     bundle: Dict[str, Any] = {
+        "schema": "sigurscan_evidence_bundle_v2",
         "schema_version": "sigurscan_evidence_bundle_v1",
+        "decision_bundle": decision_bundle,
         "input": {
             "type": input_type or "unknown",
             "lang": "ro",
@@ -191,3 +194,56 @@ def build_evidence_bundle(
     }
     bundle["evidence_hash"] = _stable_hash(bundle)
     return bundle
+
+
+def build_evidence_bundle_v2(
+    *,
+    input_type: str,
+    redacted_text: str,
+    analysis: Dict[str, Any],
+    resolved_urls: List[Dict[str, Any]],
+    scan_payload: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Return the normalized v2 decision bundle when the pipeline produced it.
+
+    This keeps callers honest: v2 is the adjudication contract, while
+    build_evidence_bundle() remains a backward-compatible telemetry envelope.
+    """
+
+    analysis = analysis if isinstance(analysis, dict) else {}
+    evidence = analysis.get("evidence") if isinstance(analysis.get("evidence"), dict) else {}
+    decision_bundle = evidence.get("decision_bundle") if isinstance(evidence.get("decision_bundle"), dict) else None
+    if isinstance(decision_bundle, dict) and decision_bundle.get("schema") == "sigurscan_evidence_bundle_v2":
+        payload = json.loads(json.dumps(decision_bundle, ensure_ascii=False))
+        payload.setdefault("input", {})
+        payload["input"]["type"] = payload["input"].get("type") or input_type or "unknown"
+        payload["input"]["redacted_text"] = _safe_str(redacted_text)[:4000]
+        payload["evidence_hash"] = _stable_hash(payload)
+        return payload
+
+    fallback = build_evidence_bundle(
+        input_type=input_type,
+        redacted_text=redacted_text,
+        analysis=analysis,
+        resolved_urls=resolved_urls,
+        scan_payload=scan_payload,
+    )
+    return {
+        "schema": "sigurscan_evidence_bundle_v2",
+        "input": {
+            "type": input_type or "unknown",
+            "redacted_text": _safe_str(redacted_text)[:4000],
+        },
+        "resolution": {"status": "partial", "completeness": False, "final_url": None},
+        "providers": {"verdict": "pending", "hits": [], "completeness": False},
+        "identity": {
+            "claimed_brand": claimed_brand if (claimed_brand := _safe_str(analysis.get("claimed_brand"))) else None,
+            "status": "unknown",
+            "tld_suspicious": False,
+            "completeness": False,
+        },
+        "request": {"sensitive": "none", "channel": "unknown", "completeness": False},
+        "context": fallback.get("text_signals", {}),
+        "semantic_review": {"status": "pending", "completeness": False},
+        "evidence_hash": fallback.get("evidence_hash"),
+    }

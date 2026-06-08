@@ -1,8 +1,8 @@
 # SigurScan Launch Architecture Final
 
-Data: 2026-06-02
+Data: 2026-06-08
 
-Status: source of truth pentru Android Launch Candidate v1. Daca exista conflict intre acest document si review-urile GPT/Sonnet/Gemini, acest document castiga.
+Status: context de launch pentru Android. Source of truth pentru verdictul final este `docs/DECISION_CONTRACT_V1.md`. Daca exista conflict intre acest document si contractul de decizie, `DECISION_CONTRACT_V1.md` castiga.
 
 ## Scop
 

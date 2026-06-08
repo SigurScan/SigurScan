@@ -11,6 +11,8 @@ ROOT = Path(__file__).resolve().parents[2]
 ANDROID_KNOWLEDGE_PATH = ROOT / "app" / "src" / "main" / "assets" / "knowledge" / "romania_knowledge_layer_compact.json"
 SEED_OUTPUT_PATH = ROOT / "backend" / "data" / "scam_atlas_ro_2025_2026_seed.json"
 BRAND_PACK_OUTPUT_PATH = ROOT / "backend" / "data" / "brand_knowledge_pack.json"
+KNOWLEDGE_OUTPUT_DIR = ROOT / "backend" / "data" / "knowledge"
+CONTRACT_EVAL_OUTPUT_PATH = ROOT / "backend" / "data" / "eval" / "romania_decision_contract_eval_v2026_06_08.jsonl"
 
 
 REQUESTED_ASSET_TERMS = {
@@ -207,12 +209,19 @@ def build_seed_payload(knowledge: dict) -> dict:
         families.append(
             {
                 "id": entry.get("scenario_id"),
+                "title": entry.get("title"),
                 "family": f"{entry.get('family', 'unknown')} / {entry.get('claimed_brand_or_role', 'unknown')}",
                 "hook": _hook_for(entry),
                 "asks_for": _asks_for_for(entry),
                 "safe_actions": _safe_actions_for(entry),
                 "channels": entry.get("channels") or [],
                 "claimed_brand_or_role": entry.get("claimed_brand_or_role"),
+                "requested_asset": entry.get("requested_asset") or [],
+                "signals": entry.get("signals") or [],
+                "sources": entry.get("sources") or entry.get("source_ids") or [],
+                "examples": entry.get("examples") or [],
+                "max_verdict_without_provider_scan": entry.get("max_verdict_without_provider_scan"),
+                "max_verdict_with_provider_scan": entry.get("max_verdict_with_provider_scan"),
                 "acceptance_test_idea": entry.get("acceptance_test_idea"),
             }
         )
@@ -282,6 +291,9 @@ def build_brand_pack_payload(knowledge: dict, existing_pack: dict) -> dict:
         "brand_warnings": knowledge.get("brand_warnings", []),
         "claim_verifier_targets": knowledge.get("claim_verifier_targets", []),
         "official_registry_updates": knowledge.get("official_registry_updates", []),
+        "false_positive_guards": knowledge.get("false_positive_guards", []),
+        "signal_mapping": knowledge.get("signal_mapping", []),
+        "sources": knowledge.get("sources", {}),
     }
 
 
@@ -292,15 +304,120 @@ def _write_json(path: Path, payload: dict) -> None:
         handle.write("\n")
 
 
+def _write_jsonl(path: Path, records: list[dict]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as handle:
+        for record in records:
+            handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True))
+            handle.write("\n")
+
+
+def _coerce_json_list(value) -> list:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return value
+    return [value]
+
+
+def _contract_label_to_is_scam(label: str | None) -> bool | None:
+    normalized = str(label or "").strip().upper()
+    if normalized == "PERICULOS":
+        return True
+    if normalized == "SIGUR":
+        return False
+    return None
+
+
+def build_contract_eval_records(knowledge: dict) -> list[dict]:
+    records: list[dict] = []
+    for entry in knowledge.get("acceptance_tests", []):
+        if not isinstance(entry, dict):
+            continue
+        test_id = str(entry.get("test_id") or "").strip()
+        sample_text = str(entry.get("sample_text") or "").strip()
+        if not test_id or not sample_text:
+            continue
+        expected_label = str(entry.get("expected_final_verdict") or "").strip().upper()
+        records.append(
+            {
+                "id": test_id,
+                "kind": str(entry.get("input_type") or "text").strip().lower(),
+                "text": sample_text,
+                "family_id": entry.get("family_id"),
+                "expected_contract_label": expected_label,
+                "is_scam": _contract_label_to_is_scam(expected_label),
+                "expected_extracted_targets": _coerce_json_list(entry.get("expected_extracted_targets")),
+                "mocked_provider_results": entry.get("mocked_provider_results") or {},
+                "expected_corpus_signals": _coerce_json_list(entry.get("expected_corpus_signals")),
+                "reason": entry.get("reason"),
+                "source": "romania_scam_atlas_compact_2025_2026",
+                "decision_contract_note": (
+                    "This is a contract/evidence fixture. SUSPECT and PENDING labels are not binary "
+                    "scam labels for precision/recall and must be evaluated by the pure reducer."
+                ),
+            }
+        )
+    return records
+
+
+def write_normalized_knowledge_files(knowledge: dict) -> None:
+    payloads = {
+        "official_registry_v2026_06_08.json": {
+            "metadata": {
+                "generated_from": str(ANDROID_KNOWLEDGE_PATH.relative_to(ROOT)),
+                "decision_contract": "docs/DECISION_CONTRACT_V1.md",
+                "role": "identity registry candidates, not verdict authority",
+            },
+            "official_registry_updates": knowledge.get("official_registry_updates", []),
+            "sources": knowledge.get("sources", {}),
+        },
+        "brand_warnings_v2026_06_08.json": {
+            "metadata": {
+                "generated_from": str(ANDROID_KNOWLEDGE_PATH.relative_to(ROOT)),
+                "decision_contract": "docs/DECISION_CONTRACT_V1.md",
+                "role": "channel-aware/asset-aware warning candidates, not regex verdicts",
+            },
+            "brand_warnings": knowledge.get("brand_warnings", []),
+            "sources": knowledge.get("sources", {}),
+        },
+        "romania_scam_families_v2026_06_08.json": {
+            "metadata": {
+                "generated_from": str(ANDROID_KNOWLEDGE_PATH.relative_to(ROOT)),
+                "decision_contract": "docs/DECISION_CONTRACT_V1.md",
+                "role": "corpus/RAG context and acceptance-test source, not verdict authority",
+            },
+            "scenario_corpus": knowledge.get("scenario_corpus", []),
+            "false_positive_guards": knowledge.get("false_positive_guards", []),
+            "signal_mapping": knowledge.get("signal_mapping", []),
+            "sources": knowledge.get("sources", {}),
+        },
+        "claim_verifier_targets_v2026_06_08.json": {
+            "metadata": {
+                "generated_from": str(ANDROID_KNOWLEDGE_PATH.relative_to(ROOT)),
+                "decision_contract": "docs/DECISION_CONTRACT_V1.md",
+                "role": "claim web-check targets; confirmed claims support evidence but do not decide alone",
+            },
+            "claim_verifier_targets": knowledge.get("claim_verifier_targets", []),
+            "sources": knowledge.get("sources", {}),
+        },
+    }
+    for filename, payload in payloads.items():
+        _write_json(KNOWLEDGE_OUTPUT_DIR / filename, payload)
+
+
 def main() -> None:
     knowledge = _load_android_knowledge()
     existing_pack = _load_existing_brand_pack()
 
     seed_payload = build_seed_payload(knowledge)
     brand_pack_payload = build_brand_pack_payload(knowledge, existing_pack)
+    contract_eval_records = build_contract_eval_records(knowledge)
 
     _write_json(SEED_OUTPUT_PATH, seed_payload)
     _write_json(BRAND_PACK_OUTPUT_PATH, brand_pack_payload)
+    write_normalized_knowledge_files(knowledge)
+    _write_jsonl(CONTRACT_EVAL_OUTPUT_PATH, contract_eval_records)
 
     print(f"Wrote {SEED_OUTPUT_PATH} with {len(seed_payload['scam_families'])} scam families")
     print(
@@ -309,6 +426,8 @@ def main() -> None:
         f"{len(brand_pack_payload.get('brand_warnings', []))} warnings and "
         f"{len(brand_pack_payload.get('claim_verifier_targets', []))} claim targets"
     )
+    print(f"Wrote {KNOWLEDGE_OUTPUT_DIR} normalized knowledge files")
+    print(f"Wrote {CONTRACT_EVAL_OUTPUT_PATH} with {len(contract_eval_records)} contract fixtures")
 
 
 if __name__ == "__main__":

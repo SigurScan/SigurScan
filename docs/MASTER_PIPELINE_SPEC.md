@@ -1,8 +1,10 @@
 # SigurScan Master Pipeline Spec
 
-Ultima actualizare: 2026-06-02
+Ultima actualizare: 2026-06-08
 
-Scop: context operational pentru pipeline-ul SigurScan. Source of truth pentru Android Launch Candidate v1 este `docs/LAUNCH_ARCHITECTURE_FINAL.md`; daca exista conflict intre acest document si arhitectura finala, `LAUNCH_ARCHITECTURE_FINAL.md` castiga.
+Scop: context operational pentru pipeline-ul SigurScan.
+
+Source of truth pentru verdict este `docs/DECISION_CONTRACT_V1.md`. Daca exista conflict intre acest document, `LAUNCH_ARCHITECTURE_FINAL.md`, `EVIDENCE_GATE_FINAL_CANDIDATE.md` sau orice logica istorica, `DECISION_CONTRACT_V1.md` castiga.
 
 Nu mai tratam scan URL, email share, OCR, QR, Web Risk, urlscan, VirusTotal si RAG ca feature-uri separate. Ele sunt pasi intr-un singur sistem de dovezi.
 

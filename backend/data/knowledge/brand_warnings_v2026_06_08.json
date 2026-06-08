@@ -1,0 +1,1016 @@
+{
+  "metadata": {
+    "generated_from": "app/src/main/assets/knowledge/romania_knowledge_layer_compact.json",
+    "decision_contract": "docs/DECISION_CONTRACT_V1.md",
+    "role": "channel-aware/asset-aware warning candidates, not regex verdicts"
+  },
+  "brand_warnings": [
+    {
+      "brand_id": "fan_courier",
+      "never_ask_for": {
+        "card_number": true,
+        "cvv": true,
+        "otp": true,
+        "whatsapp_code": true,
+        "banking_pin": false,
+        "password": true,
+        "cnp": false,
+        "iban": false,
+        "remote_access": false,
+        "apk_install": false,
+        "safe_account_transfer": false,
+        "crypto_atm_deposit": false
+      },
+      "exact_official_statement_summary": "FAN Courier afirmă că nu cere prin SMS parole, coduri de verificare/WhatsApp sau date bancare/card/CVC; orice solicitare de date de card trebuie tratată ca fraudă.",
+      "source_url": "https://www.fancourier.ro/alerta-de-smishing/",
+      "published": "2026-02-11",
+      "accessed": "2026-06-03",
+      "confidence": "high",
+      "evidence_gate_signal_suggested": "BRAND_NEVER_ASK_FAN_SMS_SENSITIVE_DATA",
+      "source_ids": [
+        "S4"
+      ]
+    },
+    {
+      "brand_id": "posta_romana",
+      "never_ask_for": {
+        "card_number": true,
+        "cvv": false,
+        "otp": false,
+        "whatsapp_code": false,
+        "banking_pin": true,
+        "password": false,
+        "cnp": false,
+        "iban": false,
+        "remote_access": false,
+        "apk_install": false,
+        "safe_account_transfer": false,
+        "crypto_atm_deposit": false
+      },
+      "exact_official_statement_summary": "Poșta Română afirmă că nu solicită informații bancare confidențiale, numere card, coduri PIN și nici plăți online ale unor taxe de livrare.",
+      "source_url": "https://www.posta-romana.ro/a1941/stiri/o-noua-tentativa-de-phishing-prin-sms-in-numele-postei-romane.html",
+      "published": "data exactă în rezultat neconfirmată; comunicat curent în site",
+      "accessed": "2026-06-03",
+      "confidence": "high",
+      "evidence_gate_signal_suggested": "BRAND_NEVER_ASK_POSTA_CARD_PIN_DELIVERY_FEE",
+      "source_ids": [
+        "S5"
+      ]
+    },
+    {
+      "brand_id": "bt",
+      "never_ask_for": {
+        "card_number": true,
+        "cvv": true,
+        "otp": false,
+        "whatsapp_code": false,
+        "banking_pin": true,
+        "password": true,
+        "cnp": false,
+        "iban": false,
+        "remote_access": true,
+        "apk_install": false,
+        "safe_account_transfer": false,
+        "crypto_atm_deposit": false
+      },
+      "exact_official_statement_summary": "BT afirmă că nu cere niciodată date de acces, parole, PIN sau CVV telefonic/SMS/e-mail.",
+      "source_url": "https://www.bancatransilvania.ro/siguranta-online",
+      "published": "unknown",
+      "accessed": "2026-06-03",
+      "confidence": "high",
+      "evidence_gate_signal_suggested": "BANK_NEVER_ASK_BT_CREDENTIALS_CARD",
+      "source_ids": [
+        "S14"
+      ]
+    },
+    {
+      "brand_id": "bcr",
+      "never_ask_for": {
+        "card_number": true,
+        "cvv": true,
+        "otp": false,
+        "whatsapp_code": false,
+        "banking_pin": true,
+        "password": true,
+        "cnp": false,
+        "iban": false,
+        "remote_access": false,
+        "apk_install": false,
+        "safe_account_transfer": false,
+        "crypto_atm_deposit": false,
+        "etoken_code_from_link": true
+      },
+      "exact_official_statement_summary": "BCR afirmă că nu solicită date personale/de autentificare bancară/card prin link transmis pe e-mail sau URL de internet banking din e-mail.",
+      "source_url": "https://www.bcr.ro/en/individuals/useful-information/tentative-de-frauda-phishing",
+      "published": "unknown",
+      "accessed": "2026-06-03",
+      "confidence": "high",
+      "evidence_gate_signal_suggested": "BANK_NEVER_ASK_BCR_LINK_CREDENTIALS",
+      "source_ids": [
+        "S17/S18"
+      ]
+    },
+    {
+      "brand_id": "ing",
+      "never_ask_for": {
+        "card_number": true,
+        "cvv": true,
+        "otp": true,
+        "whatsapp_code": false,
+        "banking_pin": true,
+        "password": true,
+        "cnp": false,
+        "iban": false,
+        "remote_access": false,
+        "apk_install": true,
+        "safe_account_transfer": false,
+        "crypto_atm_deposit": false
+      },
+      "exact_official_statement_summary": "ING spune să nu confirmi date de securitate prin SMS/e-mail și că ING nu cere aceste date prin link; avertizează și să nu descarci aplicații care par ING Home'Bank.",
+      "source_url": "https://ing.ro/ing-in-romania/informatii-utile/securitate/phishing-smishing",
+      "published": "2025-03-26",
+      "accessed": "2026-06-03",
+      "confidence": "high",
+      "evidence_gate_signal_suggested": "BANK_NEVER_ASK_ING_SECURITY_DATA_OR_APP",
+      "source_ids": [
+        "S16"
+      ]
+    },
+    {
+      "brand_id": "raiffeisen",
+      "never_ask_for": {
+        "card_number": true,
+        "cvv": false,
+        "otp": true,
+        "whatsapp_code": false,
+        "banking_pin": true,
+        "password": true,
+        "cnp": false,
+        "iban": false,
+        "remote_access": false,
+        "apk_install": false,
+        "safe_account_transfer": false,
+        "crypto_atm_deposit": false
+      },
+      "exact_official_statement_summary": "Raiffeisen afirmă că nu colectează/validează niciodată prin e-mail/SMS parola, numărul întreg de card sau PIN.",
+      "source_url": "https://www.raiffeisen.ro/ro/persoane-fizice/in-sprijinul-tau/securitate-online/evitarea-fraudelor-online.html",
+      "published": "unknown",
+      "accessed": "2026-06-03",
+      "confidence": "high",
+      "evidence_gate_signal_suggested": "BANK_NEVER_ASK_RAIFFEISEN_CONFIDENTIAL"
+    },
+    {
+      "brand_id": "revolut",
+      "never_ask_for": {
+        "card_number": false,
+        "cvv": false,
+        "otp": true,
+        "whatsapp_code": false,
+        "banking_pin": true,
+        "password": true,
+        "cnp": false,
+        "iban": false,
+        "remote_access": false,
+        "apk_install": false,
+        "safe_account_transfer": true,
+        "crypto_atm_deposit": false
+      },
+      "exact_official_statement_summary": "Revolut spune că nu cere plăți sau coduri de verificare/securitate la telefon și nu sună fără programare/confirmare; blogul spune că nu cere PIN/parolă/coduri la telefon.",
+      "source_url": "https://help.revolut.com/ro-RO/help/security-logging-in/how-do-i-report-a-suspicious-call-email-link-or-text/",
+      "published": "unknown",
+      "accessed": "2026-06-03",
+      "confidence": "high",
+      "evidence_gate_signal_suggested": "REVOLUT_NEVER_ASK_PHONE_CODES_OR_PAYMENTS"
+    },
+    {
+      "brand_id": "olx",
+      "never_ask_for": {
+        "card_number": true,
+        "cvv": true,
+        "otp": false,
+        "whatsapp_code": false,
+        "banking_pin": false,
+        "password": false,
+        "cnp": false,
+        "iban": false,
+        "remote_access": false,
+        "apk_install": false,
+        "safe_account_transfer": false,
+        "crypto_atm_deposit": false,
+        "card_to_receive_money": true,
+        "cvv_to_receive_money": true,
+        "balance": true
+      },
+      "exact_official_statement_summary": "OLX avertizează că atacatorii cer date card, sold și CVV/CVC sub pretextul primirii plății; OLX nu are sistem prin care cumpărătorii să plătească produsul online în acel flux.",
+      "source_url": "https://blog.olx.ro/2020/12/ai-grija-la-linkurile-false-pentru-articole-platite-vezi-cum-te-protejezi-de-cele-mai-noi-atacuri-de-phishing/",
+      "published": "2020-12-14",
+      "accessed": "2026-06-03",
+      "confidence": "high",
+      "evidence_gate_signal_suggested": "MARKETPLACE_CARD_TO_RECEIVE_MONEY",
+      "source_ids": [
+        "S22"
+      ]
+    },
+    {
+      "brand_id": "digi",
+      "never_ask_for": {
+        "card_number": true,
+        "cvv": false,
+        "otp": false,
+        "whatsapp_code": false,
+        "banking_pin": false,
+        "password": true,
+        "cnp": false,
+        "iban": false,
+        "remote_access": false,
+        "apk_install": false,
+        "safe_account_transfer": false,
+        "crypto_atm_deposit": false
+      },
+      "exact_official_statement_summary": "DIGI afirmă că nu solicită date sensibile prin SMS/e-mail/studii și nici date bancare pentru revendicarea unor premii.",
+      "source_url": "https://www.digi.ro/factura-electronica",
+      "published": "unknown",
+      "accessed": "2026-06-03",
+      "confidence": "high",
+      "evidence_gate_signal_suggested": "DIGI_NEVER_ASK_SENSITIVE_OR_BANK_PRIZE"
+    },
+    {
+      "brand_id": "hidroelectrica",
+      "never_ask_for": {
+        "card_number": true,
+        "cvv": false,
+        "otp": false,
+        "whatsapp_code": false,
+        "banking_pin": false,
+        "password": false,
+        "cnp": false,
+        "iban": true,
+        "remote_access": false,
+        "apk_install": false,
+        "safe_account_transfer": false,
+        "crypto_atm_deposit": false,
+        "investment_via_social_ad": true,
+        "personal_or_banking_data_via_social_or_phone": true
+      },
+      "exact_official_statement_summary": "Hidroelectrica avertizează împotriva platformelor false de investiții și recomandă să nu divulgi cont bancar/acte/date personale către surse necunoscute; site oficial unic: hidroelectrica.ro.",
+      "source_url": "https://www.hidroelectrica.ro/press-release/be34ffdd-821e-5bed-e6c1-1868bbf7cb79",
+      "published": "2023-09-29",
+      "accessed": "2026-06-03",
+      "confidence": "high",
+      "evidence_gate_signal_suggested": "INVESTMENT_HIDROELECTRICA_OFFICIAL_SITE_ONLY",
+      "source_ids": [
+        "S23"
+      ]
+    },
+    {
+      "brand_id": "ghiseul",
+      "never_ask_for": {
+        "card_number": true,
+        "cvv": false,
+        "otp": false,
+        "whatsapp_code": false,
+        "banking_pin": false,
+        "password": true,
+        "cnp": true,
+        "iban": false,
+        "remote_access": false,
+        "apk_install": false,
+        "safe_account_transfer": false,
+        "crypto_atm_deposit": false,
+        "sms_email_payment_obligation_notice": true,
+        "link_for_payment_or_data_update": true
+      },
+      "exact_official_statement_summary": "Ghișeul.ro afirmă pe pagina oficială că nu anunță prin SMS/e-mail apariția obligațiilor de plată; sursele ADR spun că nu cere accesarea linkurilor pentru plăți/actualizare date.",
+      "source_url": "https://www.ghiseul.ro/",
+      "published": "unknown",
+      "accessed": "2026-06-03",
+      "confidence": "high",
+      "evidence_gate_signal_suggested": "GHISEUL_NEVER_SMS_EMAIL_PAYMENT_OBLIGATION",
+      "source_ids": [
+        "S25"
+      ]
+    },
+    {
+      "brand_id": "orange_yoxo",
+      "never_ask_for": {
+        "card_number": true,
+        "cvv": false,
+        "otp": true,
+        "whatsapp_code": false,
+        "banking_pin": false,
+        "password": true,
+        "cnp": false,
+        "iban": false,
+        "remote_access": false,
+        "apk_install": false,
+        "safe_account_transfer": false,
+        "crypto_atm_deposit": false
+      },
+      "exact_official_statement_summary": "Orange explică smishingul: linkuri care duc spre site-uri false ce cer date card, parole și coduri de autentificare. Nu este formulare de tip «Orange nu cere niciodată X» în sursa verificată, deci signal medium.",
+      "source_url": "https://www.orange.ro/help/articole/cum-sa-recunosti-si-sa-eviti-tentativele-de-frauda-prin-sms-smishing",
+      "published": "2026-02-15",
+      "accessed": "2026-06-03",
+      "confidence": "medium",
+      "evidence_gate_signal_suggested": "ORANGE_SMISHING_SENSITIVE_DATA_REQUEST"
+    },
+    {
+      "brand_id": "vodafone",
+      "never_ask_for": {
+        "card_number": false,
+        "cvv": false,
+        "otp": false,
+        "whatsapp_code": false,
+        "banking_pin": false,
+        "password": true,
+        "cnp": false,
+        "iban": false,
+        "remote_access": false,
+        "apk_install": false,
+        "safe_account_transfer": false,
+        "crypto_atm_deposit": false
+      },
+      "exact_official_statement_summary": "Vodafone descrie fraude care direcționează către phishing extern pentru a fura parole/date personale sensibile. Nu extrapola toate câmpurile ca hard never-ask.",
+      "source_url": "https://www.vodafone.ro/frauda/",
+      "published": "unknown",
+      "accessed": "2026-06-03",
+      "confidence": "medium",
+      "evidence_gate_signal_suggested": "VODAFONE_PHISHING_EXTERNAL_CREDENTIAL_SITE"
+    },
+    {
+      "brand_id": "altex",
+      "never_ask_for": {
+        "card_number": true,
+        "cvv": false,
+        "otp": false,
+        "whatsapp_code": false,
+        "banking_pin": false,
+        "password": true,
+        "cnp": false,
+        "iban": false,
+        "remote_access": false,
+        "apk_install": false,
+        "safe_account_transfer": false,
+        "crypto_atm_deposit": false
+      },
+      "exact_official_statement_summary": "Altex recomandă scepticism față de emailuri care solicită informații personale și accesarea directă a site-ului oficial. Nu formulează o listă completă never-ask-for.",
+      "source_url": "https://altex.ro/securitatea-protectia-datelor-caracter-personal/pag/",
+      "published": "unknown",
+      "accessed": "2026-06-03",
+      "confidence": "medium",
+      "evidence_gate_signal_suggested": "ALTEX_EMAIL_PHISHING_PERSONAL_INFO_REQUEST"
+    },
+    {
+      "brand_id": "cargus",
+      "never_ask_for": {
+        "card_number": false,
+        "cvv": false,
+        "otp": false,
+        "whatsapp_code": false,
+        "banking_pin": false,
+        "password": false,
+        "cnp": false,
+        "iban": false,
+        "remote_access": false,
+        "apk_install": false,
+        "safe_account_transfer": false,
+        "crypto_atm_deposit": false
+      },
+      "exact_official_statement_summary": "Cargus oferă recomandări generale anti-fraudă; nu am verificat o declarație oficială explicită «nu cerem card/CVV/OTP». Folosește doar ca warning generic.",
+      "source_url": "https://www.cargus.ro/blog/recomandari-cargus-cu-privire-la-eventuale-fraude-electronice/",
+      "published": "2023-02-08",
+      "accessed": "2026-06-03",
+      "confidence": "medium",
+      "evidence_gate_signal_suggested": "CARGUS_GENERIC_FRAUD_CAUTION"
+    },
+    {
+      "brand_id": "sameday",
+      "never_ask_for": {
+        "card_number": true,
+        "cvv": false,
+        "otp": false,
+        "whatsapp_code": false,
+        "banking_pin": false,
+        "password": false,
+        "cnp": false,
+        "iban": false,
+        "remote_access": false,
+        "apk_install": false,
+        "safe_account_transfer": false,
+        "crypto_atm_deposit": false
+      },
+      "exact_official_statement_summary": "Nu am verificat o declarație oficială never-ask-for. Atenție: SAMEDAY App permite card payment pentru ramburs și redirecționare colet în aplicație, deci card-payment nu este automat scam.",
+      "source_url": "https://sameday.ro/sameday-app/",
+      "published": "unknown",
+      "accessed": "2026-06-03",
+      "confidence": "medium",
+      "evidence_gate_signal_suggested": "SAMEDAY_OFFICIAL_APP_PAYMENT_FALSE_POSITIVE_GUARD",
+      "source_ids": [
+        "S6"
+      ]
+    },
+    {
+      "brand_id": "anaf",
+      "never_ask_for": {
+        "card_number": false,
+        "cvv": false,
+        "otp": false,
+        "whatsapp_code": false,
+        "banking_pin": false,
+        "password": false,
+        "cnp": false,
+        "iban": false,
+        "remote_access": false,
+        "apk_install": false,
+        "safe_account_transfer": false,
+        "crypto_atm_deposit": false
+      },
+      "exact_official_statement_summary": "DNSC/ANAF confirmă campanii de emailuri false în numele ANAF, dar nu am verificat o declarație ANAF de tip «nu cerem niciodată card/CNP/IBAN». Nu transforma în never-ask hard; folosește ca scenariu tax_refund/SPV.",
+      "source_url": "https://www.anaf.ro/anaf/internet/ANAF/comunicate/",
+      "published": "2025-10-13",
+      "accessed": "2026-06-03",
+      "confidence": "medium",
+      "evidence_gate_signal_suggested": "ANAF_IMPERSONATION_EMAIL_LINK_SCENARIO"
+    },
+    {
+      "brand_id": "bnr",
+      "never_ask_for": {
+        "card_number": false,
+        "cvv": false,
+        "otp": false,
+        "whatsapp_code": false,
+        "banking_pin": false,
+        "password": false,
+        "cnp": false,
+        "iban": false,
+        "remote_access": false,
+        "apk_install": false,
+        "safe_account_transfer": false,
+        "crypto_atm_deposit": false
+      },
+      "exact_official_statement_summary": "MAI/DNSC confirmă spoofing cu pretinse apeluri bancă/BNR/Poliție și credit fraudulos; nu există sursă BNR directă în pack pentru never-ask-for. Folosește ca scenariu vishing/cont sigur.",
+      "source_url": "https://www.mai.gov.ro/politia-romana-directoratul-national-de-securitate-cibernetica-si-asociatia-romana-a-bancilor-avertizeaza-asupra-riscului-de-frauda-de-tip-spoofing/",
+      "published": "2024-05-14",
+      "accessed": "2026-06-03",
+      "confidence": "medium",
+      "evidence_gate_signal_suggested": "BNR_POLICE_BANK_CHAIN_SPOOFING"
+    }
+  ],
+  "sources": {
+    "0": {
+      "id": "src_sigurantaonline_uniti",
+      "title": "Siguranța Online — Uniți împotriva escrocheriilor",
+      "url": "https://sigurantaonline.ro/uniti-impotriva-escrocheriilor/",
+      "published_at": "2026-03 (pagina campanie, aproximativ conform indexării web)",
+      "accessed_at": "2026-06-08",
+      "source_type": "official_campaign",
+      "confidence": "high",
+      "notes": "Taxonomie oficială/parteneriat: Urgență mare, Telefonul oficial, Câștig peste noapte; include metode precum Loteria Română, Marketplace, Coletul, BNR, Legitimația."
+    },
+    "1": {
+      "id": "src_pmb_parking_qr_buletin",
+      "title": "PMB avertizează despre coduri QR false pe parcometrele din București",
+      "url": "https://buletin.de/bucuresti/coduri-qr-false-pe-parcometrele-din-bucuresti-primaria-ii-avertizeaza-pe-soferi-sa-nu-le-foloseasca-pentru-plata-parcarii/",
+      "published_at": "2026-03-30",
+      "accessed_at": "2026-06-08",
+      "source_type": "official_statement_via_media",
+      "confidence": "high",
+      "notes": "PMB: parcometrele nu folosesc QR pentru plată; QR-urile false cer date card/CVC și nu achită parcarea."
+    },
+    "2": {
+      "id": "src_mti_amenzi_sms",
+      "title": "Ministerul Transporturilor — „Amenda prin SMS”",
+      "url": "https://www.mt.ro/spatiul-media/comunicate-de-presa/com15052026",
+      "published_at": "2026-05-15",
+      "accessed_at": "2026-06-08",
+      "source_type": "official_alert",
+      "confidence": "high",
+      "notes": "MTI spune că nu trimite SMS-uri de plată și nu are atribuții de amendare a șoferilor."
+    },
+    "3": {
+      "id": "src_dnsc_ghiseul_via_agerpres",
+      "title": "DNSC / Agerpres — SMS-uri false provenite de la Ghișeul.ro",
+      "url": "https://agerpres.ro/economic/2026/05/15/dnsc-tentative-de-frauda-intr-o-noua-campanie-cu-sms-uri-false-provenite-de-la-ghiseul-ro--1556461",
+      "published_at": "2026-05-15",
+      "accessed_at": "2026-06-08",
+      "source_type": "official_alert_via_press_agency",
+      "confidence": "high",
+      "notes": "Victimele primesc SMS cu amendă restantă, introduc număr de înmatriculare, apoi date bancare."
+    },
+    "4": {
+      "id": "src_dnsc_rovinieta_via_ziarulunirea",
+      "title": "DNSC — SMS-uri false privind taxa de drum/rovinietă",
+      "url": "https://ziarulunirea.ro/avertisment-dnsc-atentie-la-mesajele-sms-false-privind-taxa-de-drum-rovinieta-978436/",
+      "published_at": "2026-02-04",
+      "accessed_at": "2026-06-08",
+      "source_type": "official_alert_via_media",
+      "confidence": "medium",
+      "notes": "CNAIR nu trimite SMS-uri cu link-uri de plată și nu solicită date bancare sau personale prin SMS, conform articolului citând DNSC."
+    },
+    "5": {
+      "id": "src_osim_agerpres",
+      "title": "DNSC / OSIM — emailuri frauduloase în numele OSIM",
+      "url": "https://agerpres.ro/economic/2026/02/11/dnsc-semnaleaza-o-serie-de-tentative-de-frauda-in-numele-osim--1527071",
+      "published_at": "2026-02-11",
+      "accessed_at": "2026-06-08",
+      "source_type": "official_alert_via_press_agency",
+      "confidence": "high",
+      "notes": "OSIM nu solicită plata taxelor prin emailuri nesolicitate și nu indică conturi bancare externe."
+    },
+    "6": {
+      "id": "src_social_page_ownership_agerpres",
+      "title": "DNSC — tentativă de fraudă privind confirmarea drepturilor de proprietate asupra unei pagini gestionate",
+      "url": "https://agerpres.ro/economic/2025/09/20/dnsc-avertizeaza-asupra-unei-tentative-de-frauda-referitoare-la-drepturile-de-proprietate-asupra-une--1485984",
+      "published_at": "2025-09-20",
+      "accessed_at": "2026-06-08",
+      "source_type": "official_alert_via_press_agency",
+      "confidence": "high",
+      "notes": "Formular fals care redirecționează datele sensibile ale paginii către atacatori; nu oferi parole/OTP prin formulare suspecte."
+    },
+    "7": {
+      "id": "src_dnsc_politia_popup_agerpres",
+      "title": "DNSC / Poliția Română — amenzi false / dispozitiv blocat prin pop-up-uri",
+      "url": "https://agerpres.ro/economic/2025/12/18/avertisment-tentativele-de-frauda-care-se-folosesc-de-numele-dnsc-sau-politia-romana-in-plina-desfas--1513213",
+      "published_at": "2025-12-18",
+      "accessed_at": "2026-06-08",
+      "source_type": "official_alert_via_press_agency",
+      "confidence": "high",
+      "notes": "Autoritățile nu blochează dispozitive și nu cer plata amenzilor prin pop-up-uri/pagini web sub presiunea timpului."
+    },
+    "8": {
+      "id": "src_tickets_euronews_dnsc",
+      "title": "DNSC via Euronews — bilete ieftine la concerte și cazare online de Revelion pot ascunde fraude",
+      "url": "https://www.euronews.ro/articole/dnsc-avertizeaza-biletele-ieftine-la-concerte-si-cazare-online-de-revelion-pot-as",
+      "published_at": "2025-11-24",
+      "accessed_at": "2026-06-08",
+      "source_type": "official_alert_via_media",
+      "confidence": "medium",
+      "notes": "Pagini false, profiluri nou-create, grupuri de vânzări online, prețuri foarte avantajoase, plată urgentă."
+    },
+    "9": {
+      "id": "src_libra_ticket_scam",
+      "title": "Libra Internet Bank — Ticket Scam",
+      "url": "https://www.librabank.ro/blog/Ticket-Scam---evita-fraudele-cu-bilete-false-la-concerte-festivaluri-sau-evenimente-sportive/2278",
+      "published_at": "2025-08-20",
+      "accessed_at": "2026-06-08",
+      "source_type": "bank_security_guidance",
+      "confidence": "medium",
+      "notes": "Bilete false/anulate/vândute deja; folosește platforme autorizate și evită print-screen-uri."
+    },
+    "10": {
+      "id": "src_vacation_dnsc_fb",
+      "title": "DNSC Facebook — fraude de vacanță: bilete, cazări, oferte de neratat",
+      "url": "https://www.facebook.com/DNSC.RO/posts/-%C3%AEn-perioadele-de-vacan%C8%9B%C4%83-atacatorii-profit%C4%83-de-interesul-crescut-pentru-bilete-/1386099386883900/",
+      "published_at": "2026 (post public, dată exactă neextrasă de web snippet)",
+      "accessed_at": "2026-06-08",
+      "source_type": "official_social_alert",
+      "confidence": "medium",
+      "notes": "Atacatorii profită de interesul pentru bilete/cazări/oferte și folosesc site-uri false sau anunțuri capcană."
+    },
+    "11": {
+      "id": "src_airbnb_rental_snoop",
+      "title": "Snoop — escrocheria cu apartamente de pe AirBnB / chirii false",
+      "url": "https://snoop.ro/escrocheria-cu-apartamente-de-pe-airbnb-bazata-pe-date-furate-banii-duc-catre-firma-fondata-de-hackerul-din-dosarul-hexi-pharma/",
+      "published_at": "2025-10-06",
+      "accessed_at": "2026-06-08",
+      "source_type": "investigative_press",
+      "confidence": "medium",
+      "notes": "Proprietar-fantomă rezervă pe Airbnb, relistează pe anunțuri, folosește acte false, ia avans/garanție, dispare; OLX a confirmat suspendarea unor conturi asociate."
+    },
+    "12": {
+      "id": "src_booking_reddit_noisy",
+      "title": "Reddit r/Romania — cazuri/discuții Booking/cazare",
+      "url": "https://www.reddit.com/r/Romania/comments/w45h57/inselatorie_pe_booking/",
+      "published_at": "2022-07 (istoric)",
+      "accessed_at": "2026-06-08",
+      "source_type": "community_noisy",
+      "confidence": "low",
+      "notes": "Bun pentru pattern discovery: comunicare off-platform/WhatsApp, presiune pe plată, cont business; nu hard evidence."
+    },
+    "13": {
+      "id": "src_task_scam_ftc",
+      "title": "FTC — How to spot and avoid task scams",
+      "url": "https://consumer.ftc.gov/consumer-alerts/2025/08/how-spot-avoid-task-scams",
+      "published_at": "2025-08-14",
+      "accessed_at": "2026-06-08",
+      "source_type": "international_authority_guidance",
+      "confidence": "medium",
+      "notes": "Mesaje nesolicitate WhatsApp/Telegram despre joburi; plata pentru a fi plătit este semn clar de fraudă."
+    },
+    "14": {
+      "id": "src_job_evz_ecc",
+      "title": "European Consumer Centre Germany — Job scams on WhatsApp/Telegram",
+      "url": "https://www.evz.de/en/topics/internet-shopping/fraud/job-scamming/",
+      "published_at": "2025-03-02",
+      "accessed_at": "2026-06-08",
+      "source_type": "eu_consumer_guidance",
+      "confidence": "medium",
+      "notes": "Task/job scam: evaluări hoteluri/testare produse, mici plăți inițiale, apoi victimelor li se cere să depună bani."
+    },
+    "15": {
+      "id": "src_romance_dnsc_8martie",
+      "title": "DNSC — romance scam / 8 Martie",
+      "url": "https://www.dnsc.ro/vezi/document/comunicat-de-presa-cu-ocazia-zilei-internationale-a-femeii-partenerii-proiectului-sigurantaonline-impart-flori-si-recomandari-pentru-protectia-digitala-doamnelor-si-domnisoarelor",
+      "published_at": "2025-03-07",
+      "accessed_at": "2026-06-08",
+      "source_type": "official_campaign",
+      "confidence": "high",
+      "notes": "DNSC descrie romance scam ca relație aparent sinceră construită pentru a obține bani/date/acces conturi."
+    },
+    "16": {
+      "id": "src_romance_digi_dnsc",
+      "title": "Digi Economic / DNSC — romance scam România și diaspora",
+      "url": "https://www.digi24.ro/digieconomic/digital/romance-scam-capcana-tot-mai-periculoasa-pe-internet-cum-actioneaza-escrocii-si-ce-recomanda-expertii-65137",
+      "published_at": "2025-09-02",
+      "accessed_at": "2026-06-08",
+      "source_type": "official_alert_via_media",
+      "confidence": "medium",
+      "notes": "Profiluri false pe rețele/dating/grupuri; comunicare constantă, apoi ajutor financiar urgent, transferuri, acces conturi."
+    },
+    "17": {
+      "id": "src_digi_mystery_box",
+      "title": "Digi24 — Cutia misterioasă / voucher cadou / date bancare",
+      "url": "https://www.digi24.ro/stiri/sci-tech/lumea-digitala/cutia-misterioasa-cea-mai-noua-metoda-de-inselatorie-care-circula-pe-facebook-scria-ca-o-iei-gratis-daca-raspunzi-la-intrebari-3157269",
+      "published_at": "2025-03-14",
+      "accessed_at": "2026-06-08",
+      "source_type": "media_report_with_authority_context",
+      "confidence": "medium",
+      "notes": "Ofertă cadou/gratis pentru răspuns la întrebări, apoi colectare date personale/bancare."
+    },
+    "18": {
+      "id": "src_black_friday_dnsc",
+      "title": "DNSC — sfaturi pentru prevenirea fraudelor online de Black Friday",
+      "url": "https://www.dnsc.ro/vezi/document/comunicat-de-presa-sfaturi-esentiale-pentru-prevenirea-fraudelor-online-de-black-friday",
+      "published_at": "2025-10-30",
+      "accessed_at": "2026-06-08",
+      "source_type": "official_campaign",
+      "confidence": "high",
+      "notes": "Site-uri false/clonă, reduceri prea bune, social ads frauduloase, plăți nesigure și furt date card."
+    },
+    "19": {
+      "id": "src_deepfake_dnsc_press",
+      "title": "DNSC — fraudă online cu imaginea presei și persoanelor publice",
+      "url": "https://www.dnsc.ro/citeste/comunicat-de-presa-avertisment-romanii-vizati-un-nou-val-de-frauda-online-care-foloseste-imaginea-presei-si-a-persoanelor-publice",
+      "published_at": "2026-04-01",
+      "accessed_at": "2026-06-08",
+      "source_type": "official_alert",
+      "confidence": "high",
+      "notes": "Site-uri false, reclame/social posts care folosesc imaginea presei și persoanelor publice pentru fraudă."
+    },
+    "20": {
+      "id": "src_deepfake_president_tvr",
+      "title": "TVR Info / DNSC — deepfake cu imaginea președintelui României pentru investiții rapide",
+      "url": "https://tvrinfo.ro/avertizare-a-dnsc-frauda-de-tip-investitii-rapide-in-care-este-folosita-imaginea-presedintelui-romaniei-clipul-deepfake-circula-in-mediul-online/",
+      "published_at": "2025-08-20",
+      "accessed_at": "2026-06-08",
+      "source_type": "official_alert_via_media",
+      "confidence": "medium",
+      "notes": "Clipuri deepfake cu promisiuni de câștiguri miraculoase, solicitări de date personale sau transfer bani."
+    },
+    "21": {
+      "id": "src_charity_bitdefender",
+      "title": "Bitdefender — fraude cu organizații de caritate false",
+      "url": "https://www.bitdefender.com/ro-ro/blog/hotforsecurity/fraudele-cu-organizatii-de-caritate-false-cum-sa-le-depistezi-si-sa-le-eviti",
+      "published_at": "2024-07-23",
+      "accessed_at": "2026-06-08",
+      "source_type": "cyber_company_guidance",
+      "confidence": "medium",
+      "notes": "Escrocii se dau drept colectori pentru cauze legitime sau campanii caritabile false; util pentru pattern, nu domenii hard."
+    },
+    "22": {
+      "id": "src_animal_donation_fb_noisy",
+      "title": "Facebook group public — adăpost fals / donații animale",
+      "url": "https://www.facebook.com/groups/408361383007498/posts/2143381772838775/",
+      "published_at": "data neconfirmată în snippet",
+      "accessed_at": "2026-06-08",
+      "source_type": "community_noisy",
+      "confidence": "low",
+      "notes": "Snippet public despre adăpost fals care cere donații. Doar pattern discovery; nu hard evidence."
+    },
+    "23": {
+      "id": "src_pet_scam_general",
+      "title": "Animal Legal Defense Fund — animal sales and rehoming scams",
+      "url": "https://aldf.org/article/animal-sales-and-rehoming-scams-how-to-spot-them/",
+      "published_at": "n/a",
+      "accessed_at": "2026-06-08",
+      "source_type": "international_guidance",
+      "confidence": "medium",
+      "notes": "Taxe de transport/cusca/asigurare pentru animale inexistente; pattern adaptabil, nu specific România."
+    },
+    "24": {
+      "id": "src_whatsapp_1800_vistabank",
+      "title": "Vista Bank — schema 1800 pe WhatsApp",
+      "url": "https://www.vistabank.ro/en/useful-info/security-recommendations/1800-scheme-a-new-scam-through-the-whatsapp-platform",
+      "published_at": "2025-01-10",
+      "accessed_at": "2026-06-08",
+      "source_type": "bank_security_guidance",
+      "confidence": "medium",
+      "notes": "Contact WhatsApp cere bani; verifică identitatea pe canal separat."
+    },
+    "S1": {
+      "title": "Siguranța Online — Uniți împotriva escrocheriilor",
+      "url": "https://sigurantaonline.ro/uniti-impotriva-escrocheriilor/",
+      "published": "nedeclarat pe pagină; campanie publică 2026",
+      "accessed": "2026-06-08",
+      "type": "official_campaign",
+      "confidence": "high",
+      "notes": "Taxonomie oficială: Urgență mare, Telefonul oficial, Câștig peste noapte; metode: Nepotul, Accidentul, Telefon stricat, Petiția, Creditul, Coletul, BNR, Hidroelectrica, Marketplace, Loteria etc."
+    },
+    "S2": {
+      "title": "DNSC — ALERTĂ: Frauda de tip Votează pe Adeline",
+      "url": "https://www.dnsc.ro/citeste/alerta-frauda-de-tip-voteaza-pe-adeline",
+      "published": "2025-01-15",
+      "accessed": "2026-06-08",
+      "type": "official_alert",
+      "confidence": "high",
+      "notes": "Descrie preluarea WhatsApp prin cod de asociere dispozitiv."
+    },
+    "S3": {
+      "title": "DNSC — ALERTĂ: Phishing E-mail ANAF",
+      "url": "https://dnsc.ro/citeste/alerta-phishing-e-mail-anaf",
+      "published": "2025-03-20",
+      "accessed": "2026-06-08",
+      "type": "official_alert",
+      "confidence": "high",
+      "notes": "E-mail cu identitate vizuală ANAF, rambursare taxe și buton/link către portal fals."
+    },
+    "S4": {
+      "title": "FAN Courier — Alertă de SMiShing",
+      "url": "https://www.fancourier.ro/alerta-de-smishing/",
+      "published": "2026-02-11",
+      "accessed": "2026-06-08",
+      "type": "official_brand_alert",
+      "confidence": "high",
+      "notes": "FAN declară explicit că nu cere prin SMS parole, coduri WhatsApp/verificare sau date card/CVC."
+    },
+    "S5": {
+      "title": "Poșta Română — tentativă phishing prin SMS",
+      "url": "https://www.posta-romana.ro/a1941/stiri/o-noua-tentativa-de-phishing-prin-sms-in-numele-postei-romane.html",
+      "published": "2025-06-16",
+      "accessed": "2026-06-08",
+      "type": "official_brand_alert",
+      "confidence": "high",
+      "notes": "Poșta nu solicită informații bancare/card/PIN și nici plăți online ale unor taxe de livrare prin astfel de mesaje."
+    },
+    "S6": {
+      "title": "SAMEDAY — Când un mesaj pare fraudulos, cel mai probabil așa este",
+      "url": "https://sameday.ro/cand-un-mesaj-pare-fraudulos-cel-mai-probabil-asa-este/",
+      "published": "nedeclarat pe pagină",
+      "accessed": "2026-06-08",
+      "type": "official_brand_alert",
+      "confidence": "high",
+      "notes": "SAMEDAY declară că nu transmite solicitări de plată prin SMS/social media; plata/prelungirea easybox se face prin aplicație/canale oficiale."
+    },
+    "S7": {
+      "title": "SAMEDAY — suport / domenii sameday.ro și sdy.ro",
+      "url": "https://sameday.ro/support/",
+      "published": "nedeclarat pe pagină",
+      "accessed": "2026-06-08",
+      "type": "official_domain_guidance",
+      "confidence": "medium",
+      "notes": "Menționează evitarea comunicărilor pe domenii diferite de sameday.ro și sdy.ro."
+    },
+    "S8": {
+      "title": "Cargus — Recommendations regarding possible electronic fraud",
+      "url": "https://www.cargus.ro/en/blog/cargus-recommendations-regarding-possible-electronic-fraud/",
+      "published": "2023-02-08",
+      "accessed": "2026-06-08",
+      "type": "official_brand_guidance",
+      "confidence": "medium",
+      "notes": "Recomandări generale despre mesaje/atașamente legate de livrare și formule impersonale/greșeli."
+    },
+    "S9": {
+      "title": "ANCOM — fraudă prin apeluri în numele instituțiilor/băncilor/companiilor de stat",
+      "url": "https://www.ancom.ro/despre-noi/media/comunicate-de-presa/ancom-ia-masuri-impotriva-fraudelor-comise-prin-apelurile-efectuate-in-numele-unor-institutii-publice-banci-sau-companii-de-stat/",
+      "published": "2025-06-04",
+      "accessed": "2026-06-08",
+      "type": "official_regulator_alert",
+      "confidence": "high",
+      "notes": "Descrie CLI spoofing: falsificarea numărului afișat."
+    },
+    "S10": {
+      "title": "ANCOM — Spoofing prin număr de telefon: ce face ANCOM și ce pot face utilizatorii",
+      "url": "https://www.ancom.ro/despre-noi/media/comunicate-de-presa/spoofing-prin-intermediul-numarului-de-telefon-58-ce-face-ancom-si-ce-pot-face-utilizatorii/",
+      "published": "2025-10-08",
+      "accessed": "2026-06-08",
+      "type": "official_regulator_guidance",
+      "confidence": "high",
+      "notes": "Nu te baza doar pe numărul afișat; numărul poate aparține altcuiva."
+    },
+    "S11": {
+      "title": "DNSC/Poliția/ARB/Mastercard — campania Uniți împotriva escrocheriilor",
+      "url": "https://www.dnsc.ro/citeste/comunicat-de-presa-dnsc-politia-romana-arb-si-mastercard-lanseaza-campania-national-uniti-impotriva-escrocheriilor",
+      "published": "2026-03-24",
+      "accessed": "2026-06-08",
+      "type": "official_campaign",
+      "confidence": "high",
+      "notes": "Menționează creșterea fraudelor, phishing dominant și metode precum BNR/telefon oficial."
+    },
+    "S12": {
+      "title": "ANAF / Ministerul Finanțelor — fraude telefonice în numele ANAF",
+      "url": "https://static.anaf.ro/static/3/Anaf/20251128112814_1244_com_telefon%20fals28nov2025.pdf",
+      "published": "2025-11-28",
+      "accessed": "2026-06-08",
+      "type": "official_brand_alert",
+      "confidence": "high",
+      "notes": "ANAF avertizează despre apeluri cu impozit plătit în plus/restituire și apoi fals funcționar bancar care cere date confidențiale."
+    },
+    "S13": {
+      "title": "ANAF — comunicate presă / fraude telefonice în numele ANAF",
+      "url": "https://www.anaf.ro/anaf/internet/ANAF/comunicate/",
+      "published": "2026-04/05 comunicate listate; pagina accesată 2026-06-08",
+      "accessed": "2026-06-08",
+      "type": "official_brand_alert",
+      "confidence": "high",
+      "notes": "Comunicate despre vishing cu inspectori ANAF Antifraudă și date personale/bancare."
+    },
+    "S14": {
+      "title": "BT — Siguranța online",
+      "url": "https://www.bancatransilvania.ro/siguranta-online",
+      "published": "nedeclarat pe pagină",
+      "accessed": "2026-06-08",
+      "type": "official_brand_guidance",
+      "confidence": "high",
+      "notes": "BT: banca nu cere PIN, parole sau CVV prin telefon, SMS sau e-mail; avertizează despre remote control."
+    },
+    "S15": {
+      "title": "BT — Tipuri de fraude",
+      "url": "https://www.bancatransilvania.ro/siguranta-online/tipuri-de-fraude",
+      "published": "nedeclarat pe pagină",
+      "accessed": "2026-06-08",
+      "type": "official_brand_guidance",
+      "confidence": "high",
+      "notes": "Descrie smishing, vishing, Flubot, marketplace fraud, date card, parole/coduri."
+    },
+    "S16": {
+      "title": "ING România — Securitate",
+      "url": "https://ing.ro/ing-in-romania/informatii-utile/securitate",
+      "published": "2025-12-09",
+      "accessed": "2026-06-08",
+      "type": "official_brand_guidance",
+      "confidence": "high",
+      "notes": "ING: niciun reprezentant nu cere accesarea linkurilor SMS/social, login Home'Bank prin link, PIN sau CVV."
+    },
+    "S17": {
+      "title": "BCR — Securitate cibernetică / EduFin",
+      "url": "https://www.bcr.ro/ro/campanii/echipa-nationala-edufin/securitate-cibernetica",
+      "published": "nedeclarat pe pagină",
+      "accessed": "2026-06-08",
+      "type": "official_brand_guidance",
+      "confidence": "high",
+      "notes": "Băncile nu cer parola/PIN prin telefon, SMS, e-mail; atacatorii pot falsifica SMS sender."
+    },
+    "S18": {
+      "title": "BCR — George / eToken safety",
+      "url": "https://www.bcr.ro/ro/persoane-fizice/informatii-utile/securitate/cum-iti-protejeaza-BCR-conturile-si-tranzactiile",
+      "published": "nedeclarat pe pagină",
+      "accessed": "2026-06-08",
+      "type": "official_brand_guidance",
+      "confidence": "high",
+      "notes": "Nu completa cod eToken/BCR într-o pagină deschisă din link primit pe e-mail/SMS/WhatsApp."
+    },
+    "S19": {
+      "title": "Raiffeisen — cumpărături online/3D Secure",
+      "url": "https://www.raiffeisen.ro/ro/persoane-fizice/in-sprijinul-tau/securitate-online/cumparaturi-online-in-siguranta.html",
+      "published": "nedeclarat pe pagină",
+      "accessed": "2026-06-08",
+      "type": "official_brand_guidance",
+      "confidence": "medium",
+      "notes": "Descrie OTP/3D Secure și recomandarea de verificare a tranzacției autorizate."
+    },
+    "S20": {
+      "title": "ARB — remote control / fraude bancare",
+      "url": "https://www.arb.ro/trebuie-sa-fim-foarte-responsabili-atunci-cand-utilizam-produsele-si-serviciile-bancare-ce-nu-vor-solicita-niciodata-bancile/",
+      "published": "2025 aproximativ; pagina fără dată exactă în captură",
+      "accessed": "2026-06-08",
+      "type": "official_industry_guidance",
+      "confidence": "high",
+      "notes": "Descrie AnyDesk/TeamViewer/remote control, acces la mobile banking, coduri și contractare credit."
+    },
+    "S21": {
+      "title": "ARB — tipologii fraudă, investment scam, WhatsApp, spoofing",
+      "url": "https://www.arb.ro/ce-trebuie-sa-stim-pentru-a-nu-deveni-victime-ale-fraudei-bancare-ramona-rusu-presedintele-comisiei-antifrauda-arb-tipologiile-de-frauda-sunt-intr-o-dinamica-permanenta-iar-metodele-de-fr/",
+      "published": "2025 aproximativ; pagina fără dată exactă în captură",
+      "accessed": "2026-06-08",
+      "type": "official_industry_guidance",
+      "confidence": "high",
+      "notes": "Descrie investment scam, AnyDesk/TeamViewer, crypto ATM, Poliție/BNR spoofing, deepfake."
+    },
+    "S22": {
+      "title": "OLX — linkuri false pentru articole plătite",
+      "url": "https://blog.olx.ro/2020/12/ai-grija-la-linkurile-false-pentru-articole-platite-vezi-cum-te-protejezi-de-cele-mai-noi-atacuri-de-phishing/",
+      "published": "2020-12-14",
+      "accessed": "2026-06-08",
+      "type": "official_brand_guidance_older_but_still_relevant",
+      "confidence": "high",
+      "notes": "OLX explică scamul în care vânzătorilor li se cer datele cardului, soldul și CVV/CVC pentru a primi banii."
+    },
+    "S23": {
+      "title": "Hidroelectrica — utilizare frauduloasă a numelui în investiții online",
+      "url": "https://www.hidroelectrica.ro/press-release/1d738954-4c1b-1ad9-c046-4d0d6001e187",
+      "published": "2026-03-09",
+      "accessed": "2026-06-08",
+      "type": "official_brand_alert",
+      "confidence": "high",
+      "notes": "Hidroelectrica nu solicită investiții prin platforme online promovate social/reclame/telefon și nu cere date personale/bancare pe acele canale."
+    },
+    "S24": {
+      "title": "Hidroelectrica — deepfake / investiții false",
+      "url": "https://www.hidroelectrica.ro/press-release/6c73da43-c992-50a6-c24c-f25aaefbc23a",
+      "published": "2024-02-09",
+      "accessed": "2026-06-08",
+      "type": "official_brand_alert",
+      "confidence": "high",
+      "notes": "Avertizează despre clipuri deepfake cu persoane publice care promovează fals acțiuni Hidroelectrica."
+    },
+    "S25": {
+      "title": "Ghișeul.ro — avertisment phishing",
+      "url": "https://www.ghiseul.ro/",
+      "published": "nedeclarat pe pagină",
+      "accessed": "2026-06-08",
+      "type": "official_platform_warning",
+      "confidence": "high",
+      "notes": "Ghișeul.ro nu anunță prin SMS/e-mail apariția unei obligații de plată și avertizează să nu se dea click pe linkuri suspecte."
+    },
+    "S26": {
+      "title": "Orange — smishing / FluBot / new voicemail",
+      "url": "https://www.orange.ro/prevenire-frauda/",
+      "published": "nedeclarat; pagină brand",
+      "accessed": "2026-06-08",
+      "type": "official_brand_guidance",
+      "confidence": "medium",
+      "notes": "Descrie FluBot prin SMS 'new voicemail' și instalare aplicație falsă; recomandă aplicații doar din magazine oficiale."
+    },
+    "S27": {
+      "title": "Orange — cum recunoști smishing-ul",
+      "url": "https://www.orange.ro/help/articole/cum-sa-recunosti-si-sa-eviti-tentativele-de-frauda-prin-sms-smishing",
+      "published": "2026-02-15",
+      "accessed": "2026-06-08",
+      "type": "official_brand_guidance",
+      "confidence": "medium",
+      "notes": "Descrie smishing bancar, curier fantomă, WhatsApp takeover/Schema 1800."
+    },
+    "S28": {
+      "title": "DIGI — ghid securitate online",
+      "url": "https://www.digi.ro/ghid-clienti",
+      "published": "nedeclarat pe pagină",
+      "accessed": "2026-06-08",
+      "type": "official_brand_guidance",
+      "confidence": "medium",
+      "notes": "Descrie phishing, infostealers, deepfake, investiții frauduloase și recomandă accesarea conturilor doar prin site-uri oficiale, nu linkuri SMS/e-mail."
+    },
+    "S29": {
+      "title": "eMAG — cum să te ferești de phishing",
+      "url": "https://www.emag.ro/help/cum-sa-te-feresti-de-actiunile-de-phishing/",
+      "published": "nedeclarat pe pagină",
+      "accessed": "2026-06-08",
+      "type": "official_brand_guidance",
+      "confidence": "medium",
+      "notes": "Ghid oficial eMAG despre identificarea phishing-ului."
+    },
+    "S30": {
+      "title": "YOXO — site oficial / buyback / aplicație",
+      "url": "https://www.yoxo.ro/",
+      "published": "nedeclarat pe pagină",
+      "accessed": "2026-06-08",
+      "type": "official_domain_only",
+      "confidence": "medium",
+      "notes": "Util pentru claim verifier și false-positive guard; nu este o alertă anti-scam specifică."
+    },
+    "S31": {
+      "title": "Reddit r/Romania — metoda accidentul la bunică de 82 ani",
+      "url": "https://www.reddit.com/r/Romania/comments/xhroq8/bunica_mea_de_82_de_ani_tocmai_a_fost_scamuita_de/",
+      "published": "2022 aproximativ; community",
+      "accessed": "2026-06-08",
+      "type": "community_noisy",
+      "confidence": "low",
+      "notes": "Pattern discovery: stress emoțional, apeluri repetate, doctor/asistentă/fiică, cash urgent. Nu hard evidence."
+    },
+    "S32": {
+      "title": "Reddit r/Romania — BNR/Poliție spoofing",
+      "url": "https://www.reddit.com/r/Romania/comments/1r7hlxp/atentie_la_fraude_ca_devin_tot_mai_bine_gandite/",
+      "published": "2026 aproximativ; community",
+      "accessed": "2026-06-08",
+      "type": "community_noisy",
+      "confidence": "low",
+      "notes": "Pattern discovery: numere spoofed, nume reale, bancă/Poliție/BNR. Nu hard evidence."
+    },
+    "S33": {
+      "title": "Reddit r/Romania — FAN/eMAG context real, taxă card",
+      "url": "https://www.reddit.com/r/Romania/comments/1q32xuu/ce_fac_dac%C4%83_era_s%C4%83_iau_%C8%9Beap%C4%83/",
+      "published": "2026 aproximativ; community",
+      "accessed": "2026-06-08",
+      "type": "community_noisy",
+      "confidence": "low",
+      "notes": "Pattern discovery: context real de colet poate face scamul credibil; nu hard evidence."
+    },
+    "S34": {
+      "title": "RFC 2606 — reserved domains .test/.example/.invalid",
+      "url": "https://www.rfc-editor.org/rfc/rfc2606",
+      "published": "1999-06",
+      "accessed": "2026-06-08",
+      "type": "technical_standard",
+      "confidence": "high",
+      "notes": "Pentru exemple și CI se folosesc domenii rezervate, nu domenii scam active."
+    }
+  }
+}

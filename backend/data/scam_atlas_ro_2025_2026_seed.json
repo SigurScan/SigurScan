@@ -6,6 +6,7 @@
   "scam_families": [
     {
       "id": "RO_SCN_001_FAN_LOCKER_WHATSAPP",
+      "title": null,
       "family": "delivery_phishing / FAN Courier",
       "hook": "FAN locker/colet | FANBOX | colet blocat | alege locker | colet blocat | alege locker | taxa mica | cod WhatsApp | verificare livrare | FAN Courier",
       "asks_for": [
@@ -32,10 +33,22 @@
         "WhatsApp"
       ],
       "claimed_brand_or_role": "FAN Courier",
+      "requested_asset": [
+        "card",
+        "cvv",
+        "whatsapp_code",
+        "otp"
+      ],
+      "signals": [],
+      "sources": [],
+      "examples": [],
+      "max_verdict_without_provider_scan": null,
+      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "SMS cu domeniu .test care cere cod WhatsApp/card; sandbox form OTP/card."
     },
     {
       "id": "RO_SCN_002_POSTA_TAXA_CARD",
+      "title": null,
       "family": "delivery_phishing / Poșta Română",
       "hook": "Poșta Română taxă livrare/card | taxe vamale false | adresă incorectă | taxă livrare | taxă vamală | introdu date card | Poșta Română",
       "asks_for": [
@@ -59,10 +72,21 @@
         "email"
       ],
       "claimed_brand_or_role": "Poșta Română",
+      "requested_asset": [
+        "card",
+        "cvv",
+        "banking_pin"
+      ],
+      "signals": [],
+      "sources": [],
+      "examples": [],
+      "max_verdict_without_provider_scan": null,
+      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "SMS Poșta cu link .test și formular card/CVV."
     },
     {
       "id": "RO_SCN_003_ANAF_REFUND_SPV",
+      "title": null,
       "family": "tax_refund / ANAF",
       "hook": "ANAF rambursare taxe | SPV fake | neregularitate fiscală | rambursare taxe | portal ANAF | SPV | neregularitate declarații | remediere situație | ANAF",
       "asks_for": [
@@ -87,10 +111,22 @@
         "HTML email"
       ],
       "claimed_brand_or_role": "ANAF",
+      "requested_asset": [
+        "card",
+        "cnp",
+        "iban",
+        "password"
+      ],
+      "signals": [],
+      "sources": [],
+      "examples": [],
+      "max_verdict_without_provider_scan": null,
+      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "Email ANAF cu buton ascuns către .test; provider scan form card."
     },
     {
       "id": "RO_SCN_004_BNR_POLICE_SAFE_ACCOUNT",
+      "title": null,
       "family": "official_phone / BNR/Poliție/bancă",
       "hook": "BNR/Poliție/cont sigur | transfer către BNR | cont sigur | transfer urgent | dosar confidențial | Poliția/BNR | nu închide apelul | BNR/Poliție/bancă",
       "asks_for": [
@@ -116,10 +152,22 @@
         "PDF"
       ],
       "claimed_brand_or_role": "BNR/Poliție/bancă",
+      "requested_asset": [
+        "money_transfer",
+        "iban",
+        "password",
+        "remote_access"
+      ],
+      "signals": [],
+      "sources": [],
+      "examples": [],
+      "max_verdict_without_provider_scan": null,
+      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "Transcript apel lipit: pretins BNR + transfer cont sigur; fără URL => Suspect hard, cu link/form => Periculos."
     },
     {
       "id": "RO_SCN_005_CREDIT_FRAUDULOS",
+      "title": null,
       "family": "official_phone / bancă/Poliție",
       "hook": "credit aprobat/solicitat fraudulos | s-a aprobat creditul solicitat | anulare credit | verificare identitate | trimite cod | bancă/Poliție",
       "asks_for": [
@@ -142,10 +190,22 @@
         "SMS"
       ],
       "claimed_brand_or_role": "bancă/Poliție",
+      "requested_asset": [
+        "otp",
+        "password",
+        "cnp",
+        "money_transfer"
+      ],
+      "signals": [],
+      "sources": [],
+      "examples": [],
+      "max_verdict_without_provider_scan": null,
+      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "SMS/telefon claim credit + cod OTP."
     },
     {
       "id": "RO_SCN_006_VOTEAZA_ADELINE",
+      "title": null,
       "family": "account_takeover / contact cunoscut/concurs",
       "hook": "Votează pe Adeline | votează | Adeline | concurs | cod verificare WhatsApp | contact cunoscut/concurs",
       "asks_for": [
@@ -165,10 +225,20 @@
         "SMS"
       ],
       "claimed_brand_or_role": "contact cunoscut/concurs",
+      "requested_asset": [
+        "whatsapp_code",
+        "otp"
+      ],
+      "signals": [],
+      "sources": [],
+      "examples": [],
+      "max_verdict_without_provider_scan": null,
+      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "WhatsApp cu link .test + cere cod WhatsApp."
     },
     {
       "id": "RO_SCN_007_PETITIE_WHATSAPP",
+      "title": null,
       "family": "account_takeover / contact cunoscut/petiție",
       "hook": "Petiția | semnează pentru animale | semnează petiția | salvează animalele | confirmă cu codul | contact cunoscut/petiție",
       "asks_for": [
@@ -187,10 +257,20 @@
         "WhatsApp"
       ],
       "claimed_brand_or_role": "contact cunoscut/petiție",
+      "requested_asset": [
+        "whatsapp_code",
+        "otp"
+      ],
+      "signals": [],
+      "sources": [],
+      "examples": [],
+      "max_verdict_without_provider_scan": null,
+      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "Mesaj petiție + cod WhatsApp; provider form OTP."
     },
     {
       "id": "RO_SCN_008_TELEFON_STRICAT",
+      "title": null,
       "family": "urgency_big / copil/rudă",
       "hook": "Telefon stricat | mamă/tată/copil am număr nou | mi s-a stricat telefonul | salvează numărul nou | nu pot suna | am nevoie urgent | copil/rudă",
       "asks_for": [
@@ -207,10 +287,20 @@
         "SMS"
       ],
       "claimed_brand_or_role": "copil/rudă",
+      "requested_asset": [
+        "money_transfer",
+        "iban"
+      ],
+      "signals": [],
+      "sources": [],
+      "examples": [],
+      "max_verdict_without_provider_scan": null,
+      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "Text-only fără URL; verdict Suspect + acțiune nu răspunde/sună numărul vechi."
     },
     {
       "id": "RO_SCN_009_ACCIDENT_NEPOT",
+      "title": null,
       "family": "urgency_big / nepot/copil/doctor/polițist",
       "hook": "Accidentul | Nepotul la ananghie | AI voice clone | accident | spital | jefuit | urgent bani | nu spune nimănui | nepot/copil/doctor/polițist",
       "asks_for": [
@@ -225,10 +315,19 @@
         "WhatsApp"
       ],
       "claimed_brand_or_role": "nepot/copil/doctor/polițist",
+      "requested_asset": [
+        "money_transfer"
+      ],
+      "signals": [],
+      "sources": [],
+      "examples": [],
+      "max_verdict_without_provider_scan": null,
+      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "Transcript user-initiated: nepot accident, cere bani."
     },
     {
       "id": "RO_SCN_010_MARKETPLACE_RECEIVE_MONEY",
+      "title": null,
       "family": "marketplace_escrow / cumpărător OLX/curier escrow",
       "hook": "OLX primești banii pe card | cumpărător rapid | ca să primești banii | introdu cardul | confirmă plata | sold cont | CVV | cumpărător OLX/curier escrow",
       "asks_for": [
@@ -254,10 +353,21 @@
         "email"
       ],
       "claimed_brand_or_role": "cumpărător OLX/curier escrow",
+      "requested_asset": [
+        "card",
+        "cvv",
+        "otp"
+      ],
+      "signals": [],
+      "sources": [],
+      "examples": [],
+      "max_verdict_without_provider_scan": null,
+      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "Link .test cu formular card/CVV pentru încasare."
     },
     {
       "id": "RO_SCN_011_HIDRO_INVESTMENT",
+      "title": null,
       "family": "overnight_gain / Hidroelectrica/broker",
       "hook": "Hidroelectrica investiții false | acțiuni Hidroelectrica | câștig garantat | acțiuni Hidroelectrica | profit zilnic | platformă investiții | Hidroelectrica/broker",
       "asks_for": [
@@ -280,10 +390,22 @@
         "phone"
       ],
       "claimed_brand_or_role": "Hidroelectrica/broker",
+      "requested_asset": [
+        "card",
+        "cnp",
+        "iban",
+        "money_transfer"
+      ],
+      "signals": [],
+      "sources": [],
+      "examples": [],
+      "max_verdict_without_provider_scan": null,
+      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "Ad/email cu .test și formular investiții/date card."
     },
     {
       "id": "RO_SCN_012_CRYPTO_BROKER_REMOTE",
+      "title": null,
       "family": "remote_access_investment / broker/consultant investiții",
       "hook": "broker crypto | AnyDesk/TeamViewer | trading app | instalează AnyDesk | TeamViewer | remote support | retragere profit | taxă de deblocare | broker/consultant investiții",
       "asks_for": [
@@ -309,10 +431,22 @@
         "email"
       ],
       "claimed_brand_or_role": "broker/consultant investiții",
+      "requested_asset": [
+        "remote_access",
+        "crypto",
+        "money_transfer",
+        "password"
+      ],
+      "signals": [],
+      "sources": [],
+      "examples": [],
+      "max_verdict_without_provider_scan": null,
+      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "Text cere AnyDesk + transfer crypto; link APK => Periculos."
     },
     {
       "id": "RO_SCN_013_FAKE_BANK_APK",
+      "title": null,
       "family": "remote_access_investment / bancă/telecom",
       "hook": "APK bancar fals | update securitate HomeBank | instalează aplicația | update securitate | APK | permite accesibilitate | bancă/telecom",
       "asks_for": [
@@ -337,10 +471,21 @@
         "QR"
       ],
       "claimed_brand_or_role": "bancă/telecom",
+      "requested_asset": [
+        "apk",
+        "remote_access",
+        "password"
+      ],
+      "signals": [],
+      "sources": [],
+      "examples": [],
+      "max_verdict_without_provider_scan": null,
+      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "URL .test/app.apk + claim bancar."
     },
     {
       "id": "RO_SCN_014_LOTTERY_CASINO_BONUS",
+      "title": null,
       "family": "overnight_gain / loterie/casino",
       "hook": "Loteria Română/bonus cazino | ai câștigat | ai câștigat | bonus garantat | taxă retragere | depunere minimă | loterie/casino",
       "asks_for": [
@@ -362,10 +507,21 @@
         "social ads"
       ],
       "claimed_brand_or_role": "loterie/casino",
+      "requested_asset": [
+        "card",
+        "money_transfer",
+        "cnp"
+      ],
+      "signals": [],
+      "sources": [],
+      "examples": [],
+      "max_verdict_without_provider_scan": null,
+      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "Domeniu .test + cere card pentru premiu."
     },
     {
       "id": "RO_SCN_015_JOB_TASK_SCAM",
+      "title": null,
       "family": "overnight_gain / recrutor/platformă job",
       "hook": "job scam | task scam | apreciază postări pentru bani | like-uri pentru bani | job part-time | plată zilnică | deblochează câștigurile | depozit crypto | recrutor/platformă job",
       "asks_for": [
@@ -383,10 +539,21 @@
         "SMS"
       ],
       "claimed_brand_or_role": "recrutor/platformă job",
+      "requested_asset": [
+        "crypto",
+        "money_transfer",
+        "personal_data"
+      ],
+      "signals": [],
+      "sources": [],
+      "examples": [],
+      "max_verdict_without_provider_scan": null,
+      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "Text-only job/task; fără provider nu Periculos; cu link platformă .test + deposit crypto => Periculos."
     },
     {
       "id": "RO_SCN_016_UTILITIES_FAKE_BILL",
+      "title": null,
       "family": "tax_refund / Digi/PPC/E.ON",
       "hook": "facturi utilități false | Digi/PPC/E.ON refund/deconectare | factura restante | deconectare | ramburs factură | confirmă card | Digi/PPC/E.ON",
       "asks_for": [
@@ -412,10 +579,21 @@
         "PDF"
       ],
       "claimed_brand_or_role": "Digi/PPC/E.ON",
+      "requested_asset": [
+        "card",
+        "cvv",
+        "password"
+      ],
+      "signals": [],
+      "sources": [],
+      "examples": [],
+      "max_verdict_without_provider_scan": null,
+      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "PDF/SMS cu factură falsă .test și formular card."
     },
     {
       "id": "RO_SCN_017_GHISEUL_PAYMENT_OBLIGATION",
+      "title": null,
       "family": "tax_refund / Ghișeul.ro/primărie",
       "hook": "Ghișeul.ro obligație de plată | taxă neachitată | obligație de plată | plătește acum | actualizează datele | taxă locală | Ghișeul.ro/primărie",
       "asks_for": [
@@ -438,10 +616,21 @@
         "email"
       ],
       "claimed_brand_or_role": "Ghișeul.ro/primărie",
+      "requested_asset": [
+        "card",
+        "cnp",
+        "password"
+      ],
+      "signals": [],
+      "sources": [],
+      "examples": [],
+      "max_verdict_without_provider_scan": null,
+      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "SMS ghiseul .test; provider form card."
     },
     {
       "id": "RO_SCN_018_REVOLUT_CALL_OTP",
+      "title": null,
       "family": "official_phone / Revolut",
       "hook": "apel fals Revolut | This is a call from Revolut | apel neprogramat | confirmă codul | securizează contul | plată suspectă | Revolut",
       "asks_for": [
@@ -464,10 +653,21 @@
         "SMS"
       ],
       "claimed_brand_or_role": "Revolut",
+      "requested_asset": [
+        "otp",
+        "safe_account_transfer",
+        "password"
+      ],
+      "signals": [],
+      "sources": [],
+      "examples": [],
+      "max_verdict_without_provider_scan": null,
+      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "Transcript apel Revolut + cod; dacă link clonă/form: Periculos."
     },
     {
       "id": "RO_SCN_019_ALTEXT_EMAG_PROMO_GUARD",
+      "title": null,
       "family": "false_positive_guard / eMAG/Altex",
       "hook": "newsletter ofertă limitată legitimă | nu rata | ofertă limitată | cod reducere | tracking link | eMAG/Altex",
       "asks_for": [],
@@ -480,10 +680,17 @@
         "HTML email"
       ],
       "claimed_brand_or_role": "eMAG/Altex",
+      "requested_asset": [],
+      "signals": [],
+      "sources": [],
+      "examples": [],
+      "max_verdict_without_provider_scan": null,
+      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "Email legit cu domeniu oficial și fără cereri sensibile."
     },
     {
       "id": "RO_SCN_020_SAMEDAY_PAYMENT_GUARD",
+      "title": null,
       "family": "false_positive_guard / SAMEDAY",
       "hook": "plată ramburs în aplicație | redirecționare colet | plătește ramburs în aplicație | redirecționează coletul | SAMEDAY",
       "asks_for": [
@@ -502,7 +709,3866 @@
         "app deep link"
       ],
       "claimed_brand_or_role": "SAMEDAY",
+      "requested_asset": [
+        "card"
+      ],
+      "signals": [],
+      "sources": [],
+      "examples": [],
+      "max_verdict_without_provider_scan": null,
+      "max_verdict_with_provider_scan": null,
       "acceptance_test_idea": "Domeniu oficial/app; card payment legit context; nu hard-block."
+    },
+    {
+      "id": "F01",
+      "title": "ANAF / SPV / rambursare taxe prin e-mail",
+      "family": "tax_refund / ANAF / Ministerul Finanțelor / SPV",
+      "hook": "ANAF / Ministerul Finanțelor / SPV",
+      "asks_for": [
+        "card",
+        "numar card",
+        "număr card",
+        "date card",
+        "cvv",
+        "cvc",
+        "cod cvv",
+        "cnp",
+        "iban",
+        "parola",
+        "parolă",
+        "password"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Nu introduceți date bancare, parole, coduri OTP sau date personale.",
+        "Contactați ANAF / Ministerul Finanțelor / SPV doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "email",
+        "HTML email",
+        "PDF"
+      ],
+      "claimed_brand_or_role": "ANAF / Ministerul Finanțelor / SPV",
+      "requested_asset": [
+        "card",
+        "cvv",
+        "cnp",
+        "iban",
+        "password"
+      ],
+      "signals": [
+        "CLAIMED_BRAND_ANAF",
+        "TAX_REFUND_CLAIM",
+        "HTML_BUTTON_HIDDEN_LINK",
+        "OFFICIAL_DOMAIN_MISMATCH",
+        "CARD_OR_CNP_REQUEST",
+        "SPV_LOGIN_CLAIM"
+      ],
+      "sources": [
+        "S3"
+      ],
+      "examples": [
+        "Subiect: Rambursare taxe disponibilă. Corp: Conform verificării fiscale, aveți de primit 742,18 RON. Apăsați butonul «Solicită rambursarea» -> https://anaf-rambursare-portal.test/spv",
+        "Subiect: Notificare SPV. Corp: Document fiscal nou, confirmă contul pentru a evita expirarea rambursării. Link: https://spv-validare-anaf.example/cont",
+        "Bună ziua, cererea dvs. de restituire a fost aprobată. Pentru transfer completați cardul până la ora 18:00: https://restituire-mfinante.test/start",
+        "ANAF: sold disponibil în contul fiscal. Apasă «Verifică soldul» în PDF. URL ascuns în buton: https://portal-anaf-secure.invalid/login",
+        "Mesaj HTML: logo ANAF, buton albastru «Accesează portalul». Link real sub buton: https://anaf-spv-ro.example/cnp-card",
+        "E-mail de la anaf-notificari@servicii-fiscale.test: «Aveți o rambursare blocată. Actualizați datele bancare.»",
+        "PDF: Decizie de rambursare nr. 1842. QR-ul din colț duce către https://rambursare-digitala-anaf.test/qr",
+        "Subiect: Verificare contribuabil. Corp: Introduceți CNP și IBAN pentru confirmarea restituirii TVA. Link: https://anaf-asistenta.example/formular",
+        "Avertizare: cont SPV suspendat. Reactivați contul în 24h: https://spv-anaf-login.invalid/reactivare",
+        "E-mail cu Reply-To diferit: no-reply@anaf.ro vizibil, dar return-path fiscal-ro@test-mail.example; CTA către https://verificare-taxare.test"
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT",
+      "max_verdict_with_provider_scan": "PERICULOS dacă linkul neoficial + formular date/card/SPV sau provider/sandbox confirmă phishing",
+      "acceptance_test_idea": null
+    },
+    {
+      "id": "F02",
+      "title": "ANAF telefonic / Antifraudă / impozit plătit în plus",
+      "family": "official_phone / ANAF / Antifraudă / bancă",
+      "hook": "ANAF / Antifraudă / bancă",
+      "asks_for": [
+        "card",
+        "numar card",
+        "număr card",
+        "date card",
+        "cvv",
+        "cvc",
+        "cod cvv",
+        "cnp",
+        "bank login",
+        "otp",
+        "cod otp",
+        "cod sms",
+        "cont sigur",
+        "transfer sigur"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Nu introduceți date bancare, parole, coduri OTP sau date personale.",
+        "Contactați ANAF / Antifraudă / bancă doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "phone transcript",
+        "SMS follow-up",
+        "WhatsApp"
+      ],
+      "claimed_brand_or_role": "ANAF / Antifraudă / bancă",
+      "requested_asset": [
+        "card",
+        "cvv",
+        "cnp",
+        "bank_login",
+        "otp",
+        "safe_account_transfer"
+      ],
+      "signals": [
+        "CLAIMED_AUTHORITY_ANAF",
+        "PHONE_VISHING",
+        "TAX_OVERPAYMENT_REFUND",
+        "BANK_HANDOFF",
+        "CARD_OR_BANKING_REQUEST",
+        "SPOOFING_CONTEXT"
+      ],
+      "sources": [
+        "S12",
+        "S13",
+        "S9",
+        "S10"
+      ],
+      "examples": [
+        "Transcript: «Sunt inspector ANAF. Figurați cu impozit pe profit achitat în plus. Vă sună colegul de la bancă pentru restituire.»",
+        "Apel: «Aveți de primit 1.286 lei. Pentru verificare îmi confirmați CNP-ul și banca?»",
+        "SMS follow-up: «Dosar restituire ANAF activ. Completați contul bancar: https://restituire-anaf.test/dosar»",
+        "WhatsApp: fotografie cu legitimație «DGAF» + cerere poză buletin + card față/spate.",
+        "Apel: «Dacă nu confirmați azi, restituirea se anulează. Spuneți codul primit de la bancă.»",
+        "E-mail post-apel: «ANAF Antifraudă - declarație restituire» cu PDF și QR către https://antifrauda-verificare.example",
+        "Apel: «Pentru deblocare trebuie să instalați aplicația de suport a băncii.»",
+        "Mesaj: «V-am programat cu banca parteneră pentru transferul impozitului plătit în plus.»",
+        "Apel: «Nu sunați la sediu, procedura este securizată doar prin telefon.»",
+        "SMS: «ANAF: cod dosar AF-9182. Operatorul bancar vă va cere codul de confirmare.»"
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT/NO_REPLY",
+      "max_verdict_with_provider_scan": "PERICULOS dacă se cer date card/OTP/transfer sau remote access",
+      "acceptance_test_idea": null
+    },
+    {
+      "id": "F03",
+      "title": "Poșta Română / taxă livrare / adresă incompletă",
+      "family": "delivery_phishing / Poșta Română",
+      "hook": "Poșta Română",
+      "asks_for": [
+        "card",
+        "numar card",
+        "număr card",
+        "date card",
+        "cvv",
+        "cvc",
+        "cod cvv",
+        "pin",
+        "personal data",
+        "delivery fee"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Nu introduceți date bancare, parole, coduri OTP sau date personale.",
+        "Contactați Poșta Română doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "SMS",
+        "email",
+        "HTML email",
+        "QR",
+        "PDF"
+      ],
+      "claimed_brand_or_role": "Poșta Română",
+      "requested_asset": [
+        "card",
+        "cvv",
+        "pin",
+        "personal_data",
+        "delivery_fee"
+      ],
+      "signals": [
+        "CLAIMED_BRAND_POSTA",
+        "DELIVERY_ADDRESS_UPDATE",
+        "DELIVERY_FEE_REQUEST",
+        "SHORT_URL",
+        "UNOFFICIAL_DOMAIN",
+        "CARD_DATA_REQUEST"
+      ],
+      "sources": [
+        "S5"
+      ],
+      "examples": [
+        "POSTA: Coletul dvs. este reținut din cauza adresei incomplete. Actualizați aici: https://posta-verificare-livrare.test/ro",
+        "Taxă vamală 4,99 RON necesară pentru livrare. Plătește până la 18:00: https://plata-posta-romana.example/card",
+        "Nu am putut livra pachetul. Confirmă datele destinatarului: https://ro-postal-update.invalid/awb",
+        "Poșta Română: coletul va fi returnat. Introduceți cardul pentru reexpediere: https://redelivery-posta.test",
+        "Email: «Notificare livrare» cu buton «Actualizează adresa» -> link real https://posta-ro-client.example/update",
+        "SMS cu shortener: «Pachet blocat. Detalii: https://short.example/p0sta»",
+        "PDF: aviz poștal digital; QR către https://aviz-posta-romana.test",
+        "WhatsApp: «Salut, curier Poșta, adresa nu apare. Completează aici rapid.»",
+        "E-mail: «Confirmare taxe vamale» cu logo; câmpuri card/CVV pe domeniu neoficial.",
+        "SMS: «Cod colet RO734... necesită plată suplimentară pentru depozitare.» Link: https://posta-depozitare.invalid"
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT",
+      "max_verdict_with_provider_scan": "PERICULOS dacă cere card/PIN/plată prin link neoficial",
+      "acceptance_test_idea": null
+    },
+    {
+      "id": "F04",
+      "title": "FAN Courier / locker / colet + cod WhatsApp",
+      "family": "delivery_phishing_account_takeover / FAN Courier / FANBOX",
+      "hook": "FAN Courier / FANBOX",
+      "asks_for": [
+        "card",
+        "numar card",
+        "număr card",
+        "date card",
+        "cvv",
+        "cvc",
+        "cod cvv",
+        "whatsapp",
+        "cod whatsapp",
+        "otp",
+        "cod otp",
+        "cod sms",
+        "personal data"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Nu introduceți date bancare, parole, coduri OTP sau date personale.",
+        "Contactați FAN Courier / FANBOX doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "SMS",
+        "WhatsApp",
+        "email",
+        "QR"
+      ],
+      "claimed_brand_or_role": "FAN Courier / FANBOX",
+      "requested_asset": [
+        "card",
+        "cvv",
+        "whatsapp_code",
+        "otp",
+        "personal_data"
+      ],
+      "signals": [
+        "CLAIMED_BRAND_FAN",
+        "LOCKER_SELECTION",
+        "DELIVERY_FEE_REQUEST",
+        "WHATSAPP_CODE_REQUEST",
+        "CARD_DATA_REQUEST",
+        "UNOFFICIAL_DOMAIN"
+      ],
+      "sources": [
+        "S4",
+        "S1",
+        "S33"
+      ],
+      "examples": [
+        "FAN Courier: coletul tău a ajuns la FANBOX. Alege lockerul: https://fanbox-selectare.test/awb",
+        "FAN: Adresa destinatarului este neclară. Actualizează pentru livrare azi: https://fancourier-track.example/update",
+        "Taxă redirecționare 3,99 RON. Plătește aici: https://fan-redelivery.invalid/card",
+        "WhatsApp: «Sunt de la FAN, îți trimit codul de verificare pentru confirmarea livrării, spune-mi-l.»",
+        "SMS: «Livrare eșuată. Verifică numărul WhatsApp pentru contact curier.» Link: https://fan-curier-ro.test/wa",
+        "E-mail cu buton «Urmărește colet»; textul arată fancourier.ro, href real https://tracking-fan.example",
+        "QR pe aviz: «Scanează pentru ridicare rapidă» -> https://fanbox-qr.invalid",
+        "SMS: «Coletul este suspendat pentru 24h. Confirmă contul de livrare.»",
+        "Mesaj: «Recuperare acces FANBOX» + cere cod primit în WhatsApp.",
+        "E-mail: «Solicitare CVC pentru verificare plată ramburs» pe domeniu neoficial."
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT",
+      "max_verdict_with_provider_scan": "PERICULOS dacă linkul e neoficial + card/CVC/cod WhatsApp/OTP",
+      "acceptance_test_idea": null
+    },
+    {
+      "id": "F05",
+      "title": "SAMEDAY / easybox / prelungire păstrare falsă",
+      "family": "delivery_phishing / SAMEDAY / easybox",
+      "hook": "SAMEDAY / easybox",
+      "asks_for": [
+        "card",
+        "numar card",
+        "număr card",
+        "date card",
+        "cvv",
+        "cvc",
+        "cod cvv",
+        "personal data",
+        "delivery fee"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Nu introduceți date bancare, parole, coduri OTP sau date personale.",
+        "Contactați SAMEDAY / easybox doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "SMS",
+        "email",
+        "WhatsApp",
+        "QR"
+      ],
+      "claimed_brand_or_role": "SAMEDAY / easybox",
+      "requested_asset": [
+        "card",
+        "cvv",
+        "personal_data",
+        "delivery_fee"
+      ],
+      "signals": [
+        "CLAIMED_BRAND_SAMEDAY",
+        "EASYBOX_EXTENSION_CLAIM",
+        "PAYMENT_BY_SMS_CLAIM",
+        "UNOFFICIAL_DOMAIN",
+        "CARD_DATA_REQUEST"
+      ],
+      "sources": [
+        "S6",
+        "S7"
+      ],
+      "examples": [
+        "SAMEDAY: coletul din easybox expiră azi. Prelungește cu 24h: https://sameday-extensie.test/pay",
+        "easybox plin. Redirecționează coletul către alt locker: https://easybox-redirection.example",
+        "Plată necesară 2,99 RON pentru păstrare. Link: https://sdy-pay.invalid/card",
+        "SMS: «PIN-ul a expirat. Confirmă identitatea destinatarului.» https://sameday-confirmare.test",
+        "Email: «Acțiune necesară» cu buton «Plătește prelungire» către domeniu neoficial.",
+        "WhatsApp: «Bună, sunt curierul SAMEDAY. Dă-mi codul primit și rezolv eu.»",
+        "QR lipit pe easybox fals: https://easybox-pay.example/qr",
+        "SMS: «Adresa easybox nu corespunde. Actualizează aici.»",
+        "Mesaj social ad: «SAMEDAY oferă livrare gratuită dacă verifici cardul.»",
+        "Email cu Reply-To generic și link ascuns: text sameday.ro, href https://sameday-client.invalid"
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT",
+      "max_verdict_with_provider_scan": "PERICULOS dacă cere plată/card prin link SMS/social neoficial",
+      "acceptance_test_idea": null
+    },
+    {
+      "id": "F06",
+      "title": "Cargus / curier generic / atașament livrare",
+      "family": "delivery_phishing / Cargus / curier generic",
+      "hook": "Cargus / curier generic",
+      "asks_for": [
+        "card",
+        "numar card",
+        "număr card",
+        "date card",
+        "personal data",
+        "attachment open",
+        "apk"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Nu introduceți date bancare, parole, coduri OTP sau date personale.",
+        "Contactați Cargus / curier generic doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "email",
+        "SMS",
+        "PDF",
+        "WhatsApp"
+      ],
+      "claimed_brand_or_role": "Cargus / curier generic",
+      "requested_asset": [
+        "card",
+        "personal_data",
+        "attachment_open",
+        "apk"
+      ],
+      "signals": [
+        "CLAIMED_COURIER",
+        "DELIVERY_STATUS_ATTACHMENT",
+        "UNEXPECTED_ATTACHMENT",
+        "UNOFFICIAL_DOMAIN",
+        "APK_DOWNLOAD",
+        "CARD_DATA_REQUEST"
+      ],
+      "sources": [
+        "S8",
+        "S1"
+      ],
+      "examples": [
+        "Email: «Cargus - Documente livrare» atașament Factura_AWB.html cu link către https://cargus-status.example",
+        "SMS: «Livrare reprogramată, confirmă aici» https://cargus-update.test/awb",
+        "WhatsApp: «Nu găsesc adresa. Deschide fișierul pentru pin locație.»",
+        "Email generic: «Stimate client, comanda dvs. a fost suspendata» + link neoficial.",
+        "SMS: «Descărcați aplicația de tracking Cargus» https://cargus-app.invalid/app.apk",
+        "PDF aviz: QR către domeniu neoficial pentru plată depozitare.",
+        "E-mail cu HTML: link vizibil cargus.ro, href https://cargus-ro-track.test",
+        "Mesaj: «Taxă de reîncercare 4,50 RON» + card/CVV.",
+        "Email: «AWB blocat la vamă» + document .zip/.html.",
+        "SMS: «Curierul nu a putut livra. Răspunde cu CNP și adresă completă.»"
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT",
+      "max_verdict_with_provider_scan": "PERICULOS dacă există atașament executabil/APK sau card form pe domeniu neoficial",
+      "acceptance_test_idea": null
+    },
+    {
+      "id": "F07",
+      "title": "Bănci / login fals / cont blocat / adăugare dispozitiv",
+      "family": "banking_phishing / BT / ING / BCR / Raiffeisen / Revolut / bancă generică",
+      "hook": "BT / ING / BCR / Raiffeisen / Revolut / bancă generică",
+      "asks_for": [
+        "bank login",
+        "parola",
+        "parolă",
+        "password",
+        "otp",
+        "cod otp",
+        "cod sms",
+        "pin",
+        "cvv",
+        "cvc",
+        "cod cvv",
+        "card",
+        "numar card",
+        "număr card",
+        "date card"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Nu introduceți date bancare, parole, coduri OTP sau date personale.",
+        "Contactați BT / ING / BCR / Raiffeisen / Revolut / bancă generică doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "SMS",
+        "email",
+        "HTML email",
+        "WhatsApp"
+      ],
+      "claimed_brand_or_role": "BT / ING / BCR / Raiffeisen / Revolut / bancă generică",
+      "requested_asset": [
+        "bank_login",
+        "password",
+        "otp",
+        "pin",
+        "cvv",
+        "card"
+      ],
+      "signals": [
+        "CLAIMED_BANK",
+        "ACCOUNT_BLOCKED",
+        "NEW_DEVICE_CLAIM",
+        "BANK_LOGIN_FORM",
+        "OTP_REQUEST",
+        "OFFICIAL_DOMAIN_MISMATCH"
+      ],
+      "sources": [
+        "S14",
+        "S15",
+        "S16",
+        "S17",
+        "S18",
+        "S19"
+      ],
+      "examples": [
+        "BT: Contul tău a fost limitat. Reactivează accesul: https://bt-secure-login.test",
+        "ING: Dispozitiv nou detectat. Confirmă prin Home'Bank aici: https://ing-homebank.example/login",
+        "BCR George: tranzacție suspectă. Introdu codul eToken pentru anulare: https://george-secure.invalid",
+        "Raiffeisen: card blocat temporar. Verifică datele cardului: https://raiffeisen-verificare.test",
+        "Revolut: acces neautorizat. Spune codul primit pentru blocare cont.",
+        "SMS: «Adăugați dispozitiv de încredere» + link scurt către login fals.",
+        "Email: «Actualizare date client obligatorie» cu buton către domeniu neoficial.",
+        "WhatsApp: «Sunt consultantul băncii, instalează aplicația pentru suport.»",
+        "SMS: «Cardul tău a fost folosit la o plată de 1.899 RON. Anulează aici.»",
+        "E-mail HTML cu logo bancă, Reply-To gratuit, link ascuns în buton."
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT/NO_ENTER_DATA",
+      "max_verdict_with_provider_scan": "PERICULOS dacă linkul neoficial cere login/card/OTP/PIN/CVV",
+      "acceptance_test_idea": null
+    },
+    {
+      "id": "F08",
+      "title": "Coduri OTP / 3D Secure / token — cerute de altcineva",
+      "family": "account_takeover / bancă, Revolut, curier, marketplace, contact cunoscut",
+      "hook": "bancă, Revolut, curier, marketplace, contact cunoscut",
+      "asks_for": [
+        "otp",
+        "cod otp",
+        "cod sms",
+        "whatsapp",
+        "cod whatsapp",
+        "pin",
+        "parola",
+        "parolă",
+        "password"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Nu introduceți date bancare, parole, coduri OTP sau date personale.",
+        "Contactați bancă, Revolut, curier, marketplace, contact cunoscut doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "SMS",
+        "WhatsApp",
+        "phone transcript",
+        "email"
+      ],
+      "claimed_brand_or_role": "bancă, Revolut, curier, marketplace, contact cunoscut",
+      "requested_asset": [
+        "otp",
+        "whatsapp_code",
+        "pin",
+        "password"
+      ],
+      "signals": [
+        "OTP_REQUEST",
+        "WHATSAPP_CODE_REQUEST",
+        "DEVICE_LINKING_CODE",
+        "REPLY_WITH_CODE",
+        "NO_URL_TEXT_ONLY_RISK"
+      ],
+      "sources": [
+        "S14",
+        "S15",
+        "S16",
+        "S18",
+        "S22"
+      ],
+      "examples": [
+        "«Trimite-mi codul primit de la WhatsApp, am greșit numărul și mi l-a trimis la tine.»",
+        "«Pentru anularea tranzacției spune codul OTP primit acum.»",
+        "«Codul 3D Secure e doar pentru verificare, nu se retrag bani.»",
+        "«Ca să îți trimit banii pe OLX, confirmă codul de la bancă.»",
+        "«Pentru a bloca cardul, dictează codul din SMS.»",
+        "«Introdu codul primit de la Revolut pe pagina de securizare.»",
+        "«Curierul are nevoie de codul primit pe WhatsApp ca să confirme livrarea.»",
+        "«Pentru reactivarea contului spune PIN-ul temporar primit.»",
+        "«Dă-mi codul, sunt de la suport și văd eu problema.»",
+        "«Dacă nu confirmi codul în 5 minute, contul va fi suspendat.»"
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT/NO_REPLY",
+      "max_verdict_with_provider_scan": "PERICULOS dacă este combinat cu brand impersonation/link neoficial/account takeover flow",
+      "acceptance_test_idea": null
+    },
+    {
+      "id": "F09",
+      "title": "BNR / Poliție / cont sigur / credit fraudulos",
+      "family": "official_phone / BNR / Poliție / bancă / IPJ",
+      "hook": "BNR / Poliție / bancă / IPJ",
+      "asks_for": [
+        "money transfer",
+        "cont sigur",
+        "transfer sigur",
+        "crypto atm deposit",
+        "card",
+        "numar card",
+        "număr card",
+        "date card",
+        "bank login",
+        "otp",
+        "cod otp",
+        "cod sms",
+        "loan"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Nu introduceți date bancare, parole, coduri OTP sau date personale.",
+        "Contactați BNR / Poliție / bancă / IPJ doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "phone transcript",
+        "WhatsApp",
+        "PDF",
+        "SMS follow-up"
+      ],
+      "claimed_brand_or_role": "BNR / Poliție / bancă / IPJ",
+      "requested_asset": [
+        "money_transfer",
+        "safe_account_transfer",
+        "crypto_atm_deposit",
+        "card",
+        "bank_login",
+        "otp",
+        "loan"
+      ],
+      "signals": [
+        "OFFICIAL_PHONE_CLAIM",
+        "CLI_SPOOFING_RISK",
+        "SAFE_ACCOUNT_TRANSFER",
+        "FRAUDULENT_CREDIT_CLAIM",
+        "BANK_POLICE_BNR_HANDOFF",
+        "CRYPTO_ATM_REQUEST"
+      ],
+      "sources": [
+        "S1",
+        "S9",
+        "S10",
+        "S11",
+        "S20",
+        "S21",
+        "S32"
+      ],
+      "examples": [
+        "Transcript: «Sunt de la Poliție. Pe numele dvs. s-a făcut credit. Vă transfer la BNR.»",
+        "«Trebuie să mutați banii într-un cont sigur până finalizăm ancheta.»",
+        "«Nu sunați banca, operațiunea e confidențială.»",
+        "«Retrageți numerar și depuneți la ATM Bitcoin. Vă ghidăm noi.»",
+        "WhatsApp: poză legitimație + «vă punem în legătură cu inspectorul BNR». ",
+        "SMS: «Dosar fraudă activ. Urmați instrucțiunile ofițerului.»",
+        "Apel: «Cineva a încercat să acceseze credit în numele dvs.»",
+        "Apel: «Aveți 2 conturi compromise. Transferați temporar banii.»",
+        "PDF: «Proces verbal IPJ» trimis pe WhatsApp + cerere date card.",
+        "«Înregistrați un credit de protecție și îl anulăm după anchetă.»"
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT/NO_REPLY",
+      "max_verdict_with_provider_scan": "PERICULOS dacă cere transfer, credit, coduri, remote access sau date bancare",
+      "acceptance_test_idea": null
+    },
+    {
+      "id": "F10",
+      "title": "Legitimații / documente oficiale false trimise pe WhatsApp",
+      "family": "official_phone / Poliție / ANAF / BNR / bancă / avocat",
+      "hook": "Poliție / ANAF / BNR / bancă / avocat",
+      "asks_for": [
+        "personal data",
+        "card",
+        "numar card",
+        "număr card",
+        "date card",
+        "cnp",
+        "money transfer",
+        "bank login"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Nu introduceți date bancare, parole, coduri OTP sau date personale.",
+        "Contactați Poliție / ANAF / BNR / bancă / avocat doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "WhatsApp",
+        "phone transcript",
+        "PDF",
+        "image/OCR"
+      ],
+      "claimed_brand_or_role": "Poliție / ANAF / BNR / bancă / avocat",
+      "requested_asset": [
+        "personal_data",
+        "card",
+        "cnp",
+        "money_transfer",
+        "bank_login"
+      ],
+      "signals": [
+        "FAKE_LEGITIMATION_DOCUMENT",
+        "OFFICIAL_AUTHORITY_CHAIN",
+        "WHATSAPP_DOCUMENT",
+        "CONFIDENTIALITY_PRESSURE",
+        "PERSONAL_DATA_REQUEST"
+      ],
+      "sources": [
+        "S1",
+        "S9",
+        "S10",
+        "S11",
+        "S21"
+      ],
+      "examples": [
+        "«V-am trimis legitimația pe WhatsApp ca să vedeți că sunt polițist.»",
+        "Poză cu badge «BNR Antifraudă» + cerere IBAN/card.",
+        "PDF «proces verbal» + instrucțiuni să nu contactați banca.",
+        "Imagine cu antet ANAF + «confirmați datele bancare». ",
+        "WhatsApp: «vă trimit mandatul de anchetă, aveți 30 minute să cooperați». ",
+        "«Avocatul familiei vă confirmă cazul, trimiteți banii în contul temporar.»",
+        "PDF: «ordin de blocare cont» + link către formular de date.",
+        "«Pentru siguranță, faceți poză la card și buletin.»",
+        "Imagine cu siglă MAI + număr de dosar inventat.",
+        "«Dacă închideți apelul, procedura se blochează și pierdeți banii.»"
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT/NO_REPLY",
+      "max_verdict_with_provider_scan": "PERICULOS dacă documentul acompaniază cerere de bani/card/OTP/transfer",
+      "acceptance_test_idea": null
+    },
+    {
+      "id": "F11",
+      "title": "WhatsApp takeover — «Votează pe Adeline» / concurs",
+      "family": "account_takeover / contact cunoscut / concurs / copil / școală",
+      "hook": "contact cunoscut / concurs / copil / școală",
+      "asks_for": [
+        "whatsapp",
+        "cod whatsapp",
+        "phone",
+        "device linking code"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Contactați contact cunoscut / concurs / copil / școală doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "WhatsApp",
+        "SMS",
+        "social",
+        "link"
+      ],
+      "claimed_brand_or_role": "contact cunoscut / concurs / copil / școală",
+      "requested_asset": [
+        "whatsapp_code",
+        "phone",
+        "device_linking_code"
+      ],
+      "signals": [
+        "VOTE_CONTEST_HOOK",
+        "WHATSAPP_CODE_REQUEST",
+        "DEVICE_LINKING_CODE",
+        "CONTACT_COMPROMISED_SOURCE",
+        "UNOFFICIAL_DOMAIN"
+      ],
+      "sources": [
+        "S2",
+        "S1",
+        "S27"
+      ],
+      "examples": [
+        "«Te rog votează pe Adeline, e pentru concursul de dans.» https://voteaza-adeline.test",
+        "«Am nevoie de un vot pentru nepoata mea. Intră și confirmă cu telefonul.»",
+        "«Votează aici, apoi îmi trimiți codul dacă îți apare.»",
+        "«Concurs școlar, votează cu WhatsApp.» https://concurs-copii.example",
+        "«Vă rog să mă ajutați cu un vot, se încheie azi.»",
+        "«Codul e doar pentru confirmarea votului, îl poți da aici.»",
+        "«Nu merge votul fără confirmare WhatsApp.»",
+        "«Dacă primești SMS de la WhatsApp, spune-mi codul să finalizez votul.»",
+        "«Votează urgent, am nevoie să ajung în finală.»",
+        "«Alege poza 7 și confirmă numărul tău.» link neoficial."
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT/NO_REPLY",
+      "max_verdict_with_provider_scan": "PERICULOS dacă linkul cere cod WhatsApp/dispozitiv sau provider/sandbox confirmă",
+      "acceptance_test_idea": null
+    },
+    {
+      "id": "F12",
+      "title": "WhatsApp «petiția» / ajutor animale / contact compromis",
+      "family": "account_takeover / contact cunoscut / petiție socială",
+      "hook": "contact cunoscut / petiție socială",
+      "asks_for": [
+        "whatsapp",
+        "cod whatsapp",
+        "personal data",
+        "money transfer"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Contactați contact cunoscut / petiție socială doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "WhatsApp",
+        "social",
+        "link"
+      ],
+      "claimed_brand_or_role": "contact cunoscut / petiție socială",
+      "requested_asset": [
+        "whatsapp_code",
+        "personal_data",
+        "money_transfer"
+      ],
+      "signals": [
+        "PETITION_HOOK",
+        "CONTACT_COMPROMISED_SOURCE",
+        "WHATSAPP_CODE_REQUEST",
+        "PERSONAL_DATA_REQUEST",
+        "MONEY_REQUEST_AFTER_TAKEOVER"
+      ],
+      "sources": [
+        "S1"
+      ],
+      "examples": [
+        "«Semnează petiția împotriva uciderii animalelor, prietena mea lucrează acolo.» https://petitie-animale.test",
+        "«Am nevoie de semnătura ta urgent, confirmă cu WhatsApp.»",
+        "«Primești un cod, scrie-l aici pentru validarea petiției.»",
+        "«Salvează adăpostul, mai avem nevoie de 20 semnături azi.»",
+        "«Dacă nu merge linkul, trimite-mi codul primit.»",
+        "«Completează numele și telefonul pentru lista voluntarilor.»",
+        "«După semnare, ajută-mă și cu 200 lei până mâine.»",
+        "«Petiție oficială ONG» dar domeniu neoficial .test.",
+        "«Te rog nu ignora, animalele vor fi eutanasiate azi.»",
+        "«Confirmă identitatea cu codul WhatsApp ca să nu fie semnături false.»"
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT/NO_REPLY",
+      "max_verdict_with_provider_scan": "PERICULOS dacă cere cod WhatsApp sau link neoficial + cod/login",
+      "acceptance_test_idea": null
+    },
+    {
+      "id": "F13",
+      "title": "Telefon stricat / număr nou / mamă-tată-copil",
+      "family": "urgency_big / copil/nepot/rudă",
+      "hook": "copil/nepot/rudă",
+      "asks_for": [
+        "money transfer",
+        "iban",
+        "revolut",
+        "card",
+        "numar card",
+        "număr card",
+        "date card",
+        "voucher"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Nu introduceți date bancare, parole, coduri OTP sau date personale.",
+        "Contactați copil/nepot/rudă doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "WhatsApp",
+        "SMS"
+      ],
+      "claimed_brand_or_role": "copil/nepot/rudă",
+      "requested_asset": [
+        "money_transfer",
+        "iban",
+        "revolut",
+        "card",
+        "voucher"
+      ],
+      "signals": [
+        "FAMILY_NEW_NUMBER",
+        "PHONE_BROKEN_CLAIM",
+        "AVOIDS_VOICE_CALL",
+        "FAMILY_MONEY_REQUEST",
+        "TRANSFER_TO_FRIEND_ACCOUNT"
+      ],
+      "sources": [
+        "S1",
+        "S21"
+      ],
+      "examples": [
+        "«Mamă, mi s-a stricat telefonul. Salvează numărul ăsta, am nevoie urgent de ajutor.»",
+        "«Tată, nu pot vorbi, sunt la serviciu. Poți să-mi trimiți 1.200 lei?»",
+        "«Bunico, am rămas fără telefon și am nevoie de bani pentru reparație.»",
+        "«Nu suna pe vechiul număr, nu mai merge. Scrie-mi aici.»",
+        "«Te rog plătește factura asta azi, îți dau banii mâine.»",
+        "«Transferă în contul prietenului meu, eu nu pot accesa banca.»",
+        "«Sunt într-o problemă, nu am timp să explic. Trimite 900 lei pe Revolut.»",
+        "«Poți cumpăra carduri cadou și să-mi trimiți codurile?»",
+        "«Am nevoie până la 17:00, altfel pierd rezervarea.»",
+        "«Nu pot răspunde la apel, microfonul e stricat.»"
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT/NO_REPLY",
+      "max_verdict_with_provider_scan": "PERICULOS dacă cere transfer/voucher/card sau combinat cu contact compromis",
+      "acceptance_test_idea": null
+    },
+    {
+      "id": "F14",
+      "title": "Accidentul / nepotul la ananghie / voce clonată AI",
+      "family": "urgency_big / nepot/copil/doctor/polițist/asistent",
+      "hook": "nepot/copil/doctor/polițist/asistent",
+      "asks_for": [
+        "cash",
+        "money transfer",
+        "iban",
+        "crypto",
+        "personal data"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Nu introduceți date bancare, parole, coduri OTP sau date personale.",
+        "Contactați nepot/copil/doctor/polițist/asistent doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "phone transcript",
+        "SMS follow-up",
+        "WhatsApp"
+      ],
+      "claimed_brand_or_role": "nepot/copil/doctor/polițist/asistent",
+      "requested_asset": [
+        "cash",
+        "money_transfer",
+        "iban",
+        "crypto",
+        "personal_data"
+      ],
+      "signals": [
+        "FAMILY_EMERGENCY_CLAIM",
+        "ACCIDENT_CLAIM",
+        "URGENT_CASH_REQUEST",
+        "DO_NOT_VERIFY_PRESSURE",
+        "AI_VOICE_CLONE_RISK_CONTEXT"
+      ],
+      "sources": [
+        "S1",
+        "S11",
+        "S31"
+      ],
+      "examples": [
+        "«Bunico, sunt la spital, am făcut accident. Doctorul îți explică, te rog nu închide.»",
+        "«Fiul dvs. a lovit pe cineva cu mașina. Trebuie achitată garanția imediat.»",
+        "«Sunt asistenta, trebuie plătită operația acum.»",
+        "«Nu suna la nimeni, copilul riscă să intre la închisoare.»",
+        "«Trimiteți banii prin curierul nostru, vine cineva la scară.»",
+        "«Nu poate vorbi, e intubat. Eu sunt medicul.»",
+        "«Are nevoie de 5.000 euro pentru transfer la privat.»",
+        "«Dacă întrebați pe altcineva, pierdeți timp vital.»",
+        "«Vă rog păstrați secretul, e anchetă.»",
+        "«Răspundeți cu adresa unde putem trimite omul după bani.»"
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT/NO_REPLY",
+      "max_verdict_with_provider_scan": "PERICULOS dacă cere bani/cash/transfer și blochează verificarea independentă",
+      "acceptance_test_idea": null
+    },
+    {
+      "id": "F15",
+      "title": "OLX / marketplace — «ca să primești banii, introdu cardul»",
+      "family": "marketplace_escrow / cumpărător / OLX / curier",
+      "hook": "cumpărător / OLX / curier",
+      "asks_for": [
+        "card",
+        "numar card",
+        "număr card",
+        "date card",
+        "cvv",
+        "cvc",
+        "cod cvv",
+        "otp",
+        "cod otp",
+        "cod sms",
+        "iban",
+        "parola",
+        "parolă",
+        "password",
+        "money transfer"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Nu introduceți date bancare, parole, coduri OTP sau date personale.",
+        "Contactați cumpărător / OLX / curier doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "OLX chat",
+        "WhatsApp",
+        "SMS",
+        "email"
+      ],
+      "claimed_brand_or_role": "cumpărător / OLX / curier",
+      "requested_asset": [
+        "card",
+        "cvv",
+        "otp",
+        "iban",
+        "password",
+        "money_transfer"
+      ],
+      "signals": [
+        "MARKETPLACE_RECEIVE_MONEY",
+        "CHAT_MOVED_OFF_PLATFORM",
+        "CARD_REQUIRED_TO_RECEIVE_MONEY",
+        "CVV_REQUEST",
+        "OTP_REQUEST",
+        "UNOFFICIAL_DOMAIN"
+      ],
+      "sources": [
+        "S22",
+        "S1",
+        "S15"
+      ],
+      "examples": [
+        "«Am făcut plata pe OLX. Intră aici să primești banii: https://olx-plata-sigura.test»",
+        "«Curierul are nevoie de card ca să îți vireze rambursul.»",
+        "«Completează numărul cardului și soldul pentru verificare.»",
+        "«Pentru primire bani introdu CVV/CVC.»",
+        "«Te rog mutăm pe WhatsApp, OLX merge greu.»",
+        "«FAN Courier plătește direct pe card, confirmă aici.»",
+        "«Plata este blocată până introduci codul SMS.»",
+        "«Dă-mi emailul și numărul, îți trimit link de încasare.»",
+        "«Am plătit produsul, dar trebuie să confirmi prin pagina OLX.» link .example",
+        "«Dacă nu confirmi în 30 minute, plata se anulează.»"
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT/NO_ENTER_DATA",
+      "max_verdict_with_provider_scan": "PERICULOS dacă cere card/CVV/OTP pe link neoficial",
+      "acceptance_test_idea": null
+    },
+    {
+      "id": "F16",
+      "title": "Retail/eMAG/Altex giveaway, voucher, premiu fals",
+      "family": "retail_giveaway / eMAG / Altex / retailer / brand tech",
+      "hook": "eMAG / Altex / retailer / brand tech",
+      "asks_for": [
+        "card",
+        "numar card",
+        "număr card",
+        "date card",
+        "cvv",
+        "cvc",
+        "cod cvv",
+        "personal data",
+        "delivery fee",
+        "parola",
+        "parolă",
+        "password"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Nu introduceți date bancare, parole, coduri OTP sau date personale.",
+        "Contactați eMAG / Altex / retailer / brand tech doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "email",
+        "SMS",
+        "social ads",
+        "WhatsApp",
+        "QR"
+      ],
+      "claimed_brand_or_role": "eMAG / Altex / retailer / brand tech",
+      "requested_asset": [
+        "card",
+        "cvv",
+        "personal_data",
+        "delivery_fee",
+        "password"
+      ],
+      "signals": [
+        "RETAIL_GIVEAWAY",
+        "UNREALISTIC_REWARD",
+        "BRAND_IMPERSONATION",
+        "DELIVERY_FEE_FOR_PRIZE",
+        "CARD_DATA_REQUEST",
+        "OFFICIAL_DOMAIN_MISMATCH"
+      ],
+      "sources": [
+        "S29",
+        "S1"
+      ],
+      "examples": [
+        "«Felicitări! Ai câștigat un voucher eMAG de 500 lei.» https://emag-voucher2026.test",
+        "«Altex lichidare stoc - iPhone 49 lei doar azi.» link neoficial.",
+        "«Completează sondajul și primești telefon gratuit, plătești doar transportul.»",
+        "«Campanie aniversară eMAG: confirmă cardul pentru livrare premiu.»",
+        "«Ai fost selectat din baza de clienți pentru un premiu.»",
+        "Email: buton «Revendică voucherul» -> https://recompensa-retail.example",
+        "«Black Friday secret: acces anticipat cu logare cont.» domeniu neoficial.",
+        "QR pe afiș: «voucher 200 lei» -> domeniu .test.",
+        "WhatsApp: «am primit și eu, pare real, intră repede.»",
+        "«Taxa de procesare 7,99 lei pentru premiu.» + formular card/CVV."
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT",
+      "max_verdict_with_provider_scan": "PERICULOS dacă domeniu neoficial + card/CVV/login/taxă premiu",
+      "acceptance_test_idea": null
+    },
+    {
+      "id": "F17",
+      "title": "Hidroelectrica / companii publice / investiții false",
+      "family": "overnight_gain / Hidroelectrica / Transgaz / companii listate / persoane publice",
+      "hook": "Hidroelectrica / Transgaz / companii listate / persoane publice",
+      "asks_for": [
+        "card",
+        "numar card",
+        "număr card",
+        "date card",
+        "bank login",
+        "anydesk",
+        "teamviewer",
+        "control la distanta",
+        "control la distanță",
+        "money transfer",
+        "crypto",
+        "personal data"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Nu instalați aplicații și nu permiteți control la distanță.",
+        "Nu introduceți date bancare, parole, coduri OTP sau date personale.",
+        "Contactați Hidroelectrica / Transgaz / companii listate / persoane publice doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "social ads",
+        "phone",
+        "email",
+        "WhatsApp",
+        "landing page"
+      ],
+      "claimed_brand_or_role": "Hidroelectrica / Transgaz / companii listate / persoane publice",
+      "requested_asset": [
+        "card",
+        "bank_login",
+        "remote_access",
+        "money_transfer",
+        "crypto",
+        "personal_data"
+      ],
+      "signals": [
+        "PUBLIC_COMPANY_INVESTMENT",
+        "FAST_GAIN_PROMISE",
+        "DEEPFAKE_CONTEXT",
+        "LEAD_FORM",
+        "REMOTE_ACCESS_REQUEST",
+        "CARD_BANKING_REQUEST"
+      ],
+      "sources": [
+        "S1",
+        "S11",
+        "S23",
+        "S24",
+        "S21"
+      ],
+      "examples": [
+        "«Investește în Hidroelectrica cu minimum 950 lei și câștig lunar garantat.» https://hidro-profit.test",
+        "Ad social: video cu persoană publică + «platformă oficială Hidroelectrica». Link .example.",
+        "«Locurile pentru investitori mici se închid azi.» Formular telefon + CNP.",
+        "«Consultantul nostru vă sună pentru activare portofoliu.»",
+        "«Instalați aplicația de tranzacționare recomandată de broker.»",
+        "«Pentru retragerea profitului achitați taxa de verificare.»",
+        "«Cumpărați acțiuni înainte de lansarea publică.»",
+        "«Hidroelectrica Edge» pe domeniu neoficial.",
+        "«Dovediți identitatea cu poză buletin și card.»",
+        "«Profit garantat 2.000 lei/săptămână, fără risc.»"
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT/NO_ENTER_DATA",
+      "max_verdict_with_provider_scan": "PERICULOS dacă cere date bancare/remote access/depunere sau provider confirmă pagină frauduloasă",
+      "acceptance_test_idea": null
+    },
+    {
+      "id": "F18",
+      "title": "Crypto broker / AnyDesk / TeamViewer / platformă de trading",
+      "family": "remote_access_investment / broker / consultant financiar / platformă trading",
+      "hook": "broker / consultant financiar / platformă trading",
+      "asks_for": [
+        "anydesk",
+        "teamviewer",
+        "control la distanta",
+        "control la distanță",
+        "card",
+        "numar card",
+        "număr card",
+        "date card",
+        "cvv",
+        "cvc",
+        "cod cvv",
+        "bank login",
+        "crypto",
+        "money transfer",
+        "identity doc"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Nu instalați aplicații și nu permiteți control la distanță.",
+        "Nu introduceți date bancare, parole, coduri OTP sau date personale.",
+        "Contactați broker / consultant financiar / platformă trading doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "social ads",
+        "phone",
+        "WhatsApp",
+        "email",
+        "APK"
+      ],
+      "claimed_brand_or_role": "broker / consultant financiar / platformă trading",
+      "requested_asset": [
+        "remote_access",
+        "card",
+        "cvv",
+        "bank_login",
+        "crypto",
+        "money_transfer",
+        "identity_doc"
+      ],
+      "signals": [
+        "INVESTMENT_FAST_GAIN",
+        "REMOTE_ACCESS_APP_REQUEST",
+        "ANYDESK_TEAMVIEWER_REFERENCE",
+        "WITHDRAWAL_TAX_REQUEST",
+        "CARD_OR_ID_DOC_REQUEST"
+      ],
+      "sources": [
+        "S1",
+        "S20",
+        "S21",
+        "S23"
+      ],
+      "examples": [
+        "«Pentru a activa contul de trading instalați AnyDesk și dați-mi codul.»",
+        "«Depuneți 1.000 lei și retrageți 4.500 lei mâine.»",
+        "«Vă ajut să configurați aplicația băncii ca să cumpărăm acțiuni.»",
+        "«Trimiteți poza cardului pentru verificarea contului de investitor.»",
+        "«Profitul e blocat; achitați taxa de retragere 10%.»",
+        "«Instalați TeamViewer ca să vă setăm portofelul crypto.»",
+        "«Completați formularul KYC pe domeniul nostru.» link .test.",
+        "«Depuneți numerar la ATM Bitcoin, vă stau la telefon.»",
+        "«Platforma TXEX/TradeX confirmă profitul, trebuie doar să plătiți comisionul.»",
+        "«Nu discutați cu banca, ei nu cunosc această promoție.»"
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT/NO_ENTER_DATA",
+      "max_verdict_with_provider_scan": "PERICULOS dacă apare remote access/APK/depunere crypto/card",
+      "acceptance_test_idea": null
+    },
+    {
+      "id": "F19",
+      "title": "APK bancar fals / FluBot / voicemail / delivery app",
+      "family": "malware_apk / curier / bancă / Orange / voicemail / update securitate",
+      "hook": "curier / bancă / Orange / voicemail / update securitate",
+      "asks_for": [
+        "apk",
+        "anydesk",
+        "teamviewer",
+        "control la distanta",
+        "control la distanță",
+        "permissions",
+        "card",
+        "numar card",
+        "număr card",
+        "date card",
+        "parola",
+        "parolă",
+        "password",
+        "contacts"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Nu instalați aplicații și nu permiteți control la distanță.",
+        "Nu introduceți date bancare, parole, coduri OTP sau date personale.",
+        "Contactați curier / bancă / Orange / voicemail / update securitate doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "SMS",
+        "WhatsApp",
+        "email",
+        "APK link"
+      ],
+      "claimed_brand_or_role": "curier / bancă / Orange / voicemail / update securitate",
+      "requested_asset": [
+        "apk",
+        "remote_access",
+        "permissions",
+        "card",
+        "password",
+        "contacts"
+      ],
+      "signals": [
+        "APK_DOWNLOAD",
+        "OUT_OF_STORE_INSTALL",
+        "VOICEMAIL_HOOK",
+        "DELIVERY_APP_HOOK",
+        "EXCESSIVE_PERMISSIONS",
+        "MALWARE_RISK"
+      ],
+      "sources": [
+        "S15",
+        "S26",
+        "S27",
+        "S28"
+      ],
+      "examples": [
+        "SMS: «Aveți mesaj vocal nou. Descărcați aplicația pentru ascultare» https://voicemail-orange.test/app.apk",
+        "«Tracking colet indisponibil. Instalați aplicația curierului.» link .apk.",
+        "«Actualizare BT Pay necesară» APK din domeniu neoficial.",
+        "WhatsApp: «Instalează asta ca să vezi documentul.»",
+        "«Pentru securizare cont, permiteți acces la notificări/SMS.»",
+        "«Aplicația nu e în Play Store din motive de mentenanță.»",
+        "«Deschideți fișierul factura.apk pentru detalii.»",
+        "«Instalați suport securitate și dați permisiuni complete.»",
+        "«Curierul nu poate livra fără aplicația de confirmare.»",
+        "«Banca vă trimite update de urgență prin SMS.»"
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT/NO_ENTER_DATA",
+      "max_verdict_with_provider_scan": "PERICULOS dacă APK/remote access/out-of-store install este detectat",
+      "acceptance_test_idea": null
+    },
+    {
+      "id": "F20",
+      "title": "Loteria Română / casino bonus / premiu cu depunere",
+      "family": "overnight_gain / Loteria Română / casino / bonus",
+      "hook": "Loteria Română / casino / bonus",
+      "asks_for": [
+        "personal data",
+        "card",
+        "numar card",
+        "număr card",
+        "date card",
+        "deposit",
+        "parola",
+        "parolă",
+        "password"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Nu introduceți date bancare, parole, coduri OTP sau date personale.",
+        "Contactați Loteria Română / casino / bonus doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "social ads",
+        "SMS",
+        "WhatsApp",
+        "email"
+      ],
+      "claimed_brand_or_role": "Loteria Română / casino / bonus",
+      "requested_asset": [
+        "personal_data",
+        "card",
+        "deposit",
+        "password"
+      ],
+      "signals": [
+        "LOTTERY_BONUS",
+        "PRIZE_CLAIM",
+        "DEPOSIT_REQUIRED",
+        "PERSONAL_DATA_REQUEST",
+        "UNOFFICIAL_DOMAIN"
+      ],
+      "sources": [
+        "S1"
+      ],
+      "examples": [
+        "«Loteria Română oferă bonus 500 lei. Creează cont și depune 25 lei.» https://loteria-bonus.test",
+        "«Ai câștigat un premiu, plătește taxa de activare.»",
+        "«Cazinou partener Loteria, primești rotiri gratuite după card.»",
+        "«Depune minim 50 lei pentru validarea bonusului.»",
+        "«Premiu neridicat pe numele tău.»",
+        "«Activează bonusul până la miezul nopții.»",
+        "«Completează CNP pentru validarea câștigului.»",
+        "«Trimite poza buletinului pentru ridicare premiu.»",
+        "«Link oficial loteria-ro-bonus.example». ",
+        "«Câștig garantat dacă activezi azi contul.»"
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT/NO_ENTER_DATA",
+      "max_verdict_with_provider_scan": "PERICULOS dacă cere card/depunere pe domeniu neoficial",
+      "acceptance_test_idea": null
+    },
+    {
+      "id": "F21",
+      "title": "Job/task scam / money mule / lucru de acasă",
+      "family": "job_task_money_mule / HR / recruiter / platformă taskuri / firmă globală",
+      "hook": "HR / recruiter / platformă taskuri / firmă globală",
+      "asks_for": [
+        "money transfer",
+        "crypto",
+        "bank account",
+        "identity doc",
+        "card",
+        "numar card",
+        "număr card",
+        "date card",
+        "anydesk",
+        "teamviewer",
+        "control la distanta",
+        "control la distanță"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Nu instalați aplicații și nu permiteți control la distanță.",
+        "Nu introduceți date bancare, parole, coduri OTP sau date personale.",
+        "Contactați HR / recruiter / platformă taskuri / firmă globală doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "WhatsApp",
+        "Telegram",
+        "SMS",
+        "social ads",
+        "phone"
+      ],
+      "claimed_brand_or_role": "HR / recruiter / platformă taskuri / firmă globală",
+      "requested_asset": [
+        "money_transfer",
+        "crypto",
+        "bank_account",
+        "identity_doc",
+        "card",
+        "remote_access"
+      ],
+      "signals": [
+        "JOB_TOO_GOOD",
+        "TASK_COMMISSION",
+        "MOVE_TO_TELEGRAM",
+        "UPFRONT_DEPOSIT",
+        "MONEY_MULE_RISK",
+        "ID_DOC_REQUEST"
+      ],
+      "sources": [
+        "S21",
+        "S1"
+      ],
+      "examples": [
+        "«Câștigă 300 lei/zi dând like la hoteluri. Scrie pe WhatsApp.»",
+        "«Primești 20 lei bonus după primul task. Pentru nivelul 2 depui 100 lei.»",
+        "«Job part-time TikTok, fără experiență, plata zilnică.»",
+        "«Trebuie să activezi contul de lucru cu o depunere de verificare.»",
+        "«Trimite IBAN și buletin pentru contract rapid.»",
+        "«Folosim Telegram pentru training.»",
+        "«Ai blocat profitul, depune încă 500 lei pentru retragere.»",
+        "«Deschide cont bancar și primești bani pe care îi redirecționezi.»",
+        "«Nu spune băncii că lucrezi cu noi, ei blochează comisioanele.»",
+        "«Instalează aplicația noastră de taskuri din link.» APK."
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT",
+      "max_verdict_with_provider_scan": "PERICULOS dacă cere depuneri/crypto/acces cont/card/remote access",
+      "acceptance_test_idea": null
+    },
+    {
+      "id": "F22",
+      "title": "Facturi utilități / telecom / energie false",
+      "family": "utility_billing_phishing / PPC/E.ON/DIGI/Orange/Vodafone/Engie/electricitate/gaze",
+      "hook": "PPC/E.ON/DIGI/Orange/Vodafone/Engie/electricitate/gaze",
+      "asks_for": [
+        "card",
+        "numar card",
+        "număr card",
+        "date card",
+        "cvv",
+        "cvc",
+        "cod cvv",
+        "parola",
+        "parolă",
+        "password",
+        "personal data",
+        "payment"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Nu introduceți date bancare, parole, coduri OTP sau date personale.",
+        "Contactați PPC/E.ON/DIGI/Orange/Vodafone/Engie/electricitate/gaze doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "email",
+        "SMS",
+        "PDF",
+        "QR"
+      ],
+      "claimed_brand_or_role": "PPC/E.ON/DIGI/Orange/Vodafone/Engie/electricitate/gaze",
+      "requested_asset": [
+        "card",
+        "cvv",
+        "password",
+        "personal_data",
+        "payment"
+      ],
+      "signals": [
+        "UTILITY_BILL_CLAIM",
+        "SERVICE_SUSPENSION_THREAT",
+        "PAYMENT_LINK",
+        "UNOFFICIAL_DOMAIN",
+        "CARD_DATA_REQUEST",
+        "PDF_INVOICE"
+      ],
+      "sources": [
+        "S26",
+        "S27",
+        "S28"
+      ],
+      "examples": [
+        "«Factura DIGI restantă 18,50 lei. Plătește pentru a evita suspendarea.» https://digi-plata.test",
+        "«PPC: deconectare programată mâine. Achită online acum.»",
+        "«E.ON: actualizare contract gaz; confirmă CNP și card.»",
+        "«Orange: factura ta a fost respinsă. Reintrodu cardul.»",
+        "«Vodafone: abonamentul se suspendă în 12h.» link neoficial.",
+        "PDF factură cu QR către https://plata-energie.example",
+        "«Compensare energie aprobată, primești bani dacă introduci IBAN/card.»",
+        "«Taxă reconectare 4,99 lei» + formular card/CVV.",
+        "Email cu expeditor generic și link ascuns sub «Plătește factura». ",
+        "SMS: «Ultima avertizare pentru serviciile de internet.» domeniu .invalid."
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT",
+      "max_verdict_with_provider_scan": "PERICULOS dacă domeniu neoficial + card/CVV/login/debitare urgentă",
+      "acceptance_test_idea": null
+    },
+    {
+      "id": "F23",
+      "title": "Ghișeul.ro / amendă / obligație plată falsă",
+      "family": "tax_payment_phishing / Ghișeul.ro / autoritate locală / MAI",
+      "hook": "Ghișeul.ro / autoritate locală / MAI",
+      "asks_for": [
+        "card",
+        "numar card",
+        "număr card",
+        "date card",
+        "cnp",
+        "parola",
+        "parolă",
+        "password",
+        "personal data",
+        "payment"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Nu introduceți date bancare, parole, coduri OTP sau date personale.",
+        "Contactați Ghișeul.ro / autoritate locală / MAI doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "SMS",
+        "email",
+        "QR",
+        "PDF"
+      ],
+      "claimed_brand_or_role": "Ghișeul.ro / autoritate locală / MAI",
+      "requested_asset": [
+        "card",
+        "cnp",
+        "password",
+        "personal_data",
+        "payment"
+      ],
+      "signals": [
+        "GHISEUL_PAYMENT_OBLIGATION_SMS",
+        "FINE_PAYMENT_CLAIM",
+        "UNOFFICIAL_DOMAIN",
+        "CARD_DATA_REQUEST",
+        "CNP_REQUEST"
+      ],
+      "sources": [
+        "S25"
+      ],
+      "examples": [
+        "«Aveți amendă restantă. Plătiți pe Ghișeul.ro până azi: https://ghiseul-plata.test»",
+        "«Obligație fiscală nouă. Verifică aici.» link .example.",
+        "«Taxă locală neachitată, penalități în 24h.»",
+        "«Autentifică-te pentru a evita poprirea.» domeniu neoficial.",
+        "«Plata amenzii rutiere se reduce 50% dacă plătiți azi.»",
+        "Email: «Notificare obligații de plată» cu buton ascuns.",
+        "PDF: «Proces verbal contravenție» + QR către domeniu .test.",
+        "«Actualizați datele personale pentru contul Ghișeul.ro.»",
+        "«Solicitați date acces» pe domeniu care nu este ghiseul.ro.",
+        "«Verificați CNP-ul și cardul pentru plata rapidă.»"
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT",
+      "max_verdict_with_provider_scan": "PERICULOS dacă link neoficial + date card/login/CNP",
+      "acceptance_test_idea": null
+    },
+    {
+      "id": "F24",
+      "title": "QR phishing / quishing / cod lipit peste cod real",
+      "family": "qr_phishing / restaurant/parcare/curier/plată/meniu/eveniment",
+      "hook": "restaurant/parcare/curier/plată/meniu/eveniment",
+      "asks_for": [
+        "card",
+        "numar card",
+        "număr card",
+        "date card",
+        "payment",
+        "personal data",
+        "login",
+        "apk"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Nu introduceți date bancare, parole, coduri OTP sau date personale.",
+        "Contactați restaurant/parcare/curier/plată/meniu/eveniment doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "QR",
+        "image/OCR",
+        "poster",
+        "email",
+        "PDF"
+      ],
+      "claimed_brand_or_role": "restaurant/parcare/curier/plată/meniu/eveniment",
+      "requested_asset": [
+        "card",
+        "payment",
+        "personal_data",
+        "login",
+        "apk"
+      ],
+      "signals": [
+        "QR_DESTINATION_HIDDEN",
+        "PAYMENT_QR",
+        "UNOFFICIAL_DOMAIN",
+        "CARD_DATA_REQUEST",
+        "APK_DOWNLOAD",
+        "BRAND_CLAIM"
+      ],
+      "sources": [
+        "S1",
+        "S34"
+      ],
+      "examples": [
+        "QR pe afiș: «Plătește parcarea» -> https://parcare-plata.test/card",
+        "QR pe masă restaurant: meniu -> domeniu necunoscut care cere card pentru Wi-Fi.",
+        "QR pe aviz curier: «ridică colet» -> https://locker-claim.example",
+        "QR în PDF ANAF fals -> https://spv-qr.invalid",
+        "QR pe poster «voucher eMAG» -> domeniu .test.",
+        "QR «descarcă aplicația bancară» -> .apk.",
+        "QR «plată amendă rapidă» -> ghiseul lookalike.",
+        "QR pe eveniment: «bilet gratuit» + formular card.",
+        "QR pe colet: «confirmă livrarea» + cod WhatsApp.",
+        "QR în e-mail marketing — trebuie verificat, nu periculos singur."
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT",
+      "max_verdict_with_provider_scan": "PERICULOS dacă QR duce la domeniu neoficial + card/login/APK/brand impersonation",
+      "acceptance_test_idea": null
+    },
+    {
+      "id": "F25",
+      "title": "Romance / relație / ajutor financiar / militar/doctor străin",
+      "family": "romance_advance_fee / persoană romantică / militar / medic / investitor",
+      "hook": "persoană romantică / militar / medic / investitor",
+      "asks_for": [
+        "money transfer",
+        "gift card",
+        "crypto",
+        "personal data"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Contactați persoană romantică / militar / medic / investitor doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "social",
+        "WhatsApp",
+        "email",
+        "phone"
+      ],
+      "claimed_brand_or_role": "persoană romantică / militar / medic / investitor",
+      "requested_asset": [
+        "money_transfer",
+        "gift_card",
+        "crypto",
+        "personal_data"
+      ],
+      "signals": [
+        "ROMANCE_HOOK",
+        "LONG_CON_TRUST_BUILD",
+        "EMERGENCY_MONEY_REQUEST",
+        "GIFT_CARD_REQUEST",
+        "AVOIDS_VERIFICATION"
+      ],
+      "sources": [
+        "S1",
+        "S21"
+      ],
+      "examples": [
+        "«Sunt medic în misiune și am nevoie de bani pentru bilet.»",
+        "«Te iubesc, dar contul meu e blocat. Poți trimite 300 euro?»",
+        "«Am un pachet la vamă pentru tine, plătește taxa.»",
+        "«Cumpără carduri cadou și trimite codurile.»",
+        "«Nu pot face video call din cauza securității misiunii.»",
+        "«Am moștenire blocată, trebuie taxă notar.»",
+        "«Investim împreună în crypto, îți arăt eu platforma.»",
+        "«Trimite poza buletinului pentru rezervarea biletului.»",
+        "«Dacă nu trimiți acum, pierd contractul.»",
+        "«Nu spune familiei, nu vor înțelege relația noastră.»"
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT",
+      "max_verdict_with_provider_scan": "PERICULOS dacă cere bani/vouchere/crypto sau date bancare",
+      "acceptance_test_idea": null
+    },
+    {
+      "id": "MINOR_001_PARKING_QR_QUISHING",
+      "title": "QR fals pe parcometre / plată parcare",
+      "family": "minor/MINOR_001_PARKING_QR_QUISHING / None",
+      "hook": "",
+      "asks_for": [
+        "card number",
+        "cvv",
+        "cvc",
+        "cod cvv",
+        "expiry",
+        "vehicle plate"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Nu introduceți date bancare, parole, coduri OTP sau date personale.",
+        "Contactați instituția invocată doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "QR",
+        "web form",
+        "card payment page"
+      ],
+      "claimed_brand_or_role": null,
+      "requested_asset": [
+        "card_number",
+        "cvv",
+        "expiry",
+        "vehicle_plate"
+      ],
+      "signals": [
+        "QR_PAYMENT_CONTEXT",
+        "PARKING_QR_ON_STREET_OBJECT",
+        "CARD_FORM_DETECTED",
+        "OFFICIAL_DOMAIN_MISMATCH",
+        "PHYSICAL_QR_STICKER_RISK"
+      ],
+      "sources": [
+        "src_pmb_parking_qr_buletin"
+      ],
+      "examples": [
+        {
+          "example_id": "PARKQR-01",
+          "channel": "QR",
+          "sample_text": "Parcare Sector 1 — scanează pentru plată rapidă: https://parcare-bucuresti-pay.test/p/RO-B-4821",
+          "expected_targets": [
+            "parcare-bucuresti-pay.test"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "PARKQR-02",
+          "channel": "QR",
+          "sample_text": "Plată parcare online. Introdu numărul auto și cardul: https://cmpb-plati-rapide.example/qr",
+          "expected_targets": [
+            "cmpb-plati-rapide.example"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "PARKQR-03",
+          "channel": "QR",
+          "sample_text": "Ai 10 minute să achiți parcarea pentru a evita sancțiunea: https://parking-romania-secure.test/pay",
+          "expected_targets": [
+            "parking-romania-secure.test"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "PARKQR-04",
+          "channel": "QR",
+          "sample_text": "Parcare București — confirmă cardul pentru activarea tichetului: https://pay-park-buc.invalid/start",
+          "expected_targets": [
+            "pay-park-buc.invalid"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "PARKQR-05",
+          "channel": "QR",
+          "sample_text": "Achită 3.00 RON pentru parcarea curentă: https://smartparking-bucuresti.test/checkout",
+          "expected_targets": [
+            "smartparking-bucuresti.test"
+          ],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "PARKQR-06",
+          "channel": "QR",
+          "sample_text": "Scanare parcometru: card, CVC, expirare pentru autorizare: https://parkmetru-pay.example/card",
+          "expected_targets": [
+            "parkmetru-pay.example"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "PARKQR-07",
+          "channel": "QR",
+          "sample_text": "Zona 0 București — confirmă plata în aplicație: https://bucuresti-parking-app.invalid/install",
+          "expected_targets": [
+            "bucuresti-parking-app.invalid"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "PARKQR-08",
+          "channel": "QR",
+          "sample_text": "Ticket parcare expirat. Plătește acum penalitatea: https://parking-alerts-romania.test",
+          "expected_targets": [
+            "parking-alerts-romania.test"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "PARKQR-09",
+          "channel": "QR",
+          "sample_text": "Parcare — autentifică-te cu SMS primit de la bancă: https://parcare-validare-card.example",
+          "expected_targets": [
+            "parcare-validare-card.example"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "PARKQR-10",
+          "channel": "QR",
+          "sample_text": "Info parcare oficial: verifică tariful pe site-ul primăriei.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        }
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT",
+      "max_verdict_with_provider_scan": "PERICULOS",
+      "acceptance_test_idea": "Sticker QR lipit peste sau lângă zona de plată. Userul ajunge pe o pagină care imită interfața de plată a parcării și cere card/CVC; plata reală nu se procesează."
+    },
+    {
+      "id": "MINOR_002_GHISEUL_TRAFFIC_FINE_SMS",
+      "title": "Amenzi false / Ghișeul.ro / autorități rutiere",
+      "family": "minor/MINOR_002_GHISEUL_TRAFFIC_FINE_SMS / None",
+      "hook": "",
+      "asks_for": [
+        "vehicle plate",
+        "card number",
+        "cvv",
+        "cvc",
+        "cod cvv",
+        "personal data"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Nu introduceți date bancare, parole, coduri OTP sau date personale.",
+        "Contactați instituția invocată doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "SMS",
+        "iMessage",
+        "web form"
+      ],
+      "claimed_brand_or_role": null,
+      "requested_asset": [
+        "vehicle_plate",
+        "card_number",
+        "cvv",
+        "personal_data"
+      ],
+      "signals": [
+        "FAKE_TRAFFIC_FINE",
+        "GHISEUL_IMPERSONATION",
+        "VEHICLE_PLATE_REQUEST",
+        "CARD_FORM_DETECTED",
+        "URGENCY_LANGUAGE"
+      ],
+      "sources": [
+        "src_mti_amenzi_sms",
+        "src_dnsc_ghiseul_via_agerpres"
+      ],
+      "examples": [
+        {
+          "example_id": "FINE-01",
+          "channel": "SMS",
+          "sample_text": "Ghișeul.ro: aveți o amendă restantă de 150 RON. Achitați azi pentru a evita penalități: https://ghiseul-plata-amenzi.test",
+          "expected_targets": [
+            "ghiseul-plata-amenzi.test"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "FINE-02",
+          "channel": "SMS",
+          "sample_text": "MTI: încălcări trafic asociate vehiculului dvs. Verificați nr. de înmatriculare: https://mti-verificare-auto.example",
+          "expected_targets": [
+            "mti-verificare-auto.example"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "FINE-03",
+          "channel": "iMessage",
+          "sample_text": "Atenție! Penalizare +30% dacă nu achitați amenda în 24h: https://plati-contraventii-ro.invalid",
+          "expected_targets": [
+            "plati-contraventii-ro.invalid"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "FINE-04",
+          "channel": "SMS",
+          "sample_text": "Amenda auto identificată. Introduceți numărul de înmatriculare pentru detalii: https://ghiseu-ro-alert.test",
+          "expected_targets": [
+            "ghiseu-ro-alert.test"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "FINE-05",
+          "channel": "SMS",
+          "sample_text": "Autoritate Rutieră: sancțiune emisă. Plata rapidă card: https://rutier-plata.example/pay",
+          "expected_targets": [
+            "rutier-plata.example"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "FINE-06",
+          "channel": "SMS",
+          "sample_text": "Ghișeul: contul are obligații restante. Acces: https://ghiseulro-plati.invalid/start",
+          "expected_targets": [
+            "ghiseulro-plati.invalid"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "FINE-07",
+          "channel": "SMS",
+          "sample_text": "Ultima notificare pentru amendă 150 lei. Neplata duce la suspendare: https://amenda-auto-verificare.test",
+          "expected_targets": [
+            "amenda-auto-verificare.test"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "FINE-08",
+          "channel": "SMS",
+          "sample_text": "Portal Plăți Publice: plătiți aici: https://portal-plati-ro.example/card",
+          "expected_targets": [
+            "portal-plati-ro.example"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "FINE-09",
+          "channel": "SMS",
+          "sample_text": "Pentru anularea penalizării introduceți CNP și card: https://ghiseu-verificare.invalid",
+          "expected_targets": [
+            "ghiseu-verificare.invalid"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "FINE-10",
+          "channel": "Text paste",
+          "sample_text": "Am primit link pentru amendă, dar domeniul e ghiseul.ro și l-am introdus manual în browser.",
+          "expected_targets": [
+            "ghiseul.ro"
+          ],
+          "suggested_expected_verdict": "SIGUR"
+        }
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT",
+      "max_verdict_with_provider_scan": "PERICULOS",
+      "acceptance_test_idea": "SMS alarmist care pretinde amendă restantă sau încălcări de circulație; userul este dus pe pagină care cere număr de înmatriculare, apoi sumă rapidă și card."
+    },
+    {
+      "id": "MINOR_003_ROVINIETA_CNAIR_SMS",
+      "title": "Rovinietă / taxă drum falsă prin SMS",
+      "family": "minor/MINOR_003_ROVINIETA_CNAIR_SMS / None",
+      "hook": "",
+      "asks_for": [
+        "vehicle plate",
+        "card number",
+        "cvv",
+        "cvc",
+        "cod cvv",
+        "personal data"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Nu introduceți date bancare, parole, coduri OTP sau date personale.",
+        "Contactați instituția invocată doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "SMS",
+        "email"
+      ],
+      "claimed_brand_or_role": null,
+      "requested_asset": [
+        "vehicle_plate",
+        "card_number",
+        "cvv",
+        "personal_data"
+      ],
+      "signals": [
+        "ROVINIETA_FEE_CLAIM",
+        "CNAIR_IMPERSONATION",
+        "THREAT_OF_FINE_OR_CONFISCATION",
+        "CARD_FORM_DETECTED"
+      ],
+      "sources": [
+        "src_dnsc_rovinieta_via_ziarulunirea"
+      ],
+      "examples": [
+        {
+          "example_id": "ROV-01",
+          "channel": "SMS",
+          "sample_text": "CNAIR: rovinietă restantă. Plata urgentă previne amenda: https://cnair-taxare-drum.test",
+          "expected_targets": [
+            "cnair-taxare-drum.test"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "ROV-02",
+          "channel": "SMS",
+          "sample_text": "Taxă de drum neachitată pentru vehiculul dvs. Achitați 19.99 RON: https://rovinieta-plata.example",
+          "expected_targets": [
+            "rovinieta-plata.example"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "ROV-03",
+          "channel": "SMS",
+          "sample_text": "Ultima avertizare: confiscare vehicul posibilă dacă nu plătiți: https://taxa-drum-ro.invalid",
+          "expected_targets": [
+            "taxa-drum-ro.invalid"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "ROV-04",
+          "channel": "SMS",
+          "sample_text": "Verificare rovinietă — introduceți cardul pentru confirmare: https://e-rovinieta-card.test",
+          "expected_targets": [
+            "e-rovinieta-card.test"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "ROV-05",
+          "channel": "Email",
+          "sample_text": "Factura rovinietă atașată. Pentru anulare accesați: https://cnadnr-plata.example",
+          "expected_targets": [
+            "cnadnr-plata.example"
+          ],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "ROV-06",
+          "channel": "SMS",
+          "sample_text": "Vehiculul AB12XYZ are restanță. Plătește până la 18:00: https://e-taxadedeum.invalid",
+          "expected_targets": [
+            "e-taxadedeum.invalid"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "ROV-07",
+          "channel": "SMS",
+          "sample_text": "CNAIR-notificare: date card necesare pentru taxă drum: https://cnair-secure-pay.test",
+          "expected_targets": [
+            "cnair-secure-pay.test"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "ROV-08",
+          "channel": "SMS",
+          "sample_text": "Rovinieta expiră curând. Verificați în aplicația sau site-ul oficial.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "ROV-09",
+          "channel": "SMS",
+          "sample_text": "Amendă rovinietă emisă automat. Achită 120 lei aici: https://amenda-rovinieta.example/pay",
+          "expected_targets": [
+            "amenda-rovinieta.example"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "ROV-10",
+          "channel": "Text",
+          "sample_text": "Utilizator întreabă: am primit SMS cu link scurt bit.ly pentru rovinietă.",
+          "expected_targets": [
+            "bit.ly"
+          ],
+          "suggested_expected_verdict": "SUSPECT"
+        }
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT",
+      "max_verdict_with_provider_scan": "PERICULOS",
+      "acceptance_test_idea": "Mesajul pretinde restanță rovinietă sau taxă drum, amenință cu amendă/confiscare și trimite spre un link de plată. Conform avertizării citate, CNAIR nu trimite SMS-uri cu linkuri de plată și nu cere date bancare/personale prin SMS."
+    },
+    {
+      "id": "MINOR_004_OSIM_TRADEMARK_FEE_EMAIL",
+      "title": "OSIM / taxă marcă / menținere marcă prin email nesolicitat",
+      "family": "minor/MINOR_004_OSIM_TRADEMARK_FEE_EMAIL / None",
+      "hook": "",
+      "asks_for": [
+        "bank transfer",
+        "iban",
+        "invoice payment",
+        "company data"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Nu introduceți date bancare, parole, coduri OTP sau date personale.",
+        "Contactați instituția invocată doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "email",
+        "PDF attachment"
+      ],
+      "claimed_brand_or_role": null,
+      "requested_asset": [
+        "bank_transfer",
+        "iban",
+        "invoice_payment",
+        "company_data"
+      ],
+      "signals": [
+        "OSIM_IMPERSONATION",
+        "UNSOLICITED_TRADEMARK_FEE",
+        "EXTERNAL_IBAN",
+        "PDF_INVOICE_PRESSURE"
+      ],
+      "sources": [
+        "src_osim_agerpres"
+      ],
+      "examples": [
+        {
+          "example_id": "OSIM-01",
+          "channel": "Email",
+          "sample_text": "Subiect: Notificare urgentă OSIM — taxa de menținere marcă expiră azi. IBAN: RO00 TEST 0000 0000 0000",
+          "expected_targets": [],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "OSIM-02",
+          "channel": "Email",
+          "sample_text": "Vă rugăm achitați taxa pentru marca dvs. în contul partenerului extern indicat în anexă.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "OSIM-03",
+          "channel": "PDF",
+          "sample_text": "Factura menținere marcă — neplata atrage anularea protecției. Plată prin transfer bancar urgent.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "OSIM-04",
+          "channel": "Email",
+          "sample_text": "Oficiul mărci: documentele dvs. sunt atașate, descărcați: https://osim-registry-payment.test/file",
+          "expected_targets": [
+            "osim-registry-payment.test"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "OSIM-05",
+          "channel": "Email",
+          "sample_text": "Taxă marcă 2026. Domeniu expeditor: osim-taxe.example, link plată card.",
+          "expected_targets": [
+            "osim-taxe.example"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "OSIM-06",
+          "channel": "Email",
+          "sample_text": "Ultima notificare înainte de radierea mărcii. Achitați până la ora 17:00.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "OSIM-07",
+          "channel": "Email",
+          "sample_text": "Registru European Mărci România — confirmă card firma: https://brand-protect-ro.invalid",
+          "expected_targets": [
+            "brand-protect-ro.invalid"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "OSIM-08",
+          "channel": "Email",
+          "sample_text": "OSIM: accesați procedura oficială pe osim.ro din browser, fără link de plată în email.",
+          "expected_targets": [
+            "osim.ro"
+          ],
+          "suggested_expected_verdict": "SIGUR"
+        },
+        {
+          "example_id": "OSIM-09",
+          "channel": "Email",
+          "sample_text": "Plată taxă menținere marcă către cont personal. Atașament invoice.docm",
+          "expected_targets": [],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "OSIM-10",
+          "channel": "Email",
+          "sample_text": "Reminder marcă: verificați statusul în contul oficial OSIM. Fără cerere de plată în mesaj.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SIGUR"
+        }
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT",
+      "max_verdict_with_provider_scan": "PERICULOS",
+      "acceptance_test_idea": "Email care imită OSIM sau un registru de mărci și cere plată urgentă într-un cont extern pentru menținerea/protecția unei mărci; poate include PDF cu antet și amenințări."
+    },
+    {
+      "id": "MINOR_005_SOCIAL_PAGE_OWNERSHIP_PHISH",
+      "title": "Meta/Facebook/Instagram page ownership / copyright / policy appeal phishing",
+      "family": "minor/MINOR_005_SOCIAL_PAGE_OWNERSHIP_PHISH / None",
+      "hook": "",
+      "asks_for": [
+        "parola",
+        "parolă",
+        "password",
+        "otp",
+        "cod otp",
+        "cod sms",
+        "page admin token",
+        "business manager access"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Nu introduceți date bancare, parole, coduri OTP sau date personale.",
+        "Contactați instituția invocată doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "Messenger",
+        "Facebook message",
+        "email",
+        "web form"
+      ],
+      "claimed_brand_or_role": null,
+      "requested_asset": [
+        "password",
+        "otp",
+        "page_admin_token",
+        "business_manager_access"
+      ],
+      "signals": [
+        "SOCIAL_PAGE_OWNERSHIP_CLAIM",
+        "COPYRIGHT_OR_POLICY_THREAT",
+        "FORM_LOGIN_DETECTED",
+        "OTP_REQUEST",
+        "OFFICIAL_DOMAIN_MISMATCH"
+      ],
+      "sources": [
+        "src_social_page_ownership_agerpres"
+      ],
+      "examples": [
+        {
+          "example_id": "SOCIAL-01",
+          "channel": "Messenger",
+          "sample_text": "Pagina ta va fi dezactivată. Confirmă dreptul de proprietate: https://meta-page-verify.test/appeal",
+          "expected_targets": [
+            "meta-page-verify.test"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "SOCIAL-02",
+          "channel": "Email",
+          "sample_text": "Facebook Business: copyright infringement. Completează formularul în 12h: https://business-helpdesk.example",
+          "expected_targets": [
+            "business-helpdesk.example"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "SOCIAL-03",
+          "channel": "Messenger",
+          "sample_text": "Your page has been reported. Login with Facebook to continue: https://fb-support-case.invalid",
+          "expected_targets": [
+            "fb-support-case.invalid"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "SOCIAL-04",
+          "channel": "Email",
+          "sample_text": "Meta Ads: payment disabled. Confirmă parola și codul primit prin SMS.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "SOCIAL-05",
+          "channel": "Messenger",
+          "sample_text": "Am primit avertizare de pagină, dar linkul este facebook.com/business/help.",
+          "expected_targets": [
+            "facebook.com"
+          ],
+          "suggested_expected_verdict": "SIGUR"
+        },
+        {
+          "example_id": "SOCIAL-06",
+          "channel": "Email",
+          "sample_text": "Business Suite Policy — apel respins dacă nu validezi azi: https://meta-policy-ro.test",
+          "expected_targets": [
+            "meta-policy-ro.test"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "SOCIAL-07",
+          "channel": "Messenger",
+          "sample_text": "Confirm Ownership Form: introduceți email, parolă, OTP.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "SOCIAL-08",
+          "channel": "Email",
+          "sample_text": "Pagina dvs. a încălcat standardele comunității. Descărcați documentul .html atașat.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "SOCIAL-09",
+          "channel": "Text",
+          "sample_text": "Client pastează doar: „pagina va fi închisă, verifică aici” fără URL complet.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "SOCIAL-10",
+          "channel": "Email",
+          "sample_text": "Meta notification: verificați direct în aplicația Meta Business Suite. Nu conține link extern.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SIGUR"
+        }
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT",
+      "max_verdict_with_provider_scan": "PERICULOS",
+      "acceptance_test_idea": "Victima admin de pagină primește mesaj aparent oficial despre confirmarea drepturilor de proprietate, copyright, policy violation sau dezactivare; formularul fals colectează parole/OTP/tokenuri și duce la preluarea paginii."
+    },
+    {
+      "id": "MINOR_006_FAKE_DEVICE_BLOCKED_FINE",
+      "title": "Pop-up „dispozitiv blocat” / amendă Poliția Română / DNSC",
+      "family": "minor/MINOR_006_FAKE_DEVICE_BLOCKED_FINE / None",
+      "hook": "",
+      "asks_for": [
+        "card number",
+        "cvv",
+        "cvc",
+        "cod cvv",
+        "money payment",
+        "personal data"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Nu introduceți date bancare, parole, coduri OTP sau date personale.",
+        "Contactați instituția invocată doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "web popup",
+        "browser redirect",
+        "social message"
+      ],
+      "claimed_brand_or_role": null,
+      "requested_asset": [
+        "card_number",
+        "cvv",
+        "money_payment",
+        "personal_data"
+      ],
+      "signals": [
+        "DEVICE_BLOCKED_CLAIM",
+        "POLICE_DNSC_IMPERSONATION",
+        "FAKE_FINE_PAYMENT",
+        "ADULT_SITE_SHAME_PRESSURE",
+        "CARD_FORM_DETECTED"
+      ],
+      "sources": [
+        "src_dnsc_politia_popup_agerpres"
+      ],
+      "examples": [
+        {
+          "example_id": "POPUP-01",
+          "channel": "HTML",
+          "sample_text": "DISPOZITIV BLOCAT. Plătiți amenda 2500 RON pentru deblocare: https://politia-romana-amenda.test",
+          "expected_targets": [
+            "politia-romana-amenda.test"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "POPUP-02",
+          "channel": "web popup",
+          "sample_text": "DNSC: activitate ilegală detectată. Card necesar pentru proces-verbal.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "POPUP-03",
+          "channel": "URL",
+          "sample_text": "https://dnsc-unlock-device.example/pay",
+          "expected_targets": [
+            "dnsc-unlock-device.example"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "POPUP-04",
+          "channel": "HTML",
+          "sample_text": "Camera dvs. a fost activată. Plată în 15 minute.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "POPUP-05",
+          "channel": "SMS",
+          "sample_text": "Poliția: dispozitiv asociat cu conținut ilegal. Achită aici: https://amenda-online.invalid",
+          "expected_targets": [
+            "amenda-online.invalid"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "POPUP-06",
+          "channel": "web",
+          "sample_text": "Avertizare sistem: pentru a evita dosarul penal, introduceți cardul.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "POPUP-07",
+          "channel": "web",
+          "sample_text": "Pop-up educațional DNSC pe dnsc.ro, fără cerere de plată.",
+          "expected_targets": [
+            "dnsc.ro"
+          ],
+          "suggested_expected_verdict": "SIGUR"
+        },
+        {
+          "example_id": "POPUP-08",
+          "channel": "HTML",
+          "sample_text": "Autoritate Europeană: plătiți amendă prin crypto QR.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "POPUP-09",
+          "channel": "web",
+          "sample_text": "Dispozitiv blocat temporar. Deblocare prin voucher Paysafecard.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "POPUP-10",
+          "channel": "web",
+          "sample_text": "Browser warning legit despre site nesigur, fără plată.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        }
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT",
+      "max_verdict_with_provider_scan": "PERICULOS",
+      "acceptance_test_idea": "Pagina/popup spune că dispozitivul este blocat pentru conținut ilegal și cere plata unei amenzi urgente, de obicei cu logo Poliția/DNSC; se bazează pe rușine și panică."
+    },
+    {
+      "id": "MINOR_007_FAKE_TICKETS_EVENTS",
+      "title": "Bilete false la concerte, festivaluri, sport, Revelion",
+      "family": "minor/MINOR_007_FAKE_TICKETS_EVENTS / None",
+      "hook": "",
+      "asks_for": [
+        "money transfer",
+        "card number",
+        "crypto",
+        "revolut transfer"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Contactați instituția invocată doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "Facebook groups",
+        "social ads",
+        "Messenger",
+        "web shop",
+        "PDF ticket"
+      ],
+      "claimed_brand_or_role": null,
+      "requested_asset": [
+        "money_transfer",
+        "card_number",
+        "crypto",
+        "revolut_transfer"
+      ],
+      "signals": [
+        "FAKE_EVENT_TICKET",
+        "URGENT_TRANSFER",
+        "SCREENSHOT_TICKET_RISK",
+        "SOCIAL_PROFILE_NEW",
+        "PAYMENT_OUTSIDE_PLATFORM"
+      ],
+      "sources": [
+        "src_tickets_euronews_dnsc",
+        "src_libra_ticket_scam"
+      ],
+      "examples": [
+        {
+          "example_id": "TICKET-01",
+          "channel": "Messenger",
+          "sample_text": "Vând 2 bilete sold-out la concert. Transfer rapid Revolut și îți trimit QR print-screen.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "TICKET-02",
+          "channel": "Facebook ad",
+          "sample_text": "Bilete Metallica 70% reducere azi: https://tickets-romania-live.test",
+          "expected_targets": [
+            "tickets-romania-live.test"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "TICKET-03",
+          "channel": "SMS",
+          "sample_text": "Ai câștigat acces gratuit, achită taxa procesare 9.99 lei: https://free-concert-pass.example",
+          "expected_targets": [
+            "free-concert-pass.example"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "TICKET-04",
+          "channel": "Messenger",
+          "sample_text": "Am bilet PDF, dar accept doar transfer instant înainte să-l trimit.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "TICKET-05",
+          "channel": "Email",
+          "sample_text": "Platformă ticketing oficială, domeniu oficial, fără cerere date sensibile în email.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SIGUR"
+        },
+        {
+          "example_id": "TICKET-06",
+          "channel": "Facebook group",
+          "sample_text": "Last minute Revelion, 80 lei, plătiți în crypto pentru rezervare.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "TICKET-07",
+          "channel": "URL",
+          "sample_text": "https://eventim-romania-voucher.invalid/pay",
+          "expected_targets": [
+            "eventim-romania-voucher.invalid"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "TICKET-08",
+          "channel": "Messenger",
+          "sample_text": "Admin grup verificat? profil creat ieri, cerere avans 50%.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "TICKET-09",
+          "channel": "PDF",
+          "sample_text": "Bilet cu QR primit ca imagine, fără transfer prin platformă.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "TICKET-10",
+          "channel": "Email",
+          "sample_text": "Confirmare comandă din platformă autorizată, fără atașament executabil, domeniu oficial.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SIGUR"
+        }
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT",
+      "max_verdict_with_provider_scan": "PERICULOS",
+      "acceptance_test_idea": "Profiluri/pagini/grupuri nou-create vând bilete inexistente, duplicate, print-screen sau evenimente inexistente. De obicei cer plată rapidă, transfer instant, Revolut/crypto, apoi trimit PDF/QR invalid."
+    },
+    {
+      "id": "MINOR_008_VACATION_ACCOMMODATION_FAKE",
+      "title": "Cazare/vacanță falsă, site clonă, avans off-platform",
+      "family": "minor/MINOR_008_VACATION_ACCOMMODATION_FAKE / None",
+      "hook": "",
+      "asks_for": [
+        "money transfer",
+        "card number",
+        "personal data",
+        "passport scan"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Contactați instituția invocată doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "Facebook",
+        "WhatsApp",
+        "classifieds",
+        "email",
+        "booking platform messages"
+      ],
+      "claimed_brand_or_role": null,
+      "requested_asset": [
+        "money_transfer",
+        "card_number",
+        "personal_data",
+        "passport_scan"
+      ],
+      "signals": [
+        "VACATION_TOO_GOOD_TO_BE_TRUE",
+        "OFF_PLATFORM_PAYMENT_REQUEST",
+        "ACCOMMODATION_ADVANCE",
+        "BOOKING_CLONE_LINK",
+        "WHATSAPP_MOVED_CONVERSATION"
+      ],
+      "sources": [
+        "src_vacation_dnsc_fb",
+        "src_booking_reddit_noisy"
+      ],
+      "examples": [
+        {
+          "example_id": "VAC-01",
+          "channel": "WhatsApp",
+          "sample_text": "Bună, apartamentul este liber. Trimite 500 lei avans acum și îți blochez datele.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "VAC-02",
+          "channel": "Facebook ad",
+          "sample_text": "Cazare Mamaia 99 lei/noapte, rezervă aici: https://vacante-litoral-ieftin.test",
+          "expected_targets": [
+            "vacante-litoral-ieftin.test"
+          ],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "VAC-03",
+          "channel": "Email",
+          "sample_text": "Booking: confirmă cardul pentru a nu pierde rezervarea: https://booking-confirmare.example",
+          "expected_targets": [
+            "booking-confirmare.example"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "VAC-04",
+          "channel": "WhatsApp",
+          "sample_text": "Nu plăti pe platformă, îți fac reducere dacă trimiți direct în cont.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "VAC-05",
+          "channel": "SMS",
+          "sample_text": "Rezervarea ta expiră în 15 minute. Card necesar: https://hotel-payment.invalid",
+          "expected_targets": [
+            "hotel-payment.invalid"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "VAC-06",
+          "channel": "Facebook",
+          "sample_text": "Oferta pare reală, dar pagina are zero review-uri și cere avans integral.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "VAC-07",
+          "channel": "Email",
+          "sample_text": "Unitatea te roagă să verifici doar în aplicația oficială Booking/Airbnb.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SIGUR"
+        },
+        {
+          "example_id": "VAC-08",
+          "channel": "WhatsApp",
+          "sample_text": "Trimite poză buletin + card față/spate pentru garanție.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "VAC-09",
+          "channel": "URL",
+          "sample_text": "https://airbnb-romania-secure.test/reservation",
+          "expected_targets": [
+            "airbnb-romania-secure.test"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "VAC-10",
+          "channel": "Text",
+          "sample_text": "Cazare cu plată rambursabilă prin platforma recunoscută, fără link extern.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SIGUR"
+        }
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT",
+      "max_verdict_with_provider_scan": "PERICULOS",
+      "acceptance_test_idea": "Cazare prea ieftină sau foarte urgentă; cere avans prin transfer, comunicare pe WhatsApp în afara platformei, link clonă sau documente false. Există și compromise ale canalelor de comunicare la hotel/platformă."
+    },
+    {
+      "id": "MINOR_009_RENTAL_AIRBNB_SUBLET_STUDENT",
+      "title": "Chirie falsă / apartament Airbnb relistat / garanție pentru studenți",
+      "family": "minor/MINOR_009_RENTAL_AIRBNB_SUBLET_STUDENT / None",
+      "hook": "",
+      "asks_for": [
+        "money transfer",
+        "iban",
+        "personal data",
+        "id scan"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Nu introduceți date bancare, parole, coduri OTP sau date personale.",
+        "Contactați instituția invocată doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "OLX-like classifieds",
+        "Facebook groups",
+        "WhatsApp",
+        "email"
+      ],
+      "claimed_brand_or_role": null,
+      "requested_asset": [
+        "money_transfer",
+        "iban",
+        "personal_data",
+        "id_scan"
+      ],
+      "signals": [
+        "RENTAL_ADVANCE_BEFORE_VIEWING",
+        "FAKE_OWNER_DOCUMENTS",
+        "AIRBNB_RELIST_PATTERN",
+        "STUDENT_URGENCY_SEASON",
+        "OFF_PLATFORM_PAYMENT_REQUEST"
+      ],
+      "sources": [
+        "src_airbnb_rental_snoop"
+      ],
+      "examples": [
+        {
+          "example_id": "RENT-01",
+          "channel": "WhatsApp",
+          "sample_text": "Am mulți doritori. Trimite garanția azi și îți rezerv apartamentul.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "RENT-02",
+          "channel": "Classified",
+          "sample_text": "Garsonieră ultracentral 250 euro, poze perfecte, plata garanției înainte de vizionare.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "RENT-03",
+          "channel": "Email",
+          "sample_text": "Contract atașat. Semnează și plătește IBAN înainte să vezi apartamentul.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "RENT-04",
+          "channel": "WhatsApp",
+          "sample_text": "Nu sunt în țară, trimit cheile prin curier după avans.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "RENT-05",
+          "channel": "URL",
+          "sample_text": "https://inchirieri-studenti-cluj.test/reserva",
+          "expected_targets": [
+            "inchirieri-studenti-cluj.test"
+          ],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "RENT-06",
+          "channel": "WhatsApp",
+          "sample_text": "Trimite CNP + poză buletin pentru precontract, apoi garanție.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "RENT-07",
+          "channel": "Text",
+          "sample_text": "Apartament vizionat, contract verificat, plată după semnare.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SIGUR"
+        },
+        {
+          "example_id": "RENT-08",
+          "channel": "Messenger",
+          "sample_text": "Pozele apar și pe Airbnb, dar vânzătorul cere plata în cont personal.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "RENT-09",
+          "channel": "WhatsApp",
+          "sample_text": "Ai reducere dacă plătești 2 luni în avans până diseară.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "RENT-10",
+          "channel": "Email",
+          "sample_text": "Proprietar trimite documente neclare și refuză apel video/vizionare.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        }
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT",
+      "max_verdict_with_provider_scan": "PERICULOS",
+      "acceptance_test_idea": "Proprietar-fantomă relistează un apartament real de pe Airbnb/altă platformă pe site-uri de anunțuri, folosește acte false și cere garanție/avans înainte de contract/notar/vizită reală."
+    },
+    {
+      "id": "MINOR_010_TASK_JOB_SCAM",
+      "title": "Job/task scam WhatsApp/Telegram — like-uri, review-uri, task-uri",
+      "family": "minor/MINOR_010_TASK_JOB_SCAM / None",
+      "hook": "",
+      "asks_for": [
+        "money transfer",
+        "crypto",
+        "personal data",
+        "bank account",
+        "anydesk",
+        "teamviewer",
+        "control la distanta",
+        "control la distanță"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Nu instalați aplicații și nu permiteți control la distanță.",
+        "Contactați instituția invocată doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "WhatsApp",
+        "Telegram",
+        "SMS",
+        "social ads"
+      ],
+      "claimed_brand_or_role": null,
+      "requested_asset": [
+        "money_transfer",
+        "crypto",
+        "personal_data",
+        "bank_account",
+        "remote_access"
+      ],
+      "signals": [
+        "UNSOLICITED_JOB_OFFER",
+        "TASK_FOR_MONEY",
+        "PAY_TO_GET_PAID",
+        "WHATSAPP_TELEGRAM_RECRUITER",
+        "CRYPTO_DEPOSIT_REQUEST"
+      ],
+      "sources": [
+        "src_task_scam_ftc",
+        "src_job_evz_ecc"
+      ],
+      "examples": [
+        {
+          "example_id": "TASK-01",
+          "channel": "WhatsApp",
+          "sample_text": "Bună, sunt Amelia HR. Vrei un job flexibil online? 300-800 lei/zi pentru review-uri.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "TASK-02",
+          "channel": "Telegram",
+          "sample_text": "Finalizează 3 task-uri și primești bonus. Pentru nivelul 2 depune 100 lei.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "TASK-03",
+          "channel": "SMS",
+          "sample_text": "Lucru de acasă, fără experiență. Detalii pe WhatsApp: +40 XXX.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "TASK-04",
+          "channel": "WhatsApp",
+          "sample_text": "Pentru retragere trebuie să alimentezi contul cu 250 lei.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "TASK-05",
+          "channel": "URL",
+          "sample_text": "https://work-from-home-romania.test/tasks",
+          "expected_targets": [
+            "work-from-home-romania.test"
+          ],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "TASK-06",
+          "channel": "WhatsApp",
+          "sample_text": "Compania noastră e partener Booking. Dai rating la hoteluri și câștigi.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "TASK-07",
+          "channel": "Telegram",
+          "sample_text": "Ai sold 750 lei blocat, plătește taxa de activare.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "TASK-08",
+          "channel": "Email",
+          "sample_text": "Aplicare job pe site oficial companie, fără taxă, domeniu verificat.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SIGUR"
+        },
+        {
+          "example_id": "TASK-09",
+          "channel": "WhatsApp",
+          "sample_text": "Nu spune nimănui despre platformă, e ofertă internă.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "TASK-10",
+          "channel": "Telegram",
+          "sample_text": "Primești plata în USDT după ce cumperi pachetul VIP.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "PERICULOS"
+        }
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT",
+      "max_verdict_with_provider_scan": "PERICULOS",
+      "acceptance_test_idea": "Mesaj nesolicitat de la recruiter; promite bani rapizi pentru like-uri, review-uri, rezervări, testare aplicații. Victima primește mici sume, apoi trebuie să depună bani ca să deblocheze câștiguri."
+    },
+    {
+      "id": "MINOR_011_ROMANCE_SCAM",
+      "title": "Romance scam / relație online / ajutor financiar urgent",
+      "family": "minor/MINOR_011_ROMANCE_SCAM / None",
+      "hook": "",
+      "asks_for": [
+        "money transfer",
+        "gift cards",
+        "crypto",
+        "personal data",
+        "bank account access"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Contactați instituția invocată doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "dating apps",
+        "Facebook",
+        "Instagram",
+        "WhatsApp",
+        "Telegram"
+      ],
+      "claimed_brand_or_role": null,
+      "requested_asset": [
+        "money_transfer",
+        "gift_cards",
+        "crypto",
+        "personal_data",
+        "bank_account_access"
+      ],
+      "signals": [
+        "ROMANCE_EMOTIONAL_BOND",
+        "EMERGENCY_FINANCIAL_HELP",
+        "REFUSES_VIDEO_CALL",
+        "REQUESTS_GIFT_CARD_OR_CRYPTO",
+        "TRAVEL_OR_MEDICAL_STORY"
+      ],
+      "sources": [
+        "src_romance_dnsc_8martie",
+        "src_romance_digi_dnsc"
+      ],
+      "examples": [
+        {
+          "example_id": "ROM-01",
+          "channel": "WhatsApp",
+          "sample_text": "Mi-am pierdut portofelul la aeroport, trimite-mi 300 euro și vin la tine mâine.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "ROM-02",
+          "channel": "Messenger",
+          "sample_text": "Sunt medic în misiune, contul meu e blocat. Am nevoie de card cadou.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "ROM-03",
+          "channel": "Dating chat",
+          "sample_text": "Te iubesc, dar pentru biletul de avion am nevoie urgent de ajutor.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "ROM-04",
+          "channel": "WhatsApp",
+          "sample_text": "Nu pot face video, camera e stricată. Trimite bani prin crypto.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "ROM-05",
+          "channel": "Messenger",
+          "sample_text": "Copilul meu are operație, te rog nu spune nimănui.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "ROM-06",
+          "channel": "WhatsApp",
+          "sample_text": "Hai să investim împreună într-o platformă: https://love-invest-romania.test",
+          "expected_targets": [
+            "love-invest-romania.test"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "ROM-07",
+          "channel": "Instagram",
+          "sample_text": "Profil cu poze perfecte, cere CNP pentru colet cadou.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "ROM-08",
+          "channel": "Chat",
+          "sample_text": "Relație reală, fără cereri de bani sau date, cu verificare video.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SIGUR"
+        },
+        {
+          "example_id": "ROM-09",
+          "channel": "WhatsApp",
+          "sample_text": "Trimite IBAN-ul și poza cardului să îți trimit cadou.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "ROM-10",
+          "channel": "Messenger",
+          "sample_text": "Sunt blocat la vamă și am nevoie de taxă pentru colet.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        }
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT",
+      "max_verdict_with_provider_scan": "PERICULOS",
+      "acceptance_test_idea": "Profil fals construiește relație emoțională pe termen lung, apoi cere bani pentru urgență medicală, bilet avion, vamă, copil bolnav, blocaj cont sau investiție comună. Poate cere și date sau acces conturi."
+    },
+    {
+      "id": "MINOR_012_CHARITY_ANIMAL_SHELTER_DONATION",
+      "title": "Donații false / adăpost animale / cauze umanitare",
+      "family": "minor/MINOR_012_CHARITY_ANIMAL_SHELTER_DONATION / None",
+      "hook": "",
+      "asks_for": [
+        "money transfer",
+        "iban",
+        "card number",
+        "personal data"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Nu introduceți date bancare, parole, coduri OTP sau date personale.",
+        "Contactați instituția invocată doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "Facebook groups",
+        "Messenger",
+        "Instagram",
+        "GoFundMe-like pages",
+        "bank transfer"
+      ],
+      "claimed_brand_or_role": null,
+      "requested_asset": [
+        "money_transfer",
+        "iban",
+        "card_number",
+        "personal_data"
+      ],
+      "signals": [
+        "CHARITY_EMOTIONAL_PRESSURE",
+        "DONATION_TO_PERSONAL_IBAN",
+        "UNVERIFIED_SHELTER_NAME",
+        "STOLEN_PHOTO_RISK",
+        "URGENT_MEDICAL_OR_ANIMAL_STORY"
+      ],
+      "sources": [
+        "src_charity_bitdefender",
+        "src_animal_donation_fb_noisy"
+      ],
+      "examples": [
+        {
+          "example_id": "CHAR-01",
+          "channel": "Facebook",
+          "sample_text": "Ajutor urgent pentru operația lui Max. Donează în cont personal până diseară.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "CHAR-02",
+          "channel": "Messenger",
+          "sample_text": "Adăpostul nostru arde, trimite 50 lei aici: https://adapost-salvare.test/doneaza",
+          "expected_targets": [
+            "adapost-salvare.test"
+          ],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "CHAR-03",
+          "channel": "Facebook group",
+          "sample_text": "Poze dramatice repetate în multe grupuri, același IBAN personal.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "CHAR-04",
+          "channel": "Instagram",
+          "sample_text": "Donează cu cardul pe link necunoscut pentru animale: https://donatii-urgente-animale.example",
+          "expected_targets": [
+            "donatii-urgente-animale.example"
+          ],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "CHAR-05",
+          "channel": "Messenger",
+          "sample_text": "Te rog nu verifica, câinele moare în 2 ore.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "CHAR-06",
+          "channel": "Facebook",
+          "sample_text": "ONG cunoscut, domeniu oficial, transparent, date fiscale publice.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SIGUR"
+        },
+        {
+          "example_id": "CHAR-07",
+          "channel": "WhatsApp",
+          "sample_text": "Colectăm pentru spital, dar banii merg în cont de Revolut personal.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "CHAR-08",
+          "channel": "URL",
+          "sample_text": "https://crucea-rosie-ajutor-invalid.test/pay",
+          "expected_targets": [
+            "crucea-rosie-ajutor-invalid.test"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "CHAR-09",
+          "channel": "Facebook",
+          "sample_text": "Cerere donație fără CUI, fără site, fără dovadă actualizată.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "CHAR-10",
+          "channel": "Email",
+          "sample_text": "Campanie oficială ONG cu domeniu verificat, nu cere card în email.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SIGUR"
+        }
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT",
+      "max_verdict_with_provider_scan": "PERICULOS",
+      "acceptance_test_idea": "Pagini/grupuri folosesc poze emoționale cu animale/copii/urgențe medicale și cer donații rapide în cont personal sau prin link necunoscut. În România există semnale publice/noisy pe grupuri, dar trebuie tratate ca pattern discovery."
+    },
+    {
+      "id": "MINOR_013_PET_ADOPTION_TRANSPORT_FEE",
+      "title": "Adopție/vânzare animale inexistente, taxe transport/cusca/asigurare",
+      "family": "minor/MINOR_013_PET_ADOPTION_TRANSPORT_FEE / None",
+      "hook": "",
+      "asks_for": [
+        "money transfer",
+        "personal data",
+        "transport fee"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Contactați instituția invocată doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "Facebook",
+        "Messenger",
+        "classifieds",
+        "WhatsApp"
+      ],
+      "claimed_brand_or_role": null,
+      "requested_asset": [
+        "money_transfer",
+        "personal_data",
+        "transport_fee"
+      ],
+      "signals": [
+        "PET_ADOPTION_TRANSPORT_FEE",
+        "REMOTE_SELLER_REFUSES_VISIT",
+        "STOLEN_ANIMAL_PHOTOS",
+        "PAY_BEFORE_MEET"
+      ],
+      "sources": [
+        "src_pet_scam_general",
+        "src_animal_donation_fb_noisy"
+      ],
+      "examples": [
+        {
+          "example_id": "PET-01",
+          "channel": "Messenger",
+          "sample_text": "Pui de pomeranian gratuit, plătești doar transportul 180 lei.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "PET-02",
+          "channel": "Facebook",
+          "sample_text": "Cățel salvat, ai 30 min să achiți cusca de transport.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "PET-03",
+          "channel": "WhatsApp",
+          "sample_text": "Nu poți vedea animalul, e la curier. Trimite avans.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "PET-04",
+          "channel": "URL",
+          "sample_text": "https://transport-animale-adoptie.test/pay",
+          "expected_targets": [
+            "transport-animale-adoptie.test"
+          ],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "PET-05",
+          "channel": "Messenger",
+          "sample_text": "Cere card/CVV pentru rezervare adopție.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "PET-06",
+          "channel": "Facebook",
+          "sample_text": "Adăpost local verificabil, vizită fizică, contract adopție.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SIGUR"
+        },
+        {
+          "example_id": "PET-07",
+          "channel": "WhatsApp",
+          "sample_text": "Pozele apar pe mai multe pagini, nume diferite.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "PET-08",
+          "channel": "Messenger",
+          "sample_text": "Taxă asigurare 400 lei înainte să primești animalul.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "PET-09",
+          "channel": "SMS",
+          "sample_text": "Ai fost ales pentru adopție, plătește microcip: https://adoptie-pet.example",
+          "expected_targets": [
+            "adoptie-pet.example"
+          ],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "PET-10",
+          "channel": "Facebook",
+          "sample_text": "Vânzător insistă pe plata prin crypto/gift card.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "PERICULOS"
+        }
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT",
+      "max_verdict_with_provider_scan": "PERICULOS",
+      "acceptance_test_idea": "Anunț cu animal foarte dorit sau de rasă, gratuit/ieftin. Vânzătorul cere taxă transport, cușcă, vaccin, microcip sau asigurare înainte de livrare; animalul nu există sau documentele sunt false."
+    },
+    {
+      "id": "MINOR_014_GIVEAWAY_MYSTERY_BOX",
+      "title": "Voucher/cadou/cutie misterioasă / reduceri spectaculoase / Black Friday clonă",
+      "family": "minor/MINOR_014_GIVEAWAY_MYSTERY_BOX / None",
+      "hook": "",
+      "asks_for": [
+        "card number",
+        "cvv",
+        "cvc",
+        "cod cvv",
+        "phone",
+        "email",
+        "personal data"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Nu introduceți date bancare, parole, coduri OTP sau date personale.",
+        "Contactați instituția invocată doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "Facebook ads",
+        "Instagram",
+        "WhatsApp",
+        "email",
+        "web landing"
+      ],
+      "claimed_brand_or_role": null,
+      "requested_asset": [
+        "card_number",
+        "cvv",
+        "phone",
+        "email",
+        "personal_data"
+      ],
+      "signals": [
+        "GIVEAWAY_OR_VOUCHER_HOOK",
+        "TOO_GOOD_TO_BE_TRUE",
+        "SMALL_PROCESSING_FEE",
+        "BRAND_CLONE_SHOP",
+        "CARD_FORM_DETECTED"
+      ],
+      "sources": [
+        "src_digi_mystery_box",
+        "src_black_friday_dnsc"
+      ],
+      "examples": [
+        {
+          "example_id": "GIFT-01",
+          "channel": "Facebook ad",
+          "sample_text": "Felicitări! Ai câștigat o cutie misterioasă eMAG. Plătește livrarea 9.99 lei: https://emag-cadou.test",
+          "expected_targets": [
+            "emag-cadou.test"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "GIFT-02",
+          "channel": "WhatsApp",
+          "sample_text": "Răspunde la 3 întrebări și primești voucher 500 lei: https://voucher-romania.example",
+          "expected_targets": [
+            "voucher-romania.example"
+          ],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "GIFT-03",
+          "channel": "Email",
+          "sample_text": "Black Friday 90% reducere doar azi: https://altex-sale-invalid.test",
+          "expected_targets": [
+            "altex-sale-invalid.test"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "GIFT-04",
+          "channel": "Facebook",
+          "sample_text": "Cutie surpriză gratuită, card necesar pentru verificare vârstă.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "GIFT-05",
+          "channel": "SMS",
+          "sample_text": "Ai fost selectat pentru premiu. Achită taxa de procesare: https://premiu-rapid.example",
+          "expected_targets": [
+            "premiu-rapid.example"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "GIFT-06",
+          "channel": "Email",
+          "sample_text": "Newsletter eMAG real-like, domeniu oficial/partener, fără cerere card.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SIGUR"
+        },
+        {
+          "example_id": "GIFT-07",
+          "channel": "Instagram",
+          "sample_text": "Like/share și câștigă iPhone, link în bio spre formular card.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "GIFT-08",
+          "channel": "WhatsApp",
+          "sample_text": "Voucher Lidl 750 lei. Trimite mai departe la 10 contacte.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "GIFT-09",
+          "channel": "URL",
+          "sample_text": "https://mysterybox-romania.invalid/card",
+          "expected_targets": [
+            "mysterybox-romania.invalid"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "GIFT-10",
+          "channel": "Email",
+          "sample_text": "Campanie retail oficială cu termenii promoției pe domeniu oficial.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SIGUR"
+        }
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT",
+      "max_verdict_with_provider_scan": "PERICULOS",
+      "acceptance_test_idea": "Campanii care promit voucher, cadou, cutie misterioasă, sondaj cu premiu sau reduceri imposibile; cer taxă mică de livrare/procesare și date card."
+    },
+    {
+      "id": "MINOR_015_PUBLIC_FIGURE_DEEPFAKE_INVESTMENT",
+      "title": "Deepfake/persoană publică/presă clonată pentru investiții rapide",
+      "family": "minor/MINOR_015_PUBLIC_FIGURE_DEEPFAKE_INVESTMENT / None",
+      "hook": "",
+      "asks_for": [
+        "personal data",
+        "phone",
+        "card number",
+        "money transfer",
+        "anydesk",
+        "teamviewer",
+        "control la distanta",
+        "control la distanță"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Nu instalați aplicații și nu permiteți control la distanță.",
+        "Contactați instituția invocată doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "Facebook ads",
+        "TikTok",
+        "YouTube",
+        "fake news pages",
+        "WhatsApp"
+      ],
+      "claimed_brand_or_role": null,
+      "requested_asset": [
+        "personal_data",
+        "phone",
+        "card_number",
+        "money_transfer",
+        "remote_access"
+      ],
+      "signals": [
+        "DEEPFAKE_PUBLIC_FIGURE",
+        "FAKE_NEWS_INVESTMENT_AD",
+        "GUARANTEED_RETURN_PROMISE",
+        "LEAD_FORM_PHONE",
+        "REMOTE_ACCESS_APP_REQUEST"
+      ],
+      "sources": [
+        "src_deepfake_dnsc_press",
+        "src_deepfake_president_tvr"
+      ],
+      "examples": [
+        {
+          "example_id": "DEEP-01",
+          "channel": "Facebook ad",
+          "sample_text": "Președintele recomandă investiție garantată de la 1250 lei: https://profit-national.test",
+          "expected_targets": [
+            "profit-national.test"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "DEEP-02",
+          "channel": "Fake news page",
+          "sample_text": "BNR lansează program secret de câștig zilnic. Lasă telefonul.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "DEEP-03",
+          "channel": "TikTok",
+          "sample_text": "Clip cu politician care promite 700 lei/zi prin platformă AI.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "DEEP-04",
+          "channel": "WhatsApp",
+          "sample_text": "Uite linkul de la ProTV cu investiția Hidroelectrica: https://stiri-protv-invest.example",
+          "expected_targets": [
+            "stiri-protv-invest.example"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "DEEP-05",
+          "channel": "URL",
+          "sample_text": "https://neptun-deep-profit.invalid/register",
+          "expected_targets": [
+            "neptun-deep-profit.invalid"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "DEEP-06",
+          "channel": "Facebook",
+          "sample_text": "Articol economic real pe site de presă verificat, fără formular investiție.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SIGUR"
+        },
+        {
+          "example_id": "DEEP-07",
+          "channel": "Ad",
+          "sample_text": "Completează număr telefon și consultantul BNR te sună.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "DEEP-08",
+          "channel": "Messenger",
+          "sample_text": "Ai fost acceptat în programul guvernamental crypto.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "DEEP-09",
+          "channel": "Web",
+          "sample_text": "După completare, cere AnyDesk pentru „activare cont”.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "DEEP-10",
+          "channel": "Email",
+          "sample_text": "Newsletter bursier generic fără garanții, domeniu real, fără depunere.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SIGUR"
+        }
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT",
+      "max_verdict_with_provider_scan": "PERICULOS",
+      "acceptance_test_idea": "Reclame sau articole false folosesc imaginea presei/persoanelor publice/politicienilor/BNR pentru a promova investiții rapide, platforme de trading, gaz, energie, crypto sau acțiuni."
+    },
+    {
+      "id": "MINOR_016_B2B_FAKE_INVOICE_PAYMENT_CHANGE",
+      "title": "Factură falsă / schimbare IBAN / BEC light pentru firme mici",
+      "family": "minor/MINOR_016_B2B_FAKE_INVOICE_PAYMENT_CHANGE / None",
+      "hook": "",
+      "asks_for": [
+        "invoice payment",
+        "iban",
+        "company data",
+        "bank transfer"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Nu introduceți date bancare, parole, coduri OTP sau date personale.",
+        "Contactați instituția invocată doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "email",
+        "PDF invoice",
+        "WhatsApp business"
+      ],
+      "claimed_brand_or_role": null,
+      "requested_asset": [
+        "invoice_payment",
+        "iban",
+        "company_data",
+        "bank_transfer"
+      ],
+      "signals": [
+        "INVOICE_ATTACHMENT",
+        "IBAN_CHANGE_REQUEST",
+        "SENDER_DOMAIN_MISMATCH",
+        "REPLY_TO_MISMATCH",
+        "URGENT_PAYMENT_PRESSURE"
+      ],
+      "sources": [
+        "src_black_friday_dnsc"
+      ],
+      "examples": [
+        {
+          "example_id": "INV-01",
+          "channel": "Email",
+          "sample_text": "Bună, vă rugăm achitați factura restantă în noul IBAN atașat.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "INV-02",
+          "channel": "Email",
+          "sample_text": "Reply-To diferit de domeniul furnizorului + PDF factură.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "INV-03",
+          "channel": "Email",
+          "sample_text": "Factura lunară Digi/Vodafone/energie, domeniu oficial, fără schimbare IBAN.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SIGUR"
+        },
+        {
+          "example_id": "INV-04",
+          "channel": "Email",
+          "sample_text": "Plată urgentă până azi, altfel suspendare. IBAN personal.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "INV-05",
+          "channel": "URL",
+          "sample_text": "https://factura-furnizor-secure.test/download",
+          "expected_targets": [
+            "factura-furnizor-secure.test"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "INV-06",
+          "channel": "WhatsApp",
+          "sample_text": "Contabila: trimite plata în contul acesta, emailul nu merge azi.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "INV-07",
+          "channel": "Email",
+          "sample_text": "Document .html atașat pentru vizualizare factură.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "INV-08",
+          "channel": "Email",
+          "sample_text": "Factura cere macro enable pentru a vedea suma.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "INV-09",
+          "channel": "Email",
+          "sample_text": "Mesaj intern cu domeniu companie verificat și procedură normală.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SIGUR"
+        },
+        {
+          "example_id": "INV-10",
+          "channel": "Email",
+          "sample_text": "Furnizor nou cere avans integral fără contract.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        }
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT",
+      "max_verdict_with_provider_scan": "PERICULOS",
+      "acceptance_test_idea": "Email care imită furnizorul/contabilul și cere plata unei facturi sau actualizarea IBAN-ului. Pentru România 2025-2026 nu am găsit în această rundă o campanie oficială unică, dar patternul este relevant pentru firme."
+    },
+    {
+      "id": "MINOR_017_ADULT_SHAME_SEXTORTION_EMAIL",
+      "title": "Sextortion / rușine / cameră compromisă / plată crypto",
+      "family": "minor/MINOR_017_ADULT_SHAME_SEXTORTION_EMAIL / None",
+      "hook": "",
+      "asks_for": [
+        "crypto",
+        "gift card",
+        "money transfer"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Contactați instituția invocată doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "email",
+        "web popup",
+        "PDF"
+      ],
+      "claimed_brand_or_role": null,
+      "requested_asset": [
+        "crypto",
+        "gift_card",
+        "money_transfer"
+      ],
+      "signals": [
+        "SEXTORTION_CLAIM",
+        "CAMERA_COMPROMISED_CLAIM",
+        "SHAME_PRESSURE",
+        "CRYPTO_PAYMENT_REQUEST",
+        "DO_NOT_CONTACT_AUTHORITIES"
+      ],
+      "sources": [
+        "src_dnsc_politia_popup_agerpres"
+      ],
+      "examples": [
+        {
+          "example_id": "SEX-01",
+          "channel": "Email",
+          "sample_text": "Am acces la camera ta. Trimite 900 EUR în BTC în 24h.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "SEX-02",
+          "channel": "Email",
+          "sample_text": "Am lista ta de contacte și videoclipul. Nu suna la poliție.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "SEX-03",
+          "channel": "web popup",
+          "sample_text": "Dispozitiv blocat pentru conținut ilegal, plătește amendă.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "SEX-04",
+          "channel": "Email",
+          "sample_text": "Include o parolă veche dintr-o breșă și cere crypto.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "SEX-05",
+          "channel": "URL",
+          "sample_text": "https://politia-deblocare-device.test/pay",
+          "expected_targets": [
+            "politia-deblocare-device.test"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "SEX-06",
+          "channel": "Email",
+          "sample_text": "Amenintare generică fără date reale, fără link.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "SEX-07",
+          "channel": "SMS",
+          "sample_text": "Plătește prin voucher pentru a opri trimiterea filmării.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "SEX-08",
+          "channel": "Email",
+          "sample_text": "Avertizare legitimă de la un serviciu despre breach, fără șantaj.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SIGUR"
+        },
+        {
+          "example_id": "SEX-09",
+          "channel": "web",
+          "sample_text": "Pop-up cere date card pentru „deblocare DNSC”.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "SEX-10",
+          "channel": "Email",
+          "sample_text": "Solicită instalarea aplicației pentru curățare urme.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "PERICULOS"
+        }
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT",
+      "max_verdict_with_provider_scan": "PERICULOS",
+      "acceptance_test_idea": "Email sau pop-up pretinde că a înregistrat victima pe site-uri adulte și cere plata în crypto/card/voucher ca să nu trimită materialul contactelor. În România se suprapune cu pop-up-ul „amendă Poliția”."
+    },
+    {
+      "id": "MINOR_018_FAKE_COURT_POLICE_EUROPOL_DOCUMENTS",
+      "title": "Documente false Europol/Interpol/Poliție/ANAF/DNSC în apeluri sau emailuri",
+      "family": "minor/MINOR_018_FAKE_COURT_POLICE_EUROPOL_DOCUMENTS / None",
+      "hook": "",
+      "asks_for": [
+        "personal data",
+        "card number",
+        "parola",
+        "parolă",
+        "password",
+        "money transfer",
+        "cont sigur",
+        "transfer sigur"
+      ],
+      "safe_actions": [
+        "Nu accesați linkul și nu răspundeți înainte de verificare.",
+        "Nu introduceți date bancare, parole, coduri OTP sau date personale.",
+        "Contactați instituția invocată doar pe canalul oficial, introdus manual."
+      ],
+      "channels": [
+        "email",
+        "WhatsApp",
+        "phone transcript",
+        "PDF"
+      ],
+      "claimed_brand_or_role": null,
+      "requested_asset": [
+        "personal_data",
+        "card_number",
+        "password",
+        "money_transfer",
+        "safe_account_transfer"
+      ],
+      "signals": [
+        "FAKE_AUTHORITY_DOCUMENT",
+        "LOGO_ABUSE",
+        "SAFE_ACCOUNT_TRANSFER_REQUEST",
+        "CARD_OR_ID_REQUEST",
+        "PRESSURE_TO_KEEP_SECRET"
+      ],
+      "sources": [
+        "src_dnsc_politia_popup_agerpres",
+        "src_social_page_ownership_agerpres"
+      ],
+      "examples": [
+        {
+          "example_id": "AUTHDOC-01",
+          "channel": "WhatsApp",
+          "sample_text": "V-am trimis legitimația de polițist. Urmați instrucțiunile BNR pentru cont sigur.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "AUTHDOC-02",
+          "channel": "Email",
+          "sample_text": "Interpol România: citație atașată, plătiți taxa de procedură.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "AUTHDOC-03",
+          "channel": "PDF",
+          "sample_text": "Document cu siglă DNSC cere card pentru verificare identitate.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "AUTHDOC-04",
+          "channel": "SMS",
+          "sample_text": "ANAF/Poliție: verificați dosarul aici: https://dosar-oficial-romania.test",
+          "expected_targets": [
+            "dosar-oficial-romania.test"
+          ],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "AUTHDOC-05",
+          "channel": "Email",
+          "sample_text": "Document oficial real primit dintr-un canal instituțional verificat, fără cerere de card.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SIGUR"
+        },
+        {
+          "example_id": "AUTHDOC-06",
+          "channel": "WhatsApp",
+          "sample_text": "Nu contactați banca, ancheta e confidențială.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "AUTHDOC-07",
+          "channel": "Call transcript",
+          "sample_text": "Operatorul pretinde că este de la Europol și cere transfer într-un cont temporar.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "AUTHDOC-08",
+          "channel": "Email",
+          "sample_text": "Logo MAI + atașament .html pentru autentificare.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "PERICULOS"
+        },
+        {
+          "example_id": "AUTHDOC-09",
+          "channel": "Messenger",
+          "sample_text": "Sunteți implicat într-un caz de fraudă, trimiteți poză buletin.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SUSPECT"
+        },
+        {
+          "example_id": "AUTHDOC-10",
+          "channel": "Email",
+          "sample_text": "Comunicare generică de presă a unei instituții, fără link formular.",
+          "expected_targets": [],
+          "suggested_expected_verdict": "SIGUR"
+        }
+      ],
+      "max_verdict_without_provider_scan": "SUSPECT",
+      "max_verdict_with_provider_scan": "PERICULOS",
+      "acceptance_test_idea": "Atacatorii folosesc sigle, legitimații, PDF-uri și documente false pentru credibilitate; de multe ori se combină cu BNR/cont sigur, amendă, investigație penală sau plată urgentă."
     }
   ]
 }

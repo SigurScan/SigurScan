@@ -48,6 +48,7 @@ from services.redirect_resolver import (
 from services.scam_atlas import BRAND_ID_TO_DISPLAY_NAME, BRAND_REGISTRY, BRAND_WARNING_RULES, ScamAtlasEngine
 from services.gemini_explainer import generate_ai_explanation, generate_fallback_explanation
 from services.evidence_bundle import build_evidence_bundle
+from services.verdict_gate import verdict as reduce_verdict
 from services.mistral_shadow_adjudicator import maybe_run_shadow_adjudication
 from services.offer_claim_verifier import verify_offer_claim
 from services.url_reputation import get_reputation_cache_stats, get_reputation_for_urls
@@ -2264,6 +2265,394 @@ def _augment_summary_with_infra_flags(summary: Dict[str, Any], infra_flags: Dict
         }
 
 
+def _provider_verdict_for_decision_bundle(
+    summary: Dict[str, Any],
+    *,
+    has_urls: bool,
+    pillars: Optional[Dict[str, Dict[str, Any]]] = None,
+) -> Dict[str, Any]:
+    if _has_bad_provider_verdict(summary):
+        return {"verdict": "malicious", "hits": ["provider_malicious"], "completeness": True}
+
+    if isinstance(pillars, dict):
+        pending_required = []
+        error_required = []
+        for name, pillar in pillars.items():
+            if not isinstance(pillar, dict) or not pillar.get("required", True):
+                continue
+            status = str(pillar.get("status") or "").strip().lower()
+            if status == "pending":
+                pending_required.append(name)
+            elif status == "error":
+                error_required.append(name)
+        if pending_required:
+            return {"verdict": "pending", "hits": [], "completeness": False, "pending": pending_required}
+        if error_required:
+            return {"verdict": "unknown", "hits": [], "completeness": True, "errors": error_required}
+
+    if not has_urls:
+        return {"verdict": "unknown", "hits": [], "completeness": True}
+
+    consulted = []
+    unknown = []
+    for name in ("google_web_risk", "virustotal", "urlscan", "urlscan.io", "urlhaus", "ai_offer_web_check"):
+        raw = summary.get(name)
+        if not isinstance(raw, dict):
+            continue
+        status = _source_status(summary, name)
+        if raw.get("consulted") or status not in {"missing", ""}:
+            consulted.append(name)
+        if status in {"missing", "unknown", "error"}:
+            unknown.append(name)
+    if not any(name in consulted for name in ("urlscan", "urlscan.io")):
+        return {"verdict": "pending", "hits": sorted(set(consulted)), "completeness": False, "pending": ["urlscan"]}
+    if consulted and len(unknown) < len(consulted):
+        return {"verdict": "clean", "hits": sorted(set(consulted)), "completeness": True}
+    return {"verdict": "pending", "hits": [], "completeness": False}
+
+
+def _identity_status_for_decision_bundle(
+    analysis: Dict[str, Any],
+    resolved_urls: List[Dict[str, Any]],
+    *,
+    claimed_brand: str,
+    official_destination: bool,
+    infra_flags: Dict[str, Any],
+) -> Dict[str, Any]:
+    evidence = analysis.get("evidence", {}) if isinstance(analysis.get("evidence"), dict) else {}
+    if official_destination:
+        raw_registered = ""
+        final_registered = ""
+        if resolved_urls:
+            raw_registered = str(resolved_urls[0].get("registered_domain") or "").lower()
+            final_registered = str(resolved_urls[0].get("final_registered_domain") or "").lower()
+        return {
+            "claimed_brand": claimed_brand if _normalize_claimed_brand(claimed_brand) else None,
+            "status": "delegated" if raw_registered and final_registered and raw_registered != final_registered else "official",
+            "tld_suspicious": False,
+            "completeness": True,
+        }
+
+    if bool(evidence.get("has_domain_mismatch")):
+        return {
+            "claimed_brand": claimed_brand if _normalize_claimed_brand(claimed_brand) else None,
+            "status": "lookalike" if infra_flags.get("typosquat") or infra_flags.get("homoglyph") or infra_flags.get("punycode") else "unrelated",
+            "tld_suspicious": bool(
+                infra_flags.get("typosquat")
+                or infra_flags.get("homoglyph")
+                or infra_flags.get("punycode")
+                or infra_flags.get("very_new_domain")
+            ),
+            "completeness": True,
+        }
+
+    return {
+        "claimed_brand": claimed_brand if _normalize_claimed_brand(claimed_brand) else None,
+        "status": "unknown",
+        "tld_suspicious": bool(
+            infra_flags.get("typosquat")
+            or infra_flags.get("homoglyph")
+            or infra_flags.get("punycode")
+            or infra_flags.get("very_new_domain")
+        ),
+        "completeness": True,
+    }
+
+
+def _request_sensitivity_from_signals(
+    *,
+    raw_text: str,
+    brand_warning: Dict[str, Any],
+    direct_sensitive_request: bool,
+    sensitive_url_path: bool,
+    official_destination: bool,
+    resolved_urls: List[Dict[str, Any]],
+) -> str:
+    normalized = _normalise_obfuscated_text(raw_text or "").lower()
+    matched_assets = set(brand_warning.get("matched_assets") or []) if isinstance(brand_warning, dict) else set()
+
+    logistics_pin_context = official_destination and bool(
+        re.search(r"\b(pin|cod)\b", normalized)
+        and re.search(r"\b(awb|locker|colet|ridicare|livrare|curier)\b", normalized)
+    )
+    if not logistics_pin_context:
+        if matched_assets.intersection({"otp", "whatsapp_code", "banking_pin"}):
+            return "otp"
+
+    if matched_assets.intersection({"password"}):
+        return "password"
+    if matched_assets.intersection({"remote_access", "apk_install"}):
+        return "remote"
+    if matched_assets.intersection({"card_number", "cvv"}):
+        return "card"
+    if matched_assets.intersection({"safe_account_transfer", "iban", "crypto_atm_deposit"}):
+        return "crypto" if "crypto_atm_deposit" in matched_assets else "transfer"
+
+    if re.search(r"\b(anydesk|teamviewer|rustdesk|apk|control la distan[țt][ăa]|remote access)\b", normalized):
+        return "remote"
+    if re.search(r"\b(crypto|bitcoin|usdt|binance|wallet|seed phrase)\b", normalized):
+        return "crypto"
+    if re.search(r"\b(parol[ăa]|password)\b", normalized) and direct_sensitive_request:
+        return "password"
+    if re.search(r"\b(otp|cod sms|cod whatsapp|codul de verificare|2fa)\b", normalized) and direct_sensitive_request:
+        return "otp"
+    if re.search(r"\b(cvv|cvc|date(?:le)? de card|num[aă]r(?:ul)? de card)\b", normalized) and direct_sensitive_request:
+        return "card"
+    if re.search(r"\b(cont sigur|transfer[aă] fondurile|transfer[aă] bani|iban)\b", normalized):
+        return "transfer"
+
+    if sensitive_url_path and not official_destination:
+        for entry in resolved_urls or []:
+            url = str(entry.get("final_url") or entry.get("url") or "")
+            path = urllib.parse.unquote(urllib.parse.urlparse(url).path or "").lower()
+            if any(token in path for token in ("card", "cvv", "cvc", "pay", "plata", "plată")):
+                return "card"
+            if any(token in path for token in ("otp", "login", "auth", "password", "parola")):
+                return "password"
+
+    return "none"
+
+
+def _request_channel_for_decision_bundle(
+    *,
+    source_channel: Optional[str],
+    input_type: Optional[str],
+    official_destination: bool,
+    has_urls: bool,
+) -> str:
+    if official_destination:
+        return "official"
+    normalized = str(source_channel or input_type or "").strip().lower()
+    if "whatsapp" in normalized:
+        return "whatsapp"
+    if "phone" in normalized or "call" in normalized or "apel" in normalized:
+        return "phone"
+    if "email" in normalized or "mail" in normalized:
+        return "reply"
+    if has_urls:
+        return "unofficial_site"
+    return "reply"
+
+
+def _semantic_review_for_decision_bundle(
+    analysis: Dict[str, Any],
+    *,
+    official_destination: bool,
+    provider_verdict: str,
+) -> Dict[str, Any]:
+    evidence = analysis.get("evidence", {}) if isinstance(analysis.get("evidence"), dict) else {}
+    existing = evidence.get("semantic_review")
+    if isinstance(existing, dict) and existing.get("status"):
+        return existing
+
+    family_id = str(analysis.get("detected_family_id") or "").strip()
+    family = str(analysis.get("detected_family") or "").strip()
+    risk_level = str(analysis.get("risk_level") or "").strip().lower()
+    reason_blob = " ".join(str(item).lower() for item in analysis.get("reasons", []) if item)
+    semantic_key = f"{family_id} {family} {reason_blob}".lower()
+
+    benign = official_destination and provider_verdict == "clean"
+    high_markers = (
+        "provider-gate-bad-provider",
+        "fraudă socială",
+        "frauda sociala",
+        "crypto",
+        "remote",
+        "apk",
+        "malware",
+        "phishing",
+        "vishing",
+        "romance",
+        "loterie",
+        "cont sigur",
+        "takeover",
+        "bancar",
+        "anaf",
+        "curier fals",
+        "decisive",
+    )
+    medium_markers = (
+        "magazin",
+        "caritate",
+        "urgenta",
+        "urgentă",
+        "provider-gate-unofficial",
+        "semnale text",
+        "verificare limitată",
+    )
+    if benign:
+        risk_class = "benign"
+    elif risk_level in {"high", "critical", "dangerous"} or any(marker in semantic_key for marker in high_markers):
+        risk_class = "high"
+    elif risk_level == "medium" or any(marker in semantic_key for marker in medium_markers):
+        risk_class = "medium"
+    elif risk_level == "low":
+        risk_class = "benign"
+    else:
+        risk_class = "unknown"
+
+    return {
+        "status": "done",
+        "claim_matches_known_scam_family": risk_class in {"high", "medium"},
+        "matched_family": family_id or family or None if risk_class in {"high", "medium"} else None,
+        "claim_matches_legit_template": risk_class == "benign",
+        "matched_template": "official_clean_destination" if risk_class == "benign" else None,
+        "reason_codes": [f"semantic:{risk_class}"],
+        "risk_class": risk_class,
+        "completeness": True,
+        "source": "scam_atlas_corpus_or_mistral_fallback",
+    }
+
+
+def _build_decision_evidence_bundle(
+    analysis: Dict[str, Any],
+    resolved_urls: List[Dict[str, Any]],
+    *,
+    raw_text: str,
+    pillars: Optional[Dict[str, Dict[str, Any]]] = None,
+    summary: Optional[Dict[str, Any]] = None,
+    infra_flags: Optional[Dict[str, Any]] = None,
+    brand_warning: Optional[Dict[str, Any]] = None,
+    official_destination: bool = False,
+    direct_sensitive_request: bool = False,
+    sensitive_url_path: bool = False,
+) -> Dict[str, Any]:
+    summary = summary if isinstance(summary, dict) else {}
+    infra_flags = infra_flags if isinstance(infra_flags, dict) else {}
+    brand_warning = brand_warning if isinstance(brand_warning, dict) else {"triggered": False, "matched_assets": []}
+    claimed_brand = str(analysis.get("claimed_brand") or "Nespecificat")
+    has_urls = bool(resolved_urls)
+    first_url = _first_final_url(resolved_urls) if has_urls else None
+    provider_section = _provider_verdict_for_decision_bundle(summary, has_urls=has_urls, pillars=pillars)
+    identity_section = _identity_status_for_decision_bundle(
+        analysis,
+        resolved_urls,
+        claimed_brand=claimed_brand,
+        official_destination=official_destination,
+        infra_flags=infra_flags,
+    )
+    request_sensitive = _request_sensitivity_from_signals(
+        raw_text=raw_text,
+        brand_warning=brand_warning,
+        direct_sensitive_request=direct_sensitive_request,
+        sensitive_url_path=sensitive_url_path,
+        official_destination=official_destination,
+        resolved_urls=resolved_urls,
+    )
+    source_channel = None
+    evidence = analysis.get("evidence", {}) if isinstance(analysis.get("evidence"), dict) else {}
+    if isinstance(evidence, dict):
+        source_channel = evidence.get("source_channel")
+    request_channel = _request_channel_for_decision_bundle(
+        source_channel=source_channel,
+        input_type=None,
+        official_destination=official_destination,
+        has_urls=has_urls,
+    )
+    semantic_review = _semantic_review_for_decision_bundle(
+        analysis,
+        official_destination=official_destination,
+        provider_verdict=str(provider_section.get("verdict") or "unknown"),
+    )
+    resolution_status = "resolved" if first_url else ("failed" if has_urls else "not_required")
+    bundle = {
+        "schema": "sigurscan_evidence_bundle_v2",
+        "input": {
+            "type": str(source_channel or "unknown"),
+            "redacted_text": str(raw_text or "")[:4000],
+        },
+        "resolution": {
+            "final_url": first_url,
+            "status": resolution_status,
+            "completeness": not has_urls or bool(first_url),
+        },
+        "providers": provider_section,
+        "identity": identity_section,
+        "request": {
+            "sensitive": request_sensitive,
+            "channel": request_channel,
+            "completeness": True,
+        },
+        "context": {
+            "urgency": bool(re.search(r"\b(urgent|azi|acum|24\s*de\s*ore|ultima|expir[ăa])\b", str(raw_text or ""), re.IGNORECASE)),
+            "passive_payment": bool(re.search(r"\b(plata abonamentului|se va efectua automat plata|factur[ăa])\b", str(raw_text or ""), re.IGNORECASE)),
+            "apk_or_remote_mention": bool(re.search(r"\b(apk|anydesk|teamviewer|remote access|control la distan[țt][ăa])\b", str(raw_text or ""), re.IGNORECASE)),
+        },
+        "semantic_review": semantic_review,
+    }
+    canonical = json.dumps(bundle, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    bundle["evidence_hash"] = "sha256:" + hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    return bundle
+
+
+def _apply_decision_contract_result(
+    analysis: Dict[str, Any],
+    decision_bundle: Dict[str, Any],
+    gate_result: Dict[str, Any],
+    provider_gate: Dict[str, Any],
+) -> Dict[str, Any]:
+    evidence = analysis.setdefault("evidence", {})
+    provider_gate = dict(provider_gate)
+    provider_gate.update(
+        {
+            "version": "verdict_gate_v2",
+            "decision_contract": "sigurscan_evidence_bundle_v2",
+            "risk_level": gate_result.get("risk_level"),
+            "risk_score": gate_result.get("risk_score"),
+            "reason": ", ".join(gate_result.get("reason_codes") or []),
+            "label": gate_result.get("label"),
+        }
+    )
+    evidence["provider_gate"] = provider_gate
+    evidence["decision_bundle"] = decision_bundle
+    evidence["verdict_gate"] = gate_result
+
+    label = str(gate_result.get("label") or "PENDING").upper()
+    family_id_by_reason = {
+        "provider_malicious": "provider-gate-bad-provider",
+        "identity_spoof": "provider-gate-decisive-structural-danger",
+        "identity_spoof_value_request": "provider-gate-decisive-structural-danger",
+        "sensitive_wrong_channel": "provider-gate-sensitive-wrong-channel",
+        "semantic_high_value_request": "provider-gate-semantic-high-risk",
+        "semantic_high_risk_match": "provider-gate-semantic-high-risk",
+        "official_clean": "provider-gate-official-clean",
+        "unknown_but_clean": "provider-gate-unofficial-inconclusive",
+        "value_request_needs_verification": "provider-gate-value-request-review",
+        "insufficient_evidence": "provider-gate-pending",
+    }
+    reason_codes = list(gate_result.get("reason_codes") or [])
+    primary_reason = reason_codes[0] if reason_codes else "residual"
+    family_id = family_id_by_reason.get(primary_reason, "provider-gate-residual")
+    family_name = {
+        "SIGUR": "Destinație oficială verificată",
+        "SUSPECT": "Verificare necesară",
+        "PERICULOS": "Risc confirmat",
+        "PENDING": "Scanare în curs",
+    }.get(label, "Verificare necesară")
+    reasons = {
+        "SIGUR": ["Linkul ajunge pe o destinație oficială/delegată, providerii sunt curați și nu există cerere sensibilă pe canal greșit."],
+        "SUSPECT": ["Nu avem dovezi suficiente pentru a marca mesajul ca sigur; verifică pe canalul oficial înainte de acțiune."],
+        "PERICULOS": ["Dovezile din piloni indică risc ridicat: nu continua și nu introduce date."],
+        "PENDING": ["Scanarea nu are încă toate dovezile necesare pentru un verdict final."],
+    }.get(label, ["Verifică pe canalul oficial înainte de acțiune."])
+
+    analysis["risk_level"] = gate_result.get("risk_level")
+    analysis["risk_score"] = gate_result.get("risk_score")
+    analysis["detected_family"] = family_name
+    analysis["detected_family_id"] = family_id
+    analysis["reasons"] = reasons
+    analysis["safe_actions"] = (
+        ["Poți continua cu prudență doar dacă recunoști contextul și nu ți se cer date sensibile."]
+        if label == "SIGUR"
+        else ["Verifică mesajul în aplicația/site-ul oficial, nu din linkul primit."]
+        if label == "SUSPECT"
+        else ["Nu apăsa linkul.", "Nu introduce date.", "Raportează/șterge mesajul."]
+        if label == "PERICULOS"
+        else ["Așteaptă finalizarea scanării."]
+    )
+    return analysis
+
+
 def _apply_provider_gate_verdict(
     analysis: Dict[str, Any],
     resolved_urls: List[Dict[str, Any]],
@@ -2284,14 +2673,9 @@ def _apply_provider_gate_verdict(
     offer = evidence.get("offer_claim_verification")
     offer_status = str(offer.get("status", "")).lower() if isinstance(offer, dict) else ""
     official_destination = _official_destination_confirmed(resolved_urls, claimed_brand)
-    has_domain_mismatch = bool(evidence.get("has_domain_mismatch"))
-    legacy_risk_level = str(analysis.get("risk_level") or "low").lower()
-    legacy_risk_score = int(analysis.get("risk_score") or 0)
     web_risk_consulted = _source_ready(summary, "google_web_risk")
     vt_consulted = _source_ready(summary, "virustotal")
     urlscan_consulted = any(_source_ready(summary, name) for name in ("urlscan", "urlscan.io"))
-    bad_provider = _has_bad_provider_verdict(summary)
-    sensitive_request_signal = _provider_reason_has_sensitive_request_signal(list(analysis.get("reasons", []) or []))
     sensitive_url_path = _has_sensitive_url_path(resolved_urls)
     brand_warning = _brand_warning_matches_text(claimed_brand, raw_text, list(analysis.get("reasons", []) or []))
     official_safety_education = _looks_like_official_safety_education(raw_text)
@@ -2314,7 +2698,7 @@ def _apply_provider_gate_verdict(
     consulted_count = len(consulted_sources)
 
     provider_gate = {
-        "version": "provider_gate_v1",
+        "version": "verdict_gate_v2",
         "official_destination": official_destination,
         "web_risk_consulted": web_risk_consulted,
         "virustotal_consulted": vt_consulted,
@@ -2324,234 +2708,28 @@ def _apply_provider_gate_verdict(
         "missing_required_pillars": missing_required_pillars,
         "consulted_sources": consulted_sources,
         "consulted_count": consulted_count,
-        "legacy_risk_level": legacy_risk_level,
         "offer_status": offer_status or "unknown",
-        "legacy_score_ignored": True,
         "infrastructure_flags": infra_flags,
         "brand_warning": brand_warning,
         "official_safety_education": official_safety_education,
         "direct_sensitive_request": direct_sensitive_request,
         "sensitive_url_path": sensitive_url_path,
     }
-    provider_error_names = _required_pillar_error_names(pillars)
-    decisive_structural_danger = _is_decisive_structural_danger(
+
+    decision_bundle = _build_decision_evidence_bundle(
         analysis,
         resolved_urls,
         raw_text=raw_text,
         pillars=pillars,
+        summary=summary,
+        infra_flags=infra_flags,
+        brand_warning=brand_warning,
+        official_destination=official_destination,
+        direct_sensitive_request=direct_sensitive_request,
+        sensitive_url_path=sensitive_url_path,
     )
-
-    if not has_urls:
-        if (
-            has_domain_mismatch
-            or sensitive_request_signal
-            or direct_sensitive_request
-            or bad_provider
-            or brand_warning.get("triggered")
-        ):
-            risk_level = "high"
-            risk_score = 90
-            reasons = [
-                "Nu există link clar de verificat, dar au fost detectate semnale de risc",
-            ]
-            family = "Risc de bază"
-            family_id = "provider-gate-no-url-sensitive"
-        elif legacy_risk_level in {"high", "critical", "dangerous"}:
-            if _is_text_only_decisive_scam_family(analysis):
-                risk_level = "high"
-                risk_score = max(legacy_risk_score, 85)
-                reasons = [
-                    "Nu există link de scanat, dar mesajul se potrivește cu un scenariu de fraudă socială confirmat în corpusul România.",
-                ]
-                family = "Fraudă socială text-only"
-                family_id = "provider-gate-no-url-social-danger"
-            else:
-                risk_level = "medium"
-                risk_score = max(legacy_risk_score, 55)
-                reasons = ["Nu există URL verificabil; verdictul se bazează pe riscuri din conținut."]
-                family = "Semnale text"
-                family_id = "provider-gate-no-url-legacy-high"
-        else:
-            risk_level = "medium"
-            risk_score = max(min(legacy_risk_score, 55), 35)
-            reasons = [
-                "Scanare limitată: mesajul nu conține o țintă completă de link și nu poate fi declarat sigur fără confirmare externă.",
-            ]
-            family = "Verificare limitată"
-            family_id = "provider-gate-no-url"
-    elif bad_provider:
-        risk_level = "high"
-        risk_score = 90
-        reasons = ["Scanarea a gasit semnale clare de risc pe destinatie."]
-        family = "Risc confirmat"
-        family_id = "provider-gate-bad-provider"
-    elif decisive_structural_danger:
-        risk_level = "high"
-        risk_score = max(88, legacy_risk_score)
-        unavailable = ", ".join(provider_error_names) if provider_error_names else ""
-        reasons = [
-            (
-                "Mesajul pretinde un brand cunoscut, dar linkul ajunge pe un domeniu neoficial și cere plată/date sau acțiune sensibilă."
-                + (f" Un pilon tehnic nu a putut scana complet destinația: {unavailable}." if unavailable else "")
-            )
-        ]
-        family = "Impostură brand cu acțiune sensibilă"
-        family_id = "provider-gate-decisive-structural-danger"
-        provider_gate["finalized_with_provider_error"] = bool(provider_error_names)
-        if provider_error_names:
-            provider_gate["provider_errors_used_as_signal"] = provider_error_names
-    elif has_urls and missing_required_pillars:
-        risk_level = "medium"
-        risk_score = 50
-        reasons = [
-            "Scanare parțială: nu dăm verdict sigur până când piloanele necesare nu returnează date.",
-            f"Piloane indisponibile: {', '.join(missing_required_pillars)}",
-        ]
-        family = "Verificare parțială"
-        family_id = "provider-gate-partial-pillars"
-    elif official_destination and offer_status in {"confirmed", "inconclusive", "skipped", "unknown", ""}:
-        if offer_status == "confirmed" and consulted_count and not direct_sensitive_request:
-            risk_level = "low"
-            risk_score = 10
-            reasons = ["Linkul ajunge pe o destinatie validata si nu au aparut semnale de risc."]
-            family = "Destinatie oficiala verificata"
-            family_id = "provider-gate-official-clean"
-        elif (direct_sensitive_request or sensitive_request_signal or brand_warning.get("triggered") or sensitive_url_path) and not official_safety_education:
-            risk_level = "medium"
-            risk_score = 45
-            reasons = [
-                "Domeniul este oficial, dar mesajul cere acțiuni sensibile sau date pe care brandul declară că nu le solicită; verifică înainte de a introduce date.",
-            ]
-            family = "Semnal comportamental"
-            family_id = "provider-gate-official-sensitive"
-        else:
-            risk_level = "low"
-            risk_score = 10
-            reasons = ["Linkul ajunge pe o destinatie validata si nu au aparut semnale de risc."]
-            family = "Destinatie oficiala verificata"
-            family_id = "provider-gate-official-clean"
-    elif has_urls and (
-        infra_flags.get("homoglyph") or infra_flags.get("punycode") or infra_flags.get("typosquat")
-    ) and (has_domain_mismatch or sensitive_request_signal or direct_sensitive_request):
-        risk_level = "high"
-        risk_score = max(86, legacy_risk_score)
-        reasons = [
-            "Domeniul final arată ca o imitare a unui brand oficial și mesajul cere o acțiune sensibilă sau nu corespunde canalului oficial."
-        ]
-        family = "Imitare de domeniu / typosquatting"
-        family_id = "provider-gate-lookalike-domain"
-    elif (
-        has_urls
-        and not official_destination
-        and (direct_sensitive_request or sensitive_request_signal or sensitive_url_path)
-        and offer_status == "not_found"
-    ):
-        risk_level = "high"
-        risk_score = max(88, legacy_risk_score)
-        reasons = [
-            "Destinația nu este validată oficial și cere date sensibile sau plată; nu introduce date.",
-        ]
-        family = "Formular sensibil pe domeniu neoficial"
-        family_id = "provider-gate-sensitive-unofficial-form"
-    elif has_urls and (
-        infra_flags.get("homoglyph") or
-        infra_flags.get("punycode") or
-        infra_flags.get("typosquat") or
-        infra_flags.get("very_new_domain") or
-        infra_flags.get("suspicious_domain_age") or
-        infra_flags.get("dga_entropy") or
-        infra_flags.get("url_behaviour") or
-        infra_flags.get("url_transport")
-    ) and not official_destination:
-        risk_level = "medium"
-        risk_score = max(60, min(legacy_risk_score, 75))
-        reasons = [
-            "Destinația finală are semnale tehnice de infrastructură care cer verificare pe canalul oficial înainte de orice acțiune."
-        ]
-        family = "Semnale infrastructură"
-        family_id = "provider-gate-infrastructure-review"
-    elif has_domain_mismatch or direct_sensitive_request or sensitive_request_signal or brand_warning.get("triggered"):
-        risk_level = "medium"
-        risk_score = 60 if brand_warning.get("triggered") else 55
-        reasons = [
-            "Linkul sau mesajul nu corespunde unei cerințe legitime și cere acțiuni sensibile; verifică prin canalul oficial.",
-        ]
-        family = "Incompatibilitate oficială"
-        family_id = "provider-gate-mismatch-or-sensitive"
-    elif legacy_risk_level in {"high", "critical", "dangerous"}:
-        risk_level = "medium"
-        risk_score = max(min(legacy_risk_score, 75), 50)
-        reasons = ["Semnale textuale indică risc, fără confirmare clară de la provider-ele tehnice."]
-        family = "Semnale text"
-        family_id = "provider-gate-legacy-high"
-    elif consulted_count:
-        # Nu mai blocăm pe lipsă de pillar; folosim dovezile disponibile + istoricul.
-        missing = []
-        if not web_risk_consulted:
-            missing.append("Google Web Risk")
-        if not urlscan_consulted:
-            missing.append("urlscan preview")
-        if missing:
-            risk_level = "medium"
-            risk_score = 50
-            reasons = [
-                "Scanare parțială: unele piloane externe nu au fost disponibile.",
-                f"Piloane indisponibile: {', '.join(missing)}",
-            ]
-            family = "Verificare parțială"
-            family_id = "provider-gate-partial-pillars"
-        elif has_urls and not official_destination and offer_status in {"inconclusive", "unknown", ""}:
-            risk_level = "medium"
-            risk_score = 50
-            reasons = [
-                "Providerii nu au confirmat risc, dar destinația nu este validată oficial și claim-ul nu poate fi confirmat complet.",
-            ]
-            family = "Destinație neverificată"
-            family_id = "provider-gate-unofficial-inconclusive"
-        else:
-            risk_level = "low"
-            risk_score = 15
-            reasons = ["Verificare externă curată, fără semnale clare de risc."]
-            family = "Destinatie curată"
-            family_id = "provider-gate-clean"
-    else:
-        risk_level = "medium"
-        risk_score = 0
-        reasons = [
-            "Nu avem semnale clare de risc. Scanarea a fost limitată și nu există confirmare externă completă; "
-            "verifică înainte de a acționa."
-        ]
-        family = "Verificare limitată"
-        family_id = "provider-gate-unverified"
-
-    provider_gate.update({
-        "risk_level": risk_level,
-        "risk_score": risk_score,
-        "reason": reasons[0],
-    })
-    evidence["provider_gate"] = provider_gate
-    analysis["risk_level"] = risk_level
-    analysis["risk_score"] = risk_score
-    analysis["detected_family"] = family
-    analysis["detected_family_id"] = family_id
-    analysis["reasons"] = reasons
-    analysis["safe_actions"] = (
-        [
-            "Nu introduce date sensibile.",
-            "Nu deschide linkuri din mesaj dacă nu recunoști canalul oficial.",
-        ]
-        if risk_level == "high"
-        else [
-            "Verifică oferta pe canalul oficial al brandului înainte de orice acțiune.",
-            "Nu introduce date sensibile dacă mesajul cere card, cod sau date de acces.",
-        ]
-        if risk_level == "medium"
-        else [
-            "Păstrează vigilenta, dar nu acționa de pe acel link fără verificare suplimentară dacă nu este context clar de la tine.",
-            "Folosește opțiunea de raportare dacă mesajul pare suspect.",
-        ]
-    )
-    return analysis
+    gate_result = reduce_verdict(decision_bundle)
+    return _apply_decision_contract_result(analysis, decision_bundle, gate_result, provider_gate)
 
 
 def _project_provider_gate_verdict(
@@ -4415,15 +4593,15 @@ def _build_orchestrated_pillars(job: Dict[str, Any]) -> Dict[str, Dict[str, Any]
         details = str(urlscan_state.get("verdict") or "finished")
         if not screenshot_ready:
             details = f"{details}; captura inca se proceseaza"
-        urlscan_pillar = _pillar("ok", required=False, details=details, ref=urlscan_state.get("uuid"))
+        urlscan_pillar = _pillar("ok", required=has_urls, details=details, ref=urlscan_state.get("uuid"))
     elif urlscan_status == "skipped" and not has_urls:
         urlscan_pillar = _pillar("not_required", required=False, details="nu exista URL pentru preview")
     elif urlscan_status in {"error", "timeout", "rate_limited", "skipped"}:
-        urlscan_pillar = _pillar("error", required=False, details=str(urlscan_state.get("details") or urlscan_status), ref=urlscan_state.get("uuid"))
+        urlscan_pillar = _pillar("error", required=has_urls, details=str(urlscan_state.get("details") or urlscan_status), ref=urlscan_state.get("uuid"))
     elif urlscan_state.get("uuid"):
-        urlscan_pillar = _pillar("pending", required=False, details="urlscan preview este in procesare.", ref=urlscan_state.get("uuid"))
+        urlscan_pillar = _pillar("pending", required=has_urls, details="urlscan verdict este in procesare.", ref=urlscan_state.get("uuid"))
     else:
-        urlscan_pillar = _pillar("pending", required=False, details="urlscan preview nu a pornit.")
+        urlscan_pillar = _pillar("pending", required=has_urls, details="urlscan verdict nu a pornit.")
 
     if not has_urls:
         final_url_pillar = _pillar("not_required", required=False, details="mesajul nu contine URL verificabil")
@@ -4450,12 +4628,25 @@ def _build_orchestrated_pillars(job: Dict[str, Any]) -> Dict[str, Dict[str, Any]
             required=claim_required,
             details=claim_status or ("required" if claim_required else "not required"),
         ),
+        "semantic_review": _pillar(
+            "ok" if analysis else "pending",
+            required=True,
+            details="atlas/corpus semantic review",
+        ),
     }
 
 
 def _all_required_pillars_ok(pillars: Dict[str, Dict[str, Any]]) -> bool:
     return all(
         not pillar.get("required", True) or pillar.get("status") == "ok"
+        for pillar in pillars.values()
+    )
+
+
+def _all_required_pillars_terminal(pillars: Dict[str, Dict[str, Any]]) -> bool:
+    terminal = {"ok", "error", "timeout", "rate_limited", "skipped", "not_required"}
+    return all(
+        not pillar.get("required", True) or str(pillar.get("status") or "").lower() in terminal
         for pillar in pillars.values()
     )
 
@@ -4518,7 +4709,7 @@ def _mark_required_pillars_timeout(job: Dict[str, Any]) -> Dict[str, Any]:
             "evidence": {
                 "external_intel_summary": {},
                 "provider_gate": {
-                    "version": "provider_gate_v1",
+                    "version": "verdict_gate_v2",
                     "risk_level": "medium",
                     "risk_score": 50,
                     "reason": "Piloanele obligatorii nu au finalizat la timp.",
@@ -4608,10 +4799,8 @@ def _orchestrated_status_payload(job: Dict[str, Any]) -> Dict[str, Any]:
     pillars = _build_orchestrated_pillars(job)
     preview = job.get("preview") if isinstance(job.get("preview"), dict) else {}
     result = job.get("result") if isinstance(job.get("result"), dict) else None
-    if result is not None and result.get("is_final", True) is not False and _urlscan_enhancement_done(job):
+    if result is not None and result.get("is_final", True) is not False:
         status = "complete"
-    elif result is not None:
-        status = "scanning"
     elif _has_required_pillar_error(pillars):
         status = "incomplete"
     else:
@@ -4623,8 +4812,6 @@ def _orchestrated_status_payload(job: Dict[str, Any]) -> Dict[str, Any]:
         "status_message": (
             "Scanarea este finalizata."
             if status == "complete"
-            else "Avem un verdict provizoriu; continuam verificarea semnalelor non-blocking."
-            if result is not None
             else "Scanarea continua pana cand pilonii necesari returneaza date."
             if status == "scanning"
             else "Scanarea nu are toti pilonii necesari pentru verdict sigur."
@@ -4638,46 +4825,13 @@ def _orchestrated_status_payload(job: Dict[str, Any]) -> Dict[str, Any]:
 def _orchestrated_can_finalize_result(job: Dict[str, Any], pillars: Dict[str, Dict[str, Any]]) -> bool:
     if str(job.get("pipeline_stage") or "").strip().lower() == "done":
         return True
-    if _all_required_pillars_ok(pillars):
-        return True
-    analysis = job.get("analysis") if isinstance(job.get("analysis"), dict) else {}
-    evidence = analysis.get("evidence", {}) if isinstance(analysis.get("evidence"), dict) else {}
-    summary = evidence.get("external_intel_summary") if isinstance(evidence.get("external_intel_summary"), dict) else {}
-    if _has_bad_provider_verdict(summary):
-        return True
-    resolved_urls = job.get("resolved_urls") if isinstance(job.get("resolved_urls"), list) else []
-    if _is_decisive_structural_danger(
-        analysis,
-        resolved_urls,
-        raw_text=str(job.get("redacted_text") or ""),
-        pillars=pillars,
-    ):
-        return True
-    urlscan_state = job.get("urlscan") if isinstance(job.get("urlscan"), dict) else {}
-    if (
-        str(urlscan_state.get("status") or "").strip().lower() == "timeout"
-        and _baseline_pillars_ready_without_urlscan(pillars)
-    ):
-        return True
-    return False
+    return _all_required_pillars_terminal(pillars)
 
 
 def _orchestrated_result_is_final(job: Dict[str, Any], analysis: Dict[str, Any]) -> bool:
-    risk_level = str(analysis.get("risk_level") or "").strip().lower()
-    urlscan_state = job.get("urlscan") if isinstance(job.get("urlscan"), dict) else {}
-    urlscan_status = str(urlscan_state.get("status") or "").strip().lower()
-    if risk_level in {"high", "critical", "dangerous"}:
-        family_id = str(analysis.get("detected_family_id") or "").strip()
-        evidence = analysis.get("evidence", {}) if isinstance(analysis.get("evidence"), dict) else {}
-        summary = evidence.get("external_intel_summary") if isinstance(evidence.get("external_intel_summary"), dict) else {}
-        if _has_bad_provider_verdict(summary):
-            return True
-        if family_id == "provider-gate-decisive-structural-danger":
-            return urlscan_status in {"finished", "error", "timeout", "rate_limited", "skipped"}
-        return True
-    if not (job.get("urls") if isinstance(job.get("urls"), list) else []):
-        return True
-    return urlscan_status in {"finished", "error", "timeout", "rate_limited", "skipped"}
+    evidence = analysis.get("evidence", {}) if isinstance(analysis.get("evidence"), dict) else {}
+    gate = evidence.get("verdict_gate") if isinstance(evidence.get("verdict_gate"), dict) else {}
+    return str(gate.get("label") or "").upper() in {"SIGUR", "SUSPECT", "PERICULOS"}
 
 
 async def _finalize_orchestrated_job_if_ready(job: Dict[str, Any], request: Request) -> Dict[str, Any]:
@@ -4698,8 +4852,15 @@ async def _finalize_orchestrated_job_if_ready(job: Dict[str, Any], request: Requ
         raw_text=str(job.get("redacted_text") or ""),
         pillars=pillars,
     )
+    evidence = analysis.get("evidence", {}) if isinstance(analysis.get("evidence"), dict) else {}
+    gate = evidence.get("verdict_gate") if isinstance(evidence.get("verdict_gate"), dict) else {}
+    if str(gate.get("label") or "").upper() == "PENDING":
+        job.pop("result", None)
+        job.pop("result_fingerprint", None)
+        _emit_orchestrated_telemetry("orchestrated_verdict_pending", job)
+        return job
     fingerprint = _orchestrated_result_fingerprint(job, analysis, pillars, resolved_urls)
-    if existing_result and existing_result.get("is_final", True) is False and job.get("result_fingerprint") == fingerprint:
+    if existing_result and job.get("result_fingerprint") == fingerprint:
         return job
 
     explanation_cache = job.get("ai_explanation_cache") if isinstance(job.get("ai_explanation_cache"), dict) else {}
@@ -4727,22 +4888,13 @@ async def _finalize_orchestrated_job_if_ready(job: Dict[str, Any], request: Requ
     response_payload["is_final"] = _orchestrated_result_is_final(job, analysis)
     job["result"] = response_payload
     job["result_fingerprint"] = fingerprint
-    if response_payload["is_final"]:
-        _emit_orchestrated_telemetry(
-            "orchestrated_verdict_final",
-            job,
-            user_risk_label=response_payload.get("user_risk_label"),
-            risk_level=response_payload.get("risk_level"),
-            result_fingerprint=fingerprint,
-        )
-    else:
-        _emit_orchestrated_telemetry(
-            "orchestrated_verdict_provisional",
-            job,
-            user_risk_label=response_payload.get("user_risk_label"),
-            risk_level=response_payload.get("risk_level"),
-            result_fingerprint=fingerprint,
-        )
+    _emit_orchestrated_telemetry(
+        "orchestrated_verdict_final",
+        job,
+        user_risk_label=response_payload.get("user_risk_label"),
+        risk_level=response_payload.get("risk_level"),
+        result_fingerprint=fingerprint,
+    )
     _emit_scan_event(
         scan_id=scan_id,
         scan_payload=response_payload,

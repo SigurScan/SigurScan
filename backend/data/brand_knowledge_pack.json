@@ -7,10 +7,13 @@
   },
   "brand_registry": {
     "ANAF": [
-      "anaf.ro"
+      "anaf.ro",
+      "anaf.mfinante.gov.ro",
+      "static.anaf.ro"
     ],
     "Ministerul Finanțelor": [
-      "mfinante.gov.ro"
+      "mfinante.gov.ro",
+      "static.anaf.ro"
     ],
     "Banca Națională a României": [
       "bnr.ro",
@@ -29,7 +32,8 @@
       "ropost.ro"
     ],
     "SAMEDAY": [
-      "sameday.ro"
+      "sameday.ro",
+      "sdy.ro"
     ],
     "Cargus": [
       "cargus.ro"
@@ -42,6 +46,77 @@
     "eMAG": [
       "emag.ro",
       "marketplace.emag.ro"
+    ],
+    "Altex": [
+      "altex.ro",
+      "mediagalaxy.ro"
+    ],
+    "Revolut": [
+      "revolut.com",
+      "help.revolut.com",
+      "revolut.com/ro-ro"
+    ],
+    "BCR": [
+      "bcr.ro",
+      "george.bcr.ro"
+    ],
+    "Banca Transilvania": [
+      "bancatransilvania.ro",
+      "intreb.bancatransilvania.ro"
+    ],
+    "ING Bank România": [
+      "ing.ro"
+    ],
+    "Raiffeisen Bank România": [
+      "raiffeisen.ro",
+      "bank.raiffeisen.ro"
+    ],
+    "Orange / YOXO": [
+      "orange.ro",
+      "yoxo.ro",
+      "newsroom.orange.ro"
+    ],
+    "Vodafone România": [
+      "vodafone.ro",
+      "m.vodafone.ro"
+    ],
+    "DIGI România": [
+      "digi.ro"
+    ],
+    "Hidroelectrica": [
+      "hidroelectrica.ro"
+    ],
+    "PPC Energie": [
+      "ppcenergy.ro"
+    ],
+    "E.ON România": [
+      "eon.ro",
+      "eon-romania.ro",
+      "myline-eon.ro"
+    ],
+    "Ghișeul.ro": [
+      "ghiseul.ro"
+    ],
+    "BNR": [
+      "bnr.ro",
+      "portal.bnr.ro"
+    ],
+    "OLX": [
+      "olx.ro",
+      "blog.olx.ro",
+      "ajutor.olx.ro"
+    ],
+    "ING România": [
+      "ing.ro"
+    ],
+    "Orange România": [
+      "orange.ro",
+      "yoxo.ro"
+    ],
+    "PPC/E.ON și utilități": [
+      "ppcenergy.ro",
+      "eon.ro",
+      "myline-eon.ro"
     ],
     "Bolt": [
       "bolt.eu"
@@ -64,60 +139,10 @@
     "Electrica": [
       "electricafurnizare.ro"
     ],
-    "Altex": [
-      "altex.ro"
-    ],
-    "Revolut": [
-      "revolut.com",
-      "help.revolut.com"
-    ],
-    "BCR": [
-      "bcr.ro"
-    ],
-    "Banca Transilvania": [
-      "bancatransilvania.ro",
-      "intreb.bancatransilvania.ro"
-    ],
-    "ING Bank România": [
-      "ing.ro"
-    ],
-    "Raiffeisen Bank România": [
-      "raiffeisen.ro",
-      "bank.raiffeisen.ro"
-    ],
-    "Orange / YOXO": [
-      "orange.ro",
-      "yoxo.ro",
-      "newsroom.orange.ro"
-    ],
     "YOXO": [
       "orange.ro",
       "yoxo.ro",
       "newsroom.orange.ro"
-    ],
-    "Vodafone România": [
-      "vodafone.ro",
-      "m.vodafone.ro"
-    ],
-    "DIGI România": [
-      "digi.ro"
-    ],
-    "Hidroelectrica": [
-      "hidroelectrica.ro"
-    ],
-    "PPC Energie": [
-      "ppcenergy.ro"
-    ],
-    "E.ON România": [
-      "eon.ro",
-      "eon-romania.ro"
-    ],
-    "Ghișeul.ro": [
-      "ghiseul.ro"
-    ],
-    "BNR": [
-      "bnr.ro",
-      "portal.bnr.ro"
     ],
     "Dedeman": [
       "dedeman.ro"
@@ -150,10 +175,6 @@
     ]
   },
   "brand_domain_exceptions": {
-    "FAN Courier": [
-      "retur.fancourier.ro",
-      "selfawb.ro"
-    ],
     "SAMEDAY": [
       "sdy.ro",
       "eawb.sameday.ro",
@@ -162,6 +183,10 @@
       "sameday.easybox.ro",
       "locker-redirect.sameday.ro",
       "awb.sameday.ro"
+    ],
+    "FAN Courier": [
+      "retur.fancourier.ro",
+      "selfawb.ro"
     ],
     "Cargus": [
       "mycargus.cargus.ro",
@@ -243,20 +268,13 @@
     "ropost": "Poșta Română",
     "postaromana": "Poșta Română",
     "sameday": "SAMEDAY",
+    "sdy": "SAMEDAY",
     "cargus": "Cargus",
     "olx": "OLX România",
     "olxromania": "OLX România",
     "emag": "eMAG",
-    "bolt": "Bolt",
-    "fashiondays": "Fashion Days",
-    "mega-image": "Mega Image",
-    "megaimage": "Mega Image",
-    "dpd": "DPD",
-    "netflix": "Netflix",
-    "spotify": "Spotify",
-    "electrica": "Electrica",
-    "electricafurnizare": "Electrica",
     "altex": "Altex",
+    "mediagalaxy": "Altex",
     "revolut": "Revolut",
     "bcr": "BCR",
     "bancatransilvania": "Banca Transilvania",
@@ -277,17 +295,32 @@
     "ppc": "PPC Energie",
     "eon": "E.ON România",
     "eon-romania": "E.ON România",
+    "myline-eon": "PPC/E.ON și utilități",
     "eonromania": "E.ON România",
+    "mylineeon": "PPC/E.ON și utilități",
     "ghiseul": "Ghișeul.ro",
     "ghiseulro": "Ghișeul.ro",
     "ghiseul.ro": "Ghișeul.ro",
     "mfinante": "Ministerul Finanțelor",
+    "ingromania": "ING România",
+    "orangeromania": "Orange România",
+    "ppceonsiutilitati": "PPC/E.ON și utilități",
+    "ppceon": "PPC/E.ON și utilități",
+    "eonsiutilitati": "PPC/E.ON și utilități",
+    "bolt": "Bolt",
+    "fashiondays": "Fashion Days",
+    "mega-image": "Mega Image",
+    "megaimage": "Mega Image",
+    "dpd": "DPD",
+    "netflix": "Netflix",
+    "spotify": "Spotify",
+    "electrica": "Electrica",
+    "electricafurnizare": "Electrica",
     "fan": "FAN Courier",
     "selfawb": "FAN Courier",
     "posta": "Poșta Română",
     "easybox": "SAMEDAY",
     "marketplace": "eMAG",
-    "mediagalaxy": "Altex",
     "dedeman": "Dedeman",
     "kaufland": "Kaufland România",
     "lidl": "Lidl România",
@@ -307,6 +340,7 @@
   "brand_aliases": {
     "ANAF": [
       "ANAF",
+      "gov",
       "spv",
       "spatiul privat virtual",
       "spațiul privat virtual",
@@ -317,6 +351,7 @@
       "Ministerul Finanțelor",
       "Ministerul Finantelor",
       "gov",
+      "anaf",
       "mfinante",
       "e-factura",
       "efactura"
@@ -352,8 +387,8 @@
     ],
     "SAMEDAY": [
       "SAMEDAY",
-      "easybox",
       "sdy",
+      "easybox",
       "locker sameday",
       "awb sameday"
     ],
@@ -373,34 +408,10 @@
       "emag marketplace",
       "marketplace emag"
     ],
-    "Bolt": [
-      "Bolt"
-    ],
-    "Fashion Days": [
-      "Fashion Days",
-      "fashiondays"
-    ],
-    "Mega Image": [
-      "Mega Image",
-      "mega-image"
-    ],
-    "DPD": [
-      "DPD"
-    ],
-    "Netflix": [
-      "Netflix"
-    ],
-    "Spotify": [
-      "Spotify"
-    ],
-    "Electrica": [
-      "Electrica",
-      "Electrica Furnizare"
-    ],
     "Altex": [
       "Altex",
-      "media galaxy",
-      "mediagalaxy"
+      "mediagalaxy",
+      "media galaxy"
     ],
     "Revolut": [
       "Revolut"
@@ -473,6 +484,7 @@
       "E.ON Romania",
       "eon",
       "eon-romania",
+      "myline-eon",
       "e.on",
       "eon romania",
       "eon românia",
@@ -487,9 +499,58 @@
       "ghișeul ro"
     ],
     "BNR": [
-      "bnr",
+      "BNR",
       "banca nationala a romaniei",
       "banca națională a româniei"
+    ],
+    "OLX": [
+      "OLX"
+    ],
+    "ING România": [
+      "ING România",
+      "ING Romania",
+      "ing"
+    ],
+    "Orange România": [
+      "Orange România",
+      "Orange Romania",
+      "orange",
+      "yoxo"
+    ],
+    "PPC/E.ON și utilități": [
+      "PPC/E.ON și utilități",
+      "PPC/E.ON si utilitati",
+      "ppc eon",
+      "PPC",
+      "E.ON și utilități",
+      "E.ON si utilitati",
+      "ppcenergy",
+      "eon",
+      "myline-eon"
+    ],
+    "Bolt": [
+      "Bolt"
+    ],
+    "Fashion Days": [
+      "Fashion Days",
+      "fashiondays"
+    ],
+    "Mega Image": [
+      "Mega Image",
+      "mega-image"
+    ],
+    "DPD": [
+      "DPD"
+    ],
+    "Netflix": [
+      "Netflix"
+    ],
+    "Spotify": [
+      "Spotify"
+    ],
+    "Electrica": [
+      "Electrica",
+      "Electrica Furnizare"
     ],
     "Dedeman": [
       "dedeman"
@@ -557,7 +618,10 @@
       "published": "2026-02-11",
       "accessed": "2026-06-03",
       "confidence": "high",
-      "evidence_gate_signal_suggested": "BRAND_NEVER_ASK_FAN_SMS_SENSITIVE_DATA"
+      "evidence_gate_signal_suggested": "BRAND_NEVER_ASK_FAN_SMS_SENSITIVE_DATA",
+      "source_ids": [
+        "S4"
+      ]
     },
     {
       "brand_id": "posta_romana",
@@ -580,7 +644,10 @@
       "published": "data exactă în rezultat neconfirmată; comunicat curent în site",
       "accessed": "2026-06-03",
       "confidence": "high",
-      "evidence_gate_signal_suggested": "BRAND_NEVER_ASK_POSTA_CARD_PIN_DELIVERY_FEE"
+      "evidence_gate_signal_suggested": "BRAND_NEVER_ASK_POSTA_CARD_PIN_DELIVERY_FEE",
+      "source_ids": [
+        "S5"
+      ]
     },
     {
       "brand_id": "bt",
@@ -593,7 +660,7 @@
         "password": true,
         "cnp": false,
         "iban": false,
-        "remote_access": false,
+        "remote_access": true,
         "apk_install": false,
         "safe_account_transfer": false,
         "crypto_atm_deposit": false
@@ -603,13 +670,16 @@
       "published": "unknown",
       "accessed": "2026-06-03",
       "confidence": "high",
-      "evidence_gate_signal_suggested": "BANK_NEVER_ASK_BT_CREDENTIALS_CARD"
+      "evidence_gate_signal_suggested": "BANK_NEVER_ASK_BT_CREDENTIALS_CARD",
+      "source_ids": [
+        "S14"
+      ]
     },
     {
       "brand_id": "bcr",
       "never_ask_for": {
         "card_number": true,
-        "cvv": false,
+        "cvv": true,
         "otp": false,
         "whatsapp_code": false,
         "banking_pin": true,
@@ -619,20 +689,24 @@
         "remote_access": false,
         "apk_install": false,
         "safe_account_transfer": false,
-        "crypto_atm_deposit": false
+        "crypto_atm_deposit": false,
+        "etoken_code_from_link": true
       },
       "exact_official_statement_summary": "BCR afirmă că nu solicită date personale/de autentificare bancară/card prin link transmis pe e-mail sau URL de internet banking din e-mail.",
       "source_url": "https://www.bcr.ro/en/individuals/useful-information/tentative-de-frauda-phishing",
       "published": "unknown",
       "accessed": "2026-06-03",
       "confidence": "high",
-      "evidence_gate_signal_suggested": "BANK_NEVER_ASK_BCR_LINK_CREDENTIALS"
+      "evidence_gate_signal_suggested": "BANK_NEVER_ASK_BCR_LINK_CREDENTIALS",
+      "source_ids": [
+        "S17/S18"
+      ]
     },
     {
       "brand_id": "ing",
       "never_ask_for": {
         "card_number": true,
-        "cvv": false,
+        "cvv": true,
         "otp": true,
         "whatsapp_code": false,
         "banking_pin": true,
@@ -649,7 +723,10 @@
       "published": "2025-03-26",
       "accessed": "2026-06-03",
       "confidence": "high",
-      "evidence_gate_signal_suggested": "BANK_NEVER_ASK_ING_SECURITY_DATA_OR_APP"
+      "evidence_gate_signal_suggested": "BANK_NEVER_ASK_ING_SECURITY_DATA_OR_APP",
+      "source_ids": [
+        "S16"
+      ]
     },
     {
       "brand_id": "raiffeisen",
@@ -711,14 +788,20 @@
         "remote_access": false,
         "apk_install": false,
         "safe_account_transfer": false,
-        "crypto_atm_deposit": false
+        "crypto_atm_deposit": false,
+        "card_to_receive_money": true,
+        "cvv_to_receive_money": true,
+        "balance": true
       },
       "exact_official_statement_summary": "OLX avertizează că atacatorii cer date card, sold și CVV/CVC sub pretextul primirii plății; OLX nu are sistem prin care cumpărătorii să plătească produsul online în acel flux.",
       "source_url": "https://blog.olx.ro/2020/12/ai-grija-la-linkurile-false-pentru-articole-platite-vezi-cum-te-protejezi-de-cele-mai-noi-atacuri-de-phishing/",
       "published": "2020-12-14",
       "accessed": "2026-06-03",
       "confidence": "high",
-      "evidence_gate_signal_suggested": "MARKETPLACE_CARD_TO_RECEIVE_MONEY"
+      "evidence_gate_signal_suggested": "MARKETPLACE_CARD_TO_RECEIVE_MONEY",
+      "source_ids": [
+        "S22"
+      ]
     },
     {
       "brand_id": "digi",
@@ -757,14 +840,19 @@
         "remote_access": false,
         "apk_install": false,
         "safe_account_transfer": false,
-        "crypto_atm_deposit": false
+        "crypto_atm_deposit": false,
+        "investment_via_social_ad": true,
+        "personal_or_banking_data_via_social_or_phone": true
       },
       "exact_official_statement_summary": "Hidroelectrica avertizează împotriva platformelor false de investiții și recomandă să nu divulgi cont bancar/acte/date personale către surse necunoscute; site oficial unic: hidroelectrica.ro.",
       "source_url": "https://www.hidroelectrica.ro/press-release/be34ffdd-821e-5bed-e6c1-1868bbf7cb79",
       "published": "2023-09-29",
       "accessed": "2026-06-03",
       "confidence": "high",
-      "evidence_gate_signal_suggested": "INVESTMENT_HIDROELECTRICA_OFFICIAL_SITE_ONLY"
+      "evidence_gate_signal_suggested": "INVESTMENT_HIDROELECTRICA_OFFICIAL_SITE_ONLY",
+      "source_ids": [
+        "S23"
+      ]
     },
     {
       "brand_id": "ghiseul",
@@ -780,14 +868,19 @@
         "remote_access": false,
         "apk_install": false,
         "safe_account_transfer": false,
-        "crypto_atm_deposit": false
+        "crypto_atm_deposit": false,
+        "sms_email_payment_obligation_notice": true,
+        "link_for_payment_or_data_update": true
       },
       "exact_official_statement_summary": "Ghișeul.ro afirmă pe pagina oficială că nu anunță prin SMS/e-mail apariția obligațiilor de plată; sursele ADR spun că nu cere accesarea linkurilor pentru plăți/actualizare date.",
       "source_url": "https://www.ghiseul.ro/",
       "published": "unknown",
       "accessed": "2026-06-03",
       "confidence": "high",
-      "evidence_gate_signal_suggested": "GHISEUL_NEVER_SMS_EMAIL_PAYMENT_OBLIGATION"
+      "evidence_gate_signal_suggested": "GHISEUL_NEVER_SMS_EMAIL_PAYMENT_OBLIGATION",
+      "source_ids": [
+        "S25"
+      ]
     },
     {
       "brand_id": "orange_yoxo",
@@ -884,7 +977,7 @@
     {
       "brand_id": "sameday",
       "never_ask_for": {
-        "card_number": false,
+        "card_number": true,
         "cvv": false,
         "otp": false,
         "whatsapp_code": false,
@@ -902,7 +995,10 @@
       "published": "unknown",
       "accessed": "2026-06-03",
       "confidence": "medium",
-      "evidence_gate_signal_suggested": "SAMEDAY_OFFICIAL_APP_PAYMENT_FALSE_POSITIVE_GUARD"
+      "evidence_gate_signal_suggested": "SAMEDAY_OFFICIAL_APP_PAYMENT_FALSE_POSITIVE_GUARD",
+      "source_ids": [
+        "S6"
+      ]
     },
     {
       "brand_id": "anaf",
@@ -1225,6 +1321,111 @@
       "exemple_fake": [
         "bt-securizare-cont.test cere CVV/OTP"
       ]
+    },
+    {
+      "claim_type": "buyback_yoxo",
+      "official_sources": [
+        "S30"
+      ],
+      "how": "Caută oferta pe yoxo.ro/app; verifică dacă există pagină oficială Buy Back sau campanie YOXO Dealz.",
+      "confirmed": "claim găsit pe domeniu oficial sau în app",
+      "not_found": "SUSPECT, nu PERICULOS; campaniile se pot închide/rota",
+      "legit": "Pagina YOXO oficială / aplicație",
+      "fake": "domeniu yoxo-buyback.test + cere card/CI"
+    },
+    {
+      "claim_type": "campanie_emag_altex",
+      "official_sources": [
+        "S29"
+      ],
+      "how": "Verifică pe emag.ro/altex.ro și final URL; newsletter real poate avea tracking.",
+      "confirmed": "final URL oficial/partener + fără card/OTP necerut",
+      "not_found": "SUSPECT dacă e ofertă prea bună; nu PERICULOS singur",
+      "legit": "newsletter eMAG final emag.ro",
+      "fake": "voucher 500 lei pe emag-voucher.test"
+    },
+    {
+      "claim_type": "tracking_curier",
+      "official_sources": [
+        "S4",
+        "S5",
+        "S6",
+        "S7",
+        "S8"
+      ],
+      "how": "Expandează linkul; verifică domeniul oficial curier; nu considera contextul real ca safe evidence.",
+      "confirmed": "final URL fancourier.ro / posta-romana.ro / sameday.ro/sdy.ro",
+      "not_found": "SUSPECT",
+      "legit": "AWB tracking oficial fără card",
+      "fake": "taxă de 3,99 lei pe domeniu neoficial"
+    },
+    {
+      "claim_type": "anaf_spv_notification",
+      "official_sources": [
+        "S3",
+        "S12",
+        "S13"
+      ],
+      "how": "Verifică pe anaf.ro/SPV tastat manual; nu din link email.",
+      "confirmed": "notificare vizibilă în SPV/canal oficial",
+      "not_found": "SUSPECT; poate fi delay sau document individual",
+      "legit": "SPV accesat manual",
+      "fake": "rambursare prin buton către .test"
+    },
+    {
+      "claim_type": "factura_utilitati",
+      "official_sources": [
+        "S26",
+        "S27",
+        "S28"
+      ],
+      "how": "Verifică în app/cont oficial; compară domain și sumă; PDF singur nu e dovadă.",
+      "confirmed": "factură în cont oficial",
+      "not_found": "SUSPECT, nu PERICULOS automat",
+      "legit": "Digi/PPC/E.ON app/cont",
+      "fake": "amenințare suspendare + card pe .test"
+    },
+    {
+      "claim_type": "oferte_telecom",
+      "official_sources": [
+        "S26",
+        "S27",
+        "S28",
+        "S30"
+      ],
+      "how": "Verifică pe site/app oficială; shortener/deep link poate fi legit, dar trebuie expansiune.",
+      "confirmed": "ofertă pe domeniu oficial/app",
+      "not_found": "SUSPECT",
+      "legit": "YOXO/Orange app",
+      "fake": "yoxo-premiu.test + card"
+    },
+    {
+      "claim_type": "campanii_bancare_educationale",
+      "official_sources": [
+        "S14",
+        "S15",
+        "S16",
+        "S17",
+        "S18",
+        "S19"
+      ],
+      "how": "Verifică dacă mesajul educațional cere vreo acțiune sensibilă; educația nu cere PIN/CVV/cod.",
+      "confirmed": "pagina securitate oficială",
+      "not_found": "SUSPECT dacă doar informativ",
+      "legit": "BT/ING/BCR security tips",
+      "fake": "educație + link login + OTP"
+    },
+    {
+      "claim_type": "hidroelectrica_investment",
+      "official_sources": [
+        "S23",
+        "S24"
+      ],
+      "how": "Verifică pe hidroelectrica.ro/relații investitori; caută platforma/claim-ul; reclamele social nu sunt canal oficial.",
+      "confirmed": "informatie oficială/reglementată, nu lead form social",
+      "not_found": "SUSPECT; PERICULOS cu date bancare/remote access",
+      "legit": "pagina oficială investitori",
+      "fake": "platformă socială cu profit garantat"
     }
   ],
   "official_registry_updates": [
@@ -1232,12 +1433,16 @@
       "brand_id": "anaf",
       "display_name": "ANAF",
       "official_domains": [
-        "anaf.ro"
+        "anaf.ro",
+        "anaf.mfinante.gov.ro",
+        "static.anaf.ro"
       ],
       "official_apps_or_channels": [
         "Spațiul Privat Virtual pe anaf.ro",
         "formular contact ANAF",
-        "Call Center Asistență Contribuabili"
+        "Call Center Asistență Contribuabili",
+        "Spațiul Privat Virtual (SPV)",
+        "Call Center ANAF 0314039160"
       ],
       "approved_tracking_or_partner_domains": [],
       "source_urls": [
@@ -1255,17 +1460,24 @@
         }
       ],
       "confidence": "high",
-      "notes": "efactura.mfinante.ro poate apărea în fluxuri fiscale tehnice, dar trebuie tratat separat prin MF/RO e-Factura; nu whitelista domenii non-anaf fără sursă punctuală."
+      "notes": "efactura.mfinante.ro poate apărea în fluxuri fiscale tehnice, dar trebuie tratat separat prin MF/RO e-Factura; nu whitelista domenii non-anaf fără sursă punctuală.",
+      "source_ids": [
+        "S3",
+        "S12",
+        "S13"
+      ]
     },
     {
       "brand_id": "ministerul_finantelor",
       "display_name": "Ministerul Finanțelor",
       "official_domains": [
-        "mfinante.gov.ro"
+        "mfinante.gov.ro",
+        "static.anaf.ro"
       ],
       "official_apps_or_channels": [
         "mfinante.gov.ro contact",
-        "servicii RO e-Factura/ForexeBug menționate prin documentație fiscală"
+        "servicii RO e-Factura/ForexeBug menționate prin documentație fiscală",
+        "portaluri oficiale MF/ANAF"
       ],
       "approved_tracking_or_partner_domains": [],
       "source_urls": [
@@ -1277,7 +1489,10 @@
         }
       ],
       "confidence": "high",
-      "notes": "Reguli runtime doar pentru domenii mfinante.gov.ro/anaf.ro verificate; alte subservicii fiscale necesită registry explicit."
+      "notes": "Reguli runtime doar pentru domenii mfinante.gov.ro/anaf.ro verificate; alte subservicii fiscale necesită registry explicit.",
+      "source_ids": [
+        "S12"
+      ]
     },
     {
       "brand_id": "bnr",
@@ -1288,7 +1503,8 @@
       ],
       "official_apps_or_channels": [
         "site BNR",
-        "portal.bnr.ro pentru aplicații informatice BNR"
+        "portal.bnr.ro pentru aplicații informatice BNR",
+        "site BNR; comunicare oficială publică"
       ],
       "approved_tracking_or_partner_domains": [],
       "source_urls": [
@@ -1306,7 +1522,12 @@
         }
       ],
       "confidence": "high",
-      "notes": "Nu considera numărul afișat pe telefon drept dovadă; spoofing-ul este confirmat ca scenariu."
+      "notes": "Nu considera numărul afișat pe telefon drept dovadă; spoofing-ul este confirmat ca scenariu.",
+      "source_ids": [
+        "S9",
+        "S10",
+        "S11"
+      ]
     },
     {
       "brand_id": "dnsc",
@@ -1403,14 +1624,19 @@
       "brand_id": "sameday",
       "display_name": "SAMEDAY",
       "official_domains": [
-        "sameday.ro"
+        "sameday.ro",
+        "sdy.ro"
       ],
       "official_apps_or_channels": [
         "SAMEDAY App",
         "sameday.ro/contact",
-        "SAMY"
+        "SAMY",
+        "sameday.ro",
+        "sdy.ro"
       ],
-      "approved_tracking_or_partner_domains": [],
+      "approved_tracking_or_partner_domains": [
+        "sdy.ro"
+      ],
       "source_urls": [
         {
           "source_id": "sameday_app",
@@ -1426,7 +1652,11 @@
         }
       ],
       "confidence": "high",
-      "notes": "Important false-positive: SAMEDAY App permite card payment pentru ramburs și redirecționare în aplicație. Nu avem never-ask-for oficial verificat."
+      "notes": "Important false-positive: SAMEDAY App permite card payment pentru ramburs și redirecționare în aplicație. Nu avem never-ask-for oficial verificat.",
+      "source_ids": [
+        "S6",
+        "S7"
+      ]
     },
     {
       "brand_id": "cargus",
@@ -1460,7 +1690,9 @@
       ],
       "official_apps_or_channels": [
         "OLX app/site",
-        "OLX Ajutor"
+        "OLX Ajutor",
+        "chat OLX",
+        "cont OLX"
       ],
       "approved_tracking_or_partner_domains": [],
       "source_urls": [
@@ -1484,7 +1716,10 @@
         }
       ],
       "confidence": "high",
-      "notes": "OLX links to receive money/card data are high-risk when off-platform."
+      "notes": "OLX links to receive money/card data are high-risk when off-platform.",
+      "source_ids": [
+        "S22"
+      ]
     },
     {
       "brand_id": "emag",
@@ -1496,7 +1731,9 @@
       "official_apps_or_channels": [
         "eMAG app/site",
         "eMAG Marketplace",
-        "MarketplaceAccountSecurity@emag.ro pentru seller security"
+        "MarketplaceAccountSecurity@emag.ro pentru seller security",
+        "cont eMAG",
+        "aplicația eMAG"
       ],
       "approved_tracking_or_partner_domains": [],
       "source_urls": [
@@ -1508,17 +1745,22 @@
         }
       ],
       "confidence": "medium",
-      "notes": "Nu avem warning oficial complet anti-phishing din eMAG găsit; OTP seller legitim există, deci guard contra false positive."
+      "notes": "Nu avem warning oficial complet anti-phishing din eMAG găsit; OTP seller legitim există, deci guard contra false positive.",
+      "source_ids": [
+        "S29"
+      ]
     },
     {
       "brand_id": "altex",
       "display_name": "Altex",
       "official_domains": [
-        "altex.ro"
+        "altex.ro",
+        "mediagalaxy.ro"
       ],
       "official_apps_or_channels": [
         "altex.ro",
-        "newsletter/dezabonare din site"
+        "newsletter/dezabonare din site",
+        "site/app oficiale"
       ],
       "approved_tracking_or_partner_domains": [],
       "source_urls": [
@@ -1530,7 +1772,8 @@
         }
       ],
       "confidence": "high",
-      "notes": "Sursa oficială recomandă direct site-ul oficial în loc de linkuri suspecte."
+      "notes": "Sursa oficială recomandă direct site-ul oficial în loc de linkuri suspecte.",
+      "source_ids": []
     },
     {
       "brand_id": "revolut",
@@ -1542,7 +1785,9 @@
       "official_apps_or_channels": [
         "chat suport în aplicație",
         "in-app calls",
-        "support@revolut.com în cazuri de acces pierdut"
+        "support@revolut.com în cazuri de acces pierdut",
+        "aplicația Revolut",
+        "support în app"
       ],
       "approved_tracking_or_partner_domains": [],
       "source_urls": [
@@ -1557,27 +1802,26 @@
           "url": "https://www.revolut.com/en-RO/blog/post/how-to-know-its-really-revolut-calling/",
           "published": "2026-03-10",
           "accessed": "2026-06-03"
-        },
-        {
-          "source_id": "revolut_report",
-          "url": "https://help.revolut.com/ro-RO/help/security-logging-in/how-do-i-report-a-suspicious-call-email-link-or-text/",
-          "published": "unknown",
-          "accessed": "2026-06-03"
         }
       ],
       "confidence": "high",
-      "notes": "Apelurile neprogramate/codurile cerute la telefon sunt semnal puternic."
+      "notes": "Apelurile neprogramate/codurile cerute la telefon sunt semnal puternic.",
+      "source_ids": []
     },
     {
       "brand_id": "bcr",
       "display_name": "BCR",
       "official_domains": [
-        "bcr.ro"
+        "bcr.ro",
+        "george.bcr.ro"
       ],
       "official_apps_or_channels": [
         "George App",
         "bcr.ro/contact",
-        "support.direct@bcr.ro pentru mesaje suspecte"
+        "support.direct@bcr.ro pentru mesaje suspecte",
+        "George",
+        "eToken",
+        "număr de pe spatele cardului"
       ],
       "approved_tracking_or_partner_domains": [],
       "source_urls": [
@@ -1595,7 +1839,11 @@
         }
       ],
       "confidence": "high",
-      "notes": "Nu extrapola domenii George externe fără sursă."
+      "notes": "Nu extrapola domenii George externe fără sursă.",
+      "source_ids": [
+        "S17",
+        "S18"
+      ]
     },
     {
       "brand_id": "bt",
@@ -1631,7 +1879,10 @@
       "official_apps_or_channels": [
         "Home’Bank",
         "ING Business Web",
-        "site ing.ro"
+        "site ing.ro",
+        "Home'Bank",
+        "contact@ing.ro",
+        "număr de pe spatele cardului"
       ],
       "approved_tracking_or_partner_domains": [],
       "source_urls": [
@@ -1649,7 +1900,10 @@
         }
       ],
       "confidence": "high",
-      "notes": "Nu cere date de securitate prin SMS/e-mail/link; nu descărca aplicație ce pare ING."
+      "notes": "Nu cere date de securitate prin SMS/e-mail/link; nu descărca aplicație ce pare ING.",
+      "source_ids": [
+        "S16"
+      ]
     },
     {
       "brand_id": "raiffeisen",
@@ -1661,7 +1915,8 @@
       "official_apps_or_channels": [
         "Raiffeisen Smart Mobile",
         "Raiffeisen SmartToken",
-        "*2000"
+        "*2000",
+        "Smart Mobile"
       ],
       "approved_tracking_or_partner_domains": [],
       "source_urls": [
@@ -1679,7 +1934,10 @@
         }
       ],
       "confidence": "high",
-      "notes": "Nu colectează/validează prin email/SMS informații confidențiale."
+      "notes": "Nu colectează/validează prin email/SMS informații confidențiale.",
+      "source_ids": [
+        "S19"
+      ]
     },
     {
       "brand_id": "orange_yoxo",
@@ -1692,7 +1950,8 @@
       "official_apps_or_channels": [
         "My Orange",
         "YOXO app",
-        "orange.ro/contact"
+        "orange.ro/contact",
+        "aplicația YOXO"
       ],
       "approved_tracking_or_partner_domains": [],
       "source_urls": [
@@ -1716,7 +1975,12 @@
         }
       ],
       "confidence": "high",
-      "notes": "YOXO buyback confirmat de Orange Newsroom; nu whitelista domenii ale partenerului dacă nu sunt linkate/semnate oficial."
+      "notes": "YOXO buyback confirmat de Orange Newsroom; nu whitelista domenii ale partenerului dacă nu sunt linkate/semnate oficial.",
+      "source_ids": [
+        "S26",
+        "S27",
+        "S30"
+      ]
     },
     {
       "brand_id": "vodafone",
@@ -1727,7 +1991,8 @@
       ],
       "official_apps_or_channels": [
         "Vodafone app/site",
-        "vodafone.ro/frauda"
+        "vodafone.ro/frauda",
+        "My Vodafone"
       ],
       "approved_tracking_or_partner_domains": [],
       "source_urls": [
@@ -1739,7 +2004,8 @@
         }
       ],
       "confidence": "high",
-      "notes": "Sursa descrie fraude care duc către phishing extern pentru parole/date personale."
+      "notes": "Sursa descrie fraude care duc către phishing extern pentru parole/date personale.",
+      "source_ids": []
     },
     {
       "brand_id": "digi",
@@ -1795,7 +2061,8 @@
       "official_apps_or_channels": [
         "myPPC",
         "ppcenergy.ro",
-        "factura prin SMS"
+        "factura prin SMS",
+        "aplicații/conturi oficiale"
       ],
       "approved_tracking_or_partner_domains": [],
       "source_urls": [
@@ -1813,19 +2080,22 @@
         }
       ],
       "confidence": "high",
-      "notes": "Există factură prin SMS legitimă și plată online; atenție mare la false-positive."
+      "notes": "Există factură prin SMS legitimă și plată online; atenție mare la false-positive.",
+      "source_ids": []
     },
     {
       "brand_id": "eon",
       "display_name": "E.ON România",
       "official_domains": [
         "eon.ro",
-        "eon-romania.ro"
+        "eon-romania.ro",
+        "myline-eon.ro"
       ],
       "official_apps_or_channels": [
         "E.ON Myline",
         "eon.ro/myline",
-        "E.ON Myline app"
+        "E.ON Myline app",
+        "aplicații/conturi oficiale"
       ],
       "approved_tracking_or_partner_domains": [],
       "source_urls": [
@@ -1843,7 +2113,8 @@
         }
       ],
       "confidence": "high",
-      "notes": "Plăți cu cardul în E.ON Myline sunt legitime; avertizarea phishing e din media, nu direct sursă runtime hard."
+      "notes": "Plăți cu cardul în E.ON Myline sunt legitime; avertizarea phishing e din media, nu direct sursă runtime hard.",
+      "source_ids": []
     },
     {
       "brand_id": "ghiseul",
@@ -1874,5 +2145,1737 @@
       "confidence": "high",
       "notes": "Avertisment explicit pe ghiseul.ro: nu anunță prin SMS/e-mail obligații de plată."
     }
-  ]
+  ],
+  "false_positive_guards": [
+    {
+      "case": "Newsletter promo real cu tracking link",
+      "why": "marketing folosește CTA, tracking, urgență comercială",
+      "safe_evidence": "domeniu oficial/partener verificat, final URL oficial, fără card/login sensibil",
+      "suspect_or_danger": "domeniu neoficial + card/CVV/parolă/OTP"
+    },
+    {
+      "case": "Link sub buton în email HTML",
+      "why": "emailurile legitime folosesc butoane și ESP-uri",
+      "safe_evidence": "href final oficial/partener, SPF/DKIM/DMARC aliniat, fără cerere sensibilă",
+      "suspect_or_danger": "href diferă de brand și cere date"
+    },
+    {
+      "case": "Tracking link curier legitim",
+      "why": "curierii trimit AWB, PIN, QR/easybox",
+      "safe_evidence": "domeniu oficial/app oficială; fără card/CVV prin SMS",
+      "suspect_or_danger": "taxă/card/cod WhatsApp pe domeniu neoficial"
+    },
+    {
+      "case": "OTP legitim",
+      "why": "băncile și marketplace-urile trimit coduri pentru acțiuni inițiate de user",
+      "safe_evidence": "user a inițiat acțiunea în app/site oficial",
+      "suspect_or_danger": "cineva cere codul în chat/telefon/link"
+    },
+    {
+      "case": "Factura reală utilități",
+      "why": "facturile au PDF, linkuri de plată, QR",
+      "safe_evidence": "cont oficial/aplicație/domain; suma și clientul se potrivesc",
+      "suspect_or_danger": "amenințare + domeniu neoficial + card/CVV"
+    },
+    {
+      "case": "Campanie buyback/telecom reală",
+      "why": "operatorii au oferte și promoții reale",
+      "safe_evidence": "claim găsit pe site oficial sau în app",
+      "suspect_or_danger": "not found + domeniu neoficial + card/CI/transfer"
+    },
+    {
+      "case": "Shortener/branch link legitim",
+      "why": "brandurile pot folosi short links sau deep links",
+      "safe_evidence": "expansiune finală către domeniu oficial/partener verificat",
+      "suspect_or_danger": "shortener unresolved + claim financiar/sensibil"
+    },
+    {
+      "case": "Webmail shell only",
+      "why": "share intent poate extrage gmail/outlook shell, nu linkul real",
+      "safe_evidence": "reparse HTML/EML; target real extras",
+      "suspect_or_danger": "nu da verdict sigur/periculos fără target"
+    }
+  ],
+  "signal_mapping": [
+    {
+      "signal_code": "OFFICIAL_DOMAIN_EXACT_MATCH",
+      "source_type": "official_registry",
+      "reliability": "high",
+      "max_solo_verdict": "Sigur",
+      "required_combination_for_periculos": "Nu dă Periculos; doar reduce FP dacă nu există semnale sensibile",
+      "false_positive_risk": "medium",
+      "example": "fancourier.ro tracking"
+    },
+    {
+      "signal_code": "OFFICIAL_TRACKING_OR_APP_CHANNEL",
+      "source_type": "official_registry",
+      "reliability": "medium",
+      "max_solo_verdict": "Sigur",
+      "required_combination_for_periculos": "Nu dă Periculos; trebuie final URL + absență cereri sensibile",
+      "false_positive_risk": "high",
+      "example": "SAMEDAY App card payment pentru ramburs"
+    },
+    {
+      "signal_code": "BRAND_NEVER_ASK_CARD_SMS",
+      "source_type": "brand_warning",
+      "reliability": "high",
+      "max_solo_verdict": "Suspect",
+      "required_combination_for_periculos": "brand claim + domeniu neoficial + card/CVV/formular => Periculos",
+      "false_positive_risk": "medium",
+      "example": "FAN/Poșta cere card prin SMS"
+    },
+    {
+      "signal_code": "BRAND_NEVER_ASK_OTP_OR_WHATSAPP_CODE",
+      "source_type": "brand_warning",
+      "reliability": "high",
+      "max_solo_verdict": "Suspect",
+      "required_combination_for_periculos": "cerere cod + link/form OTP sau account takeover pattern => Periculos",
+      "false_positive_risk": "low",
+      "example": "Votează pe Adeline cere cod WhatsApp"
+    },
+    {
+      "signal_code": "SAFE_ACCOUNT_TRANSFER_REQUEST",
+      "source_type": "romania_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "Suspect",
+      "required_combination_for_periculos": "BNR/Poliție/bancă + transfer cont sigur + link/form/cont concret confirmat => Periculos",
+      "false_positive_risk": "medium",
+      "example": "transferă banii în cont sigur"
+    },
+    {
+      "signal_code": "FAMILY_NEW_NUMBER_MONEY_REQUEST",
+      "source_type": "romania_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "Suspect",
+      "required_combination_for_periculos": "text-only rămâne Suspect; contact/cont confirmat în campanie activă poate crește",
+      "false_positive_risk": "medium",
+      "example": "mama mi s-a stricat telefonul"
+    },
+    {
+      "signal_code": "ACCIDENT_OR_NEPHEW_URGENCY",
+      "source_type": "romania_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "Suspect",
+      "required_combination_for_periculos": "voce/text-only nu Periculos fără dovadă suplimentară; acțiune user: sună pe număr vechi",
+      "false_positive_risk": "medium",
+      "example": "bunico am avut accident"
+    },
+    {
+      "signal_code": "MARKETPLACE_CARD_TO_RECEIVE_MONEY",
+      "source_type": "brand_warning",
+      "reliability": "high",
+      "max_solo_verdict": "Suspect",
+      "required_combination_for_periculos": "OLX/marketplace + link neoficial + card/CVV => Periculos",
+      "false_positive_risk": "medium",
+      "example": "ca să primești banii introdu cardul"
+    },
+    {
+      "signal_code": "INVESTMENT_FAST_GAIN_PUBLIC_BRAND",
+      "source_type": "romania_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "Suspect",
+      "required_combination_for_periculos": "brand public + domeniu neoficial + formular date/transfer/remote access => Periculos",
+      "false_positive_risk": "high",
+      "example": "Hidroelectrica profit garantat"
+    },
+    {
+      "signal_code": "REMOTE_ACCESS_APP_REQUEST",
+      "source_type": "brand_warning",
+      "reliability": "high",
+      "max_solo_verdict": "Suspect",
+      "required_combination_for_periculos": "AnyDesk/TeamViewer/RustDesk + banking/investment/authority claim => Periculos",
+      "false_positive_risk": "low",
+      "example": "instalează AnyDesk pentru suport bancar"
+    },
+    {
+      "signal_code": "APK_INSTALL_REQUEST",
+      "source_type": "romania_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "Suspect",
+      "required_combination_for_periculos": "APK + bancă/telecom/update securitate + provider/sandbox file => Periculos",
+      "false_positive_risk": "medium",
+      "example": "instalează app bancară din link"
+    },
+    {
+      "signal_code": "WHATSAPP_1800_LOAN_REQUEST",
+      "source_type": "brand_warning",
+      "reliability": "medium",
+      "max_solo_verdict": "Suspect",
+      "required_combination_for_periculos": "cont WhatsApp compromis + cerere bani + cont terț confirmat => Suspect/Periculos prin campaign intel",
+      "false_positive_risk": "medium",
+      "example": "am nevoie de 1800 lei urgent"
+    },
+    {
+      "signal_code": "TAX_REFUND_FORM_CARD",
+      "source_type": "romania_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "Suspect",
+      "required_combination_for_periculos": "ANAF/Ghișeul/Digi refund + domeniu neoficial + formular card => Periculos",
+      "false_positive_risk": "medium",
+      "example": "rambursare taxă/factură cere card"
+    },
+    {
+      "signal_code": "EMAIL_HIDDEN_LINK",
+      "source_type": "romania_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "Suspect",
+      "required_combination_for_periculos": "Hidden link + brand mismatch + sensitive ask => Periculos",
+      "false_positive_risk": "high",
+      "example": "buton «Vezi factura» către .test"
+    },
+    {
+      "signal_code": "SHORTENER_OR_BRANCH_LINK",
+      "source_type": "romania_corpus",
+      "reliability": "low",
+      "max_solo_verdict": "Suspect",
+      "required_combination_for_periculos": "doar după expansion către neoficial + sensitive ask poate crește",
+      "false_positive_risk": "high",
+      "example": "link scurt într-un newsletter real"
+    },
+    {
+      "signal_code": "CORPUS_SIMILARITY_ONLY",
+      "source_type": "rag_explanation",
+      "reliability": "medium",
+      "max_solo_verdict": "Suspect",
+      "required_combination_for_periculos": "Niciodată singur; Periculos doar cu campanie/domeniu/contact confirmat oficial activ",
+      "false_positive_risk": "medium",
+      "example": "text seamănă cu scam FAN"
+    },
+    {
+      "signal_code": "COMMUNITY_REPORT_SINGLE",
+      "source_type": "community_report",
+      "reliability": "low",
+      "max_solo_verdict": "Suspect",
+      "required_combination_for_periculos": "Nu dă Periculos; are nevoie de volum, diversitate și provider/official match",
+      "false_positive_risk": "high",
+      "example": "1 user raportează domeniu"
+    },
+    {
+      "signal_code": "COMMUNITY_ACTIVE_CAMPAIGN_CONFIRMED",
+      "source_type": "community_report",
+      "reliability": "medium",
+      "max_solo_verdict": "Suspect",
+      "required_combination_for_periculos": "Periculos doar dacă domeniul/contactul/campania este confirmată oficial sau tehnic",
+      "false_positive_risk": "medium",
+      "example": "100 raportări + provider malicious"
+    },
+    {
+      "signal_code": "CLAIM_NOT_FOUND",
+      "source_type": "rag_explanation",
+      "reliability": "low",
+      "max_solo_verdict": "Suspect",
+      "required_combination_for_periculos": "Nu dă Periculos; folosit pentru «verifică oficial»",
+      "false_positive_risk": "high",
+      "example": "ofertă eMAG negăsită public"
+    },
+    {
+      "signal_code": "PROVIDER_CLEAN_BUT_LOCAL_SENSITIVE",
+      "source_type": "romania_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "Suspect",
+      "required_combination_for_periculos": "Provider clean nu anulează formular/card/OTP pe domeniu neoficial",
+      "false_positive_risk": "medium",
+      "example": "Web Risk clean + form OTP"
+    },
+    {
+      "signal_code": "OFFICIAL_DOMAIN_EXACT",
+      "source_type": "official_registry",
+      "reliability": "high if source verified",
+      "max_solo_verdict": "SIGUR/SUSPECT cap only; never 100% safe",
+      "required_for_periculos": "not used for periculos",
+      "false_positive_risk": "low",
+      "example": "fancourier.ro exact"
+    },
+    {
+      "signal_code": "OFFICIAL_DOMAIN_MISMATCH",
+      "source_type": "official_registry",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_for_periculos": "brand claim + sensitive request/provider evidence",
+      "false_positive_risk": "medium",
+      "example": "pretinde FAN, domeniu fan-livrare.test"
+    },
+    {
+      "signal_code": "BRAND_NEVER_ASK_FOR_MATCH",
+      "source_type": "brand_warning",
+      "reliability": "high if official",
+      "max_solo_verdict": "SUSPECT/PERICULOS depending asset",
+      "required_for_periculos": "exact request for card/CVV/OTP/WhatsApp code/remote access",
+      "false_positive_risk": "low-medium",
+      "example": "FAN + cod WhatsApp"
+    },
+    {
+      "signal_code": "TEXT_URGENCY",
+      "source_type": "romania_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_for_periculos": "needs domain mismatch + sensitive request or provider",
+      "false_positive_risk": "high",
+      "example": "urgent/azi/ultima avertizare"
+    },
+    {
+      "signal_code": "HIDDEN_LINK_BUTTON",
+      "source_type": "parser",
+      "reliability": "high technical",
+      "max_solo_verdict": "SUSPECT",
+      "required_for_periculos": "hidden link + brand mismatch + sensitive target",
+      "false_positive_risk": "high in newsletters",
+      "example": "button ANAF -> .test"
+    },
+    {
+      "signal_code": "CARD_TO_RECEIVE_MONEY",
+      "source_type": "brand_warning/romania_corpus",
+      "reliability": "high for OLX-like",
+      "max_solo_verdict": "PERICULOS if explicit",
+      "required_for_periculos": "marketplace context + card/CVV request",
+      "false_positive_risk": "low",
+      "example": "introdu cardul ca să primești banii"
+    },
+    {
+      "signal_code": "WHATSAPP_CODE_REQUEST",
+      "source_type": "official_campaign/romania_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "PERICULOS/NO_REPLY",
+      "required_for_periculos": "code request from third party",
+      "false_positive_risk": "low",
+      "example": "trimite codul WhatsApp"
+    },
+    {
+      "signal_code": "CALLER_ID_SPOOFING_CONTEXT",
+      "source_type": "regulator/corpus",
+      "reliability": "high as risk, not identity proof",
+      "max_solo_verdict": "SUSPECT",
+      "required_for_periculos": "request for transfer/codes/card/credit",
+      "false_positive_risk": "medium",
+      "example": "număr afișat BNR/Poliție"
+    },
+    {
+      "signal_code": "QR_PAYMENT_CONTEXT",
+      "family_id": "MINOR_001_PARKING_QR_QUISHING",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Unele orașe sau aplicații pot folosi QR legitim; nu marca PERICULOS doar pentru QR. Devine PERICULOS când destinația nu este domeniul/aplicația oficială și cere card/CVC.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "PARKING_QR_ON_STREET_OBJECT",
+      "family_id": "MINOR_001_PARKING_QR_QUISHING",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Unele orașe sau aplicații pot folosi QR legitim; nu marca PERICULOS doar pentru QR. Devine PERICULOS când destinația nu este domeniul/aplicația oficială și cere card/CVC.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "CARD_FORM_DETECTED",
+      "family_id": "MINOR_001_PARKING_QR_QUISHING",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Unele orașe sau aplicații pot folosi QR legitim; nu marca PERICULOS doar pentru QR. Devine PERICULOS când destinația nu este domeniul/aplicația oficială și cere card/CVC.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "OFFICIAL_DOMAIN_MISMATCH",
+      "family_id": "MINOR_001_PARKING_QR_QUISHING",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Unele orașe sau aplicații pot folosi QR legitim; nu marca PERICULOS doar pentru QR. Devine PERICULOS când destinația nu este domeniul/aplicația oficială și cere card/CVC.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "PHYSICAL_QR_STICKER_RISK",
+      "family_id": "MINOR_001_PARKING_QR_QUISHING",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Unele orașe sau aplicații pot folosi QR legitim; nu marca PERICULOS doar pentru QR. Devine PERICULOS când destinația nu este domeniul/aplicația oficială și cere card/CVC.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "FAKE_TRAFFIC_FINE",
+      "family_id": "MINOR_002_GHISEUL_TRAFFIC_FINE_SMS",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Ghișeul.ro real există. Notificarea prin SMS cu link de plată, urgență și card form pe domeniu neoficial este semnalul tare.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "GHISEUL_IMPERSONATION",
+      "family_id": "MINOR_002_GHISEUL_TRAFFIC_FINE_SMS",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Ghișeul.ro real există. Notificarea prin SMS cu link de plată, urgență și card form pe domeniu neoficial este semnalul tare.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "VEHICLE_PLATE_REQUEST",
+      "family_id": "MINOR_002_GHISEUL_TRAFFIC_FINE_SMS",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Ghișeul.ro real există. Notificarea prin SMS cu link de plată, urgență și card form pe domeniu neoficial este semnalul tare.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "CARD_FORM_DETECTED",
+      "family_id": "MINOR_002_GHISEUL_TRAFFIC_FINE_SMS",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Ghișeul.ro real există. Notificarea prin SMS cu link de plată, urgență și card form pe domeniu neoficial este semnalul tare.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "URGENCY_LANGUAGE",
+      "family_id": "MINOR_002_GHISEUL_TRAFFIC_FINE_SMS",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Ghișeul.ro real există. Notificarea prin SMS cu link de plată, urgență și card form pe domeniu neoficial este semnalul tare.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "ROVINIETA_FEE_CLAIM",
+      "family_id": "MINOR_003_ROVINIETA_CNAIR_SMS",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Există comunicări legitime legate de rovinietă prin canale oficiale; linkul din SMS + cerere card = escaladare.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "CNAIR_IMPERSONATION",
+      "family_id": "MINOR_003_ROVINIETA_CNAIR_SMS",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Există comunicări legitime legate de rovinietă prin canale oficiale; linkul din SMS + cerere card = escaladare.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "THREAT_OF_FINE_OR_CONFISCATION",
+      "family_id": "MINOR_003_ROVINIETA_CNAIR_SMS",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Există comunicări legitime legate de rovinietă prin canale oficiale; linkul din SMS + cerere card = escaladare.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "CARD_FORM_DETECTED",
+      "family_id": "MINOR_003_ROVINIETA_CNAIR_SMS",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Există comunicări legitime legate de rovinietă prin canale oficiale; linkul din SMS + cerere card = escaladare.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "OSIM_IMPERSONATION",
+      "family_id": "MINOR_004_OSIM_TRADEMARK_FEE_EMAIL",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Firmele primesc notificări legitime despre mărci prin canale oficiale/proceduri; email nesolicitat + IBAN extern + presiune timp = semnal puternic.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "UNSOLICITED_TRADEMARK_FEE",
+      "family_id": "MINOR_004_OSIM_TRADEMARK_FEE_EMAIL",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Firmele primesc notificări legitime despre mărci prin canale oficiale/proceduri; email nesolicitat + IBAN extern + presiune timp = semnal puternic.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "EXTERNAL_IBAN",
+      "family_id": "MINOR_004_OSIM_TRADEMARK_FEE_EMAIL",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Firmele primesc notificări legitime despre mărci prin canale oficiale/proceduri; email nesolicitat + IBAN extern + presiune timp = semnal puternic.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "PDF_INVOICE_PRESSURE",
+      "family_id": "MINOR_004_OSIM_TRADEMARK_FEE_EMAIL",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Firmele primesc notificări legitime despre mărci prin canale oficiale/proceduri; email nesolicitat + IBAN extern + presiune timp = semnal puternic.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "SOCIAL_PAGE_OWNERSHIP_CLAIM",
+      "family_id": "MINOR_005_SOCIAL_PAGE_OWNERSHIP_PHISH",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Meta trimite notificări legitime în aplicație; link extern din mesaj necunoscut + formular de login/OTP = periculos. Similarity-only maximum SUSPECT.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "COPYRIGHT_OR_POLICY_THREAT",
+      "family_id": "MINOR_005_SOCIAL_PAGE_OWNERSHIP_PHISH",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Meta trimite notificări legitime în aplicație; link extern din mesaj necunoscut + formular de login/OTP = periculos. Similarity-only maximum SUSPECT.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "FORM_LOGIN_DETECTED",
+      "family_id": "MINOR_005_SOCIAL_PAGE_OWNERSHIP_PHISH",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Meta trimite notificări legitime în aplicație; link extern din mesaj necunoscut + formular de login/OTP = periculos. Similarity-only maximum SUSPECT.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "OTP_REQUEST",
+      "family_id": "MINOR_005_SOCIAL_PAGE_OWNERSHIP_PHISH",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Meta trimite notificări legitime în aplicație; link extern din mesaj necunoscut + formular de login/OTP = periculos. Similarity-only maximum SUSPECT.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "OFFICIAL_DOMAIN_MISMATCH",
+      "family_id": "MINOR_005_SOCIAL_PAGE_OWNERSHIP_PHISH",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Meta trimite notificări legitime în aplicație; link extern din mesaj necunoscut + formular de login/OTP = periculos. Similarity-only maximum SUSPECT.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "DEVICE_BLOCKED_CLAIM",
+      "family_id": "MINOR_006_FAKE_DEVICE_BLOCKED_FINE",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Nu marca PERICULOS doar pentru cuvinte ca „Poliția”. Devine periculos când pop-up-ul cere plată/date card sau folosește domeniu neoficial cu presiune legală.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "POLICE_DNSC_IMPERSONATION",
+      "family_id": "MINOR_006_FAKE_DEVICE_BLOCKED_FINE",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Nu marca PERICULOS doar pentru cuvinte ca „Poliția”. Devine periculos când pop-up-ul cere plată/date card sau folosește domeniu neoficial cu presiune legală.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "FAKE_FINE_PAYMENT",
+      "family_id": "MINOR_006_FAKE_DEVICE_BLOCKED_FINE",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Nu marca PERICULOS doar pentru cuvinte ca „Poliția”. Devine periculos când pop-up-ul cere plată/date card sau folosește domeniu neoficial cu presiune legală.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "ADULT_SITE_SHAME_PRESSURE",
+      "family_id": "MINOR_006_FAKE_DEVICE_BLOCKED_FINE",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Nu marca PERICULOS doar pentru cuvinte ca „Poliția”. Devine periculos când pop-up-ul cere plată/date card sau folosește domeniu neoficial cu presiune legală.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "CARD_FORM_DETECTED",
+      "family_id": "MINOR_006_FAKE_DEVICE_BLOCKED_FINE",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Nu marca PERICULOS doar pentru cuvinte ca „Poliția”. Devine periculos când pop-up-ul cere plată/date card sau folosește domeniu neoficial cu presiune legală.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "FAKE_EVENT_TICKET",
+      "family_id": "MINOR_007_FAKE_TICKETS_EVENTS",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Revânzarea legitimă există. Fără provider nu putem ști dacă biletul e duplicat; PERICULOS doar cu domeniu fals/clonă, reputație proastă, cerere metode nesigure sau campanie confirmată.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "URGENT_TRANSFER",
+      "family_id": "MINOR_007_FAKE_TICKETS_EVENTS",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Revânzarea legitimă există. Fără provider nu putem ști dacă biletul e duplicat; PERICULOS doar cu domeniu fals/clonă, reputație proastă, cerere metode nesigure sau campanie confirmată.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "SCREENSHOT_TICKET_RISK",
+      "family_id": "MINOR_007_FAKE_TICKETS_EVENTS",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Revânzarea legitimă există. Fără provider nu putem ști dacă biletul e duplicat; PERICULOS doar cu domeniu fals/clonă, reputație proastă, cerere metode nesigure sau campanie confirmată.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "SOCIAL_PROFILE_NEW",
+      "family_id": "MINOR_007_FAKE_TICKETS_EVENTS",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Revânzarea legitimă există. Fără provider nu putem ști dacă biletul e duplicat; PERICULOS doar cu domeniu fals/clonă, reputație proastă, cerere metode nesigure sau campanie confirmată.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "PAYMENT_OUTSIDE_PLATFORM",
+      "family_id": "MINOR_007_FAKE_TICKETS_EVENTS",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Revânzarea legitimă există. Fără provider nu putem ști dacă biletul e duplicat; PERICULOS doar cu domeniu fals/clonă, reputație proastă, cerere metode nesigure sau campanie confirmată.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "VACATION_TOO_GOOD_TO_BE_TRUE",
+      "family_id": "MINOR_008_VACATION_ACCOMMODATION_FAKE",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "O cazare ieftină nu e scam automat. Devine periculos cu domeniu clonă, plata în afara platformei, cerere card/acte prin link necunoscut, presiune de timp.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "OFF_PLATFORM_PAYMENT_REQUEST",
+      "family_id": "MINOR_008_VACATION_ACCOMMODATION_FAKE",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "O cazare ieftină nu e scam automat. Devine periculos cu domeniu clonă, plata în afara platformei, cerere card/acte prin link necunoscut, presiune de timp.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "ACCOMMODATION_ADVANCE",
+      "family_id": "MINOR_008_VACATION_ACCOMMODATION_FAKE",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "O cazare ieftină nu e scam automat. Devine periculos cu domeniu clonă, plata în afara platformei, cerere card/acte prin link necunoscut, presiune de timp.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "BOOKING_CLONE_LINK",
+      "family_id": "MINOR_008_VACATION_ACCOMMODATION_FAKE",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "O cazare ieftină nu e scam automat. Devine periculos cu domeniu clonă, plata în afara platformei, cerere card/acte prin link necunoscut, presiune de timp.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "WHATSAPP_MOVED_CONVERSATION",
+      "family_id": "MINOR_008_VACATION_ACCOMMODATION_FAKE",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "O cazare ieftină nu e scam automat. Devine periculos cu domeniu clonă, plata în afara platformei, cerere card/acte prin link necunoscut, presiune de timp.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "RENTAL_ADVANCE_BEFORE_VIEWING",
+      "family_id": "MINOR_009_RENTAL_AIRBNB_SUBLET_STUDENT",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Chiriile reale cer garanție, deci nu escalada doar după cuvântul „garanție”. Escaladează la SUSPECT/PERICULOS când cere plată înainte de vizionare, acte în chat, conturi multiple, presiune pe disponibilitate.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "FAKE_OWNER_DOCUMENTS",
+      "family_id": "MINOR_009_RENTAL_AIRBNB_SUBLET_STUDENT",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Chiriile reale cer garanție, deci nu escalada doar după cuvântul „garanție”. Escaladează la SUSPECT/PERICULOS când cere plată înainte de vizionare, acte în chat, conturi multiple, presiune pe disponibilitate.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "AIRBNB_RELIST_PATTERN",
+      "family_id": "MINOR_009_RENTAL_AIRBNB_SUBLET_STUDENT",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Chiriile reale cer garanție, deci nu escalada doar după cuvântul „garanție”. Escaladează la SUSPECT/PERICULOS când cere plată înainte de vizionare, acte în chat, conturi multiple, presiune pe disponibilitate.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "STUDENT_URGENCY_SEASON",
+      "family_id": "MINOR_009_RENTAL_AIRBNB_SUBLET_STUDENT",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Chiriile reale cer garanție, deci nu escalada doar după cuvântul „garanție”. Escaladează la SUSPECT/PERICULOS când cere plată înainte de vizionare, acte în chat, conturi multiple, presiune pe disponibilitate.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "OFF_PLATFORM_PAYMENT_REQUEST",
+      "family_id": "MINOR_009_RENTAL_AIRBNB_SUBLET_STUDENT",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Chiriile reale cer garanție, deci nu escalada doar după cuvântul „garanție”. Escaladează la SUSPECT/PERICULOS când cere plată înainte de vizionare, acte în chat, conturi multiple, presiune pe disponibilitate.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "UNSOLICITED_JOB_OFFER",
+      "family_id": "MINOR_010_TASK_JOB_SCAM",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "O ofertă de job reală poate veni pe LinkedIn/email, dar jobul real nu cere să plătești ca să fii plătit. Pentru România, fără provider/campanie confirmată, text-only rămâne maximum SUSPECT.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "TASK_FOR_MONEY",
+      "family_id": "MINOR_010_TASK_JOB_SCAM",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "O ofertă de job reală poate veni pe LinkedIn/email, dar jobul real nu cere să plătești ca să fii plătit. Pentru România, fără provider/campanie confirmată, text-only rămâne maximum SUSPECT.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "PAY_TO_GET_PAID",
+      "family_id": "MINOR_010_TASK_JOB_SCAM",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "O ofertă de job reală poate veni pe LinkedIn/email, dar jobul real nu cere să plătești ca să fii plătit. Pentru România, fără provider/campanie confirmată, text-only rămâne maximum SUSPECT.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "WHATSAPP_TELEGRAM_RECRUITER",
+      "family_id": "MINOR_010_TASK_JOB_SCAM",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "O ofertă de job reală poate veni pe LinkedIn/email, dar jobul real nu cere să plătești ca să fii plătit. Pentru România, fără provider/campanie confirmată, text-only rămâne maximum SUSPECT.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "CRYPTO_DEPOSIT_REQUEST",
+      "family_id": "MINOR_010_TASK_JOB_SCAM",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "O ofertă de job reală poate veni pe LinkedIn/email, dar jobul real nu cere să plătești ca să fii plătit. Pentru România, fără provider/campanie confirmată, text-only rămâne maximum SUSPECT.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "ROMANCE_EMOTIONAL_BOND",
+      "family_id": "MINOR_011_ROMANCE_SCAM",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Relația online nu e scam automat. Semnalul tare e cererea de bani/date după atașament emoțional + refuz video/verificare + povești urgente repetate.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "EMERGENCY_FINANCIAL_HELP",
+      "family_id": "MINOR_011_ROMANCE_SCAM",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Relația online nu e scam automat. Semnalul tare e cererea de bani/date după atașament emoțional + refuz video/verificare + povești urgente repetate.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "REFUSES_VIDEO_CALL",
+      "family_id": "MINOR_011_ROMANCE_SCAM",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Relația online nu e scam automat. Semnalul tare e cererea de bani/date după atașament emoțional + refuz video/verificare + povești urgente repetate.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "REQUESTS_GIFT_CARD_OR_CRYPTO",
+      "family_id": "MINOR_011_ROMANCE_SCAM",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Relația online nu e scam automat. Semnalul tare e cererea de bani/date după atașament emoțional + refuz video/verificare + povești urgente repetate.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "TRAVEL_OR_MEDICAL_STORY",
+      "family_id": "MINOR_011_ROMANCE_SCAM",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Relația online nu e scam automat. Semnalul tare e cererea de bani/date după atașament emoțional + refuz video/verificare + povești urgente repetate.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "CHARITY_EMOTIONAL_PRESSURE",
+      "family_id": "MINOR_012_CHARITY_ANIMAL_SHELTER_DONATION",
+      "source_type": "romania_minor_corpus",
+      "reliability": "low",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Multe campanii caritabile reale cer donații. Nu marca PERICULOS fără dovadă: cont personal necorelat, identitate falsă, URL clonă, provider reputation sau raportări confirmate.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "DONATION_TO_PERSONAL_IBAN",
+      "family_id": "MINOR_012_CHARITY_ANIMAL_SHELTER_DONATION",
+      "source_type": "romania_minor_corpus",
+      "reliability": "low",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Multe campanii caritabile reale cer donații. Nu marca PERICULOS fără dovadă: cont personal necorelat, identitate falsă, URL clonă, provider reputation sau raportări confirmate.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "UNVERIFIED_SHELTER_NAME",
+      "family_id": "MINOR_012_CHARITY_ANIMAL_SHELTER_DONATION",
+      "source_type": "romania_minor_corpus",
+      "reliability": "low",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Multe campanii caritabile reale cer donații. Nu marca PERICULOS fără dovadă: cont personal necorelat, identitate falsă, URL clonă, provider reputation sau raportări confirmate.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "STOLEN_PHOTO_RISK",
+      "family_id": "MINOR_012_CHARITY_ANIMAL_SHELTER_DONATION",
+      "source_type": "romania_minor_corpus",
+      "reliability": "low",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Multe campanii caritabile reale cer donații. Nu marca PERICULOS fără dovadă: cont personal necorelat, identitate falsă, URL clonă, provider reputation sau raportări confirmate.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "URGENT_MEDICAL_OR_ANIMAL_STORY",
+      "family_id": "MINOR_012_CHARITY_ANIMAL_SHELTER_DONATION",
+      "source_type": "romania_minor_corpus",
+      "reliability": "low",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Multe campanii caritabile reale cer donații. Nu marca PERICULOS fără dovadă: cont personal necorelat, identitate falsă, URL clonă, provider reputation sau raportări confirmate.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "PET_ADOPTION_TRANSPORT_FEE",
+      "family_id": "MINOR_013_PET_ADOPTION_TRANSPORT_FEE",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Adopțiile reale pot avea costuri; semnalul tare este taxă în avans către persoană necunoscută + refuz video/vizită + curier/transport fantomă.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "REMOTE_SELLER_REFUSES_VISIT",
+      "family_id": "MINOR_013_PET_ADOPTION_TRANSPORT_FEE",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Adopțiile reale pot avea costuri; semnalul tare este taxă în avans către persoană necunoscută + refuz video/vizită + curier/transport fantomă.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "STOLEN_ANIMAL_PHOTOS",
+      "family_id": "MINOR_013_PET_ADOPTION_TRANSPORT_FEE",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Adopțiile reale pot avea costuri; semnalul tare este taxă în avans către persoană necunoscută + refuz video/vizită + curier/transport fantomă.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "PAY_BEFORE_MEET",
+      "family_id": "MINOR_013_PET_ADOPTION_TRANSPORT_FEE",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Adopțiile reale pot avea costuri; semnalul tare este taxă în avans către persoană necunoscută + refuz video/vizită + curier/transport fantomă.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "GIVEAWAY_OR_VOUCHER_HOOK",
+      "family_id": "MINOR_014_GIVEAWAY_MYSTERY_BOX",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Marketing real are reduceri și vouchere. Nu escalada doar după „ofertă”/„voucher”; periculos când domeniul e clonă/neoficial și cere card/CVV pentru cadou/taxă mică.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "TOO_GOOD_TO_BE_TRUE",
+      "family_id": "MINOR_014_GIVEAWAY_MYSTERY_BOX",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Marketing real are reduceri și vouchere. Nu escalada doar după „ofertă”/„voucher”; periculos când domeniul e clonă/neoficial și cere card/CVV pentru cadou/taxă mică.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "SMALL_PROCESSING_FEE",
+      "family_id": "MINOR_014_GIVEAWAY_MYSTERY_BOX",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Marketing real are reduceri și vouchere. Nu escalada doar după „ofertă”/„voucher”; periculos când domeniul e clonă/neoficial și cere card/CVV pentru cadou/taxă mică.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "BRAND_CLONE_SHOP",
+      "family_id": "MINOR_014_GIVEAWAY_MYSTERY_BOX",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Marketing real are reduceri și vouchere. Nu escalada doar după „ofertă”/„voucher”; periculos când domeniul e clonă/neoficial și cere card/CVV pentru cadou/taxă mică.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "CARD_FORM_DETECTED",
+      "family_id": "MINOR_014_GIVEAWAY_MYSTERY_BOX",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Marketing real are reduceri și vouchere. Nu escalada doar după „ofertă”/„voucher”; periculos când domeniul e clonă/neoficial și cere card/CVV pentru cadou/taxă mică.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "DEEPFAKE_PUBLIC_FIGURE",
+      "family_id": "MINOR_015_PUBLIC_FIGURE_DEEPFAKE_INVESTMENT",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Un articol real despre economie nu e scam. Periculos când pagina imită presă/autoritate, promite câștig garantat și cere telefon/card/depunere/remote access.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "FAKE_NEWS_INVESTMENT_AD",
+      "family_id": "MINOR_015_PUBLIC_FIGURE_DEEPFAKE_INVESTMENT",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Un articol real despre economie nu e scam. Periculos când pagina imită presă/autoritate, promite câștig garantat și cere telefon/card/depunere/remote access.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "GUARANTEED_RETURN_PROMISE",
+      "family_id": "MINOR_015_PUBLIC_FIGURE_DEEPFAKE_INVESTMENT",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Un articol real despre economie nu e scam. Periculos când pagina imită presă/autoritate, promite câștig garantat și cere telefon/card/depunere/remote access.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "LEAD_FORM_PHONE",
+      "family_id": "MINOR_015_PUBLIC_FIGURE_DEEPFAKE_INVESTMENT",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Un articol real despre economie nu e scam. Periculos când pagina imită presă/autoritate, promite câștig garantat și cere telefon/card/depunere/remote access.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "REMOTE_ACCESS_APP_REQUEST",
+      "family_id": "MINOR_015_PUBLIC_FIGURE_DEEPFAKE_INVESTMENT",
+      "source_type": "romania_minor_corpus",
+      "reliability": "high",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Un articol real despre economie nu e scam. Periculos când pagina imită presă/autoritate, promite câștig garantat și cere telefon/card/depunere/remote access.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "INVOICE_ATTACHMENT",
+      "family_id": "MINOR_016_B2B_FAKE_INVOICE_PAYMENT_CHANGE",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Facturile reale există. Nu escalada doar după atașament PDF; caută mismatch domeniu expeditor, Reply-To diferit, IBAN schimbat, presiune și provider/sandbox.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "IBAN_CHANGE_REQUEST",
+      "family_id": "MINOR_016_B2B_FAKE_INVOICE_PAYMENT_CHANGE",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Facturile reale există. Nu escalada doar după atașament PDF; caută mismatch domeniu expeditor, Reply-To diferit, IBAN schimbat, presiune și provider/sandbox.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "SENDER_DOMAIN_MISMATCH",
+      "family_id": "MINOR_016_B2B_FAKE_INVOICE_PAYMENT_CHANGE",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Facturile reale există. Nu escalada doar după atașament PDF; caută mismatch domeniu expeditor, Reply-To diferit, IBAN schimbat, presiune și provider/sandbox.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "REPLY_TO_MISMATCH",
+      "family_id": "MINOR_016_B2B_FAKE_INVOICE_PAYMENT_CHANGE",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Facturile reale există. Nu escalada doar după atașament PDF; caută mismatch domeniu expeditor, Reply-To diferit, IBAN schimbat, presiune și provider/sandbox.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "URGENT_PAYMENT_PRESSURE",
+      "family_id": "MINOR_016_B2B_FAKE_INVOICE_PAYMENT_CHANGE",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Facturile reale există. Nu escalada doar după atașament PDF; caută mismatch domeniu expeditor, Reply-To diferit, IBAN schimbat, presiune și provider/sandbox.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "SEXTORTION_CLAIM",
+      "family_id": "MINOR_017_ADULT_SHAME_SEXTORTION_EMAIL",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Text-only sextortion fără link este periculos pentru user, dar EvidenceGate poate returna SUSPECT/NU_RĂSPUNDE; provider scan escaladează dacă URL/wallet/campanie confirmată.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "CAMERA_COMPROMISED_CLAIM",
+      "family_id": "MINOR_017_ADULT_SHAME_SEXTORTION_EMAIL",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Text-only sextortion fără link este periculos pentru user, dar EvidenceGate poate returna SUSPECT/NU_RĂSPUNDE; provider scan escaladează dacă URL/wallet/campanie confirmată.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "SHAME_PRESSURE",
+      "family_id": "MINOR_017_ADULT_SHAME_SEXTORTION_EMAIL",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Text-only sextortion fără link este periculos pentru user, dar EvidenceGate poate returna SUSPECT/NU_RĂSPUNDE; provider scan escaladează dacă URL/wallet/campanie confirmată.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "CRYPTO_PAYMENT_REQUEST",
+      "family_id": "MINOR_017_ADULT_SHAME_SEXTORTION_EMAIL",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Text-only sextortion fără link este periculos pentru user, dar EvidenceGate poate returna SUSPECT/NU_RĂSPUNDE; provider scan escaladează dacă URL/wallet/campanie confirmată.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "DO_NOT_CONTACT_AUTHORITIES",
+      "family_id": "MINOR_017_ADULT_SHAME_SEXTORTION_EMAIL",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Text-only sextortion fără link este periculos pentru user, dar EvidenceGate poate returna SUSPECT/NU_RĂSPUNDE; provider scan escaladează dacă URL/wallet/campanie confirmată.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "FAKE_AUTHORITY_DOCUMENT",
+      "family_id": "MINOR_018_FAKE_COURT_POLICE_EUROPOL_DOCUMENTS",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Un PDF cu siglă nu este dovadă. Corpus similarity-only maximum SUSPECT; PERICULOS când cere bani/date/cont sigur/remote access sau link neoficial.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "LOGO_ABUSE",
+      "family_id": "MINOR_018_FAKE_COURT_POLICE_EUROPOL_DOCUMENTS",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Un PDF cu siglă nu este dovadă. Corpus similarity-only maximum SUSPECT; PERICULOS când cere bani/date/cont sigur/remote access sau link neoficial.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "SAFE_ACCOUNT_TRANSFER_REQUEST",
+      "family_id": "MINOR_018_FAKE_COURT_POLICE_EUROPOL_DOCUMENTS",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Un PDF cu siglă nu este dovadă. Corpus similarity-only maximum SUSPECT; PERICULOS când cere bani/date/cont sigur/remote access sau link neoficial.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "CARD_OR_ID_REQUEST",
+      "family_id": "MINOR_018_FAKE_COURT_POLICE_EUROPOL_DOCUMENTS",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Un PDF cu siglă nu este dovadă. Corpus similarity-only maximum SUSPECT; PERICULOS când cere bani/date/cont sigur/remote access sau link neoficial.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    },
+    {
+      "signal_code": "PRESSURE_TO_KEEP_SECRET",
+      "family_id": "MINOR_018_FAKE_COURT_POLICE_EUROPOL_DOCUMENTS",
+      "source_type": "romania_minor_corpus",
+      "reliability": "medium",
+      "max_solo_verdict": "SUSPECT",
+      "required_combination_for_periculos": "provider/sandbox hit OR official never_ask_for + sensitive request OR unofficial domain + card/OTP/password/payment request",
+      "false_positive_risk": "Un PDF cu siglă nu este dovadă. Corpus similarity-only maximum SUSPECT; PERICULOS când cere bani/date/cont sigur/remote access sau link neoficial.",
+      "integration_role": "context_signal_only_requires_provider_or_sensitive_identity_combo_for_periculos"
+    }
+  ],
+  "sources": {
+    "0": {
+      "id": "src_sigurantaonline_uniti",
+      "title": "Siguranța Online — Uniți împotriva escrocheriilor",
+      "url": "https://sigurantaonline.ro/uniti-impotriva-escrocheriilor/",
+      "published_at": "2026-03 (pagina campanie, aproximativ conform indexării web)",
+      "accessed_at": "2026-06-08",
+      "source_type": "official_campaign",
+      "confidence": "high",
+      "notes": "Taxonomie oficială/parteneriat: Urgență mare, Telefonul oficial, Câștig peste noapte; include metode precum Loteria Română, Marketplace, Coletul, BNR, Legitimația."
+    },
+    "1": {
+      "id": "src_pmb_parking_qr_buletin",
+      "title": "PMB avertizează despre coduri QR false pe parcometrele din București",
+      "url": "https://buletin.de/bucuresti/coduri-qr-false-pe-parcometrele-din-bucuresti-primaria-ii-avertizeaza-pe-soferi-sa-nu-le-foloseasca-pentru-plata-parcarii/",
+      "published_at": "2026-03-30",
+      "accessed_at": "2026-06-08",
+      "source_type": "official_statement_via_media",
+      "confidence": "high",
+      "notes": "PMB: parcometrele nu folosesc QR pentru plată; QR-urile false cer date card/CVC și nu achită parcarea."
+    },
+    "2": {
+      "id": "src_mti_amenzi_sms",
+      "title": "Ministerul Transporturilor — „Amenda prin SMS”",
+      "url": "https://www.mt.ro/spatiul-media/comunicate-de-presa/com15052026",
+      "published_at": "2026-05-15",
+      "accessed_at": "2026-06-08",
+      "source_type": "official_alert",
+      "confidence": "high",
+      "notes": "MTI spune că nu trimite SMS-uri de plată și nu are atribuții de amendare a șoferilor."
+    },
+    "3": {
+      "id": "src_dnsc_ghiseul_via_agerpres",
+      "title": "DNSC / Agerpres — SMS-uri false provenite de la Ghișeul.ro",
+      "url": "https://agerpres.ro/economic/2026/05/15/dnsc-tentative-de-frauda-intr-o-noua-campanie-cu-sms-uri-false-provenite-de-la-ghiseul-ro--1556461",
+      "published_at": "2026-05-15",
+      "accessed_at": "2026-06-08",
+      "source_type": "official_alert_via_press_agency",
+      "confidence": "high",
+      "notes": "Victimele primesc SMS cu amendă restantă, introduc număr de înmatriculare, apoi date bancare."
+    },
+    "4": {
+      "id": "src_dnsc_rovinieta_via_ziarulunirea",
+      "title": "DNSC — SMS-uri false privind taxa de drum/rovinietă",
+      "url": "https://ziarulunirea.ro/avertisment-dnsc-atentie-la-mesajele-sms-false-privind-taxa-de-drum-rovinieta-978436/",
+      "published_at": "2026-02-04",
+      "accessed_at": "2026-06-08",
+      "source_type": "official_alert_via_media",
+      "confidence": "medium",
+      "notes": "CNAIR nu trimite SMS-uri cu link-uri de plată și nu solicită date bancare sau personale prin SMS, conform articolului citând DNSC."
+    },
+    "5": {
+      "id": "src_osim_agerpres",
+      "title": "DNSC / OSIM — emailuri frauduloase în numele OSIM",
+      "url": "https://agerpres.ro/economic/2026/02/11/dnsc-semnaleaza-o-serie-de-tentative-de-frauda-in-numele-osim--1527071",
+      "published_at": "2026-02-11",
+      "accessed_at": "2026-06-08",
+      "source_type": "official_alert_via_press_agency",
+      "confidence": "high",
+      "notes": "OSIM nu solicită plata taxelor prin emailuri nesolicitate și nu indică conturi bancare externe."
+    },
+    "6": {
+      "id": "src_social_page_ownership_agerpres",
+      "title": "DNSC — tentativă de fraudă privind confirmarea drepturilor de proprietate asupra unei pagini gestionate",
+      "url": "https://agerpres.ro/economic/2025/09/20/dnsc-avertizeaza-asupra-unei-tentative-de-frauda-referitoare-la-drepturile-de-proprietate-asupra-une--1485984",
+      "published_at": "2025-09-20",
+      "accessed_at": "2026-06-08",
+      "source_type": "official_alert_via_press_agency",
+      "confidence": "high",
+      "notes": "Formular fals care redirecționează datele sensibile ale paginii către atacatori; nu oferi parole/OTP prin formulare suspecte."
+    },
+    "7": {
+      "id": "src_dnsc_politia_popup_agerpres",
+      "title": "DNSC / Poliția Română — amenzi false / dispozitiv blocat prin pop-up-uri",
+      "url": "https://agerpres.ro/economic/2025/12/18/avertisment-tentativele-de-frauda-care-se-folosesc-de-numele-dnsc-sau-politia-romana-in-plina-desfas--1513213",
+      "published_at": "2025-12-18",
+      "accessed_at": "2026-06-08",
+      "source_type": "official_alert_via_press_agency",
+      "confidence": "high",
+      "notes": "Autoritățile nu blochează dispozitive și nu cer plata amenzilor prin pop-up-uri/pagini web sub presiunea timpului."
+    },
+    "8": {
+      "id": "src_tickets_euronews_dnsc",
+      "title": "DNSC via Euronews — bilete ieftine la concerte și cazare online de Revelion pot ascunde fraude",
+      "url": "https://www.euronews.ro/articole/dnsc-avertizeaza-biletele-ieftine-la-concerte-si-cazare-online-de-revelion-pot-as",
+      "published_at": "2025-11-24",
+      "accessed_at": "2026-06-08",
+      "source_type": "official_alert_via_media",
+      "confidence": "medium",
+      "notes": "Pagini false, profiluri nou-create, grupuri de vânzări online, prețuri foarte avantajoase, plată urgentă."
+    },
+    "9": {
+      "id": "src_libra_ticket_scam",
+      "title": "Libra Internet Bank — Ticket Scam",
+      "url": "https://www.librabank.ro/blog/Ticket-Scam---evita-fraudele-cu-bilete-false-la-concerte-festivaluri-sau-evenimente-sportive/2278",
+      "published_at": "2025-08-20",
+      "accessed_at": "2026-06-08",
+      "source_type": "bank_security_guidance",
+      "confidence": "medium",
+      "notes": "Bilete false/anulate/vândute deja; folosește platforme autorizate și evită print-screen-uri."
+    },
+    "10": {
+      "id": "src_vacation_dnsc_fb",
+      "title": "DNSC Facebook — fraude de vacanță: bilete, cazări, oferte de neratat",
+      "url": "https://www.facebook.com/DNSC.RO/posts/-%C3%AEn-perioadele-de-vacan%C8%9B%C4%83-atacatorii-profit%C4%83-de-interesul-crescut-pentru-bilete-/1386099386883900/",
+      "published_at": "2026 (post public, dată exactă neextrasă de web snippet)",
+      "accessed_at": "2026-06-08",
+      "source_type": "official_social_alert",
+      "confidence": "medium",
+      "notes": "Atacatorii profită de interesul pentru bilete/cazări/oferte și folosesc site-uri false sau anunțuri capcană."
+    },
+    "11": {
+      "id": "src_airbnb_rental_snoop",
+      "title": "Snoop — escrocheria cu apartamente de pe AirBnB / chirii false",
+      "url": "https://snoop.ro/escrocheria-cu-apartamente-de-pe-airbnb-bazata-pe-date-furate-banii-duc-catre-firma-fondata-de-hackerul-din-dosarul-hexi-pharma/",
+      "published_at": "2025-10-06",
+      "accessed_at": "2026-06-08",
+      "source_type": "investigative_press",
+      "confidence": "medium",
+      "notes": "Proprietar-fantomă rezervă pe Airbnb, relistează pe anunțuri, folosește acte false, ia avans/garanție, dispare; OLX a confirmat suspendarea unor conturi asociate."
+    },
+    "12": {
+      "id": "src_booking_reddit_noisy",
+      "title": "Reddit r/Romania — cazuri/discuții Booking/cazare",
+      "url": "https://www.reddit.com/r/Romania/comments/w45h57/inselatorie_pe_booking/",
+      "published_at": "2022-07 (istoric)",
+      "accessed_at": "2026-06-08",
+      "source_type": "community_noisy",
+      "confidence": "low",
+      "notes": "Bun pentru pattern discovery: comunicare off-platform/WhatsApp, presiune pe plată, cont business; nu hard evidence."
+    },
+    "13": {
+      "id": "src_task_scam_ftc",
+      "title": "FTC — How to spot and avoid task scams",
+      "url": "https://consumer.ftc.gov/consumer-alerts/2025/08/how-spot-avoid-task-scams",
+      "published_at": "2025-08-14",
+      "accessed_at": "2026-06-08",
+      "source_type": "international_authority_guidance",
+      "confidence": "medium",
+      "notes": "Mesaje nesolicitate WhatsApp/Telegram despre joburi; plata pentru a fi plătit este semn clar de fraudă."
+    },
+    "14": {
+      "id": "src_job_evz_ecc",
+      "title": "European Consumer Centre Germany — Job scams on WhatsApp/Telegram",
+      "url": "https://www.evz.de/en/topics/internet-shopping/fraud/job-scamming/",
+      "published_at": "2025-03-02",
+      "accessed_at": "2026-06-08",
+      "source_type": "eu_consumer_guidance",
+      "confidence": "medium",
+      "notes": "Task/job scam: evaluări hoteluri/testare produse, mici plăți inițiale, apoi victimelor li se cere să depună bani."
+    },
+    "15": {
+      "id": "src_romance_dnsc_8martie",
+      "title": "DNSC — romance scam / 8 Martie",
+      "url": "https://www.dnsc.ro/vezi/document/comunicat-de-presa-cu-ocazia-zilei-internationale-a-femeii-partenerii-proiectului-sigurantaonline-impart-flori-si-recomandari-pentru-protectia-digitala-doamnelor-si-domnisoarelor",
+      "published_at": "2025-03-07",
+      "accessed_at": "2026-06-08",
+      "source_type": "official_campaign",
+      "confidence": "high",
+      "notes": "DNSC descrie romance scam ca relație aparent sinceră construită pentru a obține bani/date/acces conturi."
+    },
+    "16": {
+      "id": "src_romance_digi_dnsc",
+      "title": "Digi Economic / DNSC — romance scam România și diaspora",
+      "url": "https://www.digi24.ro/digieconomic/digital/romance-scam-capcana-tot-mai-periculoasa-pe-internet-cum-actioneaza-escrocii-si-ce-recomanda-expertii-65137",
+      "published_at": "2025-09-02",
+      "accessed_at": "2026-06-08",
+      "source_type": "official_alert_via_media",
+      "confidence": "medium",
+      "notes": "Profiluri false pe rețele/dating/grupuri; comunicare constantă, apoi ajutor financiar urgent, transferuri, acces conturi."
+    },
+    "17": {
+      "id": "src_digi_mystery_box",
+      "title": "Digi24 — Cutia misterioasă / voucher cadou / date bancare",
+      "url": "https://www.digi24.ro/stiri/sci-tech/lumea-digitala/cutia-misterioasa-cea-mai-noua-metoda-de-inselatorie-care-circula-pe-facebook-scria-ca-o-iei-gratis-daca-raspunzi-la-intrebari-3157269",
+      "published_at": "2025-03-14",
+      "accessed_at": "2026-06-08",
+      "source_type": "media_report_with_authority_context",
+      "confidence": "medium",
+      "notes": "Ofertă cadou/gratis pentru răspuns la întrebări, apoi colectare date personale/bancare."
+    },
+    "18": {
+      "id": "src_black_friday_dnsc",
+      "title": "DNSC — sfaturi pentru prevenirea fraudelor online de Black Friday",
+      "url": "https://www.dnsc.ro/vezi/document/comunicat-de-presa-sfaturi-esentiale-pentru-prevenirea-fraudelor-online-de-black-friday",
+      "published_at": "2025-10-30",
+      "accessed_at": "2026-06-08",
+      "source_type": "official_campaign",
+      "confidence": "high",
+      "notes": "Site-uri false/clonă, reduceri prea bune, social ads frauduloase, plăți nesigure și furt date card."
+    },
+    "19": {
+      "id": "src_deepfake_dnsc_press",
+      "title": "DNSC — fraudă online cu imaginea presei și persoanelor publice",
+      "url": "https://www.dnsc.ro/citeste/comunicat-de-presa-avertisment-romanii-vizati-un-nou-val-de-frauda-online-care-foloseste-imaginea-presei-si-a-persoanelor-publice",
+      "published_at": "2026-04-01",
+      "accessed_at": "2026-06-08",
+      "source_type": "official_alert",
+      "confidence": "high",
+      "notes": "Site-uri false, reclame/social posts care folosesc imaginea presei și persoanelor publice pentru fraudă."
+    },
+    "20": {
+      "id": "src_deepfake_president_tvr",
+      "title": "TVR Info / DNSC — deepfake cu imaginea președintelui României pentru investiții rapide",
+      "url": "https://tvrinfo.ro/avertizare-a-dnsc-frauda-de-tip-investitii-rapide-in-care-este-folosita-imaginea-presedintelui-romaniei-clipul-deepfake-circula-in-mediul-online/",
+      "published_at": "2025-08-20",
+      "accessed_at": "2026-06-08",
+      "source_type": "official_alert_via_media",
+      "confidence": "medium",
+      "notes": "Clipuri deepfake cu promisiuni de câștiguri miraculoase, solicitări de date personale sau transfer bani."
+    },
+    "21": {
+      "id": "src_charity_bitdefender",
+      "title": "Bitdefender — fraude cu organizații de caritate false",
+      "url": "https://www.bitdefender.com/ro-ro/blog/hotforsecurity/fraudele-cu-organizatii-de-caritate-false-cum-sa-le-depistezi-si-sa-le-eviti",
+      "published_at": "2024-07-23",
+      "accessed_at": "2026-06-08",
+      "source_type": "cyber_company_guidance",
+      "confidence": "medium",
+      "notes": "Escrocii se dau drept colectori pentru cauze legitime sau campanii caritabile false; util pentru pattern, nu domenii hard."
+    },
+    "22": {
+      "id": "src_animal_donation_fb_noisy",
+      "title": "Facebook group public — adăpost fals / donații animale",
+      "url": "https://www.facebook.com/groups/408361383007498/posts/2143381772838775/",
+      "published_at": "data neconfirmată în snippet",
+      "accessed_at": "2026-06-08",
+      "source_type": "community_noisy",
+      "confidence": "low",
+      "notes": "Snippet public despre adăpost fals care cere donații. Doar pattern discovery; nu hard evidence."
+    },
+    "23": {
+      "id": "src_pet_scam_general",
+      "title": "Animal Legal Defense Fund — animal sales and rehoming scams",
+      "url": "https://aldf.org/article/animal-sales-and-rehoming-scams-how-to-spot-them/",
+      "published_at": "n/a",
+      "accessed_at": "2026-06-08",
+      "source_type": "international_guidance",
+      "confidence": "medium",
+      "notes": "Taxe de transport/cusca/asigurare pentru animale inexistente; pattern adaptabil, nu specific România."
+    },
+    "24": {
+      "id": "src_whatsapp_1800_vistabank",
+      "title": "Vista Bank — schema 1800 pe WhatsApp",
+      "url": "https://www.vistabank.ro/en/useful-info/security-recommendations/1800-scheme-a-new-scam-through-the-whatsapp-platform",
+      "published_at": "2025-01-10",
+      "accessed_at": "2026-06-08",
+      "source_type": "bank_security_guidance",
+      "confidence": "medium",
+      "notes": "Contact WhatsApp cere bani; verifică identitatea pe canal separat."
+    },
+    "S1": {
+      "title": "Siguranța Online — Uniți împotriva escrocheriilor",
+      "url": "https://sigurantaonline.ro/uniti-impotriva-escrocheriilor/",
+      "published": "nedeclarat pe pagină; campanie publică 2026",
+      "accessed": "2026-06-08",
+      "type": "official_campaign",
+      "confidence": "high",
+      "notes": "Taxonomie oficială: Urgență mare, Telefonul oficial, Câștig peste noapte; metode: Nepotul, Accidentul, Telefon stricat, Petiția, Creditul, Coletul, BNR, Hidroelectrica, Marketplace, Loteria etc."
+    },
+    "S2": {
+      "title": "DNSC — ALERTĂ: Frauda de tip Votează pe Adeline",
+      "url": "https://www.dnsc.ro/citeste/alerta-frauda-de-tip-voteaza-pe-adeline",
+      "published": "2025-01-15",
+      "accessed": "2026-06-08",
+      "type": "official_alert",
+      "confidence": "high",
+      "notes": "Descrie preluarea WhatsApp prin cod de asociere dispozitiv."
+    },
+    "S3": {
+      "title": "DNSC — ALERTĂ: Phishing E-mail ANAF",
+      "url": "https://dnsc.ro/citeste/alerta-phishing-e-mail-anaf",
+      "published": "2025-03-20",
+      "accessed": "2026-06-08",
+      "type": "official_alert",
+      "confidence": "high",
+      "notes": "E-mail cu identitate vizuală ANAF, rambursare taxe și buton/link către portal fals."
+    },
+    "S4": {
+      "title": "FAN Courier — Alertă de SMiShing",
+      "url": "https://www.fancourier.ro/alerta-de-smishing/",
+      "published": "2026-02-11",
+      "accessed": "2026-06-08",
+      "type": "official_brand_alert",
+      "confidence": "high",
+      "notes": "FAN declară explicit că nu cere prin SMS parole, coduri WhatsApp/verificare sau date card/CVC."
+    },
+    "S5": {
+      "title": "Poșta Română — tentativă phishing prin SMS",
+      "url": "https://www.posta-romana.ro/a1941/stiri/o-noua-tentativa-de-phishing-prin-sms-in-numele-postei-romane.html",
+      "published": "2025-06-16",
+      "accessed": "2026-06-08",
+      "type": "official_brand_alert",
+      "confidence": "high",
+      "notes": "Poșta nu solicită informații bancare/card/PIN și nici plăți online ale unor taxe de livrare prin astfel de mesaje."
+    },
+    "S6": {
+      "title": "SAMEDAY — Când un mesaj pare fraudulos, cel mai probabil așa este",
+      "url": "https://sameday.ro/cand-un-mesaj-pare-fraudulos-cel-mai-probabil-asa-este/",
+      "published": "nedeclarat pe pagină",
+      "accessed": "2026-06-08",
+      "type": "official_brand_alert",
+      "confidence": "high",
+      "notes": "SAMEDAY declară că nu transmite solicitări de plată prin SMS/social media; plata/prelungirea easybox se face prin aplicație/canale oficiale."
+    },
+    "S7": {
+      "title": "SAMEDAY — suport / domenii sameday.ro și sdy.ro",
+      "url": "https://sameday.ro/support/",
+      "published": "nedeclarat pe pagină",
+      "accessed": "2026-06-08",
+      "type": "official_domain_guidance",
+      "confidence": "medium",
+      "notes": "Menționează evitarea comunicărilor pe domenii diferite de sameday.ro și sdy.ro."
+    },
+    "S8": {
+      "title": "Cargus — Recommendations regarding possible electronic fraud",
+      "url": "https://www.cargus.ro/en/blog/cargus-recommendations-regarding-possible-electronic-fraud/",
+      "published": "2023-02-08",
+      "accessed": "2026-06-08",
+      "type": "official_brand_guidance",
+      "confidence": "medium",
+      "notes": "Recomandări generale despre mesaje/atașamente legate de livrare și formule impersonale/greșeli."
+    },
+    "S9": {
+      "title": "ANCOM — fraudă prin apeluri în numele instituțiilor/băncilor/companiilor de stat",
+      "url": "https://www.ancom.ro/despre-noi/media/comunicate-de-presa/ancom-ia-masuri-impotriva-fraudelor-comise-prin-apelurile-efectuate-in-numele-unor-institutii-publice-banci-sau-companii-de-stat/",
+      "published": "2025-06-04",
+      "accessed": "2026-06-08",
+      "type": "official_regulator_alert",
+      "confidence": "high",
+      "notes": "Descrie CLI spoofing: falsificarea numărului afișat."
+    },
+    "S10": {
+      "title": "ANCOM — Spoofing prin număr de telefon: ce face ANCOM și ce pot face utilizatorii",
+      "url": "https://www.ancom.ro/despre-noi/media/comunicate-de-presa/spoofing-prin-intermediul-numarului-de-telefon-58-ce-face-ancom-si-ce-pot-face-utilizatorii/",
+      "published": "2025-10-08",
+      "accessed": "2026-06-08",
+      "type": "official_regulator_guidance",
+      "confidence": "high",
+      "notes": "Nu te baza doar pe numărul afișat; numărul poate aparține altcuiva."
+    },
+    "S11": {
+      "title": "DNSC/Poliția/ARB/Mastercard — campania Uniți împotriva escrocheriilor",
+      "url": "https://www.dnsc.ro/citeste/comunicat-de-presa-dnsc-politia-romana-arb-si-mastercard-lanseaza-campania-national-uniti-impotriva-escrocheriilor",
+      "published": "2026-03-24",
+      "accessed": "2026-06-08",
+      "type": "official_campaign",
+      "confidence": "high",
+      "notes": "Menționează creșterea fraudelor, phishing dominant și metode precum BNR/telefon oficial."
+    },
+    "S12": {
+      "title": "ANAF / Ministerul Finanțelor — fraude telefonice în numele ANAF",
+      "url": "https://static.anaf.ro/static/3/Anaf/20251128112814_1244_com_telefon%20fals28nov2025.pdf",
+      "published": "2025-11-28",
+      "accessed": "2026-06-08",
+      "type": "official_brand_alert",
+      "confidence": "high",
+      "notes": "ANAF avertizează despre apeluri cu impozit plătit în plus/restituire și apoi fals funcționar bancar care cere date confidențiale."
+    },
+    "S13": {
+      "title": "ANAF — comunicate presă / fraude telefonice în numele ANAF",
+      "url": "https://www.anaf.ro/anaf/internet/ANAF/comunicate/",
+      "published": "2026-04/05 comunicate listate; pagina accesată 2026-06-08",
+      "accessed": "2026-06-08",
+      "type": "official_brand_alert",
+      "confidence": "high",
+      "notes": "Comunicate despre vishing cu inspectori ANAF Antifraudă și date personale/bancare."
+    },
+    "S14": {
+      "title": "BT — Siguranța online",
+      "url": "https://www.bancatransilvania.ro/siguranta-online",
+      "published": "nedeclarat pe pagină",
+      "accessed": "2026-06-08",
+      "type": "official_brand_guidance",
+      "confidence": "high",
+      "notes": "BT: banca nu cere PIN, parole sau CVV prin telefon, SMS sau e-mail; avertizează despre remote control."
+    },
+    "S15": {
+      "title": "BT — Tipuri de fraude",
+      "url": "https://www.bancatransilvania.ro/siguranta-online/tipuri-de-fraude",
+      "published": "nedeclarat pe pagină",
+      "accessed": "2026-06-08",
+      "type": "official_brand_guidance",
+      "confidence": "high",
+      "notes": "Descrie smishing, vishing, Flubot, marketplace fraud, date card, parole/coduri."
+    },
+    "S16": {
+      "title": "ING România — Securitate",
+      "url": "https://ing.ro/ing-in-romania/informatii-utile/securitate",
+      "published": "2025-12-09",
+      "accessed": "2026-06-08",
+      "type": "official_brand_guidance",
+      "confidence": "high",
+      "notes": "ING: niciun reprezentant nu cere accesarea linkurilor SMS/social, login Home'Bank prin link, PIN sau CVV."
+    },
+    "S17": {
+      "title": "BCR — Securitate cibernetică / EduFin",
+      "url": "https://www.bcr.ro/ro/campanii/echipa-nationala-edufin/securitate-cibernetica",
+      "published": "nedeclarat pe pagină",
+      "accessed": "2026-06-08",
+      "type": "official_brand_guidance",
+      "confidence": "high",
+      "notes": "Băncile nu cer parola/PIN prin telefon, SMS, e-mail; atacatorii pot falsifica SMS sender."
+    },
+    "S18": {
+      "title": "BCR — George / eToken safety",
+      "url": "https://www.bcr.ro/ro/persoane-fizice/informatii-utile/securitate/cum-iti-protejeaza-BCR-conturile-si-tranzactiile",
+      "published": "nedeclarat pe pagină",
+      "accessed": "2026-06-08",
+      "type": "official_brand_guidance",
+      "confidence": "high",
+      "notes": "Nu completa cod eToken/BCR într-o pagină deschisă din link primit pe e-mail/SMS/WhatsApp."
+    },
+    "S19": {
+      "title": "Raiffeisen — cumpărături online/3D Secure",
+      "url": "https://www.raiffeisen.ro/ro/persoane-fizice/in-sprijinul-tau/securitate-online/cumparaturi-online-in-siguranta.html",
+      "published": "nedeclarat pe pagină",
+      "accessed": "2026-06-08",
+      "type": "official_brand_guidance",
+      "confidence": "medium",
+      "notes": "Descrie OTP/3D Secure și recomandarea de verificare a tranzacției autorizate."
+    },
+    "S20": {
+      "title": "ARB — remote control / fraude bancare",
+      "url": "https://www.arb.ro/trebuie-sa-fim-foarte-responsabili-atunci-cand-utilizam-produsele-si-serviciile-bancare-ce-nu-vor-solicita-niciodata-bancile/",
+      "published": "2025 aproximativ; pagina fără dată exactă în captură",
+      "accessed": "2026-06-08",
+      "type": "official_industry_guidance",
+      "confidence": "high",
+      "notes": "Descrie AnyDesk/TeamViewer/remote control, acces la mobile banking, coduri și contractare credit."
+    },
+    "S21": {
+      "title": "ARB — tipologii fraudă, investment scam, WhatsApp, spoofing",
+      "url": "https://www.arb.ro/ce-trebuie-sa-stim-pentru-a-nu-deveni-victime-ale-fraudei-bancare-ramona-rusu-presedintele-comisiei-antifrauda-arb-tipologiile-de-frauda-sunt-intr-o-dinamica-permanenta-iar-metodele-de-fr/",
+      "published": "2025 aproximativ; pagina fără dată exactă în captură",
+      "accessed": "2026-06-08",
+      "type": "official_industry_guidance",
+      "confidence": "high",
+      "notes": "Descrie investment scam, AnyDesk/TeamViewer, crypto ATM, Poliție/BNR spoofing, deepfake."
+    },
+    "S22": {
+      "title": "OLX — linkuri false pentru articole plătite",
+      "url": "https://blog.olx.ro/2020/12/ai-grija-la-linkurile-false-pentru-articole-platite-vezi-cum-te-protejezi-de-cele-mai-noi-atacuri-de-phishing/",
+      "published": "2020-12-14",
+      "accessed": "2026-06-08",
+      "type": "official_brand_guidance_older_but_still_relevant",
+      "confidence": "high",
+      "notes": "OLX explică scamul în care vânzătorilor li se cer datele cardului, soldul și CVV/CVC pentru a primi banii."
+    },
+    "S23": {
+      "title": "Hidroelectrica — utilizare frauduloasă a numelui în investiții online",
+      "url": "https://www.hidroelectrica.ro/press-release/1d738954-4c1b-1ad9-c046-4d0d6001e187",
+      "published": "2026-03-09",
+      "accessed": "2026-06-08",
+      "type": "official_brand_alert",
+      "confidence": "high",
+      "notes": "Hidroelectrica nu solicită investiții prin platforme online promovate social/reclame/telefon și nu cere date personale/bancare pe acele canale."
+    },
+    "S24": {
+      "title": "Hidroelectrica — deepfake / investiții false",
+      "url": "https://www.hidroelectrica.ro/press-release/6c73da43-c992-50a6-c24c-f25aaefbc23a",
+      "published": "2024-02-09",
+      "accessed": "2026-06-08",
+      "type": "official_brand_alert",
+      "confidence": "high",
+      "notes": "Avertizează despre clipuri deepfake cu persoane publice care promovează fals acțiuni Hidroelectrica."
+    },
+    "S25": {
+      "title": "Ghișeul.ro — avertisment phishing",
+      "url": "https://www.ghiseul.ro/",
+      "published": "nedeclarat pe pagină",
+      "accessed": "2026-06-08",
+      "type": "official_platform_warning",
+      "confidence": "high",
+      "notes": "Ghișeul.ro nu anunță prin SMS/e-mail apariția unei obligații de plată și avertizează să nu se dea click pe linkuri suspecte."
+    },
+    "S26": {
+      "title": "Orange — smishing / FluBot / new voicemail",
+      "url": "https://www.orange.ro/prevenire-frauda/",
+      "published": "nedeclarat; pagină brand",
+      "accessed": "2026-06-08",
+      "type": "official_brand_guidance",
+      "confidence": "medium",
+      "notes": "Descrie FluBot prin SMS 'new voicemail' și instalare aplicație falsă; recomandă aplicații doar din magazine oficiale."
+    },
+    "S27": {
+      "title": "Orange — cum recunoști smishing-ul",
+      "url": "https://www.orange.ro/help/articole/cum-sa-recunosti-si-sa-eviti-tentativele-de-frauda-prin-sms-smishing",
+      "published": "2026-02-15",
+      "accessed": "2026-06-08",
+      "type": "official_brand_guidance",
+      "confidence": "medium",
+      "notes": "Descrie smishing bancar, curier fantomă, WhatsApp takeover/Schema 1800."
+    },
+    "S28": {
+      "title": "DIGI — ghid securitate online",
+      "url": "https://www.digi.ro/ghid-clienti",
+      "published": "nedeclarat pe pagină",
+      "accessed": "2026-06-08",
+      "type": "official_brand_guidance",
+      "confidence": "medium",
+      "notes": "Descrie phishing, infostealers, deepfake, investiții frauduloase și recomandă accesarea conturilor doar prin site-uri oficiale, nu linkuri SMS/e-mail."
+    },
+    "S29": {
+      "title": "eMAG — cum să te ferești de phishing",
+      "url": "https://www.emag.ro/help/cum-sa-te-feresti-de-actiunile-de-phishing/",
+      "published": "nedeclarat pe pagină",
+      "accessed": "2026-06-08",
+      "type": "official_brand_guidance",
+      "confidence": "medium",
+      "notes": "Ghid oficial eMAG despre identificarea phishing-ului."
+    },
+    "S30": {
+      "title": "YOXO — site oficial / buyback / aplicație",
+      "url": "https://www.yoxo.ro/",
+      "published": "nedeclarat pe pagină",
+      "accessed": "2026-06-08",
+      "type": "official_domain_only",
+      "confidence": "medium",
+      "notes": "Util pentru claim verifier și false-positive guard; nu este o alertă anti-scam specifică."
+    },
+    "S31": {
+      "title": "Reddit r/Romania — metoda accidentul la bunică de 82 ani",
+      "url": "https://www.reddit.com/r/Romania/comments/xhroq8/bunica_mea_de_82_de_ani_tocmai_a_fost_scamuita_de/",
+      "published": "2022 aproximativ; community",
+      "accessed": "2026-06-08",
+      "type": "community_noisy",
+      "confidence": "low",
+      "notes": "Pattern discovery: stress emoțional, apeluri repetate, doctor/asistentă/fiică, cash urgent. Nu hard evidence."
+    },
+    "S32": {
+      "title": "Reddit r/Romania — BNR/Poliție spoofing",
+      "url": "https://www.reddit.com/r/Romania/comments/1r7hlxp/atentie_la_fraude_ca_devin_tot_mai_bine_gandite/",
+      "published": "2026 aproximativ; community",
+      "accessed": "2026-06-08",
+      "type": "community_noisy",
+      "confidence": "low",
+      "notes": "Pattern discovery: numere spoofed, nume reale, bancă/Poliție/BNR. Nu hard evidence."
+    },
+    "S33": {
+      "title": "Reddit r/Romania — FAN/eMAG context real, taxă card",
+      "url": "https://www.reddit.com/r/Romania/comments/1q32xuu/ce_fac_dac%C4%83_era_s%C4%83_iau_%C8%9Beap%C4%83/",
+      "published": "2026 aproximativ; community",
+      "accessed": "2026-06-08",
+      "type": "community_noisy",
+      "confidence": "low",
+      "notes": "Pattern discovery: context real de colet poate face scamul credibil; nu hard evidence."
+    },
+    "S34": {
+      "title": "RFC 2606 — reserved domains .test/.example/.invalid",
+      "url": "https://www.rfc-editor.org/rfc/rfc2606",
+      "published": "1999-06",
+      "accessed": "2026-06-08",
+      "type": "technical_standard",
+      "confidence": "high",
+      "notes": "Pentru exemple și CI se folosesc domenii rezervate, nu domenii scam active."
+    }
+  }
 }

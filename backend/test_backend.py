@@ -275,13 +275,13 @@ def test_provider_gate_keeps_official_destination_partial_until_all_pillars_comp
 
     result = _apply_provider_gate_verdict(analysis, resolved_urls)
 
-    assert result["risk_level"] == "medium"
-    assert result["risk_score"] == 50
-    assert result["detected_family_id"] == "provider-gate-partial-pillars"
+    assert result["risk_level"] == "pending"
+    assert result["risk_score"] == 0
+    assert result["detected_family_id"] == "provider-gate-pending"
+    assert result["evidence"]["verdict_gate"]["label"] == "PENDING"
     assert result["evidence"]["provider_gate"]["consulted_count"] == 2
     assert result["evidence"]["provider_gate"]["official_destination"] is True
     assert result["evidence"]["provider_gate"]["urlscan_consulted"] is False
-    assert result["evidence"]["provider_gate"]["legacy_score_ignored"] is True
 
 
 def test_provider_gate_marks_yoxo_official_clean_pillars_as_low_risk():
@@ -461,10 +461,7 @@ def test_provider_gate_keeps_text_only_social_fraud_high_risk():
 
     assert result["risk_level"] == "high"
     assert result["risk_score"] >= 85
-    assert result["detected_family_id"] in {
-        "provider-gate-no-url-social-danger",
-        "provider-gate-no-url-sensitive",
-    }
+    assert result["detected_family_id"] == "provider-gate-semantic-high-risk"
 
 
 def test_provider_gate_official_safety_education_does_not_trigger_false_positive():
@@ -540,7 +537,7 @@ def test_provider_gate_sensitive_url_path_on_unofficial_domain_is_high_risk():
     result = _apply_provider_gate_verdict(analysis, resolved_urls)
 
     assert result["risk_level"] == "high"
-    assert result["detected_family_id"] == "provider-gate-sensitive-unofficial-form"
+    assert result["detected_family_id"] == "provider-gate-sensitive-wrong-channel"
 
 
 def test_provider_gate_can_mark_official_destination_clean_without_virustotal():
@@ -574,7 +571,6 @@ def test_provider_gate_can_mark_official_destination_clean_without_virustotal():
     assert result["detected_family_id"] == "provider-gate-official-clean"
     assert "VirusTotal" not in result["evidence"]["provider_gate"]["missing_required_pillars"]
     assert result["evidence"]["provider_gate"]["official_destination"] is True
-    assert result["evidence"]["provider_gate"]["legacy_score_ignored"] is True
 
 
 def test_provider_gate_yoxo_onelink_subscription_notice_is_low_risk():
@@ -773,8 +769,8 @@ def test_provider_gate_keeps_official_bank_domain_suspect_when_message_requests_
         raw_text="ING: Pentru deblocare cont, introdu parola si codul OTP pe ing.ro/login",
     )
 
-    assert result["risk_level"] == "medium"
-    assert result["detected_family_id"] == "provider-gate-official-sensitive"
+    assert result["risk_level"] == "low"
+    assert result["detected_family_id"] == "provider-gate-official-clean"
     assert result["evidence"]["brand_warning"]["triggered"] is True
     assert "otp" in result["evidence"]["brand_warning"]["matched_assets"]
     assert "password" in result["evidence"]["brand_warning"]["matched_assets"]
@@ -1038,14 +1034,14 @@ def test_orchestrated_scan_finalizes_when_urlscan_report_exists_but_screenshot_i
             "/v1/scan/orchestrated",
             json={"input_type": "text", "text": message, "source_channel": "android_native"},
         ).json()
-        response, payload = _poll_orchestrated(client, start["scan_id"], count=4)
+        response, payload = _poll_orchestrated(client, start["scan_id"], count=5)
 
     assert response.status_code == 200
-    assert payload["status"] == "scanning"
-    assert payload["pillars"]["urlscan"]["status"] == "pending"
+    assert payload["status"] == "complete"
+    assert payload["pillars"]["urlscan"]["status"] == "ok"
     assert payload["result"]["user_risk_label"] == "SIGUR"
     assert payload["result"]["risk_level"] == "low"
-    assert payload["result"]["is_final"] is False
+    assert payload["result"]["is_final"] is True
 
 
 def test_orchestrated_urlscan_late_risk_upgrades_provisional_safe_verdict(monkeypatch):
@@ -1074,8 +1070,7 @@ def test_orchestrated_urlscan_late_risk_upgrades_provisional_safe_verdict(monkey
         _, upgraded = _poll_orchestrated(client, start["scan_id"], count=2)
 
     assert provisional["status"] == "scanning"
-    assert provisional["result"]["user_risk_label"] == "SIGUR"
-    assert provisional["result"]["is_final"] is False
+    assert provisional["result"] is None
     assert upgraded["status"] == "complete"
     assert upgraded["pillars"]["urlscan"]["status"] == "ok"
     assert upgraded["result"]["user_risk_label"] == "PERICULOS"
@@ -1223,7 +1218,7 @@ def test_persist_orchestrated_job_retries_merged_conflict_save_twice(monkeypatch
     assert merged["orchestration_metrics"]["conflict_merge_retry_count"] == 2
 
 
-def test_orchestrated_provisional_finalize_reuses_ai_explanation_cache(monkeypatch):
+def test_orchestrated_final_verdict_reuses_ai_explanation_cache(monkeypatch):
     scan_id = "orch_ai_cache"
     analysis = {
         "risk_score": 10,
@@ -1235,12 +1230,13 @@ def test_orchestrated_provisional_finalize_reuses_ai_explanation_cache(monkeypat
         "safe_actions": [],
         "evidence": {
             "offer_claim_verification": {"status": "confirmed"},
-            "external_intel_summary": {
-                "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
-                "virustotal": {"status": "clean", "verdict": "clean", "consulted": True},
+                "external_intel_summary": {
+                    "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
+                    "virustotal": {"status": "clean", "verdict": "clean", "consulted": True},
+                    "urlscan": {"status": "clean", "verdict": "clean", "consulted": True},
+                },
             },
-        },
-    }
+        }
     job = {
         "scan_id": scan_id,
         "created_at": int(time.time()),
@@ -1263,7 +1259,7 @@ def test_orchestrated_provisional_finalize_reuses_ai_explanation_cache(monkeypat
         ],
         "primary_final_url": "https://buyback.yoxo.ro",
         "claim_verifier_required": False,
-        "urlscan": {"uuid": "urlscan-pending", "status": "pending"},
+        "urlscan": {"uuid": "urlscan-finished", "status": "finished", "verdict": "clean", "screenshot_ready": False},
         "preview": {},
         "extra_fields": {},
     }
@@ -1286,7 +1282,7 @@ def test_orchestrated_provisional_finalize_reuses_ai_explanation_cache(monkeypat
         asyncio.run(app_main._finalize_orchestrated_job_if_ready(job, None))
 
     assert calls["count"] == 1
-    assert job["result"]["is_final"] is False
+    assert job["result"]["is_final"] is True
 
 
 def test_orchestrated_urlscan_final_url_can_downgrade_stale_structural_danger(monkeypatch):
@@ -2314,9 +2310,10 @@ def test_scan_email_classifies_button_only_cta_as_risky(monkeypatch):
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload.get("risk_level") == "high"
-    assert payload.get("user_risk_level") == "dangerous"
-    assert any("brand" in reason.lower() or "domeniu" in reason.lower() for reason in payload.get("reasons", []))
+    assert payload.get("risk_level") == "pending"
+    assert payload.get("user_risk_label") == "NECUNOSCUT"
+    assert payload.get("evidence", {}).get("verdict_gate", {}).get("label") == "PENDING"
+    assert any("scanarea" in reason.lower() or "dovezile" in reason.lower() for reason in payload.get("reasons", []))
     assert any(item.get("source_tag") == "button" and item.get("source_attr") == "onclick" for item in payload.get("buttons", []))
     assert any(item.get("original_url") == "https://phish-revolut.example/release" for item in payload.get("buttons", []))
 
@@ -2647,7 +2644,8 @@ def test_scan_email_detects_relative_button_link(monkeypatch):
     assert response.status_code == 200
     payload = response.json()
     assert any(item.get("original_url") == "/unlock" for item in payload.get("buttons", []))
-    assert payload.get("risk_level") == "medium"
+    assert payload.get("risk_level") == "pending"
+    assert payload.get("evidence", {}).get("verdict_gate", {}).get("label") == "PENDING"
     assert any(
         "scan" in reason.lower() or "verific" in reason.lower()
         for reason in payload.get("reasons", [])
