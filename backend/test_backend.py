@@ -588,6 +588,64 @@ def test_provider_gate_does_not_mark_url_only_unknown_clean_domain_as_low_risk()
     assert result["evidence"]["decision_bundle"]["identity"]["status"] == "unknown"
 
 
+def test_rdap_domain_age_uses_valid_url_without_literal_braces(monkeypatch):
+    from services import redirect_resolver
+
+    captured = {}
+
+    class FakeResponse:
+        status_code = 200
+
+        def json(self):
+            return {
+                "events": [
+                    {
+                        "eventAction": "registration",
+                        "eventDate": "1997-09-15T04:00:00Z",
+                    }
+                ]
+            }
+
+    def fake_get(url, **kwargs):
+        captured["url"] = url
+        return FakeResponse()
+
+    monkeypatch.setattr(redirect_resolver.requests, "get", fake_get)
+
+    age_days, created_date = redirect_resolver.check_domain_age("google.com")
+
+    assert captured["url"] == "https://rdap.org/domain/google.com"
+    assert not captured["url"].startswith("{")
+    assert not captured["url"].endswith("}")
+    assert created_date == "1997-09-15"
+    assert age_days is not None and age_days > 365 * 20
+
+
+def test_mx_lookup_uses_valid_cloudflare_doh_url_without_literal_braces(monkeypatch):
+    from services import redirect_resolver
+
+    captured = {}
+
+    class FakeResponse:
+        status_code = 200
+
+        def json(self):
+            return {"Answer": [{"type": 15, "data": "10 smtp.google.com."}]}
+
+    def fake_get(url, **kwargs):
+        captured["url"] = url
+        return FakeResponse()
+
+    monkeypatch.setattr(redirect_resolver.requests, "get", fake_get)
+
+    has_mx = redirect_resolver.check_mx_records("gmail.com")
+
+    assert captured["url"] == "https://cloudflare-dns.com/dns-query?name=gmail.com&type=MX"
+    assert not captured["url"].startswith("{")
+    assert not captured["url"].endswith("}")
+    assert has_mx is True
+
+
 def test_provider_gate_projection_is_pure_and_matches_apply():
     analysis = {
         "claimed_brand": "YOXO",
