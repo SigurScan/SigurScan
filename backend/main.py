@@ -4336,6 +4336,7 @@ _ORCHESTRATED_SCAN_LOCKS: Dict[str, asyncio.Lock] = {}
 _ORCHESTRATED_STAGE_RANK = {
     "queued": 0,
     "resolved": 10,
+    "urlhaus_ready": 15,
     "reputation_ready": 20,
     "semantic_ready": 25,
     "claim_ready": 28,
@@ -4348,6 +4349,30 @@ _ORCHESTRATED_STAGE_RANK = {
 
 def _orchestrated_stage_rank(stage: Any) -> int:
     return _ORCHESTRATED_STAGE_RANK.get(str(stage or "").strip().lower(), -1)
+
+
+def _merge_threat_intel_sources(
+    base: Optional[Dict[str, Dict[str, Any]]],
+    overlay: Optional[Dict[str, Dict[str, Any]]],
+) -> Dict[str, Dict[str, Any]]:
+    merged: Dict[str, Dict[str, Any]] = _deep_copy_jsonable(base or {})
+    for key, overlay_entry in (overlay or {}).items():
+        if not isinstance(overlay_entry, dict):
+            continue
+        current_entry = merged.get(key)
+        if not isinstance(current_entry, dict):
+            merged[key] = _deep_copy_jsonable(overlay_entry)
+            continue
+        current_sources = current_entry.setdefault("sources", {})
+        overlay_sources = overlay_entry.get("sources")
+        if isinstance(current_sources, dict) and isinstance(overlay_sources, dict):
+            for source_name, source_payload in overlay_sources.items():
+                if isinstance(source_payload, dict):
+                    current_sources[source_name] = _deep_copy_jsonable(source_payload)
+        for field in ("verdict", "risk_score", "active_sources", "consulted_sources", "consulted_source_count"):
+            if field in overlay_entry:
+                current_entry[field] = _deep_copy_jsonable(overlay_entry[field])
+    return merged
 
 
 def _orchestrated_metrics(job: Dict[str, Any]) -> Dict[str, Any]:
@@ -5244,7 +5269,7 @@ async def _refresh_orchestrated_job(job: Dict[str, Any], request: Request) -> Di
         threat_intel = _gather_external_intel_safe(
             resolved_urls,
             include_virustotal=True,
-            include_urlhaus=True,
+            include_urlhaus=False,
             persist_partial=False,
         )
         summary = _external_intel_summary_from_threat_intel(threat_intel)
@@ -5286,6 +5311,26 @@ async def _refresh_orchestrated_job(job: Dict[str, Any], request: Request) -> Di
             },
         }
         job["claim_verifier_required"] = False
+        _set_orchestrated_stage(job, "urlhaus_ready")
+        job = _persist_orchestrated_job(job)
+        _emit_orchestrated_telemetry("orchestrated_stage_urlhaus_ready", job)
+        return job
+
+    if stage == "urlhaus_ready":
+        resolved_urls = job.get("resolved_urls") if isinstance(job.get("resolved_urls"), list) else []
+        existing_intel = job.get("threat_intel") if isinstance(job.get("threat_intel"), dict) else {}
+        urlhaus_intel = _gather_external_intel_safe(
+            resolved_urls,
+            include_virustotal=False,
+            include_urlhaus=True,
+            persist_partial=False,
+        )
+        threat_intel = _merge_threat_intel_sources(existing_intel, urlhaus_intel)
+        summary = _external_intel_summary_from_threat_intel(threat_intel)
+        job["threat_intel"] = threat_intel
+        analysis = job.get("analysis") if isinstance(job.get("analysis"), dict) else {}
+        analysis.setdefault("evidence", {})["external_intel_summary"] = summary
+        job["analysis"] = analysis
         _set_orchestrated_stage(job, "reputation_ready")
         job = _persist_orchestrated_job(job)
         _emit_orchestrated_telemetry("orchestrated_stage_reputation_ready", job)

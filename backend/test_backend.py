@@ -1126,7 +1126,7 @@ def test_orchestrated_post_accepts_without_running_providers(monkeypatch):
     assert payload["preview"]["screenshot_url"] is None
 
 
-def test_orchestrated_resolved_stage_collects_urlhaus_once(monkeypatch):
+def test_orchestrated_resolved_stage_collects_fast_reputation_without_urlhaus(monkeypatch):
     calls = []
     job = {
         "scan_id": "orch_urlhaus_initial",
@@ -1162,14 +1162,81 @@ def test_orchestrated_resolved_stage_collects_urlhaus_once(monkeypatch):
         patched.setattr(app_main, "_emit_orchestrated_telemetry", lambda *args, **kwargs: None)
         refreshed = asyncio.run(app_main._refresh_orchestrated_job(job, None))
 
-    assert refreshed["pipeline_stage"] == "reputation_ready"
+    assert refreshed["pipeline_stage"] == "urlhaus_ready"
     assert calls == [
         {
             "include_virustotal": True,
+            "include_urlhaus": False,
+            "persist_partial": False,
+        }
+    ]
+
+
+def test_orchestrated_urlhaus_stage_collects_urlhaus_once(monkeypatch):
+    calls = []
+    job = {
+        "scan_id": "orch_urlhaus_stage",
+        "created_at": int(time.time()),
+        "pipeline_stage": "urlhaus_ready",
+        "status": "scanning",
+        "input_type": "text",
+        "source_channel": "test",
+        "urls": ["https://example.com/login"],
+        "redacted_text": "Verifica aici https://example.com/login",
+        "resolved_urls": [
+            {
+                "url": "https://example.com/login",
+                "final_url": "https://example.com/login",
+                "final_hostname": "example.com",
+                "final_registered_domain": "example.com",
+                "success": True,
+            }
+        ],
+        "threat_intel": _clean_web_risk_and_vt_for_resolved_urls(
+            [{"final_url": "https://example.com/login"}]
+        ),
+        "analysis": {
+            "evidence": {
+                "external_intel_summary": {
+                    "google_web_risk": {"status": "clean", "consulted": True},
+                    "virustotal": {"status": "clean", "consulted": True},
+                }
+            }
+        },
+        "preview": {},
+        "urlscan": {"status": "queued"},
+        "orchestration_metrics": {"poll_count": 0, "stage_sequence": [], "stage_durations_ms": {}},
+    }
+
+    def fake_external_intel(resolved_urls, *args, **kwargs):
+        calls.append(kwargs)
+        output = _clean_web_risk_and_vt_for_resolved_urls(resolved_urls)
+        for entry in output.values():
+            entry.setdefault("sources", {})["urlhaus"] = {
+                "status": "clean",
+                "consulted": True,
+                "score": 0,
+                "threat_type": "unknown",
+            }
+        return output
+
+    with monkeypatch.context() as patched:
+        patched.setattr(app_main, "_gather_external_intel_safe", fake_external_intel)
+        patched.setattr(app_main, "_persist_orchestrated_job", lambda candidate: candidate)
+        patched.setattr(app_main, "_emit_orchestrated_telemetry", lambda *args, **kwargs: None)
+        refreshed = asyncio.run(app_main._refresh_orchestrated_job(job, None))
+
+    assert refreshed["pipeline_stage"] == "reputation_ready"
+    assert calls == [
+        {
+            "include_virustotal": False,
             "include_urlhaus": True,
             "persist_partial": False,
         }
     ]
+    summary = refreshed["analysis"]["evidence"]["external_intel_summary"]
+    assert summary["urlhaus"]["status"] == "clean"
+    assert summary["urlhaus"]["consulted"] is True
 
 
 def test_orchestrated_reputation_stage_runs_mistral_as_semantic_pillar(monkeypatch):
@@ -1318,7 +1385,7 @@ def test_orchestrated_text_scan_completes_safe_after_urlscan_preview(monkeypatch
             "/v1/scan/orchestrated",
             json={"input_type": "text", "text": message, "source_channel": "android_native"},
         ).json()
-        response, payload = _poll_orchestrated(client, start["scan_id"], count=8)
+        response, payload = _poll_orchestrated(client, start["scan_id"], count=9)
 
     assert response.status_code == 200
     assert payload["status"] == "complete"
@@ -1351,7 +1418,7 @@ def test_orchestrated_scan_finalizes_when_urlscan_report_exists_but_screenshot_i
             "/v1/scan/orchestrated",
             json={"input_type": "text", "text": message, "source_channel": "android_native"},
         ).json()
-        response, payload = _poll_orchestrated(client, start["scan_id"], count=7)
+        response, payload = _poll_orchestrated(client, start["scan_id"], count=8)
 
     assert response.status_code == 200
     assert payload["status"] == "complete"
@@ -1385,7 +1452,7 @@ def test_orchestrated_clean_verdict_does_not_wait_for_urlscan_submit(monkeypatch
             "/v1/scan/orchestrated",
             json={"input_type": "text", "text": message, "source_channel": "android_native"},
         ).json()
-        response, payload = _poll_orchestrated(client, start["scan_id"], count=5)
+        response, payload = _poll_orchestrated(client, start["scan_id"], count=6)
 
     assert response.status_code == 200
     assert payload["status"] == "complete"
@@ -1418,7 +1485,7 @@ def test_orchestrated_urlscan_late_risk_upgrades_provisional_safe_verdict(monkey
             "/v1/scan/orchestrated",
             json={"input_type": "text", "text": message, "source_channel": "android_native"},
         ).json()
-        _, provisional = _poll_orchestrated(client, start["scan_id"], count=5)
+        _, provisional = _poll_orchestrated(client, start["scan_id"], count=6)
         _, upgraded = _poll_orchestrated(client, start["scan_id"], count=2)
 
     assert provisional["status"] == "complete"
@@ -2611,7 +2678,7 @@ def test_orchestrated_yoxo_weak_vt_and_urlscan_prevented_finalizes_safe(monkeypa
             "/v1/scan/orchestrated",
             json={"input_type": "text", "text": message, "source_channel": "android_native"},
         ).json()
-        response, payload = _poll_orchestrated(client, start["scan_id"], count=6)
+        response, payload = _poll_orchestrated(client, start["scan_id"], count=7)
 
     assert response.status_code == 200
     assert payload["status"] == "complete"
@@ -2646,7 +2713,7 @@ def test_orchestrated_fan_payment_scam_finalizes_dangerous_when_urlscan_rejects_
             "/v1/scan/orchestrated",
             json={"input_type": "text", "text": message, "source_channel": "android_native"},
         ).json()
-        response, payload = _poll_orchestrated(client, start["scan_id"], count=6)
+        response, payload = _poll_orchestrated(client, start["scan_id"], count=7)
 
     assert response.status_code == 200
     assert payload["status"] == "complete"
