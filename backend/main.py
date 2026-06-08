@@ -5621,11 +5621,13 @@ async def submit_urlscan_sandbox(payload: UrlscanSandboxRequest, request: Reques
             timeout=URLSCAN_TIMEOUT_SECONDS,
         )
 
-    response = await run_in_threadpool(submit, visibility)
+    include_persona = True
+    response = await run_in_threadpool(submit, visibility, include_persona)
     if response.status_code in {400, 422} and (payload.country or payload.customagent or URLSCAN_COUNTRY_DEFAULT or URLSCAN_CUSTOM_AGENT_DEFAULT):
-        response = await run_in_threadpool(submit, visibility, False)
+        include_persona = False
+        response = await run_in_threadpool(submit, visibility, include_persona)
     if response.status_code in {400, 403, 422} and visibility == "private":
-        response = await run_in_threadpool(submit, "unlisted")
+        response = await run_in_threadpool(submit, "unlisted", include_persona)
 
     if response.status_code >= 400:
         raise HTTPException(

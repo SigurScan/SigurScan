@@ -3270,6 +3270,48 @@ def test_urlscan_sandbox_submit_accepts_scan_persona(monkeypatch):
     assert captured["json"]["customagent"] == mobile_agent
 
 
+def test_urlscan_sandbox_retries_unlisted_without_invalid_persona(monkeypatch):
+    client = TestClient(app_main.app)
+    captured = []
+
+    def fake_post(url, headers, json, timeout):
+        captured.append(dict(json))
+        if len(captured) == 1:
+            return _FakeUrlscanResponse(
+                status_code=400,
+                payload={"message": 'ValidationError: "country" failed custom validation'},
+            )
+        if len(captured) == 2:
+            return _FakeUrlscanResponse(status_code=403, payload={"message": "private visibility unavailable"})
+        return _FakeUrlscanResponse(payload={"uuid": "scan-no-persona"})
+
+    with monkeypatch.context() as patched:
+        patched.setattr(app_main, "URLSCAN_API_KEY", "server-only-key")
+        patched.setattr(app_main, "PRIVACY_SAFE_MODE", False)
+        patched.setattr(app_main.requests, "post", fake_post)
+        response = client.post(
+            "/v1/sandbox/urlscan",
+            json={
+                "url": "https://delivery2.sameday.ro/demo",
+                "visibility": "private",
+                "country": "ro",
+                "customagent": "Mobile Test Agent",
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json()["uuid"] == "scan-no-persona"
+    assert len(captured) == 3
+    assert captured[0]["visibility"] == "private"
+    assert captured[0]["country"] == "ro"
+    assert captured[1]["visibility"] == "private"
+    assert "country" not in captured[1]
+    assert "customagent" not in captured[1]
+    assert captured[2]["visibility"] == "unlisted"
+    assert "country" not in captured[2]
+    assert "customagent" not in captured[2]
+
+
 def test_urlscan_sandbox_sanitizes_long_source_channel_tag(monkeypatch):
     client = TestClient(app_main.app)
     captured = {}
