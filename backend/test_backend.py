@@ -424,6 +424,26 @@ def test_legitimate_otp_safety_message_does_not_create_circular_brand_warning():
     assert final["evidence"]["provider_gate"]["direct_sensitive_request"] is False
 
 
+def test_fan_tracking_subdomain_is_an_official_destination():
+    local_engine = ScamAtlasEngine()
+    urls = [
+        {
+            "url": "https://awb.fan.ro/hJ90LuI0605A8",
+            "hostname": "awb.fan.ro",
+            "registered_domain": "fan.ro",
+            "final_url": "https://awb.fan.ro/hJ90LuI0605A8",
+            "final_hostname": "awb.fan.ro",
+            "final_registered_domain": "fan.ro",
+            "success": True,
+        }
+    ]
+
+    mismatch, domain = local_engine.check_brand_mismatch("FAN Courier", urls)
+
+    assert mismatch is False
+    assert domain is None
+
+
 def test_provider_gate_brand_mismatch_sensitive_payment_is_high_risk():
     analysis = {
         "claimed_brand": "Poșta Română",

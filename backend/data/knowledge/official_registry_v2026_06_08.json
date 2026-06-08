@@ -148,7 +148,9 @@
         "customer@fancourier.ro",
         "cyber.security@fancourier.ro"
       ],
-      "approved_tracking_or_partner_domains": [],
+      "approved_tracking_or_partner_domains": [
+        "fan.ro"
+      ],
       "source_urls": [
         {
           "source_id": "fan_smishing_2026",
@@ -161,6 +163,12 @@
           "url": "https://www.fancourier.ro/alerta-phishing/",
           "published": "2023-09-01",
           "accessed": "2026-06-03"
+        },
+        {
+          "source_id": "fan_tracking_links",
+          "url": "https://www.fancourier.ro/mentenanta-it-22-mai/",
+          "published": "2025-05-20",
+          "accessed": "2026-06-08"
         }
       ],
       "confidence": "high",

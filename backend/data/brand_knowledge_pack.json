@@ -175,6 +175,11 @@
     ]
   },
   "brand_domain_exceptions": {
+    "FAN Courier": [
+      "fan.ro",
+      "retur.fancourier.ro",
+      "selfawb.ro"
+    ],
     "SAMEDAY": [
       "sdy.ro",
       "eawb.sameday.ro",
@@ -183,10 +188,6 @@
       "sameday.easybox.ro",
       "locker-redirect.sameday.ro",
       "awb.sameday.ro"
-    ],
-    "FAN Courier": [
-      "retur.fancourier.ro",
-      "selfawb.ro"
     ],
     "Cargus": [
       "mycargus.cargus.ro",
@@ -264,6 +265,7 @@
     "dnsc": "DNSC",
     "sigurantaonline": "DNSC",
     "fancourier": "FAN Courier",
+    "fan": "FAN Courier",
     "posta-romana": "Poșta Română",
     "ropost": "Poșta Română",
     "postaromana": "Poșta Română",
@@ -316,7 +318,6 @@
     "spotify": "Spotify",
     "electrica": "Electrica",
     "electricafurnizare": "Electrica",
-    "fan": "FAN Courier",
     "selfawb": "FAN Courier",
     "posta": "Poșta Română",
     "easybox": "SAMEDAY",
@@ -1572,7 +1573,9 @@
         "customer@fancourier.ro",
         "cyber.security@fancourier.ro"
       ],
-      "approved_tracking_or_partner_domains": [],
+      "approved_tracking_or_partner_domains": [
+        "fan.ro"
+      ],
       "source_urls": [
         {
           "source_id": "fan_smishing_2026",
@@ -1585,6 +1588,12 @@
           "url": "https://www.fancourier.ro/alerta-phishing/",
           "published": "2023-09-01",
           "accessed": "2026-06-03"
+        },
+        {
+          "source_id": "fan_tracking_links",
+          "url": "https://www.fancourier.ro/mentenanta-it-22-mai/",
+          "published": "2025-05-20",
+          "accessed": "2026-06-08"
         }
       ],
       "confidence": "high",

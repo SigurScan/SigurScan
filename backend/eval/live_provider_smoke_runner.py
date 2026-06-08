@@ -124,11 +124,18 @@ def _poll_scan(base_url: str, scan_id: str, max_seconds: int, poll_interval: flo
     deadline = time.monotonic() + max_seconds
     last_payload: Dict[str, Any] = {}
     while time.monotonic() < deadline:
-        response = requests.get(
-            f"{base_url}/v1/scan/orchestrated/{scan_id}",
-            headers=_headers(),
-            timeout=timeout,
-        )
+        try:
+            response = requests.get(
+                f"{base_url}/v1/scan/orchestrated/{scan_id}",
+                headers=_headers(),
+                timeout=timeout,
+            )
+        except requests.Timeout:
+            # A serverless instance can finish and persist a bounded stage after
+            # the client-side request times out. Continue polling the durable job
+            # instead of declaring the whole live smoke case failed.
+            time.sleep(poll_interval)
+            continue
         response.raise_for_status()
         last_payload = response.json()
         result = last_payload.get("result") if isinstance(last_payload.get("result"), dict) else None
