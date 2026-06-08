@@ -451,6 +451,100 @@ def test_provider_gate_marks_clean_shortener_to_named_first_party_domain_as_low_
     assert result["evidence"]["decision_bundle"]["identity"]["status"] == "coherent"
 
 
+def test_provider_gate_exposes_established_domain_as_positive_context():
+    analysis = {
+        "claimed_brand": "Nespecificat",
+        "risk_level": "medium",
+        "risk_score": 55,
+        "detected_family": "Necunoscut",
+        "evidence": {
+            "external_intel_summary": {
+                "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
+                "virustotal": {"status": "clean", "verdict": "clean", "consulted": True},
+                "urlscan": {"status": "clean", "verdict": "clean", "consulted": True},
+            },
+            "semantic_review": {
+                "status": "done",
+                "risk_class": "unknown",
+                "claim_matches_known_scam_family": False,
+                "claim_matches_legit_template": False,
+                "completeness": True,
+            },
+        },
+    }
+    resolved_urls = [
+        {
+            "url": "https://www.hipo.ro/ADT_TM",
+            "final_url": "https://www.hipo.ro/locuri-de-munca/angajatoridetop/timisoara",
+            "hostname": "www.hipo.ro",
+            "final_hostname": "www.hipo.ro",
+            "registered_domain": "hipo.ro",
+            "final_registered_domain": "hipo.ro",
+            "domain_age_days": 2400,
+            "domain_created_date": "2019-11-05",
+        }
+    ]
+
+    result = _apply_provider_gate_verdict(
+        analysis,
+        resolved_urls,
+        raw_text="Hipo iti recomanda evenimentul Angajatori de TOP. Inscrie-te https://www.hipo.ro/ADT_TM",
+    )
+
+    identity = result["evidence"]["decision_bundle"]["identity"]
+    summary = result["evidence"]["external_intel_summary"]
+    assert result["evidence"]["verdict_gate"]["label"] == "SIGUR"
+    assert identity["status"] == "coherent"
+    assert identity["domain_age_days"] == 2400
+    assert identity["domain_reputation"] == "established"
+    assert summary["infra_domain_age"]["status"] == "clean"
+    assert summary["infra_domain_age"]["verdict"] == "established_domain"
+
+
+def test_provider_gate_does_not_mark_new_first_party_domain_as_low_risk():
+    analysis = {
+        "claimed_brand": "Nespecificat",
+        "risk_level": "medium",
+        "risk_score": 55,
+        "detected_family": "Necunoscut",
+        "evidence": {
+            "external_intel_summary": {
+                "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
+                "virustotal": {"status": "clean", "verdict": "clean", "consulted": True},
+                "urlscan": {"status": "clean", "verdict": "clean", "consulted": True},
+            },
+            "semantic_review": {
+                "status": "done",
+                "risk_class": "unknown",
+                "claim_matches_known_scam_family": False,
+                "claim_matches_legit_template": False,
+                "completeness": True,
+            },
+        },
+    }
+    resolved_urls = [
+        {
+            "url": "https://promohelpnet.ro/campanie",
+            "final_url": "https://promohelpnet.ro/campanie",
+            "hostname": "promohelpnet.ro",
+            "final_hostname": "promohelpnet.ro",
+            "registered_domain": "promohelpnet.ro",
+            "final_registered_domain": "promohelpnet.ro",
+            "domain_age_days": 20,
+            "domain_created_date": "2026-05-19",
+        }
+    ]
+
+    result = _apply_provider_gate_verdict(
+        analysis,
+        resolved_urls,
+        raw_text="Promo Helpnet: inscrie-te pe promohelpnet.ro/campanie",
+    )
+
+    assert result["evidence"]["verdict_gate"]["label"] == "SUSPECT"
+    assert result["evidence"]["decision_bundle"]["identity"]["status"] == "unknown"
+
+
 def test_provider_gate_does_not_mark_url_only_unknown_clean_domain_as_low_risk():
     analysis = {
         "claimed_brand": "Nespecificat",

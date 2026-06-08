@@ -178,6 +178,8 @@ VIRUSTOTAL_HARD_MALICIOUS_MIN_ENGINES = max(
     1,
     int(os.getenv("VIRUSTOTAL_HARD_MALICIOUS_MIN_ENGINES", "2")),
 )
+DOMAIN_SUSPICIOUS_AGE_DAYS = int(os.getenv("DOMAIN_SUSPICIOUS_AGE_DAYS", "30"))
+DOMAIN_ESTABLISHED_AGE_DAYS = int(os.getenv("DOMAIN_ESTABLISHED_AGE_DAYS", "365"))
 
 DEFAULT_ALLOWED_ORIGINS = (
     "https://sigurscan.ro,"
@@ -1931,6 +1933,29 @@ def _domain_base_for_first_party_match(entry: Dict[str, Any]) -> str:
     return str(extracted.domain or "").strip().lower()
 
 
+def _first_domain_age_days(resolved_urls: List[Dict[str, Any]]) -> Optional[int]:
+    for entry in resolved_urls or []:
+        if not isinstance(entry, dict):
+            continue
+        try:
+            value = entry.get("domain_age_days")
+            if value is not None:
+                return int(value)
+        except (TypeError, ValueError):
+            continue
+    return None
+
+
+def _domain_reputation_from_age(age_days: Optional[int]) -> str:
+    if age_days is None:
+        return "unknown"
+    if age_days >= DOMAIN_ESTABLISHED_AGE_DAYS:
+        return "established"
+    if age_days < DOMAIN_SUSPICIOUS_AGE_DAYS:
+        return "new"
+    return "young"
+
+
 def _first_party_domain_claim_from_text(raw_text: str, resolved_urls: List[Dict[str, Any]]) -> Optional[str]:
     """Infer a weak first-party identity only when text names the final domain.
 
@@ -2204,7 +2229,8 @@ def _collect_infrastructure_flags(
         "punycode": "punycode" in lexical_text or "idn/punycode" in lexical_text,
         "dga_entropy": "entropie ridicat" in lexical_text or "entropie mare" in lexical_text or "entropy" in lexical_text or "dga" in lexical_text,
         "very_new_domain": youngest_domain_age_days is not None and youngest_domain_age_days < 7,
-        "suspicious_domain_age": youngest_domain_age_days is not None and youngest_domain_age_days < 30,
+        "suspicious_domain_age": youngest_domain_age_days is not None and youngest_domain_age_days < DOMAIN_SUSPICIOUS_AGE_DAYS,
+        "established_domain": youngest_domain_age_days is not None and youngest_domain_age_days >= DOMAIN_ESTABLISHED_AGE_DAYS,
         "url_behaviour": bool(url_behaviour),
         "url_transport": bool(url_transport),
         "youngest_domain_age_days": youngest_domain_age_days,
@@ -2236,6 +2262,14 @@ def _augment_summary_with_infra_flags(summary: Dict[str, Any], infra_flags: Dict
             "status": "suspicious",
             "verdict": "very_new_domain" if infra_flags.get("very_new_domain") else "new_domain",
             "severity": "high" if infra_flags.get("very_new_domain") else "medium",
+            "consulted": True,
+            "details": f"domain_age_days={youngest_domain_age_days}",
+        }
+    elif youngest_domain_age_days is not None and infra_flags.get("established_domain"):
+        summary["infra_domain_age"] = {
+            "status": "clean",
+            "verdict": "established_domain",
+            "severity": "low",
             "consulted": True,
             "details": f"domain_age_days={youngest_domain_age_days}",
         }
@@ -2319,23 +2353,32 @@ def _identity_status_for_decision_bundle(
     raw_text: str = "",
 ) -> Dict[str, Any]:
     evidence = analysis.get("evidence", {}) if isinstance(analysis.get("evidence"), dict) else {}
+    domain_age_days = _first_domain_age_days(resolved_urls)
+    domain_reputation = _domain_reputation_from_age(domain_age_days)
+
+    def _with_domain_context(payload: Dict[str, Any]) -> Dict[str, Any]:
+        if domain_age_days is not None:
+            payload["domain_age_days"] = domain_age_days
+            payload["domain_reputation"] = domain_reputation
+        return payload
+
     if official_destination:
         raw_registered = ""
         final_registered = ""
         if resolved_urls:
             raw_registered = str(resolved_urls[0].get("registered_domain") or "").lower()
             final_registered = str(resolved_urls[0].get("final_registered_domain") or "").lower()
-        return {
+        return _with_domain_context({
             "claimed_brand": claimed_brand if _normalize_claimed_brand(claimed_brand) else None,
             "status": "delegated" if raw_registered and final_registered and raw_registered != final_registered else "official",
             "tld_suspicious": False,
             "completeness": True,
-        }
+        })
 
     normalized_claim = _normalize_claimed_brand(claimed_brand)
     has_resolved_destination = bool(_first_final_url(resolved_urls))
     if normalized_claim and has_resolved_destination:
-        return {
+        return _with_domain_context({
             "claimed_brand": claimed_brand,
             "status": "lookalike" if infra_flags.get("typosquat") or infra_flags.get("homoglyph") or infra_flags.get("punycode") else "unrelated",
             "tld_suspicious": bool(
@@ -2345,7 +2388,7 @@ def _identity_status_for_decision_bundle(
                 or infra_flags.get("very_new_domain")
             ),
             "completeness": True,
-        }
+        })
 
     inferred_first_party = _first_party_domain_claim_from_text(raw_text, resolved_urls)
     if inferred_first_party and has_resolved_destination and not (
@@ -2353,15 +2396,16 @@ def _identity_status_for_decision_bundle(
         or infra_flags.get("homoglyph")
         or infra_flags.get("punycode")
         or infra_flags.get("very_new_domain")
+        or infra_flags.get("suspicious_domain_age")
     ):
-        return {
+        return _with_domain_context({
             "claimed_brand": inferred_first_party,
             "status": "coherent",
             "tld_suspicious": False,
             "completeness": True,
-        }
+        })
 
-    return {
+    return _with_domain_context({
         "claimed_brand": claimed_brand if _normalize_claimed_brand(claimed_brand) else None,
         "status": "unknown",
         "tld_suspicious": bool(
@@ -2371,7 +2415,7 @@ def _identity_status_for_decision_bundle(
             or infra_flags.get("very_new_domain")
         ),
         "completeness": True,
-    }
+    })
 
 
 def _request_sensitivity_from_signals(
