@@ -35,6 +35,7 @@ backend/.vercel/
 backend/data/scan_events.jsonl
 backend/data/scan_feedback.jsonl
 backend/data/url_reputation_cache.json
+backend/data/_e2e_*_report*.json
 backend/data/*.sqlite
 backend/data/*.db
 
