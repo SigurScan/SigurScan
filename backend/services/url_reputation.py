@@ -485,6 +485,23 @@ def _fetch_virustotal(urls: List[str], api_key: Optional[str]) -> Dict[str, Dict
 
             attributes = payload.get("data", {}).get("attributes", {})
             stats = attributes.get("last_analysis_stats", {})
+            analysis_results = attributes.get("last_analysis_results", {})
+            flagged_engines = []
+            if isinstance(analysis_results, dict):
+                for engine_name, engine_result in analysis_results.items():
+                    if not isinstance(engine_result, dict):
+                        continue
+                    category = str(engine_result.get("category") or "").strip().lower()
+                    if category not in {"malicious", "suspicious"}:
+                        continue
+                    flagged_engines.append(
+                        {
+                            "engine": str(engine_name or engine_result.get("engine_name") or "unknown")[:80],
+                            "category": category,
+                            "result": str(engine_result.get("result") or "unknown")[:160],
+                            "method": str(engine_result.get("method") or "unknown")[:80],
+                        }
+                    )
             malicious = _coerce_int(stats.get("malicious", 0), 0)
             suspicious = _coerce_int(stats.get("suspicious", 0), 0)
 
@@ -509,6 +526,7 @@ def _fetch_virustotal(urls: List[str], api_key: Optional[str]) -> Dict[str, Dict
                     "status": status,
                     "provider": "virustotal",
                     "stats": stats,
+                    "flagged_engines": flagged_engines[:12],
                     "last_analysis_date": attributes.get("last_analysis_date"),
                 },
                 "query_ms": query_ms,

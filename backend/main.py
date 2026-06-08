@@ -174,6 +174,10 @@ ENABLE_VT_FALLBACK = os.getenv("ENABLE_VT_FALLBACK", "true").strip().lower() in 
     "on",
 }
 VT_FALLBACK_RISK_SCORE = int(os.getenv("VT_FALLBACK_RISK_SCORE", "50"))
+VIRUSTOTAL_HARD_MALICIOUS_MIN_ENGINES = max(
+    1,
+    int(os.getenv("VIRUSTOTAL_HARD_MALICIOUS_MIN_ENGINES", "2")),
+)
 
 DEFAULT_ALLOWED_ORIGINS = (
     "https://sigurscan.ro,"
@@ -1709,6 +1713,13 @@ def _external_intel_summary_from_threat_intel(threat_intel: Dict[str, Dict[str, 
             existing = summary.get(source_name)
             existing_status = str(existing.get("status") or "unknown") if isinstance(existing, dict) else "unknown"
             if not isinstance(existing, dict) or severity_rank(status) >= severity_rank(existing_status):
+                malicious_hit_count = (
+                    _virustotal_malicious_hit_count(source_data)
+                    if source_name == "virustotal"
+                    else 1
+                    if status in {"malicious", "phishing", "malware"}
+                    else 0
+                )
                 summary[source_name] = {
                     "source": source_name,
                     "status": status,
@@ -1718,11 +1729,13 @@ def _external_intel_summary_from_threat_intel(threat_intel: Dict[str, Dict[str, 
                     "threat_type": str(source_data.get("threat_type") or "unknown"),
                     "details": source_data.get("details") if isinstance(source_data.get("details"), dict) else {},
                     "url_count": 1,
-                    "malicious_hit_count": 1 if status in {"malicious", "suspicious", "phishing", "malware"} else 0,
+                    "malicious_hit_count": malicious_hit_count,
                 }
             elif existing is not None:
                 existing["url_count"] = int(existing.get("url_count") or 0) + 1
-                if status in {"malicious", "suspicious", "phishing", "malware"}:
+                if source_name == "virustotal":
+                    existing["malicious_hit_count"] = int(existing.get("malicious_hit_count") or 0) + _virustotal_malicious_hit_count(source_data)
+                elif status in {"malicious", "phishing", "malware"}:
                     existing["malicious_hit_count"] = int(existing.get("malicious_hit_count") or 0) + 1
     return summary
 
@@ -1778,23 +1791,75 @@ def _source_ready(summary: Dict[str, Any], source_name: str) -> bool:
     return _source_consulted(summary, source_name) and status not in {"missing", "unknown", "error"}
 
 
-def _has_bad_provider_verdict(summary: Dict[str, Any]) -> bool:
-    provider_names = ("google_web_risk", "virustotal", "urlscan", "urlscan.io", "urlhaus")
-    bad_tokens = ("malicious", "suspicious", "phishing", "phish", "malware")
+def _provider_payload_is_hard_bad(raw: Dict[str, Any], *, include_suspicious: bool = False) -> bool:
+    bad_tokens = ("malicious", "phishing", "phish", "malware", "dangerous", "blacklisted")
+    if include_suspicious:
+        bad_tokens = bad_tokens + ("suspicious",)
     benign_phrases = ("no malicious", "not malicious", "no classification", "no malicious classification")
+    status = str(raw.get("status") or "").strip().lower()
+    if status in {"clean", "no_match", "no-match", "safe", "unknown", "missing", "error"}:
+        return False
+    if any(token in status for token in bad_tokens):
+        return True
+    verdict = str(raw.get("verdict") or raw.get("threat_type") or "").strip().lower()
+    if any(phrase in verdict for phrase in benign_phrases):
+        return False
+    return any(token in verdict for token in bad_tokens)
+
+
+def _virustotal_malicious_hit_count(raw: Dict[str, Any]) -> int:
+    candidates: List[int] = []
+    for key in ("malicious_hit_count", "malicious"):
+        try:
+            candidates.append(int(raw.get(key) or 0))
+        except Exception:
+            pass
+    details = raw.get("details") if isinstance(raw.get("details"), dict) else {}
+    stats = details.get("stats") if isinstance(details.get("stats"), dict) else {}
+    try:
+        candidates.append(int(stats.get("malicious") or 0))
+    except Exception:
+        pass
+    if not isinstance(raw.get("details"), dict):
+        details_text = str(raw.get("details") or "")
+        match = re.search(r"\b(\d{1,3})\s+(?:engines?|vendors?)\s+malicious\b", details_text, re.IGNORECASE)
+        if match:
+            try:
+                candidates.append(int(match.group(1)))
+            except Exception:
+                pass
+    direct_stats = raw.get("stats") if isinstance(raw.get("stats"), dict) else {}
+    try:
+        candidates.append(int(direct_stats.get("malicious") or 0))
+    except Exception:
+        pass
+    return max(candidates or [0])
+
+
+def _has_authoritative_bad_provider_verdict(summary: Dict[str, Any]) -> bool:
+    for name in ("google_web_risk", "urlscan", "urlscan.io", "urlhaus", "google_safe_browsing"):
+        raw = summary.get(name)
+        if isinstance(raw, dict) and _provider_payload_is_hard_bad(raw):
+            return True
+    return False
+
+
+def _has_bad_provider_verdict(summary: Dict[str, Any]) -> bool:
+    if _has_authoritative_bad_provider_verdict(summary):
+        return True
+    raw_vt = summary.get("virustotal")
+    if isinstance(raw_vt, dict):
+        malicious_hits = _virustotal_malicious_hit_count(raw_vt)
+        if malicious_hits >= VIRUSTOTAL_HARD_MALICIOUS_MIN_ENGINES:
+            return True
+        # VirusTotal is an aggregator. A single/flaky engine or a plain
+        # suspicious label remains diagnostic context, not a hard block.
+        return False
+
+    provider_names = ("google_web_risk", "urlscan", "urlscan.io", "urlhaus", "google_safe_browsing")
     for name in provider_names:
         raw = summary.get(name)
-        if not isinstance(raw, dict):
-            continue
-        status = str(raw.get("status") or "").strip().lower()
-        if status in {"clean", "no_match", "no-match", "unknown", "missing", "error"}:
-            continue
-        if any(token in status for token in bad_tokens):
-            return True
-        verdict = str(raw.get("verdict") or raw.get("threat_type") or "").strip().lower()
-        if any(phrase in verdict for phrase in benign_phrases):
-            continue
-        if any(token in verdict for token in bad_tokens):
+        if isinstance(raw, dict) and _provider_payload_is_hard_bad(raw):
             return True
     return False
 
@@ -2174,7 +2239,19 @@ def _provider_verdict_for_decision_bundle(
             consulted.append(name)
         if status in {"missing", "unknown", "error"}:
             unknown.append(name)
-    if not any(name in consulted for name in ("urlscan", "urlscan.io")):
+    urlscan_optional_terminal = False
+    if isinstance(pillars, dict):
+        urlscan_pillar = pillars.get("urlscan")
+        if isinstance(urlscan_pillar, dict) and not urlscan_pillar.get("required", True):
+            urlscan_optional_terminal = str(urlscan_pillar.get("status") or "").strip().lower() in {
+                "ok",
+                "not_required",
+                "error",
+                "timeout",
+                "rate_limited",
+                "skipped",
+            }
+    if not any(name in consulted for name in ("urlscan", "urlscan.io")) and not urlscan_optional_terminal:
         return {"verdict": "pending", "hits": sorted(set(consulted)), "completeness": False, "pending": ["urlscan"]}
     if consulted and len(unknown) < len(consulted):
         return {"verdict": "clean", "hits": sorted(set(consulted)), "completeness": True}
@@ -4572,6 +4649,18 @@ def _provider_pillar_from_summary(summary: Dict[str, Any], source_name: str) -> 
     return _pillar("pending" if not consulted else "error", details=status or "unknown")
 
 
+def _urlscan_scan_prevented(details: Any) -> bool:
+    try:
+        if isinstance(details, dict):
+            details_text = json.dumps(details, ensure_ascii=False)
+        else:
+            details_text = str(details or "")
+    except Exception:
+        details_text = str(details or "")
+    normalized = details_text.strip().lower()
+    return "scan prevented" in normalized or "submission blocked" in normalized
+
+
 def _claim_verifier_required(analysis: Dict[str, Any]) -> bool:
     claimed = str(analysis.get("claimed_brand") or "").strip().lower()
     if claimed and claimed not in {"nespecificat", "unknown", "none"}:
@@ -4643,7 +4732,16 @@ def _build_orchestrated_pillars(job: Dict[str, Any]) -> Dict[str, Dict[str, Any]
     elif urlscan_status == "skipped" and not has_urls:
         urlscan_pillar = _pillar("not_required", required=False, details="nu exista URL pentru preview")
     elif urlscan_status in {"error", "timeout", "rate_limited", "skipped"}:
-        urlscan_pillar = _pillar("error", required=has_urls, details=str(urlscan_state.get("details") or urlscan_status), ref=urlscan_state.get("uuid"))
+        urlscan_details = str(urlscan_state.get("details") or urlscan_status)
+        if official_destination and _urlscan_scan_prevented(urlscan_details):
+            urlscan_pillar = _pillar(
+                "ok",
+                required=False,
+                details="urlscan a refuzat sandbox-ul pentru o destinatie oficiala; preview indisponibil.",
+                ref=urlscan_state.get("uuid"),
+            )
+        else:
+            urlscan_pillar = _pillar("error", required=has_urls, details=urlscan_details, ref=urlscan_state.get("uuid"))
     elif urlscan_state.get("uuid"):
         urlscan_pillar = _pillar("pending", required=has_urls, details="urlscan verdict este in procesare.", ref=urlscan_state.get("uuid"))
     else:

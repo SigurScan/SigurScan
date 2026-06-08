@@ -660,6 +660,100 @@ def test_provider_gate_yoxo_onelink_subscription_notice_is_low_risk():
     assert result["evidence"]["brand_warning"]["triggered"] is False
 
 
+def test_provider_gate_yoxo_weak_virustotal_single_engine_does_not_hard_block():
+    analysis = {
+        "claimed_brand": "YOXO",
+        "risk_level": "critical",
+        "risk_score": 91,
+        "detected_family": "Marketing sau abonament telecom",
+        "detected_family_id": "telecom-subscription-notice",
+        "reasons": ["Mesajul menționează cardul în contextul unei plăți automate de abonament."],
+        "evidence": {
+            "has_domain_mismatch": False,
+            "offer_claim_verification": {"status": "inconclusive"},
+            "external_intel_summary": {
+                "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
+                "virustotal": {
+                    "status": "malicious",
+                    "verdict": "malicious",
+                    "consulted": True,
+                    "malicious_hit_count": 1,
+                    "details": {
+                        "stats": {"harmless": 62, "malicious": 1, "suspicious": 0, "undetected": 32},
+                        "flagged_engines": [
+                            {"engine": "FlakyVendor", "category": "malicious", "result": "phishing"}
+                        ],
+                    },
+                },
+                "urlscan": {"status": "clean", "verdict": "No malicious classification", "consulted": True},
+            },
+        },
+    }
+    resolved_urls = [
+        {
+            "url": "https://yoxo.onelink.me/f8ly/ijiwsfwu",
+            "final_url": "https://apps.apple.com/us/app/yoxo-voce-internet-roaming/id1481946568",
+            "hostname": "yoxo.onelink.me",
+            "final_hostname": "apps.apple.com",
+            "registered_domain": "onelink.me",
+            "final_registered_domain": "apple.com",
+        }
+    ]
+    raw_text = (
+        "In 24 de ore se va efectua automat plata abonamentului tau Orange YOXO cu numarul 0755287867. "
+        "Asigura-te ca ai suficienti bani pe card. Poti vizualiza factura aici "
+        "https://yoxo.onelink.me/f8ly/ijiwsfwu"
+    )
+
+    result = _apply_provider_gate_verdict(analysis, resolved_urls, raw_text=raw_text)
+
+    assert result["risk_level"] == "low"
+    assert result["detected_family_id"] == "provider-gate-official-clean"
+    assert result["evidence"]["provider_gate"]["official_destination"] is True
+
+
+def test_provider_gate_virustotal_consensus_still_hard_blocks():
+    analysis = {
+        "claimed_brand": "Nespecificat",
+        "risk_level": "low",
+        "risk_score": 10,
+        "detected_family": "Provider clean înainte de consens",
+        "detected_family_id": "provider-clean",
+        "reasons": [],
+        "evidence": {
+            "offer_claim_verification": {"status": "skipped"},
+            "external_intel_summary": {
+                "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
+                "virustotal": {
+                    "status": "malicious",
+                    "verdict": "malicious",
+                    "consulted": True,
+                    "malicious_hit_count": 3,
+                    "details": {
+                        "stats": {"harmless": 48, "malicious": 3, "suspicious": 1, "undetected": 30},
+                    },
+                },
+                "urlscan": {"status": "clean", "verdict": "No malicious classification", "consulted": True},
+            },
+        },
+    }
+    resolved_urls = [
+        {
+            "url": "https://unknown.example.com/",
+            "final_url": "https://unknown.example.com/",
+            "hostname": "unknown.example.com",
+            "final_hostname": "unknown.example.com",
+            "registered_domain": "example.com",
+            "final_registered_domain": "example.com",
+        }
+    ]
+
+    result = _apply_provider_gate_verdict(analysis, resolved_urls, raw_text="Verifică aici https://unknown.example.com/")
+
+    assert result["risk_level"] == "high"
+    assert result["detected_family_id"] == "provider-gate-bad-provider"
+
+
 def test_scam_atlas_yoxo_onelink_surface_domain_is_not_brand_mismatch():
     engine = ScamAtlasEngine()
     text = (
@@ -2003,6 +2097,96 @@ def _clean_web_risk_and_vt_for_resolved_urls(resolved_urls, *args, **kwargs):
     return output
 
 
+def _clean_web_risk_and_weak_vt_for_resolved_urls(resolved_urls, *args, **kwargs):
+    output = {}
+    for entry in resolved_urls:
+        final_url = entry.get("final_url") or entry.get("url")
+        if not final_url:
+            continue
+        output[final_url] = {
+            "verdict": "suspicious",
+            "risk_score": 35,
+            "sources": {
+                "google_web_risk": {"status": "clean", "consulted": True, "score": 0, "threat_type": "unknown"},
+                "virustotal": {
+                    "status": "suspicious",
+                    "verdict": "suspicious",
+                    "consulted": True,
+                    "score": 35,
+                    "threat_type": "suspicious",
+                    "malicious_hit_count": 1,
+                    "details": {
+                        "stats": {"harmless": 62, "malicious": 1, "suspicious": 0, "undetected": 32},
+                        "flagged_engines": [
+                            {
+                                "engine": "FlakyVendor",
+                                "category": "malicious",
+                                "result": "phishing",
+                                "method": "blacklist",
+                            }
+                        ],
+                    },
+                },
+            },
+        }
+    return output
+
+
+def _clean_web_risk_and_consensus_vt_for_resolved_urls(resolved_urls, *args, **kwargs):
+    output = {}
+    for entry in resolved_urls:
+        final_url = entry.get("final_url") or entry.get("url")
+        if not final_url:
+            continue
+        output[final_url] = {
+            "verdict": "malicious",
+            "risk_score": 70,
+            "sources": {
+                "google_web_risk": {"status": "clean", "consulted": True, "score": 0, "threat_type": "unknown"},
+                "virustotal": {
+                    "status": "malicious",
+                    "verdict": "malicious",
+                    "consulted": True,
+                    "score": 70,
+                    "threat_type": "malicious",
+                    "malicious_hit_count": 3,
+                    "details": {
+                        "stats": {"harmless": 48, "malicious": 3, "suspicious": 1, "undetected": 30},
+                        "flagged_engines": [
+                            {"engine": "VendorA", "category": "malicious", "result": "phishing", "method": "blacklist"},
+                            {"engine": "VendorB", "category": "malicious", "result": "malware", "method": "blacklist"},
+                            {"engine": "VendorC", "category": "malicious", "result": "phishing", "method": "blacklist"},
+                        ],
+                    },
+                },
+            },
+        }
+    return output
+
+
+def test_external_intel_summary_preserves_virustotal_malicious_engine_count():
+    summary = app_main._external_intel_summary_from_threat_intel(
+        {
+            "https://unknown.example.com/": {
+                "verdict": "malicious",
+                "risk_score": 70,
+                "sources": {
+                    "virustotal": {
+                        "status": "malicious",
+                        "verdict": "malicious",
+                        "consulted": True,
+                        "score": 70,
+                        "malicious_hit_count": 3,
+                        "details": {"stats": {"malicious": 3, "suspicious": 1}},
+                    }
+                },
+            }
+        }
+    )
+
+    assert summary["virustotal"]["malicious_hit_count"] == 3
+
+
 def _malicious_web_risk_and_vt_for_resolved_urls(resolved_urls, *args, **kwargs):
     output = {}
     for entry in resolved_urls:
@@ -2106,6 +2290,96 @@ async def _fake_inconclusive_offer_claim(text, analysis, resolved_urls):
 
 def _fake_urlscan_post_rejects_domain(url, headers, json, timeout):
     return _FakeUrlscanResponse(status_code=400, payload={"message": "bad domain"})
+
+
+def _fake_urlscan_post_scan_prevented(url, headers, json, timeout):
+    return _FakeUrlscanResponse(
+        status_code=400,
+        payload={"message": "Scan prevented; submission blocked by urlscan policy"},
+    )
+
+
+def _fake_yoxo_onelink_to_app_store_scan(urls):
+    resolved = []
+    for raw_url in urls:
+        resolved.append(
+            {
+                "url": raw_url,
+                "original_url": raw_url,
+                "final_url": "https://apps.apple.com/us/app/yoxo-voce-internet-roaming/id1481946568",
+                "hostname": "yoxo.onelink.me",
+                "final_hostname": "apps.apple.com",
+                "registered_domain": "onelink.me",
+                "final_registered_domain": "apple.com",
+                "redirect_chain": [
+                    {"url": raw_url},
+                    {"url": "https://apps.apple.com/us/app/yoxo-voce-internet-roaming/id1481946568"},
+                ],
+                "redirect_count": 1,
+                "shortener_count": 0,
+                "uses_shortener": False,
+                "detected_soft_redirects": [],
+                "domain_age_days": 1600,
+                "domain_created_date": "2021-01-01",
+                "has_mx_records": True,
+                "success": True,
+            }
+        )
+    return resolved
+
+
+async def _fake_inconclusive_yoxo_offer_claim(text, analysis, resolved_urls):
+    offer_claim = {
+        "provider": "ai_offer_web_check",
+        "status": "inconclusive",
+        "verdict": "inconclusive",
+        "severity": "unknown",
+        "summary": "Nu există risc confirmat în claim.",
+        "details": "Nu există risc confirmat în claim.",
+        "confidence": 45,
+        "claimed_brand": "YOXO",
+        "official_domains": ["yoxo.ro", "orange.ro", "apps.apple.com", "play.google.com"],
+        "evidence_urls": [],
+        "method": "test",
+        "official_source_found": False,
+    }
+    app_main._attach_offer_claim_verification(analysis, offer_claim)
+    return offer_claim
+
+
+def test_orchestrated_yoxo_weak_vt_and_urlscan_prevented_finalizes_safe(monkeypatch):
+    client = TestClient(app_main.app)
+    message = (
+        "In 24 de ore se va efectua automat plata abonamentului tau Orange YOXO cu numarul 0755287867. "
+        "Asigura-te ca ai suficienti bani pe card. Poti vizualiza factura aici "
+        "https://yoxo.onelink.me/f8ly/ijiwsfwu"
+    )
+
+    with monkeypatch.context() as patched:
+        patched.setattr(app_main, "PRIVACY_SAFE_MODE", False)
+        patched.setattr(app_main, "ENABLE_CLOUD_AI_EXPLANATION", False)
+        patched.setattr(app_main, "URLSCAN_API_KEY", "server-only-key")
+        patched.setattr(app_main, "_safe_scan_url_list", _fake_yoxo_onelink_to_app_store_scan)
+        patched.setattr(app_main, "_gather_external_intel_safe", _clean_web_risk_and_weak_vt_for_resolved_urls)
+        patched.setattr(app_main, "_enrich_offer_claim_verification_async", _fake_inconclusive_yoxo_offer_claim)
+        patched.setattr(app_main.requests, "post", _fake_urlscan_post_scan_prevented)
+
+        start = client.post(
+            "/v1/scan/orchestrated",
+            json={"input_type": "text", "text": message, "source_channel": "android_native"},
+        ).json()
+        response, payload = _poll_orchestrated(client, start["scan_id"], count=5)
+
+    assert response.status_code == 200
+    assert payload["status"] == "complete"
+    assert payload["pillars"]["google_web_risk"]["status"] == "ok"
+    assert payload["pillars"]["virustotal"]["status"] == "ok"
+    assert payload["pillars"]["urlscan"]["status"] in {"ok", "not_required"}
+    assert payload["preview"]["screenshot_url"] is None
+    assert payload["result"]["user_risk_label"] == "SIGUR"
+    assert payload["result"]["risk_level"] == "low"
+    assert payload["result"]["evidence"]["provider_gate"]["detected_family_id"] == "provider-gate-official-clean"
+    assert payload["result"]["evidence"]["provider_gate"]["official_destination"] is True
 
 
 def test_orchestrated_fan_payment_scam_finalizes_dangerous_when_urlscan_rejects_domain(monkeypatch):
