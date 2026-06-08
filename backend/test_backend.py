@@ -1711,7 +1711,7 @@ def test_orchestrated_urlscan_result_poll_does_not_probe_screenshot_same_request
     assert refreshed["urlscan"]["status"] == "finished"
     assert refreshed["urlscan"]["screenshot_ready"] is False
     assert refreshed["preview"]["report_url"] == "https://urlscan.io/result/urlscan-yoxo-1/"
-    assert refreshed["preview"]["screenshot_url"] is None
+    assert refreshed["preview"]["screenshot_url"] == "https://backend/screenshot"
 
 
 def test_orchestrated_load_prefers_persistent_store_over_stale_process_cache(monkeypatch):
@@ -2457,6 +2457,7 @@ def test_orchestrated_urlscan_submit_success_sets_submitted_stage(monkeypatch):
     assert refreshed["urlscan"]["status"] == "pending"
     assert refreshed["urlscan"]["uuid"] == "urlscan-submit-ok"
     assert refreshed["preview"]["report_url"] == "https://urlscan.io/result/urlscan-submit-ok/"
+    assert refreshed["preview"]["screenshot_url"] == "/v1/sandbox/urlscan/urlscan-submit-ok/screenshot"
 
 
 def _clean_external_intel_for_resolved_urls(resolved_urls, *args, **kwargs):
