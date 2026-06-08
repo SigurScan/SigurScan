@@ -47,6 +47,8 @@ from services.redirect_resolver import (
 )
 from services.scam_atlas import BRAND_ID_TO_DISPLAY_NAME, BRAND_REGISTRY, BRAND_WARNING_RULES, ScamAtlasEngine
 from services.gemini_explainer import generate_ai_explanation, generate_fallback_explanation
+from services.evidence_bundle import build_evidence_bundle
+from services.mistral_shadow_adjudicator import maybe_run_shadow_adjudication
 from services.offer_claim_verifier import verify_offer_claim
 from services.url_reputation import get_reputation_cache_stats, get_reputation_for_urls
 from services.telemetry import (
@@ -3162,6 +3164,20 @@ def _emit_scan_event(
         },
     }
     log_scan_event(event)
+    if scan_payload.get("is_final") is not False:
+        evidence_bundle = build_evidence_bundle(
+            input_type=input_channel,
+            redacted_text=str(scan_payload.get("redacted_text") or ""),
+            analysis=analysis,
+            resolved_urls=resolved_urls,
+            scan_payload=scan_payload,
+        )
+        maybe_run_shadow_adjudication(
+            scan_id=scan_id,
+            input_type=input_channel,
+            source_channel=source_channel,
+            evidence=evidence_bundle,
+        )
 
 
 class TextScanRequest(BaseModel):

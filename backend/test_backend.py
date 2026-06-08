@@ -13,6 +13,9 @@ from bs4 import BeautifulSoup
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from services.pii_redactor import redact_pii
+from services.adjudication_validator import validate_and_guard
+from services.evidence_bundle import build_evidence_bundle
+from services.mistral_shadow_adjudicator import is_ambiguous
 from services.redirect_resolver import (
     get_domain_info,
     is_known_shortener,
@@ -3001,6 +3004,108 @@ def test_health_reports_provider_config_without_secrets(monkeypatch):
     assert payload["config"]["providers"]["virustotal"]["configured"] is True
     assert payload["config"]["providers"]["ai_explanation"]["configured"] is True
     assert "super-secret" not in serialized
+
+
+def test_evidence_bundle_is_stable_and_privacy_safe():
+    analysis = {
+        "risk_level": "low",
+        "risk_score": 10,
+        "detected_family": "Destinatie oficiala verificata",
+        "detected_family_id": "provider-gate-official-clean",
+        "claimed_brand": "YOXO",
+        "reasons": ["Linkul ajunge pe o destinatie validata."],
+        "evidence": {
+            "has_domain_mismatch": False,
+            "external_intel_summary": {
+                "google_web_risk": {"status": "clean", "verdict": "no_match", "consulted": True},
+                "virustotal": {"status": "clean", "verdict": "clean", "consulted": True},
+            },
+            "provider_gate": {
+                "official_destination": True,
+                "direct_sensitive_request": False,
+                "sensitive_url_path": False,
+            },
+        },
+    }
+    resolved_urls = [
+        {
+            "original_url": "https://yoxo.onelink.me/f8ly/ijiwsfwu",
+            "final_url": "https://apps.apple.com/us/app/yoxo-voce-internet-roaming/id1481946568",
+            "final_hostname": "apps.apple.com",
+            "final_registered_domain": "apple.com",
+            "redirect_count": 2,
+            "success": True,
+        }
+    ]
+    scan_payload = {"risk_level": "low", "risk_score": 10, "user_risk_label": "SIGUR"}
+
+    first = build_evidence_bundle(
+        input_type="text",
+        redacted_text="Factura pentru [PHONE_REDACTED] este disponibilă.",
+        analysis=analysis,
+        resolved_urls=resolved_urls,
+        scan_payload=scan_payload,
+    )
+    second = build_evidence_bundle(
+        input_type="text",
+        redacted_text="Factura pentru [PHONE_REDACTED] este disponibilă.",
+        analysis=analysis,
+        resolved_urls=resolved_urls,
+        scan_payload=scan_payload,
+    )
+
+    assert first["evidence_hash"] == second["evidence_hash"]
+    assert first["urls"][0]["is_known_deeplink_provider"] is True
+    assert first["urls"][0]["subdomain_matches_brand"] == "YOXO"
+    assert "0755287867" not in json.dumps(first, ensure_ascii=False)
+
+
+def test_adjudication_validator_rejects_invented_danger():
+    evidence = {
+        "providers": {"google_web_risk": {"status": "clean"}, "virustotal": {"status": "clean"}},
+        "brand": {"official_destination": True, "mismatch": False},
+        "text_signals": {"direct_sensitive_request": False, "sensitive_url_path": False},
+        "urls": [{"final_registered_domain": "apple.com"}],
+        "gate": {"detected_family_id": "provider-gate-official-clean"},
+    }
+    llm = {
+        "label": "PERICULOS",
+        "confidence": 0.91,
+        "motiv_ro": "Pare periculos.",
+        "evidence_used": ["providers.google_web_risk", "brand.official_destination"],
+    }
+
+    assert validate_and_guard(llm, evidence) is None
+
+
+def test_adjudication_validator_enforces_hard_provider_floor():
+    evidence = {
+        "providers": {"urlscan": {"status": "malicious", "verdict": "phishing"}},
+        "brand": {"official_destination": False, "mismatch": True},
+        "text_signals": {"direct_sensitive_request": False},
+        "urls": [{"final_registered_domain": "fraud.test"}],
+        "gate": {"detected_family_id": "provider-gate-bad-provider"},
+    }
+    llm = {
+        "label": "SIGUR",
+        "confidence": 0.7,
+        "motiv_ro": "Pare ok.",
+        "evidence_used": ["providers.urlscan"],
+    }
+
+    guarded = validate_and_guard(llm, evidence)
+    assert guarded is not None
+    assert guarded["label"] == "PERICULOS"
+
+
+def test_shadow_adjudicator_only_targets_ambiguous_cases():
+    safe = {"gate": {"user_risk_label": "SIGUR", "detected_family_id": "provider-gate-official-clean"}}
+    dangerous = {"gate": {"user_risk_label": "PERICULOS", "detected_family_id": "provider-gate-bad-provider"}}
+    suspect = {"gate": {"user_risk_label": "SUSPECT", "detected_family_id": "provider-gate-unofficial-inconclusive"}}
+
+    assert is_ambiguous(safe) is False
+    assert is_ambiguous(dangerous) is False
+    assert is_ambiguous(suspect) is True
 
 
 def test_threshold_sweep_finds_best():
