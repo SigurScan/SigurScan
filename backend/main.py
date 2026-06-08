@@ -1902,6 +1902,64 @@ def _normalize_claimed_brand(raw_brand: str) -> str:
     return normalized
 
 
+def _compact_brand_match_token(raw: str) -> str:
+    text = _normalise_obfuscated_text(str(raw or "")).lower()
+    return re.sub(r"[^a-z0-9]+", "", text)
+
+
+def _strip_url_tokens_for_brand_match(raw_text: str) -> str:
+    text = str(raw_text or "")
+    text = re.sub(r"https?://\S+", " ", text, flags=re.IGNORECASE)
+    text = re.sub(r"\b(?:[a-z0-9-]+\.)+[a-z]{2,}(?:/[^\s]*)?", " ", text, flags=re.IGNORECASE)
+    return text
+
+
+def _domain_base_for_first_party_match(entry: Dict[str, Any]) -> str:
+    raw_domain = str(
+        entry.get("final_registered_domain")
+        or entry.get("registered_domain")
+        or entry.get("final_hostname")
+        or entry.get("hostname")
+        or ""
+    ).strip().lower()
+    if not raw_domain:
+        raw_url = str(entry.get("final_url") or entry.get("url") or "").strip()
+        raw_domain = urllib.parse.urlparse(raw_url).hostname or ""
+    if not raw_domain:
+        return ""
+    extracted = tldextract.extract(raw_domain)
+    return str(extracted.domain or "").strip().lower()
+
+
+def _first_party_domain_claim_from_text(raw_text: str, resolved_urls: List[Dict[str, Any]]) -> Optional[str]:
+    """Infer a weak first-party identity only when text names the final domain.
+
+    This is intentionally not a broad allowlist. It prevents false positives for
+    real small/unknown brands like Hipo or Cetelem, while avoiding the classic
+    phishing bypass where a compound domain such as fancurier-relivrare.com
+    merely contains a protected brand string.
+    """
+
+    narrative = _strip_url_tokens_for_brand_match(raw_text)
+    compact_text = _compact_brand_match_token(narrative)
+    if not compact_text:
+        return None
+
+    ignored_bases = {"www", "http", "https", "login", "secure", "account", "app", "link"}
+    for entry in resolved_urls or []:
+        if not isinstance(entry, dict):
+            continue
+        base = _domain_base_for_first_party_match(entry)
+        compact_base = _compact_brand_match_token(base)
+        if len(compact_base) < 4 or compact_base in ignored_bases:
+            continue
+        if "-" in base or "_" in base:
+            continue
+        if compact_base in compact_text:
+            return base
+    return None
+
+
 def _brand_warning_rule_for_claimed_brand(claimed_brand: str) -> Optional[Dict[str, Any]]:
     normalized = _normalize_claimed_brand(claimed_brand)
     if not normalized:
@@ -2258,6 +2316,7 @@ def _identity_status_for_decision_bundle(
     claimed_brand: str,
     official_destination: bool,
     infra_flags: Dict[str, Any],
+    raw_text: str = "",
 ) -> Dict[str, Any]:
     evidence = analysis.get("evidence", {}) if isinstance(analysis.get("evidence"), dict) else {}
     if official_destination:
@@ -2285,6 +2344,20 @@ def _identity_status_for_decision_bundle(
                 or infra_flags.get("punycode")
                 or infra_flags.get("very_new_domain")
             ),
+            "completeness": True,
+        }
+
+    inferred_first_party = _first_party_domain_claim_from_text(raw_text, resolved_urls)
+    if inferred_first_party and has_resolved_destination and not (
+        infra_flags.get("typosquat")
+        or infra_flags.get("homoglyph")
+        or infra_flags.get("punycode")
+        or infra_flags.get("very_new_domain")
+    ):
+        return {
+            "claimed_brand": inferred_first_party,
+            "status": "coherent",
+            "tld_suspicious": False,
             "completeness": True,
         }
 
@@ -2644,6 +2717,7 @@ def _build_decision_evidence_bundle(
         claimed_brand=claimed_brand,
         official_destination=official_destination,
         infra_flags=infra_flags,
+        raw_text=raw_text,
     )
     request_sensitive = _request_sensitivity_from_signals(
         raw_text=raw_text,

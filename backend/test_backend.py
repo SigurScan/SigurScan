@@ -324,6 +324,175 @@ def test_provider_gate_marks_yoxo_official_clean_pillars_as_low_risk():
     assert result["detected_family_id"] == "provider-gate-official-clean"
 
 
+def test_provider_gate_marks_clean_first_party_domain_claim_as_low_risk():
+    analysis = {
+        "claimed_brand": "Nespecificat",
+        "risk_level": "medium",
+        "risk_score": 55,
+        "detected_family": "Necunoscut",
+        "evidence": {
+            "external_intel_summary": {
+                "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
+                "virustotal": {"status": "clean", "verdict": "clean", "consulted": True},
+                "urlscan": {"status": "clean", "verdict": "clean", "consulted": True},
+            },
+            "semantic_review": {
+                "status": "done",
+                "risk_class": "unknown",
+                "claim_matches_known_scam_family": False,
+                "claim_matches_legit_template": False,
+                "completeness": True,
+            },
+        },
+    }
+    resolved_urls = [
+        {
+            "url": "https://www.hipo.ro/ADT_TM",
+            "final_url": "https://www.hipo.ro/locuri-de-munca/angajatoridetop/timisoara",
+            "hostname": "www.hipo.ro",
+            "final_hostname": "www.hipo.ro",
+            "registered_domain": "hipo.ro",
+            "final_registered_domain": "hipo.ro",
+        }
+    ]
+
+    result = _apply_provider_gate_verdict(
+        analysis,
+        resolved_urls,
+        raw_text="Hipo iti recomanda evenimentul Angajatori de TOP. Inscrie-te https://www.hipo.ro/ADT_TM",
+    )
+
+    assert result["risk_level"] == "low"
+    assert result["evidence"]["verdict_gate"]["label"] == "SIGUR"
+    assert result["evidence"]["decision_bundle"]["identity"]["status"] == "coherent"
+
+
+def test_provider_gate_does_not_trust_brand_like_compound_domain_claim():
+    analysis = {
+        "claimed_brand": "Nespecificat",
+        "risk_level": "medium",
+        "risk_score": 55,
+        "detected_family": "Necunoscut",
+        "evidence": {
+            "external_intel_summary": {
+                "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
+                "virustotal": {"status": "clean", "verdict": "clean", "consulted": True},
+                "urlscan": {"status": "clean", "verdict": "clean", "consulted": True},
+            },
+            "semantic_review": {
+                "status": "done",
+                "risk_class": "unknown",
+                "claim_matches_known_scam_family": False,
+                "claim_matches_legit_template": False,
+                "completeness": True,
+            },
+        },
+    }
+    resolved_urls = [
+        {
+            "url": "https://fancurier-relivrare.com/plata",
+            "final_url": "https://fancurier-relivrare.com/plata",
+            "hostname": "fancurier-relivrare.com",
+            "final_hostname": "fancurier-relivrare.com",
+            "registered_domain": "fancurier-relivrare.com",
+            "final_registered_domain": "fancurier-relivrare.com",
+        }
+    ]
+
+    result = _apply_provider_gate_verdict(
+        analysis,
+        resolved_urls,
+        raw_text="FAN Courier: coletul are taxa de livrare. Reprogrameaza la https://fancurier-relivrare.com/plata",
+    )
+
+    assert result["evidence"]["verdict_gate"]["label"] != "SIGUR"
+    assert result["evidence"]["decision_bundle"]["identity"]["status"] == "unknown"
+
+
+def test_provider_gate_marks_clean_shortener_to_named_first_party_domain_as_low_risk():
+    analysis = {
+        "claimed_brand": "Nespecificat",
+        "risk_level": "medium",
+        "risk_score": 55,
+        "detected_family": "Necunoscut",
+        "evidence": {
+            "external_intel_summary": {
+                "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
+                "virustotal": {"status": "clean", "verdict": "clean", "consulted": True},
+                "urlscan": {"status": "clean", "verdict": "clean", "consulted": True},
+            },
+            "semantic_review": {
+                "status": "done",
+                "risk_class": "unknown",
+                "claim_matches_known_scam_family": False,
+                "claim_matches_legit_template": False,
+                "completeness": True,
+            },
+        },
+    }
+    resolved_urls = [
+        {
+            "url": "https://bit.ly/38EsUAf",
+            "final_url": "https://www.cetelem.ro/credite/promo-pp-sms-nsqe",
+            "hostname": "bit.ly",
+            "final_hostname": "www.cetelem.ro",
+            "registered_domain": "bit.ly",
+            "final_registered_domain": "cetelem.ro",
+        }
+    ]
+
+    result = _apply_provider_gate_verdict(
+        analysis,
+        resolved_urls,
+        raw_text="La Cetelem ai chiar azi un credit cu dobanda fixa. Intra pe bit.ly/38EsUAf",
+    )
+
+    assert result["evidence"]["verdict_gate"]["label"] == "SIGUR"
+    assert result["evidence"]["decision_bundle"]["identity"]["status"] == "coherent"
+
+
+def test_provider_gate_does_not_mark_url_only_unknown_clean_domain_as_low_risk():
+    analysis = {
+        "claimed_brand": "Nespecificat",
+        "risk_level": "medium",
+        "risk_score": 55,
+        "detected_family": "Necunoscut",
+        "evidence": {
+            "external_intel_summary": {
+                "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
+                "virustotal": {"status": "clean", "verdict": "clean", "consulted": True},
+                "urlscan": {"status": "clean", "verdict": "clean", "consulted": True},
+            },
+            "semantic_review": {
+                "status": "done",
+                "risk_class": "unknown",
+                "claim_matches_known_scam_family": False,
+                "claim_matches_legit_template": False,
+                "completeness": True,
+            },
+        },
+    }
+    resolved_urls = [
+        {
+            "url": "https://www.hipo.ro/ADT_TM",
+            "final_url": "https://www.hipo.ro/ADT_TM",
+            "hostname": "www.hipo.ro",
+            "final_hostname": "www.hipo.ro",
+            "registered_domain": "hipo.ro",
+            "final_registered_domain": "hipo.ro",
+        }
+    ]
+
+    result = _apply_provider_gate_verdict(
+        analysis,
+        resolved_urls,
+        raw_text="Inscrie-te aici: https://www.hipo.ro/ADT_TM",
+    )
+
+    assert result["evidence"]["verdict_gate"]["label"] == "SUSPECT"
+    assert result["evidence"]["decision_bundle"]["identity"]["status"] == "unknown"
+
+
 def test_provider_gate_projection_is_pure_and_matches_apply():
     analysis = {
         "claimed_brand": "YOXO",
