@@ -4538,9 +4538,20 @@ def test_health_reports_provider_config_without_secrets(monkeypatch):
 def test_google_web_risk_does_not_use_safe_browsing_key(monkeypatch):
     with monkeypatch.context() as patched:
         patched.delenv("GOOGLE_WEB_RISK_API_KEY", raising=False)
+        patched.delenv("GOOGLE_API_KEY", raising=False)
         patched.setenv("GOOGLE_SAFE_BROWSING_API_KEY", "legacy-safe-browsing-key")
         assert google_web_risk.has_web_risk_key() is False
         assert google_web_risk._web_risk_api_key() == ""
+
+
+def test_health_does_not_report_google_api_key_as_web_risk_configured(monkeypatch):
+    with monkeypatch.context() as patched:
+        patched.delenv("GOOGLE_WEB_RISK_API_KEY", raising=False)
+        patched.setenv("GOOGLE_API_KEY", "generic-google-key")
+        patched.setattr(app_main, "PRIVACY_SAFE_MODE", False)
+        payload = app_main.read_health()
+
+    assert payload["config"]["providers"]["google_web_risk"]["configured"] is False
 
 
 def test_evidence_bundle_is_stable_and_privacy_safe():

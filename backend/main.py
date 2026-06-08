@@ -207,7 +207,7 @@ def _env_present(*names: str) -> bool:
 def _provider_config_status() -> Dict[str, Any]:
     """Expose provider readiness without leaking secrets."""
 
-    web_risk_configured = _env_present("GOOGLE_WEB_RISK_API_KEY", "GOOGLE_API_KEY")
+    web_risk_configured = _env_present("GOOGLE_WEB_RISK_API_KEY")
     virustotal_configured = _env_present("VIRUSTOTAL_API_KEY")
     mistral_configured = _env_present("MISTRAL_API_KEY")
     gemini_configured = _env_present("GEMINI_API_KEY")
@@ -1843,7 +1843,7 @@ def _virustotal_malicious_hit_count(raw: Dict[str, Any]) -> int:
 
 
 def _has_authoritative_bad_provider_verdict(summary: Dict[str, Any]) -> bool:
-    for name in ("google_web_risk", "urlscan", "urlscan.io", "urlhaus", "google_safe_browsing"):
+    for name in ("google_web_risk", "urlscan", "urlscan.io", "urlhaus"):
         raw = summary.get(name)
         if isinstance(raw, dict) and _provider_payload_is_hard_bad(raw):
             return True
@@ -1862,7 +1862,7 @@ def _has_bad_provider_verdict(summary: Dict[str, Any]) -> bool:
         # suspicious label remains diagnostic context, not a hard block.
         return False
 
-    provider_names = ("google_web_risk", "urlscan", "urlscan.io", "urlhaus", "google_safe_browsing")
+    provider_names = ("google_web_risk", "urlscan", "urlscan.io", "urlhaus")
     for name in provider_names:
         raw = summary.get(name)
         if isinstance(raw, dict) and _provider_payload_is_hard_bad(raw):
