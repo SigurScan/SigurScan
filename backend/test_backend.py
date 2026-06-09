@@ -1767,8 +1767,8 @@ def test_orchestrated_first_poll_runs_fast_lane_without_blocking_on_preview(monk
     async def fail_submit(url, payload, request):
         raise AssertionError("First orchestrated poll must not submit urlscan preview.")
 
-    async def fake_ai(*args, **kwargs):
-        return {"summary": "ok", "bullets": []}
+    async def fail_ai(*args, **kwargs):
+        raise AssertionError("First orchestrated poll must use deterministic explanation, not cloud AI.")
 
     with monkeypatch.context() as patched:
         patched.setattr(app_main, "_safe_scan_url_list", lambda urls: resolved_urls)
@@ -1776,7 +1776,7 @@ def test_orchestrated_first_poll_runs_fast_lane_without_blocking_on_preview(monk
         patched.setattr(app_main, "_analyze_with_reputation", fake_analyze)
         patched.setattr(app_main, "_claim_verifier_required", lambda analysis: False)
         patched.setattr(app_main, "_submit_orchestrated_urlscan", fail_submit)
-        patched.setattr(app_main, "_build_ai_explanation_async", fake_ai)
+        patched.setattr(app_main, "_build_ai_explanation_async", fail_ai)
         patched.setattr(app_main, "_persist_orchestrated_job", lambda candidate: candidate)
         patched.setattr(app_main, "_emit_orchestrated_telemetry", lambda *args, **kwargs: None)
         patched.setattr(app_main, "_emit_scan_event", lambda *args, **kwargs: None)

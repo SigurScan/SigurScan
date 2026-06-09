@@ -5289,7 +5289,10 @@ async def _finalize_orchestrated_job_if_ready(job: Dict[str, Any], request: Requ
     explanation_cache = job.get("ai_explanation_cache") if isinstance(job.get("ai_explanation_cache"), dict) else {}
     ai_explanation = explanation_cache.get("payload") if explanation_cache.get("fingerprint") == fingerprint else None
     if not isinstance(ai_explanation, dict):
-        ai_explanation = await _build_ai_explanation_async(job.get("redacted_text", ""), analysis, resolved_urls)
+        if job.get("skip_cloud_ai_explanation"):
+            ai_explanation = generate_fallback_explanation(job.get("redacted_text", ""), analysis)
+        else:
+            ai_explanation = await _build_ai_explanation_async(job.get("redacted_text", ""), analysis, resolved_urls)
         job["ai_explanation_cache"] = {
             "fingerprint": fingerprint,
             "payload": ai_explanation,
@@ -5587,6 +5590,7 @@ async def _run_orchestrated_fast_lane(job: Dict[str, Any], request: Request) -> 
 
     job["analysis"] = analysis
     job["claim_verifier_required"] = claim_required
+    job["skip_cloud_ai_explanation"] = True
     job["primary_final_url"] = primary_final_url
     preview = job.setdefault("preview", {})
     preview["final_url"] = primary_final_url
