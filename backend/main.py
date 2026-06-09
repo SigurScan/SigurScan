@@ -5406,7 +5406,7 @@ def _orchestrated_status_payload(job: Dict[str, Any]) -> Dict[str, Any]:
     metrics = _orchestrated_metrics(job)
     result_is_final = result is not None and result.get("is_final", True) is not False
     enhancement_done = _urlscan_enhancement_done(job)
-    if result_is_final and enhancement_done:
+    if result_is_final:
         status = "complete"
     elif _has_required_pillar_error(pillars):
         status = "incomplete"
@@ -5418,9 +5418,9 @@ def _orchestrated_status_payload(job: Dict[str, Any]) -> Dict[str, Any]:
         "status": status,
         "status_message": (
             "Scanarea este finalizata."
-            if status == "complete"
-            else "Verdictul este pregatit. Finalizam preview-ul securizat."
-            if result_is_final and not enhancement_done
+            if status == "complete" and enhancement_done
+            else "Verdictul este finalizat. Preview-ul securizat se poate actualiza separat."
+            if status == "complete" and not enhancement_done
             else "Scanarea continua pana cand pilonii necesari returneaza date."
             if status == "scanning"
             else "Scanarea nu are toti pilonii necesari pentru verdict sigur."

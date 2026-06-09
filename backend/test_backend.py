@@ -2005,7 +2005,7 @@ def test_orchestrated_first_poll_runs_fast_lane_without_publishing_final_verdict
     ]
 
 
-def test_orchestrated_status_stays_scanning_until_urlscan_enhancement_is_terminal():
+def test_orchestrated_status_stays_complete_when_final_verdict_exists_and_preview_is_pending():
     job = {
         "scan_id": "orch_preview_pending",
         "status": "scanning",
@@ -2020,12 +2020,12 @@ def test_orchestrated_status_stays_scanning_until_urlscan_enhancement_is_termina
         "orchestration_metrics": {"poll_count": 1, "stage_sequence": [], "stage_durations_ms": {}},
     }
 
-    pending = app_main._orchestrated_status_payload(job)
+    pending_preview = app_main._orchestrated_status_payload(job)
     job["urlscan"] = {"status": "error", "details": "scan prevented"}
     terminal = app_main._orchestrated_status_payload(job)
 
-    assert pending["status"] == "scanning"
-    assert "preview" in pending["status_message"].lower()
+    assert pending_preview["status"] == "complete"
+    assert "preview" in pending_preview["status_message"].lower()
     assert terminal["status"] == "complete"
 
 
@@ -2379,7 +2379,7 @@ def test_orchestrated_scan_finalizes_when_urlscan_report_exists_but_screenshot_i
         response, payload = _poll_orchestrated(client, start["scan_id"], count=8)
 
     assert response.status_code == 200
-    assert payload["status"] == "scanning"
+    assert payload["status"] == "complete"
     assert "preview" in payload["status_message"].lower()
     assert payload["pillars"]["urlscan"]["status"] == "ok"
     assert payload["result"]["user_risk_label"] == "SIGUR"
