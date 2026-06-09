@@ -2390,7 +2390,8 @@ def test_orchestrated_scan_finalizes_when_urlscan_report_exists_but_screenshot_i
     assert payload["result"]["user_risk_label"] == "SIGUR"
     assert payload["result"]["risk_level"] == "low"
     assert payload["result"]["is_final"] is True
-    assert payload["preview"]["screenshot_url"] is not None
+    assert payload["preview"]["screenshot_url"] is None
+    assert payload["preview"]["image_url"] is None
 
 
 def test_orchestrated_clean_verdict_submits_preview_before_complete(monkeypatch):
@@ -2428,7 +2429,8 @@ def test_orchestrated_clean_verdict_submits_preview_before_complete(monkeypatch)
     assert with_preview["result"] is None
     assert with_preview["pillars"]["urlscan"]["status"] == "pending"
     assert with_preview["preview"]["report_url"] == "https://urlscan.io/result/urlscan-yoxo-1/"
-    assert with_preview["preview"]["screenshot_url"] == "http://testserver/v1/sandbox/urlscan/urlscan-yoxo-1/screenshot"
+    assert with_preview["preview"]["screenshot_url"] is None
+    assert with_preview["preview"]["image_url"] is None
 
 
 def test_orchestrated_urlscan_late_risk_upgrades_provisional_safe_verdict(monkeypatch):
@@ -2598,7 +2600,110 @@ def test_orchestrated_urlscan_result_poll_does_not_probe_screenshot_same_request
     assert refreshed["urlscan"]["status"] == "finished"
     assert refreshed["urlscan"]["screenshot_ready"] is False
     assert refreshed["preview"]["report_url"] == "https://urlscan.io/result/urlscan-yoxo-1/"
-    assert refreshed["preview"]["screenshot_url"] == "https://backend/screenshot"
+    assert refreshed["preview"]["status"] == "pending"
+    assert refreshed["preview"]["screenshot_url"] is None
+    assert refreshed["preview"]["image_url"] is None
+
+
+def test_orchestrated_urlscan_result_preserves_ready_fast_preview_until_screenshot_ready(monkeypatch):
+    cached_screenshot = "https://signed.example/fast-preview.png"
+
+    async def fake_get_urlscan_result(uuid, request):
+        return {
+            "uuid": uuid,
+            "status": "finished",
+            "verdict": "No malicious classification",
+            "severity": "low",
+            "details": "urlscan verdict=No malicious classification; score=0",
+            "final_url": "https://www.bnr.ro/",
+            "report_url": "https://urlscan.io/result/urlscan-bnr-1/",
+            "screenshot_url": "https://backend/pending-screenshot",
+            "score": 0,
+            "categories": [],
+            "brands": [],
+        }
+
+    async def fail_screenshot_probe(uuid):
+        raise AssertionError("Screenshot readiness must be checked in a later poll.")
+
+    job = {
+        "scan_id": "orch_preserve_fast_preview_result",
+        "created_at": int(time.time()),
+        "pipeline_stage": "urlscan_submitted",
+        "status": "complete",
+        "input_type": "url",
+        "source_channel": "test",
+        "urls": ["https://www.bnr.ro/"],
+        "redacted_text": "https://www.bnr.ro/",
+        "analysis": {
+            "risk_score": 10,
+            "risk_level": "low",
+            "detected_family": "Destinație oficială",
+            "detected_family_id": "provider-gate-official-clean",
+            "claimed_brand": "BNR",
+            "reasons": [],
+            "safe_actions": [],
+            "evidence": {
+                "external_intel_summary": {
+                    "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
+                    "phishing_database": {"status": "clean", "verdict": "clean", "consulted": True},
+                },
+                "offer_claim_verification": {"status": "confirmed"},
+                "semantic_review": {
+                    "status": "done",
+                    "claim_matches_known_scam_family": False,
+                    "claim_matches_legit_template": True,
+                    "risk_class": "benign",
+                    "completeness": True,
+                },
+            },
+        },
+        "resolved_urls": [
+            {
+                "url": "https://www.bnr.ro/",
+                "final_url": "https://www.bnr.ro/",
+                "hostname": "www.bnr.ro",
+                "final_hostname": "www.bnr.ro",
+                "registered_domain": "bnr.ro",
+                "final_registered_domain": "bnr.ro",
+                "success": True,
+            }
+        ],
+        "primary_final_url": "https://www.bnr.ro/",
+        "claim_verifier_required": False,
+        "urlscan": {
+            "status": "pending",
+            "uuid": "urlscan-bnr-1",
+            "report_url": "https://urlscan.io/result/urlscan-bnr-1/",
+        },
+        "preview": {
+            "status": "ready",
+            "source": "precapture_worker",
+            "final_url": "https://www.bnr.ro/",
+            "image_url": cached_screenshot,
+            "screenshot_url": cached_screenshot,
+            "fast_cache_hit": True,
+        },
+        "extra_fields": {},
+        "result": {"is_final": True, "user_risk_label": "SIGUR", "risk_level": "low"},
+        "orchestration_metrics": {"poll_count": 0, "stage_sequence": [], "stage_durations_ms": {}},
+    }
+
+    with monkeypatch.context() as patched:
+        patched.setattr(app_main, "get_urlscan_result", fake_get_urlscan_result)
+        patched.setattr(app_main, "_urlscan_screenshot_is_ready", fail_screenshot_probe)
+        patched.setattr(app_main, "_persist_orchestrated_job", lambda candidate: candidate)
+        patched.setattr(app_main, "_emit_orchestrated_telemetry", lambda *args, **kwargs: None)
+        patched.setattr(app_main, "_emit_scan_event", lambda *args, **kwargs: None)
+        refreshed = asyncio.run(app_main._refresh_orchestrated_job(job, None))
+
+    assert refreshed["urlscan"]["status"] == "finished"
+    assert refreshed["urlscan"]["screenshot_ready"] is False
+    assert refreshed["preview"]["status"] == "ready"
+    assert refreshed["preview"]["source"] == "precapture_worker"
+    assert refreshed["preview"]["image_url"] == cached_screenshot
+    assert refreshed["preview"]["screenshot_url"] == cached_screenshot
+    assert refreshed["preview"]["report_url"] == "https://urlscan.io/result/urlscan-bnr-1/"
 
 
 def test_orchestrated_urlscan_preview_cache_hit_skips_submit(monkeypatch):
@@ -2779,6 +2884,8 @@ def test_fast_preview_cache_hit_is_visual_only(monkeypatch):
         "status": "ready",
         "source": "precapture_worker",
         "seed_category": "courier",
+        "visual_only": True,
+        "verdict_role": "none",
         "captured_at": "2026-06-09T18:00:00Z",
         "expires_at": int(time.time()) + 3600,
         "error": None,
@@ -2805,6 +2912,26 @@ def test_fast_preview_cache_hit_is_visual_only(monkeypatch):
     assert updated["preview"]["height"] == 2200
     assert updated["urlscan"]["status"] == "queued"
     assert "urlscan" not in updated["analysis"]["evidence"]["external_intel_summary"]
+
+
+def test_fast_preview_cache_rejects_rows_with_a_verdict_role(monkeypatch):
+    final_url = "https://www.fancourier.ro/"
+    cache_key = app_main._urlscan_preview_cache_key(final_url)
+    row = {
+        "url_hash": cache_key,
+        "final_url": final_url,
+        "screenshot_path": f"{cache_key}.png",
+        "reachable": True,
+        "status": "ready",
+        "source": "precapture_worker",
+        "visual_only": False,
+        "verdict_role": "provider_evidence",
+        "expires_at": int(time.time()) + 3600,
+    }
+
+    with monkeypatch.context() as patched:
+        patched.setattr(app_main.supabase_store, "create_preview_signed_url", lambda *args, **kwargs: "https://signed.example/x.png")
+        assert app_main._normalize_fast_preview_cache_entry(row) is None
 
 
 def test_urlscan_preview_cache_saves_submitted_url_alias(monkeypatch):
@@ -3638,7 +3765,63 @@ def test_orchestrated_urlscan_submit_success_sets_submitted_stage(monkeypatch):
     assert refreshed["urlscan"]["status"] == "pending"
     assert refreshed["urlscan"]["uuid"] == "urlscan-submit-ok"
     assert refreshed["preview"]["report_url"] == "https://urlscan.io/result/urlscan-submit-ok/"
-    assert refreshed["preview"]["screenshot_url"] == "/v1/sandbox/urlscan/urlscan-submit-ok/screenshot"
+    assert refreshed["preview"]["status"] == "pending"
+    assert refreshed["preview"]["screenshot_url"] is None
+    assert refreshed["preview"]["image_url"] is None
+
+
+def test_orchestrated_urlscan_submit_preserves_ready_fast_preview_until_urlscan_screenshot_ready(monkeypatch):
+    cached_screenshot = "https://signed.example/fast-preview.png"
+    job = {
+        "scan_id": "orch_preserve_fast_preview",
+        "created_at": int(time.time()),
+        "pipeline_stage": "analysis_ready",
+        "status": "scanning",
+        "input_type": "url",
+        "source_channel": "test",
+        "urls": ["https://www.bnr.ro/"],
+        "redacted_text": "https://www.bnr.ro/",
+        "analysis": {"evidence": {"external_intel_summary": {}}},
+        "resolved_urls": [{"url": "https://www.bnr.ro/", "final_url": "https://www.bnr.ro/"}],
+        "primary_final_url": "https://www.bnr.ro/",
+        "claim_verifier_required": False,
+        "urlscan": {"status": "queued"},
+        "preview": {
+            "status": "ready",
+            "source": "precapture_worker",
+            "image_url": cached_screenshot,
+            "screenshot_url": cached_screenshot,
+            "final_url": "https://www.bnr.ro/",
+            "fast_cache_hit": True,
+        },
+        "extra_fields": {},
+        "sandbox_options": {},
+    }
+
+    async def fake_submit(url, payload, request):
+        return {
+            "uuid": "urlscan-pending-with-fast-preview",
+            "status": "pending",
+            "submitted_url": url,
+            "report_url": "https://urlscan.io/result/urlscan-pending-with-fast-preview/",
+            "screenshot_url": "/v1/sandbox/urlscan/urlscan-pending-with-fast-preview/screenshot",
+        }
+
+    with monkeypatch.context() as patched:
+        patched.setattr(app_main, "_load_urlscan_preview_cache", lambda final_url: None)
+        patched.setattr(app_main, "_load_fast_preview_cache", lambda final_url: None)
+        patched.setattr(app_main, "_persist_orchestrated_job", lambda candidate: candidate)
+        patched.setattr(app_main, "_submit_orchestrated_urlscan", fake_submit)
+        patched.setattr(app_main, "_emit_orchestrated_telemetry", lambda *args, **kwargs: None)
+        patched.setattr(app_main, "_emit_scan_event", lambda *args, **kwargs: None)
+        refreshed = asyncio.run(app_main._refresh_orchestrated_job(job, None))
+
+    assert refreshed["urlscan"]["status"] == "pending"
+    assert refreshed["preview"]["status"] == "ready"
+    assert refreshed["preview"]["source"] == "precapture_worker"
+    assert refreshed["preview"]["image_url"] == cached_screenshot
+    assert refreshed["preview"]["screenshot_url"] == cached_screenshot
+    assert refreshed["preview"]["report_url"] == "https://urlscan.io/result/urlscan-pending-with-fast-preview/"
 
 
 def _clean_external_intel_for_resolved_urls(resolved_urls, *args, **kwargs):

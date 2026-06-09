@@ -173,6 +173,22 @@ def test_context_words_cannot_override_official_clean_evidence():
     assert verdict(bundle)["label"] == "SIGUR"
 
 
+def test_visual_preview_metadata_cannot_change_verdict():
+    case = next(case for case in _load_cases() if case["id"] == "FAN-01")
+    bundle = _bundle_v2_from_case(case)
+    expected = verdict(bundle)
+    bundle["preview"] = {
+        "status": "ready",
+        "source": "precapture_worker",
+        "visual_only": True,
+        "verdict_role": "none",
+        "screenshot_url": "https://signed.example/preview.png",
+        "page_title": "A deliberately misleading visual title",
+    }
+
+    assert verdict(bundle) == expected
+
+
 def test_unknown_clean_established_domain_is_safe_without_manual_registry():
     bundle = {
         "schema": "sigurscan_evidence_bundle_v2",

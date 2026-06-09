@@ -1,0 +1,8 @@
+{
+  "targets": [
+    {
+      "id": "privacy_guard_reset_token",
+      "url": "https://example.com/reset?token=fake-private-token-value-for-test-only&email=test@example.com"
+    }
+  ]
+}

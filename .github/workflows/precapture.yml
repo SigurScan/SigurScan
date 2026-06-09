@@ -3,10 +3,6 @@ name: SigurScan Preview Pre-Capture
 on:
   workflow_dispatch:
     inputs:
-      source:
-        description: "Seed/input file inside workers/precapture"
-        required: false
-        default: "samples/official_preview_targets.ro.json"
       dry_run:
         description: "Only extract URLs; do not launch browser or upload"
         type: boolean
@@ -40,8 +36,9 @@ jobs:
           node-version: "22"
           cache: "npm"
           cache-dependency-path: workers/precapture/package-lock.json
-      - run: npm install
+      - run: npm ci
       - run: npx playwright install --with-deps chromium
+      - run: npm run test:privacy
       - name: Run official seed capture
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -62,7 +59,7 @@ jobs:
           USER_AGENT: "SigurScanPreviewBot/1.0 (+https://sigurscan.ro/bot)"
         run: |
           args=(
-            "--email-source" "${{ github.event.inputs.source || 'samples/official_preview_targets.ro.json' }}"
+            "--email-source" "samples/official_preview_targets.ro.json"
             "--out-dir" "./output/official"
             "--concurrency" "1"
             "--nav-timeout-seconds" "20"

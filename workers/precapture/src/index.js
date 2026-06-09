@@ -75,6 +75,7 @@ const stats = {
   screenshotsCapturedNew: 0,
   skippedAlreadyCachedFresh: 0,
   skippedReserved: 0,
+  skippedSensitive: 0,
   expiredRowsDeleted: 0,
   expiredScreenshotsDeleted: 0,
   cleanupErrors: [],
@@ -206,6 +207,13 @@ function statusFromError(error) {
   return 'error';
 }
 
+function safeErrorText(error) {
+  if (!error) return null;
+  return String(error)
+    .replace(/https?:\/\/[^\s"'<>]+/gi, '[redacted-url]')
+    .slice(0, 500);
+}
+
 function makeBaseRow({ input, finalUrl, redirectChain, status, reachable, error }) {
   const normalizedFinal = normalizeUrl(finalUrl) || finalUrl;
   const capturedAt = nowIso();
@@ -228,7 +236,37 @@ function makeBaseRow({ input, finalUrl, redirectChain, status, reachable, error 
     status,
     source: 'precapture_worker',
     seed_category: seedCategoryFromInput(input),
-    error
+    visual_only: true,
+    verdict_role: 'none',
+    error: safeErrorText(error)
+  };
+}
+
+function safeFailureReference(url, error) {
+  const normalized = normalizeUrl(url);
+  return {
+    url_hash: normalized ? sha256(normalized) : null,
+    host: normalized ? hostnameFromUrl(normalized) : null,
+    error: safeErrorText(error)
+  };
+}
+
+function privacySkipResult(url, reason) {
+  const normalized = normalizeUrl(url);
+  return {
+    url_hash: normalized ? sha256(normalized) : null,
+    original_url: null,
+    final_url: null,
+    final_domain: null,
+    redirect_chain: [],
+    screenshot_path: null,
+    reachable: false,
+    status: 'skipped',
+    source: 'precapture_worker',
+    visual_only: true,
+    verdict_role: 'none',
+    error: reason,
+    persisted: false
   };
 }
 
@@ -390,7 +428,11 @@ async function extractAllUrls(sourcePath) {
       if (rows.length) stats.totalEmailsParsed += 1;
       rawRows.push(...rows);
     } catch (err) {
-      stats.failed.push({ original_url: null, error: `parse_failed:${path.basename(file)}:${err.message}` });
+      stats.failed.push({
+        url_hash: sha256(path.resolve(file)),
+        host: null,
+        error: safeErrorText(`parse_failed:${err.message}`)
+      });
     }
   }
   stats.totalRawUrlsFound = rawRows.length;
@@ -457,6 +499,10 @@ async function isCachedFresh(urlHash, outDir, table, ttlDays) {
 }
 
 async function uploadOrWrite(row, screenshotBuffer, outDir, bucket, table) {
+  // Skipped/blocked targets may contain reset tokens, OTPs, personal data,
+  // private hosts, or other user-specific data. Keep only aggregate metrics.
+  if (['skipped', 'blocked'].includes(String(row?.status || '').toLowerCase())) return;
+
   if (supabaseEnabled) {
     if (screenshotBuffer && row.screenshot_path) {
       const { error: uploadError } = await supabase.storage
@@ -547,6 +593,7 @@ function captureRunAuditRow(finishedAt = null) {
     screenshots_captured_new: stats.screenshotsCapturedNew,
     skipped_cached_fresh: stats.skippedAlreadyCachedFresh,
     skipped_reserved: stats.skippedReserved,
+    skipped_sensitive: stats.skippedSensitive,
     expired_rows_deleted: stats.expiredRowsDeleted,
     expired_screenshots_deleted: stats.expiredScreenshotsDeleted,
     failed: stats.failedDeadUrls,
@@ -566,6 +613,7 @@ function captureRunAuditRow(finishedAt = null) {
     captured_new: stats.screenshotsCapturedNew,
     skipped_fresh: stats.skippedAlreadyCachedFresh,
     skipped_reserved: stats.skippedReserved,
+    skipped_sensitive: stats.skippedSensitive,
     expired_rows_deleted: stats.expiredRowsDeleted,
     expired_screenshots_deleted: stats.expiredScreenshotsDeleted,
     failed: stats.failedDeadUrls,
@@ -621,19 +669,11 @@ async function captureOne(browser, input, outDir, bucket, table) {
   const privacyReason = privacySkipReason(originalUrl);
 
   if (blockedPort || privacyReason) {
-    const finalNorm = normalizeUrl(originalUrl) || originalUrl;
     const reason = blockedPort || privacyReason;
-    const row = makeBaseRow({
-      input,
-      finalUrl: finalNorm,
-      redirectChain: [originalUrl],
-      status: 'skipped',
-      reachable: false,
-      error: reason
-    });
-    await uploadOrWrite(row, null, outDir, bucket, table);
+    const row = privacySkipResult(originalUrl, reason);
+    stats.skippedSensitive += 1;
     stats.failedDeadUrls += 1;
-    stats.failed.push({ original_url: originalUrl, error: reason });
+    stats.failed.push(safeFailureReference(originalUrl, reason));
     return row;
   }
 
@@ -666,7 +706,7 @@ async function captureOne(browser, input, outDir, bucket, table) {
     });
     await uploadOrWrite(row, null, outDir, bucket, table);
     stats.failedDeadUrls += 1;
-    stats.failed.push({ original_url: originalUrl, error: preflight.reason });
+    stats.failed.push(safeFailureReference(originalUrl, preflight.reason));
     return row;
   }
 
@@ -759,7 +799,7 @@ async function captureOne(browser, input, outDir, bucket, table) {
       row.page_title = await safeTitle(page);
       await uploadOrWrite(row, null, outDir, bucket, table);
       stats.failedDeadUrls += 1;
-      stats.failed.push({ original_url: originalUrl, error: row.error });
+      stats.failed.push(safeFailureReference(originalUrl, row.error));
       return row;
     }
 
@@ -795,7 +835,7 @@ async function captureOne(browser, input, outDir, bucket, table) {
     });
     await uploadOrWrite(row, null, outDir, bucket, table);
     stats.failedDeadUrls += 1;
-    stats.failed.push({ original_url: originalUrl, error: row.error });
+    stats.failed.push(safeFailureReference(originalUrl, row.error));
     return row;
   } finally {
     await context.close().catch(() => {});
@@ -848,7 +888,11 @@ async function main() {
     await Promise.all(tasks);
   } catch (error) {
     stats.failedDeadUrls += 1;
-    stats.failed.push({ original_url: null, error: `run_failed:${error?.message || error}` });
+    stats.failed.push({
+      url_hash: null,
+      host: null,
+      error: safeErrorText(`run_failed:${error?.message || error}`)
+    });
     throw error;
   } finally {
     await browser?.close().catch(() => {});
@@ -856,8 +900,11 @@ async function main() {
     await fs.writeFile(path.join(outDir, 'final_report.json'), JSON.stringify(stats, null, 2));
     printReport();
     if (!supabaseEnabled) {
-      console.log(`\nLocal manifest: ${path.join(outDir, 'manifest.json')}`);
-      console.log(`Local screenshots: ${path.join(outDir, 'screenshots')}`);
+      const manifestPath = path.join(outDir, 'manifest.json');
+      if (fssync.existsSync(manifestPath)) {
+        console.log(`\nLocal manifest: ${manifestPath}`);
+        console.log(`Local screenshots: ${path.join(outDir, 'screenshots')}`);
+      }
     }
   }
 }
@@ -870,6 +917,7 @@ function printReport() {
   console.log(`screenshots captured (new):     ${stats.screenshotsCapturedNew}`);
   console.log(`skipped cached & fresh:         ${stats.skippedAlreadyCachedFresh}`);
   console.log(`skipped reserved/test domains:  ${stats.skippedReserved}`);
+  console.log(`skipped sensitive/private:      ${stats.skippedSensitive}`);
   console.log(`expired cache rows deleted:     ${stats.expiredRowsDeleted}`);
   console.log(`expired screenshots deleted:    ${stats.expiredScreenshotsDeleted}`);
   console.log(`cleanup errors:                 ${stats.cleanupErrors.length}`);
@@ -884,7 +932,7 @@ function printReport() {
   if (stats.failed.length) {
     console.log('\nFailures:');
     for (const f of stats.failed.slice(0, 50)) {
-      console.log(`- ${f.original_url || 'n/a'} :: ${f.error}`);
+      console.log(`- ${f.host || 'n/a'} [${f.url_hash || 'no-hash'}] :: ${f.error}`);
     }
     if (stats.failed.length > 50) console.log(`... +${stats.failed.length - 50} more`);
   }

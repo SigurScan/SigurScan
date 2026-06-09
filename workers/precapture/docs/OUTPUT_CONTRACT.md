@@ -22,6 +22,8 @@
   "status": "ready",
   "source": "precapture_worker",
   "seed_category": "courier",
+  "visual_only": true,
+  "verdict_role": "none",
   "error": null
 }
 ```
@@ -58,7 +60,9 @@ http_status:404
 |---|---:|---|---|
 | ready | true | present | show cached preview |
 | dead | false | null/present | preview unavailable |
-| blocked | false | null | blocked for safety |
+| skipped / blocked | false | null | not persisted; UI receives no cache entry |
 | error | false | null | preview unavailable |
 
 This cache is visual-only. It must never be consumed as verdict evidence.
+The database enforces `visual_only = true` and `verdict_role = "none"`.
+Rows with status `skipped` or `blocked` are not persisted, and no alias row is created.

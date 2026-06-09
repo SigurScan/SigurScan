@@ -18,6 +18,7 @@ Worker Node.js + Playwright pentru capturi cache de URL-uri din emailuri sau lis
 8. Respectă TTL: skip dacă există cache fresh.
 9. Captureaza PNG cu inaltime limitata, pentru a evita paginile infinite/ostile.
 10. Scrie în Supabase sau local fallback: `manifest.json` + `/screenshots`.
+11. Nu persistă deloc URL-urile marcate `skipped`/`blocked`; rapoartele conțin doar hash + host.
 
 ## Ce NU face
 
@@ -83,6 +84,10 @@ La începutul fiecărui run non-dry-run, șterge controlat maximum
 Fiecare run non-dry-run este înregistrat în `fast_preview_capture_runs`
 cu metrici agregate; nu se stochează conținut brut de email.
 
+Workflow-ul GitHub Actions rulează exclusiv seed-ul public oficial
+`samples/official_preview_targets.ro.json`. Input-uri din scanări reale trebuie
+rulate doar într-un worker de producție izolat, nu pe runner-ul GitHub.
+
 ## Input acceptat
 
 ### Folder cu `.eml`
@@ -126,6 +131,8 @@ captured_at
 source_email_id
 reachable
 error
+visual_only=true
+verdict_role=none
 ```
 
 ## Recomandări de rulare

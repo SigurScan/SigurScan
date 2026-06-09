@@ -45,3 +45,5 @@ Workerul:
 - DNS rebinding poate fi complicat; de aceea workerul verifică fiecare request, nu doar hostul inițial.
 - O pagină poate servi conținut benign în momentul capturii și malițios ulterior. Cache-ul nu este verdict absolut.
 - Full-page screenshot poate include cookie banners; este acceptabil pentru preview.
+- URL-urile marcate `privacy_skipped`, `skipped` sau `blocked` nu sunt persistate și nu primesc alias.
+- GitHub Actions este limitat la seed-ul public oficial; nu este worker on-demand pentru URL-uri de la utilizatori.

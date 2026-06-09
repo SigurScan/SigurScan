@@ -4630,6 +4630,8 @@ def _load_urlscan_preview_cache(final_url: Any) -> Optional[Dict[str, Any]]:
 def _normalize_fast_preview_cache_entry(entry: Any) -> Optional[Dict[str, Any]]:
     if not isinstance(entry, dict):
         return None
+    if entry.get("visual_only") is False or str(entry.get("verdict_role") or "none").strip().lower() != "none":
+        return None
     status = str(entry.get("status") or "").strip().lower()
     final_url = str(entry.get("final_url") or "").strip()
     screenshot_path = str(entry.get("screenshot_path") or "").strip()
@@ -5712,13 +5714,17 @@ async def _submit_orchestrated_urlscan_preview_once(job: Dict[str, Any], request
         submitted_urlscan["submit_started_at"] = urlscan_state.get("submit_started_at")
         job["urlscan"] = submitted_urlscan
         preview = job.setdefault("preview", {})
-        preview["status"] = "pending"
-        preview["source"] = "urlscan"
-        preview["screenshot_url"] = job["urlscan"].get("screenshot_url") or preview.get("screenshot_url")
-        preview["image_url"] = preview.get("screenshot_url")
         preview["report_url"] = job["urlscan"].get("report_url")
         preview["final_url"] = primary_final_url
-        preview["reason"] = "urlscan_pending"
+        has_ready_visual = preview.get("status") == "ready" and bool(
+            preview.get("image_url") or preview.get("screenshot_url")
+        )
+        if not has_ready_visual:
+            preview["status"] = "pending"
+            preview["source"] = "urlscan"
+            preview["screenshot_url"] = None
+            preview["image_url"] = None
+            preview["reason"] = "urlscan_pending"
     elif not primary_final_url:
         job["urlscan"] = {"status": "skipped", "details": "Nu exista URL pentru preview."}
     _set_orchestrated_stage(job, "urlscan_submitted")
@@ -6213,13 +6219,16 @@ async def _refresh_orchestrated_job(job: Dict[str, Any], request: Request) -> Di
                 urlscan_state["details"] = "urlscan result este gata, dar captura inca se proceseaza."
                 job["urlscan"] = urlscan_state
                 preview = job.setdefault("preview", {})
-                preview["screenshot_url"] = result.get("screenshot_url") or preview.get("screenshot_url")
-                preview["image_url"] = preview.get("image_url") or preview.get("screenshot_url")
                 preview["report_url"] = result.get("report_url") or preview.get("report_url")
                 preview["final_url"] = result.get("final_url") or preview.get("final_url")
-                if not preview.get("status") == "ready":
+                has_ready_visual = preview.get("status") == "ready" and bool(
+                    preview.get("image_url") or preview.get("screenshot_url")
+                )
+                if not has_ready_visual:
                     preview["status"] = "pending"
                     preview["source"] = "urlscan"
+                    preview["screenshot_url"] = None
+                    preview["image_url"] = None
                     preview["reason"] = "urlscan_screenshot_pending"
                 if result.get("final_url"):
                     job["primary_final_url"] = result.get("final_url")
