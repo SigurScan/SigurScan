@@ -67,6 +67,15 @@ def _disable_live_mistral_semantic_pillar_by_default(monkeypatch):
     monkeypatch.setattr(app_main, "MISTRAL_SEMANTIC_API_KEY", "")
 
 
+@pytest.fixture(autouse=True)
+def _isolate_urlscan_preview_cache(monkeypatch):
+    app_main._URLSCAN_PREVIEW_CACHE.clear()
+    monkeypatch.setattr(app_main.supabase_store, "load_urlscan_preview_cache", lambda url_hash: None)
+    monkeypatch.setattr(app_main.supabase_store, "save_urlscan_preview_cache", lambda entry: None)
+    yield
+    app_main._URLSCAN_PREVIEW_CACHE.clear()
+
+
 def test_pii_redaction():
     print("Testing PII Redactor...")
     
@@ -2585,6 +2594,151 @@ def test_orchestrated_urlscan_result_poll_does_not_probe_screenshot_same_request
     assert refreshed["urlscan"]["screenshot_ready"] is False
     assert refreshed["preview"]["report_url"] == "https://urlscan.io/result/urlscan-yoxo-1/"
     assert refreshed["preview"]["screenshot_url"] == "https://backend/screenshot"
+
+
+def test_orchestrated_urlscan_preview_cache_hit_skips_submit(monkeypatch):
+    job = {
+        "scan_id": "orch_urlscan_cache_hit",
+        "created_at": int(time.time()),
+        "pipeline_stage": "analysis_ready",
+        "status": "scanning",
+        "input_type": "text",
+        "source_channel": "android_native",
+        "urls": ["https://tiny.cc/MarTM"],
+        "redacted_text": "Promo Martisor https://tiny.cc/MarTM",
+        "analysis": {
+            "risk_score": 10,
+            "risk_level": "low",
+            "detected_family": "Provideri curați",
+            "detected_family_id": "provider-gate-official-clean",
+            "claimed_brand": "Nespecificat",
+            "reasons": [],
+            "safe_actions": [],
+            "evidence": {
+                "external_intel_summary": {
+                    "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
+                    "phishing_database": {"status": "clean", "verdict": "clean", "consulted": True},
+                },
+                "offer_claim_verification": {"status": "skipped"},
+            },
+        },
+        "resolved_urls": [
+            {
+                "url": "https://tiny.cc/MarTM",
+                "final_url": "https://bilete.sublime.ro/regulament.pdf",
+                "hostname": "tiny.cc",
+                "final_hostname": "bilete.sublime.ro",
+                "registered_domain": "tiny.cc",
+                "final_registered_domain": "sublime.ro",
+                "success": True,
+            }
+        ],
+        "primary_final_url": "https://bilete.sublime.ro/regulament.pdf",
+        "claim_verifier_required": False,
+        "urlscan": {"status": "queued"},
+        "preview": {},
+        "extra_fields": {},
+        "sandbox_options": {},
+    }
+    cached = {
+        "uuid": "cached-urlscan-1",
+        "status": "finished",
+        "submitted_url": "https://bilete.sublime.ro/regulament.pdf",
+        "final_url": "https://bilete.sublime.ro/regulament.pdf",
+        "report_url": "https://urlscan.io/result/cached-urlscan-1/",
+        "screenshot_url": "https://backend/v1/sandbox/urlscan/cached-urlscan-1/screenshot",
+        "verdict": "No malicious classification",
+        "severity": "low",
+        "details": "urlscan preview cache hit",
+        "score": 0,
+        "categories": [],
+        "brands": [],
+    }
+
+    async def fail_submit(*args, **kwargs):
+        raise AssertionError("Cached preview must not submit a duplicate urlscan job.")
+
+    with monkeypatch.context() as patched:
+        patched.setattr(app_main, "_load_urlscan_preview_cache", lambda final_url: dict(cached))
+        patched.setattr(app_main, "_submit_orchestrated_urlscan", fail_submit)
+        patched.setattr(app_main, "_persist_orchestrated_job", lambda candidate: candidate)
+        patched.setattr(app_main, "_emit_orchestrated_telemetry", lambda *args, **kwargs: None)
+        patched.setattr(app_main, "_emit_scan_event", lambda *args, **kwargs: None)
+        refreshed = asyncio.run(app_main._refresh_orchestrated_job(job, None))
+
+    assert refreshed["pipeline_stage"] == "urlscan_submitted"
+    assert refreshed["urlscan"]["status"] == "finished"
+    assert refreshed["urlscan"]["cache_hit"] is True
+    assert refreshed["urlscan"]["screenshot_ready"] is True
+    assert refreshed["preview"]["cache_hit"] is True
+    assert refreshed["preview"]["report_url"] == "https://urlscan.io/result/cached-urlscan-1/"
+    assert refreshed["preview"]["screenshot_url"] == "https://backend/v1/sandbox/urlscan/cached-urlscan-1/screenshot"
+    assert refreshed["analysis"]["evidence"]["external_intel_summary"]["urlscan"]["status"] == "clean"
+
+
+def test_orchestrated_urlscan_preview_cache_saves_when_screenshot_ready(monkeypatch):
+    job = {
+        "scan_id": "orch_urlscan_cache_save",
+        "created_at": int(time.time()),
+        "pipeline_stage": "urlscan_submitted",
+        "status": "scanning",
+        "input_type": "text",
+        "source_channel": "android_native",
+        "urls": ["https://tiny.cc/MarTM"],
+        "redacted_text": "Promo Martisor https://tiny.cc/MarTM",
+        "analysis": {"evidence": {"external_intel_summary": {}}},
+        "resolved_urls": [
+            {
+                "url": "https://tiny.cc/MarTM",
+                "final_url": "https://bilete.sublime.ro/regulament.pdf",
+                "final_hostname": "bilete.sublime.ro",
+                "final_registered_domain": "sublime.ro",
+                "success": True,
+            }
+        ],
+        "primary_final_url": "https://bilete.sublime.ro/regulament.pdf",
+        "claim_verifier_required": False,
+        "urlscan": {
+            "uuid": "urlscan-ready-for-cache",
+            "status": "finished",
+            "submitted_url": "https://bilete.sublime.ro/regulament.pdf",
+            "final_url": "https://bilete.sublime.ro/regulament.pdf",
+            "report_url": "https://urlscan.io/result/urlscan-ready-for-cache/",
+            "screenshot_url": "https://backend/v1/sandbox/urlscan/urlscan-ready-for-cache/screenshot",
+            "verdict": "No malicious classification",
+            "severity": "low",
+            "details": "urlscan report ready",
+            "score": 0,
+            "categories": [],
+            "brands": [],
+            "screenshot_ready": False,
+        },
+        "preview": {
+            "final_url": "https://bilete.sublime.ro/regulament.pdf",
+            "report_url": "https://urlscan.io/result/urlscan-ready-for-cache/",
+            "screenshot_url": "https://backend/v1/sandbox/urlscan/urlscan-ready-for-cache/screenshot",
+        },
+        "extra_fields": {},
+        "orchestration_metrics": {"poll_count": 0, "stage_sequence": [], "stage_durations_ms": {}},
+    }
+    saved = []
+
+    async def fake_finalize(candidate, request):
+        return candidate
+
+    with monkeypatch.context() as patched:
+        patched.setattr(app_main, "_urlscan_screenshot_is_ready", lambda uuid: asyncio.sleep(0, result=True))
+        patched.setattr(app_main, "_save_urlscan_preview_cache", lambda candidate: saved.append(dict(candidate)))
+        patched.setattr(app_main, "_persist_orchestrated_job", lambda candidate: candidate)
+        patched.setattr(app_main, "_emit_orchestrated_telemetry", lambda *args, **kwargs: None)
+        patched.setattr(app_main, "_finalize_orchestrated_job_if_ready", fake_finalize)
+        refreshed = asyncio.run(app_main._refresh_orchestrated_job(job, None))
+
+    assert refreshed["urlscan"]["screenshot_ready"] is True
+    assert saved
+    assert saved[0]["final_url"] == "https://bilete.sublime.ro/regulament.pdf"
+    assert saved[0]["screenshot_url"] == "https://backend/v1/sandbox/urlscan/urlscan-ready-for-cache/screenshot"
+    assert saved[0]["report_url"] == "https://urlscan.io/result/urlscan-ready-for-cache/"
 
 
 def test_orchestrated_load_prefers_persistent_store_over_stale_process_cache(monkeypatch):

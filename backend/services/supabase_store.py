@@ -231,6 +231,55 @@ def save_reputation_cache(cache: Dict[str, Any]) -> None:
         return
 
 
+def load_urlscan_preview_cache(url_hash: str) -> Optional[Dict[str, Any]]:
+    if not url_hash or not is_supabase_enabled():
+        return None
+    rows = _get_json(
+        "urlscan_preview_cache",
+        {
+            "select": "*",
+            "url_hash": f"eq.{url_hash}",
+            "limit": "1",
+        },
+    )
+    if not rows:
+        return None
+    row = dict(rows[0])
+    expires_ts = _iso_to_ts(row.get("expires_at"))
+    if expires_ts is not None and expires_ts <= int(time.time()):
+        return None
+    row.setdefault("status", "finished")
+    return row
+
+
+def save_urlscan_preview_cache(entry: Dict[str, Any]) -> None:
+    if not is_supabase_enabled() or not isinstance(entry, dict):
+        return
+    url_hash = entry.get("url_hash")
+    final_url = entry.get("final_url")
+    if not url_hash or not final_url:
+        return
+    row = {
+        "url_hash": url_hash,
+        "canonical_url": entry.get("canonical_url") or final_url,
+        "final_url": final_url,
+        "final_registered_domain": entry.get("final_registered_domain"),
+        "uuid": entry.get("uuid"),
+        "report_url": entry.get("report_url"),
+        "screenshot_url": entry.get("screenshot_url"),
+        "verdict": entry.get("verdict"),
+        "severity": entry.get("severity"),
+        "details": entry.get("details"),
+        "score": entry.get("score") or 0,
+        "categories": entry.get("categories") or [],
+        "brands": entry.get("brands") or [],
+    }
+    expires_at = _ts_to_iso(entry.get("expires_at"))
+    if expires_at:
+        row["expires_at"] = expires_at
+    _post_json("urlscan_preview_cache", row, "resolution=merge-duplicates,return=minimal")
+
+
 def save_scan_job(job: Dict[str, Any]) -> bool:
     if not is_supabase_enabled() or not isinstance(job, dict):
         return True

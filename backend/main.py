@@ -4519,8 +4519,11 @@ ORCHESTRATED_REQUIRED_PILLAR_TIMEOUT_SECONDS = int(
 ORCHESTRATED_URLSCAN_SUBMIT_RESERVATION_TIMEOUT_SECONDS = int(
     os.getenv("ORCHESTRATED_URLSCAN_SUBMIT_RESERVATION_TIMEOUT_SECONDS", "30")
 )
+URLSCAN_PREVIEW_CACHE_TTL_SECONDS = int(os.getenv("URLSCAN_PREVIEW_CACHE_TTL_SECONDS", str(7 * 24 * 60 * 60)))
+URLSCAN_PREVIEW_CACHE_MAX_ENTRIES = int(os.getenv("URLSCAN_PREVIEW_CACHE_MAX_ENTRIES", "512"))
 _ORCHESTRATED_SCAN_JOBS: Dict[str, Dict[str, Any]] = {}
 _ORCHESTRATED_SCAN_LOCKS: Dict[str, asyncio.Lock] = {}
+_URLSCAN_PREVIEW_CACHE: Dict[str, Dict[str, Any]] = {}
 
 
 _ORCHESTRATED_STAGE_RANK = {
@@ -4539,6 +4542,123 @@ _ORCHESTRATED_STAGE_RANK = {
 
 def _orchestrated_stage_rank(stage: Any) -> int:
     return _ORCHESTRATED_STAGE_RANK.get(str(stage or "").strip().lower(), -1)
+
+
+def _canonical_urlscan_preview_cache_url(raw_url: Any) -> Optional[str]:
+    url = str(raw_url or "").strip()
+    if not url:
+        return None
+    try:
+        parsed = urllib.parse.urlsplit(url)
+    except Exception:
+        return None
+    if not parsed.scheme or not parsed.netloc:
+        return url
+    return urllib.parse.urlunsplit(
+        (
+            parsed.scheme.lower(),
+            parsed.netloc.lower(),
+            parsed.path or "/",
+            parsed.query,
+            "",
+        )
+    )
+
+
+def _urlscan_preview_cache_key(final_url: Any) -> Optional[str]:
+    canonical_url = _canonical_urlscan_preview_cache_url(final_url)
+    if not canonical_url:
+        return None
+    return hashlib.sha256(canonical_url.encode("utf-8")).hexdigest()
+
+
+def _urlscan_preview_cache_is_fresh(entry: Dict[str, Any]) -> bool:
+    raw_expires_at = entry.get("expires_at")
+    try:
+        expires_at = int(raw_expires_at or 0)
+    except Exception:
+        try:
+            expires_at = int(datetime.fromisoformat(str(raw_expires_at).replace("Z", "+00:00")).timestamp())
+        except Exception:
+            expires_at = 0
+    return not expires_at or expires_at > int(time.time())
+
+
+def _normalize_urlscan_preview_cache_entry(entry: Any) -> Optional[Dict[str, Any]]:
+    if not isinstance(entry, dict):
+        return None
+    final_url = str(entry.get("final_url") or entry.get("canonical_url") or "").strip()
+    screenshot_url = str(entry.get("screenshot_url") or "").strip()
+    report_url = str(entry.get("report_url") or "").strip()
+    if not final_url or not screenshot_url or not report_url:
+        return None
+    normalized = dict(entry)
+    normalized["status"] = "finished"
+    normalized["final_url"] = final_url
+    normalized["submitted_url"] = normalized.get("submitted_url") or normalized.get("canonical_url") or final_url
+    normalized["screenshot_url"] = screenshot_url
+    normalized["report_url"] = report_url
+    normalized["screenshot_ready"] = True
+    normalized["cache_hit"] = True
+    normalized.setdefault("verdict", "No malicious classification")
+    normalized.setdefault("severity", "low")
+    normalized.setdefault("details", "urlscan preview cache hit")
+    normalized.setdefault("score", 0)
+    normalized.setdefault("categories", [])
+    normalized.setdefault("brands", [])
+    if not _urlscan_preview_cache_is_fresh(normalized):
+        return None
+    return normalized
+
+
+def _load_urlscan_preview_cache(final_url: Any) -> Optional[Dict[str, Any]]:
+    cache_key = _urlscan_preview_cache_key(final_url)
+    if not cache_key:
+        return None
+    cached = _normalize_urlscan_preview_cache_entry(_URLSCAN_PREVIEW_CACHE.get(cache_key))
+    if cached:
+        return cached
+    persisted = _normalize_urlscan_preview_cache_entry(supabase_store.load_urlscan_preview_cache(cache_key))
+    if persisted:
+        _URLSCAN_PREVIEW_CACHE[cache_key] = persisted
+    return persisted
+
+
+def _save_urlscan_preview_cache(entry: Dict[str, Any]) -> None:
+    if not isinstance(entry, dict):
+        return
+    final_url = str(entry.get("final_url") or entry.get("submitted_url") or "").strip()
+    screenshot_url = str(entry.get("screenshot_url") or "").strip()
+    report_url = str(entry.get("report_url") or "").strip()
+    cache_key = _urlscan_preview_cache_key(final_url)
+    canonical_url = _canonical_urlscan_preview_cache_url(final_url)
+    if not cache_key or not canonical_url or not final_url or not screenshot_url or not report_url:
+        return
+    hostname = (urllib.parse.urlparse(final_url).hostname or "").lower()
+    cache_entry = {
+        "url_hash": cache_key,
+        "canonical_url": canonical_url,
+        "final_url": final_url,
+        "final_registered_domain": _extract_domain_root(hostname),
+        "uuid": entry.get("uuid"),
+        "status": "finished",
+        "submitted_url": entry.get("submitted_url") or final_url,
+        "report_url": report_url,
+        "screenshot_url": screenshot_url,
+        "screenshot_ready": True,
+        "verdict": entry.get("verdict") or "No malicious classification",
+        "severity": entry.get("severity") or "low",
+        "details": entry.get("details") or "urlscan preview cached",
+        "score": entry.get("score") or 0,
+        "categories": entry.get("categories") or [],
+        "brands": entry.get("brands") or [],
+        "expires_at": int(time.time()) + URLSCAN_PREVIEW_CACHE_TTL_SECONDS,
+    }
+    _URLSCAN_PREVIEW_CACHE[cache_key] = cache_entry
+    if len(_URLSCAN_PREVIEW_CACHE) > URLSCAN_PREVIEW_CACHE_MAX_ENTRIES:
+        oldest_key = next(iter(_URLSCAN_PREVIEW_CACHE))
+        _URLSCAN_PREVIEW_CACHE.pop(oldest_key, None)
+    supabase_store.save_urlscan_preview_cache(cache_entry)
 
 
 def _merge_threat_intel_sources(
@@ -5219,6 +5339,58 @@ def _urlscan_provider_payload(summary: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def _apply_urlscan_preview_cache_hit(job: Dict[str, Any], cached: Dict[str, Any]) -> Dict[str, Any]:
+    cached_summary = _normalize_urlscan_preview_cache_entry(cached)
+    if not cached_summary:
+        return job
+    job["urlscan"] = cached_summary
+    preview = job.setdefault("preview", {})
+    preview["final_url"] = cached_summary.get("final_url")
+    preview["report_url"] = cached_summary.get("report_url")
+    preview["screenshot_url"] = cached_summary.get("screenshot_url")
+    preview["cache_hit"] = True
+    analysis = job.get("analysis") if isinstance(job.get("analysis"), dict) else {}
+    evidence = analysis.setdefault("evidence", {})
+    summary = evidence.setdefault("external_intel_summary", {})
+    if isinstance(summary, dict):
+        summary["urlscan"] = _urlscan_provider_payload(cached_summary)
+        summary["urlscan"]["cache_hit"] = True
+    _sync_resolved_urls_with_urlscan_final(job)
+    _increment_orchestrated_metric(job, "urlscan_preview_cache_hit_count")
+    return job
+
+
+def _urlscan_preview_cache_entry_from_job(job: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    if not isinstance(job, dict):
+        return None
+    urlscan_state = job.get("urlscan") if isinstance(job.get("urlscan"), dict) else {}
+    preview = job.get("preview") if isinstance(job.get("preview"), dict) else {}
+    final_url = (
+        urlscan_state.get("final_url")
+        or preview.get("final_url")
+        or job.get("primary_final_url")
+        or urlscan_state.get("submitted_url")
+    )
+    screenshot_url = urlscan_state.get("screenshot_url") or preview.get("screenshot_url")
+    report_url = urlscan_state.get("report_url") or preview.get("report_url")
+    if not final_url or not screenshot_url or not report_url:
+        return None
+    return {
+        "uuid": urlscan_state.get("uuid"),
+        "status": "finished",
+        "submitted_url": urlscan_state.get("submitted_url") or final_url,
+        "final_url": final_url,
+        "report_url": report_url,
+        "screenshot_url": screenshot_url,
+        "verdict": urlscan_state.get("verdict") or "No malicious classification",
+        "severity": urlscan_state.get("severity") or "low",
+        "details": urlscan_state.get("details") or "urlscan preview cached",
+        "score": urlscan_state.get("score") or 0,
+        "categories": urlscan_state.get("categories") or [],
+        "brands": urlscan_state.get("brands") or [],
+    }
+
+
 def _orchestrated_status_payload(job: Dict[str, Any]) -> Dict[str, Any]:
     pillars = _build_orchestrated_pillars(job)
     preview = job.get("preview") if isinstance(job.get("preview"), dict) else {}
@@ -5388,6 +5560,14 @@ async def _submit_orchestrated_urlscan_preview_once(job: Dict[str, Any], request
     urlscan_state = job.get("urlscan") if isinstance(job.get("urlscan"), dict) else {}
     urlscan_status = str(urlscan_state.get("status") or "").strip().lower()
     if primary_final_url and urlscan_status in {"queued", "", "skipped"}:
+        cached_preview = _load_urlscan_preview_cache(primary_final_url)
+        if cached_preview:
+            job = _apply_urlscan_preview_cache_hit(job, cached_preview)
+            _set_orchestrated_stage(job, "urlscan_submitted")
+            job = _persist_orchestrated_job(job)
+            _emit_orchestrated_telemetry("orchestrated_urlscan_preview_cache_hit", job)
+            return job
+
         submit_owner = f"urlscan_{os.urandom(6).hex()}"
         job["urlscan"] = {
             "status": "submitting",
@@ -5871,6 +6051,9 @@ async def _refresh_orchestrated_job(job: Dict[str, Any], request: Request) -> Di
                     urlscan_state["details"] = str(urlscan_state.get("verdict") or "urlscan result este gata")
                     preview = job.setdefault("preview", {})
                     preview["screenshot_url"] = urlscan_state.get("screenshot_url") or preview.get("screenshot_url")
+                    cache_entry = _urlscan_preview_cache_entry_from_job(job)
+                    if cache_entry:
+                        _save_urlscan_preview_cache(cache_entry)
                 elif _urlscan_pending_has_timed_out(job):
                     urlscan_state["status"] = "timeout"
                     _increment_orchestrated_metric(job, "urlscan_timeout_count")
