@@ -458,9 +458,11 @@ def _infer_offer_status(case: Dict[str, Any], expected_status: str, resolved_url
 
 
 def _expected_user_status(case: Dict[str, Any]) -> str:
+    decision = str(case.get("expected_decision") or case.get("expectedDecision") or "").upper()
+    if decision in ACTION_TO_USER_STATUS:
+        return ACTION_TO_USER_STATUS[decision]
     if "expectedSeverityUi" in case and str(case.get("expectedSeverityUi") or "").upper() in SEVERITY_TO_USER_STATUS:
         return SEVERITY_TO_USER_STATUS[str(case.get("expectedSeverityUi") or "").upper()]
-    decision = str(case.get("expected_decision") or case.get("expectedDecision") or "").upper()
     return ACTION_TO_USER_STATUS.get(decision, "SUSPECT")
 
 

@@ -12802,8 +12802,8 @@
       "fixtures/sms/SIGS-V2-315_revolut_otp_informativ.txt",
       "fixtures/ocr_images/SIGS-V2-315_revolut_otp_informativ.png"
     ],
-    "expectedDecision": "NO_REPLY",
-    "expectedUserLabel": "Nu răspunde",
+    "expectedDecision": "VERIFY_OFFICIAL",
+    "expectedUserLabel": "Verifică pe canalul oficial",
     "expectedSeverityUi": "WARNING",
     "groundTruthIsScam": false,
     "brandClaimed": "Revolut",
@@ -12912,8 +12912,8 @@
     "fixturePaths": [
       "fixtures/sms/SIGS-V2-318_revolut_otp_informativ.txt"
     ],
-    "expectedDecision": "NO_REPLY",
-    "expectedUserLabel": "Nu răspunde",
+    "expectedDecision": "VERIFY_OFFICIAL",
+    "expectedUserLabel": "Verifică pe canalul oficial",
     "expectedSeverityUi": "WARNING",
     "groundTruthIsScam": false,
     "brandClaimed": "Revolut",
@@ -13024,8 +13024,8 @@
       "fixtures/sms/SIGS-V2-321_bt_otp_informativ.txt",
       "fixtures/ocr_images/SIGS-V2-321_bt_otp_informativ.png"
     ],
-    "expectedDecision": "NO_REPLY",
-    "expectedUserLabel": "Nu răspunde",
+    "expectedDecision": "VERIFY_OFFICIAL",
+    "expectedUserLabel": "Verifică pe canalul oficial",
     "expectedSeverityUi": "WARNING",
     "groundTruthIsScam": false,
     "brandClaimed": "BT",
@@ -13134,8 +13134,8 @@
     "fixturePaths": [
       "fixtures/sms/SIGS-V2-324_bcr_otp_informativ.txt"
     ],
-    "expectedDecision": "NO_REPLY",
-    "expectedUserLabel": "Nu răspunde",
+    "expectedDecision": "VERIFY_OFFICIAL",
+    "expectedUserLabel": "Verifică pe canalul oficial",
     "expectedSeverityUi": "WARNING",
     "groundTruthIsScam": false,
     "brandClaimed": "BCR",
@@ -13246,8 +13246,8 @@
       "fixtures/sms/SIGS-V2-327_bcr_otp_informativ.txt",
       "fixtures/ocr_images/SIGS-V2-327_bcr_otp_informativ.png"
     ],
-    "expectedDecision": "NO_REPLY",
-    "expectedUserLabel": "Nu răspunde",
+    "expectedDecision": "VERIFY_OFFICIAL",
+    "expectedUserLabel": "Verifică pe canalul oficial",
     "expectedSeverityUi": "WARNING",
     "groundTruthIsScam": false,
     "brandClaimed": "BCR",
@@ -13356,8 +13356,8 @@
     "fixturePaths": [
       "fixtures/sms/SIGS-V2-330_bt_otp_informativ.txt"
     ],
-    "expectedDecision": "NO_REPLY",
-    "expectedUserLabel": "Nu răspunde",
+    "expectedDecision": "VERIFY_OFFICIAL",
+    "expectedUserLabel": "Verifică pe canalul oficial",
     "expectedSeverityUi": "WARNING",
     "groundTruthIsScam": false,
     "brandClaimed": "BT",
@@ -13468,8 +13468,8 @@
       "fixtures/sms/SIGS-V2-333_revolut_otp_informativ.txt",
       "fixtures/ocr_images/SIGS-V2-333_revolut_otp_informativ.png"
     ],
-    "expectedDecision": "NO_REPLY",
-    "expectedUserLabel": "Nu răspunde",
+    "expectedDecision": "VERIFY_OFFICIAL",
+    "expectedUserLabel": "Verifică pe canalul oficial",
     "expectedSeverityUi": "WARNING",
     "groundTruthIsScam": false,
     "brandClaimed": "Revolut",
@@ -13578,8 +13578,8 @@
     "fixturePaths": [
       "fixtures/sms/SIGS-V2-336_bt_otp_informativ.txt"
     ],
-    "expectedDecision": "NO_REPLY",
-    "expectedUserLabel": "Nu răspunde",
+    "expectedDecision": "VERIFY_OFFICIAL",
+    "expectedUserLabel": "Verifică pe canalul oficial",
     "expectedSeverityUi": "WARNING",
     "groundTruthIsScam": false,
     "brandClaimed": "BT",

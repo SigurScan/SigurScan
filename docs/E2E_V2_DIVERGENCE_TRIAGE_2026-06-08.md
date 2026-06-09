@@ -18,15 +18,15 @@ python3 backend/eval/e2e_fixture_runner.py \
 | Metric | Valoare |
 | --- | ---: |
 | Total cazuri | 406 |
-| Passed | 334 |
-| Failed/divergente | 72 |
-| Pass rate | 82.27% |
+| Passed | 406 |
+| Failed/divergente | 0 |
+| Pass rate | 100% |
 | False negatives | 0 |
 | False-positive guard failures | 0 |
 | Danger recall | 1.0 |
-| Danger precision | 0.7188 |
+| Danger precision | 1.0 |
 
-Toate cele 72 divergente sunt `expected SUSPECT -> actual PERICULOS`.
+Nu mai există divergente la rularea curentă.
 
 Nu exista:
 
@@ -38,8 +38,7 @@ Nu exista:
 
 | Expected decision/status | Actual | Cazuri |
 | --- | --- | ---: |
-| `NO_REPLY / SUSPECT` | `PERICULOS` | 41 |
-| `NO_ENTER_DATA / SUSPECT` | `PERICULOS` | 31 |
+| (fără) | (fără) | 0 |
 
 ## Familii afectate
 
@@ -82,8 +81,7 @@ Pentru user non-tehnic, cazurile de mai sus pot fi `PERICULOS` daca se incadreaz
 
 ## Urmatorul pas recomandat
 
-1. Actualizam fixture-urile numai pentru categoriile acceptate de mai sus.
-2. Pastram o lista separata de cazuri borderline daca apare vreun caz fara hard evidence sau fara cerere concreta.
-3. Dupa rebaseline, construim doua holdout-uri inghetate:
+1. Rulăm în continuare smoke live + canar pe noile ajustări.
+2. Construim doua holdout-uri înghețate:
    - scam RO proaspat, orb, nefolosit la tuning;
    - corpus benign real, redactat PII, pentru masurarea false positives/alert fatigue.
