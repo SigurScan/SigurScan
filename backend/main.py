@@ -2810,6 +2810,28 @@ async def _enrich_semantic_review_async(
         )
 
 
+def _enrich_local_semantic_review(redacted_text: str, analysis: Dict[str, Any]) -> None:
+    evidence = analysis.setdefault("evidence", {})
+    fallback = _semantic_review_from_analysis(analysis)
+    tier1_result = tier1_classifier.classify(redacted_text or "")
+    evidence["tier1_classifier"] = tier1_result
+    if not fallback:
+        fallback = {
+            "status": "done",
+            "risk_class": "unknown",
+            "claim_matches_known_scam_family": False,
+            "claim_matches_legit_template": False,
+            "reason_codes": ["semantic:atlas_local_fast_lane"],
+            "completeness": True,
+            "source": "atlas_local_fast_lane",
+        }
+    evidence["semantic_review"] = _calibrate_semantic_review_with_tier1(
+        fallback,
+        tier1_result,
+        raw_text=redacted_text,
+    )
+
+
 def _build_decision_evidence_bundle(
     analysis: Dict[str, Any],
     resolved_urls: List[Dict[str, Any]],
@@ -5534,7 +5556,7 @@ async def _run_orchestrated_fast_lane(job: Dict[str, Any], request: Request) -> 
     if _has_bad_provider_verdict(summary):
         analysis = _provider_reputation_context_analysis(redacted_text, resolved_urls, summary)
         analysis.setdefault("evidence", {})["source_channel"] = job.get("source_channel")
-        await _enrich_semantic_review_async(redacted_text, analysis, resolved_urls)
+        _enrich_local_semantic_review(redacted_text, analysis)
         _attach_offer_claim_verification(
             analysis,
             _skipped_offer_claim_payload("Claim web check skipped because hard reputation evidence is already decisive."),
@@ -5549,15 +5571,14 @@ async def _run_orchestrated_fast_lane(job: Dict[str, Any], request: Request) -> 
             allow_deep_fallback=False,
         )
         analysis.setdefault("evidence", {})["source_channel"] = job.get("source_channel")
-        await _enrich_semantic_review_async(redacted_text, analysis, resolved_urls)
+        _enrich_local_semantic_review(redacted_text, analysis)
         claim_required = _claim_verifier_required(analysis)
-        if claim_required:
-            await _enrich_offer_claim_verification_async(redacted_text, analysis, resolved_urls)
-        else:
-            _attach_offer_claim_verification(
-                analysis,
-                _skipped_offer_claim_payload("Claim web check skipped because no concrete offer/brand claim was detected."),
-            )
+        _attach_offer_claim_verification(
+            analysis,
+            _skipped_offer_claim_payload(
+                "Claim web check deferred by fast lane; verdict uses provider reputation, identity, atlas and local Tier1."
+            ),
+        )
 
     primary_entry = _select_primary_resolved_url(resolved_urls, analysis)
     primary_final_url = None
