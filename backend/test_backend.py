@@ -70,10 +70,15 @@ def _disable_live_mistral_semantic_pillar_by_default(monkeypatch):
 @pytest.fixture(autouse=True)
 def _isolate_urlscan_preview_cache(monkeypatch):
     app_main._URLSCAN_PREVIEW_CACHE.clear()
+    app_main._FAST_PREVIEW_CACHE.clear()
     monkeypatch.setattr(app_main.supabase_store, "load_urlscan_preview_cache", lambda url_hash: None)
     monkeypatch.setattr(app_main.supabase_store, "save_urlscan_preview_cache", lambda entry: None)
+    monkeypatch.setattr(app_main.supabase_store, "load_fast_preview_cache", lambda url_hash: None)
+    monkeypatch.setattr(app_main.supabase_store, "load_fast_preview_alias_cache", lambda alias_hash: None)
+    monkeypatch.setattr(app_main.supabase_store, "create_preview_signed_url", lambda *args, **kwargs: None)
     yield
     app_main._URLSCAN_PREVIEW_CACHE.clear()
+    app_main._FAST_PREVIEW_CACHE.clear()
 
 
 def test_pii_redaction():
@@ -2751,6 +2756,55 @@ def test_orchestrated_fast_lane_attaches_cached_preview_before_submit_stage(monk
     assert refreshed["preview"]["screenshot_url"] == "https://backend/v1/sandbox/urlscan/cached-fast-lane/screenshot"
     assert refreshed["urlscan"]["status"] == "finished"
     assert refreshed["analysis"]["evidence"]["external_intel_summary"]["urlscan"]["cache_hit"] is True
+
+
+def test_fast_preview_cache_hit_is_visual_only(monkeypatch):
+    final_url = "https://www.fancourier.ro/"
+    cache_key = app_main._urlscan_preview_cache_key(final_url)
+    assert cache_key
+
+    row = {
+        "url_hash": cache_key,
+        "original_url": final_url,
+        "final_url": final_url,
+        "final_domain": "www.fancourier.ro",
+        "screenshot_path": f"{cache_key}.png",
+        "screenshot_w": 1365,
+        "screenshot_h": 2200,
+        "content_hash": "content-hash",
+        "page_title": "FAN Courier",
+        "http_status": 200,
+        "redirect_chain": [final_url],
+        "reachable": True,
+        "status": "ready",
+        "source": "precapture_worker",
+        "seed_category": "courier",
+        "captured_at": "2026-06-09T18:00:00Z",
+        "expires_at": int(time.time()) + 3600,
+        "error": None,
+    }
+    job = {
+        "scan_id": "fast-preview-visual-only",
+        "preview": {},
+        "urlscan": {"status": "queued"},
+        "analysis": {"evidence": {"external_intel_summary": {}}},
+        "orchestration_metrics": {"poll_count": 0, "stage_sequence": [], "stage_durations_ms": {}},
+    }
+
+    with monkeypatch.context() as patched:
+        patched.setattr(app_main.supabase_store, "load_fast_preview_cache", lambda url_hash: dict(row) if url_hash == cache_key else None)
+        patched.setattr(app_main.supabase_store, "create_preview_signed_url", lambda path, **kwargs: f"https://signed.example/{path}")
+        updated = app_main._apply_best_preview_cache_hit(job, final_url)
+
+    assert updated["preview"]["status"] == "ready"
+    assert updated["preview"]["source"] == "precapture_worker"
+    assert updated["preview"]["image_url"] == f"https://signed.example/{cache_key}.png"
+    assert updated["preview"]["screenshot_url"] == f"https://signed.example/{cache_key}.png"
+    assert updated["preview"]["fast_cache_hit"] is True
+    assert updated["preview"]["width"] == 1365
+    assert updated["preview"]["height"] == 2200
+    assert updated["urlscan"]["status"] == "queued"
+    assert "urlscan" not in updated["analysis"]["evidence"]["external_intel_summary"]
 
 
 def test_urlscan_preview_cache_saves_submitted_url_alias(monkeypatch):

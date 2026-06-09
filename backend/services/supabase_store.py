@@ -252,6 +252,79 @@ def load_urlscan_preview_cache(url_hash: str) -> Optional[Dict[str, Any]]:
     return row
 
 
+def load_fast_preview_cache(url_hash: str) -> Optional[Dict[str, Any]]:
+    if not url_hash or not is_supabase_enabled():
+        return None
+    rows = _get_json(
+        "fast_preview_cache",
+        {
+            "select": "*",
+            "url_hash": f"eq.{url_hash}",
+            "limit": "1",
+        },
+    )
+    if not rows:
+        return None
+    row = dict(rows[0])
+    expires_ts = _iso_to_ts(row.get("expires_at"))
+    if expires_ts is not None and expires_ts <= int(time.time()):
+        return None
+    return row
+
+
+def load_fast_preview_alias_cache(alias_hash: str) -> Optional[Dict[str, Any]]:
+    if not alias_hash or not is_supabase_enabled():
+        return None
+    rows = _get_json(
+        "fast_preview_alias_cache",
+        {
+            "select": "*",
+            "alias_hash": f"eq.{alias_hash}",
+            "limit": "1",
+        },
+    )
+    if not rows:
+        return None
+    row = dict(rows[0])
+    expires_ts = _iso_to_ts(row.get("expires_at"))
+    if expires_ts is not None and expires_ts <= int(time.time()):
+        return None
+    return row
+
+
+def create_preview_signed_url(
+    object_path: str,
+    bucket: str = "previews",
+    expires_in_seconds: int = 900,
+) -> Optional[str]:
+    if not object_path or not bucket or not is_supabase_enabled():
+        return None
+    clean_path = str(object_path).strip().lstrip("/")
+    bucket_prefix = f"{bucket}/"
+    if clean_path.startswith(bucket_prefix):
+        clean_path = clean_path[len(bucket_prefix):]
+    try:
+        response = requests.post(
+            f"{SUPABASE_URL}/storage/v1/object/sign/{bucket}/{clean_path}",
+            headers=_headers(),
+            json={"expiresIn": int(expires_in_seconds)},
+            timeout=SUPABASE_TIMEOUT_SECONDS,
+        )
+        response.raise_for_status()
+        payload = response.json() if response.content else {}
+        signed_url = payload.get("signedURL") or payload.get("signedUrl") or payload.get("signed_url")
+        if not isinstance(signed_url, str) or not signed_url.strip():
+            return None
+        signed_url = signed_url.strip()
+        if signed_url.startswith("http://") or signed_url.startswith("https://"):
+            return signed_url
+        if signed_url.startswith("/"):
+            return f"{SUPABASE_URL}/storage/v1{signed_url}"
+        return f"{SUPABASE_URL}/storage/v1/{signed_url.lstrip('/')}"
+    except Exception:
+        return None
+
+
 def save_urlscan_preview_cache(entry: Dict[str, Any]) -> None:
     if not is_supabase_enabled() or not isinstance(entry, dict):
         return

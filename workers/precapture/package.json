@@ -1,0 +1,28 @@
+{
+  "name": "sigurscan-precapture-worker",
+  "version": "1.1.0",
+  "private": true,
+  "type": "module",
+  "description": "SigurScan URL preview pre-capture worker: parse emails/URL lists, capture safe previews with Playwright, upload to Supabase or local manifest.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "install-browsers": "playwright install --with-deps chromium",
+    "dry-run": "node src/index.js --email-source ./samples/official_preview_targets.ro.json --out-dir ./output/dry --dry-run",
+    "sample:local": "node src/index.js --email-source ./samples/official_preview_targets.ro.json --out-dir ./output/official --concurrency 1 --nav-timeout-seconds 20",
+    "sample:supabase": "node src/index.js --email-source ./samples/official_preview_targets.ro.json --out-dir ./output/official --concurrency 1 --nav-timeout-seconds 20"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.4",
+    "cheerio": "^1.0.0",
+    "commander": "^13.1.0",
+    "dotenv": "^16.4.7",
+    "ipaddr.js": "^2.2.0",
+    "linkify-it": "^5.0.0",
+    "mailparser": "^3.7.2",
+    "p-limit": "^6.2.0",
+    "playwright": "1.56.1"
+  }
+}

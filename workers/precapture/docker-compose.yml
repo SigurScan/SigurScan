@@ -1,0 +1,18 @@
+services:
+  sigurscan-precapture:
+    build: .
+    env_file: .env
+    command:
+      - "--email-source"
+      - "/input"
+      - "--out-dir"
+      - "/output"
+      - "--concurrency"
+      - "1"
+      - "--nav-timeout-seconds"
+      - "20"
+    volumes:
+      - ./input:/input:ro
+      - ./output:/output
+    ipc: host
+    user: "pwuser"

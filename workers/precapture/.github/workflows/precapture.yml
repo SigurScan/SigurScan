@@ -1,0 +1,41 @@
+name: SigurScan Preview Pre-Capture
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Daily at 03:17 UTC. Keep low frequency; this is not a crawler.
+    - cron: "17 3 * * *"
+
+jobs:
+  precapture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm install
+      - run: npx playwright install --with-deps chromium
+      - name: Run official seed capture
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          STORAGE_BUCKET: previews
+          CACHE_TABLE: fast_preview_cache
+          ALIAS_TABLE: fast_preview_alias_cache
+          CACHE_TTL_DAYS: "14"
+          MAX_URLS: "50"
+          CONCURRENCY: "1"
+        run: |
+          node src/index.js \
+            --email-source ./samples/official_preview_targets.ro.json \
+            --out-dir ./output/official \
+            --concurrency 1 \
+            --nav-timeout-seconds 20 \
+            --max-urls 50
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sigurscan-precapture-output
+          path: output/

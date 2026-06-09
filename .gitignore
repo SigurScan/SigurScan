@@ -42,3 +42,10 @@ backend/data/*.db
 # Supabase local CLI state
 supabase/.temp/
 .vercel
+
+# Pre-capture worker local runtime artifacts
+workers/precapture/.env
+workers/precapture/output/
+workers/precapture/node_modules/
+workers/precapture/playwright-report/
+workers/precapture/test-results/

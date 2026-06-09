@@ -1,0 +1,78 @@
+name: SigurScan Preview Pre-Capture
+
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: "Seed/input file inside workers/precapture"
+        required: false
+        default: "samples/official_preview_targets.ro.json"
+      dry_run:
+        description: "Only extract URLs; do not launch browser or upload"
+        type: boolean
+        required: false
+        default: false
+      max_urls:
+        description: "Maximum URLs to process in this run"
+        required: false
+        default: "50"
+  schedule:
+    # Daily at 03:17 UTC. Keep off the top of the hour; this is not a crawler.
+    - cron: "17 3 * * *"
+
+concurrency:
+  group: sigurscan-precapture
+  cancel-in-progress: false
+
+jobs:
+  precapture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: workers/precapture
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: workers/precapture/package-lock.json
+      - run: npm install
+      - run: npx playwright install --with-deps chromium
+      - name: Run official seed capture
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          STORAGE_BUCKET: previews
+          CACHE_TABLE: fast_preview_cache
+          ALIAS_TABLE: fast_preview_alias_cache
+          CACHE_TTL_DAYS: "14"
+          CONCURRENCY: "1"
+          MAX_URLS: ${{ github.event.inputs.max_urls || '50' }}
+          MAX_REDIRECT_HOPS: "10"
+          NAV_TIMEOUT_SECONDS: "20"
+          MAX_SCREENSHOT_HEIGHT: "5000"
+          USER_AGENT: "SigurScanPreviewBot/1.0 (+https://sigurscan.ro/bot)"
+        run: |
+          args=(
+            "--email-source" "${{ github.event.inputs.source || 'samples/official_preview_targets.ro.json' }}"
+            "--out-dir" "./output/official"
+            "--concurrency" "1"
+            "--nav-timeout-seconds" "20"
+            "--max-screenshot-height" "5000"
+            "--max-urls" "${{ github.event.inputs.max_urls || '50' }}"
+          )
+          if [ "${{ github.event.inputs.dry_run || 'false' }}" = "true" ]; then
+            args+=("--dry-run")
+          fi
+          node src/index.js "${args[@]}"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sigurscan-precapture-output
+          path: |
+            workers/precapture/output/
+          retention-days: 7
