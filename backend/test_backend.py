@@ -3807,7 +3807,7 @@ def test_fast_reputation_skips_vt_and_does_not_persist_partial(monkeypatch, tmp_
     monkeypatch.setattr(url_reputation, "ENABLE_URL_REPUTATION", True)
     monkeypatch.setattr(url_reputation, "REPUTATION_CACHE_PATH", cache_path)
     monkeypatch.setattr(url_reputation, "_load_cache", lambda path: {})
-    monkeypatch.setattr(url_reputation, "_save_cache", lambda path, data: saved_cache.append(dict(data)))
+    monkeypatch.setattr(url_reputation, "_save_cache", lambda path, data, remote_subset=None: saved_cache.append(dict(data)))
     monkeypatch.setattr(url_reputation, "has_web_risk_key", lambda: True)
     monkeypatch.setattr(url_reputation, "check_urls_against_web_risk", lambda urls: {})
     monkeypatch.setattr(
@@ -3833,6 +3833,69 @@ def test_fast_reputation_skips_vt_and_does_not_persist_partial(monkeypatch, tmp_
     assert result[key]["sources"]["virustotal"]["consulted"] is False
     assert result[key]["sources"]["urlhaus"]["consulted"] is False
     assert saved_cache == []
+
+
+def test_reputation_cache_persists_only_touched_remote_entries(monkeypatch, tmp_path):
+    cache_path = tmp_path / "url_reputation_cache.json"
+    old_key = "old-cache-key"
+    saved_remote_subsets = []
+    existing_cache = {
+        old_key: {
+            "version": url_reputation.REPUTATION_CACHE_VERSION,
+            "url": "https://old.example",
+            "verdict": "clean",
+            "expires_at": 1,
+            "sources": {},
+        }
+    }
+
+    def fake_save(path, data, remote_subset=None):
+        saved_remote_subsets.append(dict(remote_subset or {}))
+
+    monkeypatch.setattr(url_reputation, "ENABLE_URL_REPUTATION", True)
+    monkeypatch.setattr(url_reputation, "REPUTATION_CACHE_PATH", cache_path)
+    monkeypatch.setattr(url_reputation, "_load_cache", lambda path: dict(existing_cache))
+    monkeypatch.setattr(url_reputation, "_save_cache", fake_save)
+    monkeypatch.setattr(url_reputation, "has_web_risk_key", lambda: True)
+    monkeypatch.setattr(url_reputation, "check_urls_against_web_risk", lambda urls: {})
+    monkeypatch.setattr(
+        url_reputation,
+        "_fetch_virustotal",
+        lambda urls, api_key: {
+            url_reputation._url_hash(urls[0]): {
+                "status": "clean",
+                "threat_type": "unknown",
+                "score": 0,
+                "details": {"status": "clean"},
+                "query_ms": 12,
+            }
+        },
+    )
+    monkeypatch.setattr(
+        url_reputation,
+        "_fetch_urlhaus",
+        lambda urls: {
+            url_reputation._url_hash(urls[0]): {
+                "status": "clean",
+                "threat_type": "unknown",
+                "score": 0,
+                "details": {"status": "not_listed"},
+                "query_ms": 10,
+            }
+        },
+    )
+
+    result = url_reputation.get_reputation_for_urls(
+        ["https://new.example/path"],
+        include_virustotal=True,
+        include_urlhaus=True,
+    )
+
+    new_key = url_reputation._url_hash("https://new.example/path")
+    assert new_key in result
+    assert saved_remote_subsets
+    assert set(saved_remote_subsets[0].keys()) == {new_key}
+    assert old_key not in saved_remote_subsets[0]
 
 
 def test_virustotal_single_engine_is_suspicious_not_malicious(monkeypatch):

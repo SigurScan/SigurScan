@@ -149,8 +149,11 @@ def _load_cache(path: Path) -> Dict[str, Any]:
     return {}
 
 
-def _save_cache(path: Path, data: Dict[str, Any]) -> None:
-    supabase_store.save_reputation_cache(data)
+def _save_cache(path: Path, data: Dict[str, Any], remote_subset: Optional[Dict[str, Any]] = None) -> None:
+    # Local file cache keeps the full snapshot, but Supabase must only receive
+    # entries touched by this request. Upserting the entire cache for one URL
+    # turns a single reputation lookup into hundreds of network writes.
+    supabase_store.save_reputation_cache(remote_subset if remote_subset is not None else data)
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("w", encoding="utf-8") as f:
@@ -708,6 +711,7 @@ def get_reputation_for_urls(
     now = int(time.time())
     results: Dict[str, Dict[str, Any]] = {}
     need_fetch: List[str] = []
+    updated_cache_entries: Dict[str, Any] = {}
 
     for url in normalized_urls:
         key = _url_hash(url)
@@ -798,10 +802,11 @@ def get_reputation_for_urls(
                     if isinstance(details, dict) and details.get("status") == "error"
                 ]
                 cache[key] = cache_entry
+                updated_cache_entries[key] = cache_entry
                 results[key] = _normalize_cached_entry(cache_entry, url, REPUTATION_CACHE_TTL_SECONDS)
             else:
                 results[key] = dict(aggregated, cached=False)
 
     if need_fetch and (persist_partial or (include_virustotal and include_urlhaus)):
-        _save_cache(REPUTATION_CACHE_PATH, cache)
+        _save_cache(REPUTATION_CACHE_PATH, cache, remote_subset=updated_cache_entries)
     return results
