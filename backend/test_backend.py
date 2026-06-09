@@ -2786,6 +2786,92 @@ def test_orchestrated_urlscan_preview_cache_hit_skips_submit(monkeypatch):
     assert refreshed["analysis"]["evidence"]["external_intel_summary"]["urlscan"]["status"] == "clean"
 
 
+def test_urlscan_preview_cache_normalize_accepts_report_only(monkeypatch):
+    row = {
+        "url_hash": "abcd",
+        "final_url": "https://example.com/safety",
+        "final_registered_domain": "example.com",
+        "submitted_url": "https://example.com/short",
+        "report_url": "https://urlscan.io/result/example",
+        "screenshot_url": "",
+        "verdict": "No malicious classification",
+        "severity": "low",
+        "details": "report only cache",
+        "score": 10,
+        "categories": [],
+        "brands": [],
+        "expires_at": int(time.time()) + 3600,
+    }
+
+    normalized = app_main._normalize_urlscan_preview_cache_entry(row)
+    assert normalized is not None
+    assert normalized["screenshot_ready"] is False
+    assert normalized["report_url"] == "https://urlscan.io/result/example"
+    assert normalized["screenshot_url"] == ""
+
+
+def test_save_urlscan_preview_cache_allows_report_only_entry(monkeypatch):
+    app_main._URLSCAN_PREVIEW_CACHE.clear()
+    saved = []
+
+    job_entry = {
+        "uuid": "preview-no-shot-1",
+        "submitted_url": "https://tiny.cc/repro",
+        "final_url": "https://example.org/referral",
+        "report_url": "https://urlscan.io/result/preview-no-shot-1/",
+        "screenshot_url": "",
+        "verdict": "No malicious classification",
+        "severity": "low",
+        "details": "report only persisted",
+    }
+
+    with monkeypatch.context() as patched:
+        patched.setattr(app_main.supabase_store, "save_urlscan_preview_cache", lambda entry: saved.append(dict(entry)))
+        app_main._save_urlscan_preview_cache(job_entry)
+
+    assert saved
+    cached = app_main._load_urlscan_preview_cache("https://example.org/referral")
+    assert cached is not None
+    assert cached["final_url"] == "https://example.org/referral"
+    assert cached["report_url"] == "https://urlscan.io/result/preview-no-shot-1/"
+    assert cached["screenshot_url"] == ""
+    assert cached["screenshot_ready"] is False
+
+
+def test_apply_urlscan_preview_cache_hit_reports_pending_when_no_screenshot():
+    final_url = "https://secure.example.net/login"
+    cached = {
+        "uuid": "pending-shot-1",
+        "status": "finished",
+        "final_url": final_url,
+        "submitted_url": final_url,
+        "report_url": "https://urlscan.io/result/pending-shot-1/",
+        "screenshot_url": "",
+        "verdict": "No malicious classification",
+        "severity": "low",
+        "details": "pending screenshot",
+        "score": 0,
+        "categories": [],
+        "brands": [],
+        "screenshot_ready": False,
+        "expires_at": int(time.time()) + 3600,
+    }
+    job = {
+        "analysis": {"evidence": {"external_intel_summary": {}}},
+    }
+
+    updated = app_main._apply_urlscan_preview_cache_hit(job, cached)
+
+    assert updated["preview"]["status"] == "pending"
+    assert updated["preview"]["source"] == "urlscan"
+    assert updated["preview"]["final_url"] == final_url
+    assert updated["preview"]["report_url"] == "https://urlscan.io/result/pending-shot-1/"
+    assert updated["preview"]["image_url"] is None
+    assert updated["preview"]["reason"] == "urlscan_screenshot_pending"
+    assert updated["preview"]["cache_hit"] is True
+    assert updated["analysis"]["evidence"]["external_intel_summary"]["urlscan"]["status"] == "clean"
+
+
 def test_orchestrated_fast_lane_attaches_cached_preview_before_submit_stage(monkeypatch):
     job = {
         "scan_id": "orch_fast_lane_cache_hit",

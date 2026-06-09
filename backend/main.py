@@ -4591,9 +4591,9 @@ def _normalize_urlscan_preview_cache_entry(entry: Any) -> Optional[Dict[str, Any
     if not isinstance(entry, dict):
         return None
     final_url = str(entry.get("final_url") or entry.get("canonical_url") or "").strip()
-    screenshot_url = str(entry.get("screenshot_url") or "").strip()
     report_url = str(entry.get("report_url") or "").strip()
-    if not final_url or not screenshot_url or not report_url:
+    screenshot_url = str(entry.get("screenshot_url") or "").strip()
+    if not final_url or not report_url:
         return None
     normalized = dict(entry)
     normalized["status"] = "finished"
@@ -4601,7 +4601,7 @@ def _normalize_urlscan_preview_cache_entry(entry: Any) -> Optional[Dict[str, Any
     normalized["submitted_url"] = normalized.get("submitted_url") or normalized.get("canonical_url") or final_url
     normalized["screenshot_url"] = screenshot_url
     normalized["report_url"] = report_url
-    normalized["screenshot_ready"] = True
+    normalized["screenshot_ready"] = bool(normalized.get("screenshot_ready", bool(screenshot_url))) and bool(screenshot_url)
     normalized["cache_hit"] = True
     normalized.setdefault("verdict", "No malicious classification")
     normalized.setdefault("severity", "low")
@@ -4724,9 +4724,10 @@ def _save_urlscan_preview_cache(entry: Dict[str, Any]) -> None:
         return
     final_url = str(entry.get("final_url") or entry.get("submitted_url") or "").strip()
     submitted_url = str(entry.get("submitted_url") or "").strip()
-    screenshot_url = str(entry.get("screenshot_url") or "").strip()
     report_url = str(entry.get("report_url") or "").strip()
-    if not final_url or not screenshot_url or not report_url:
+    screenshot_url = str(entry.get("screenshot_url") or "").strip()
+    screenshot_ready = bool(entry.get("screenshot_ready", bool(screenshot_url))) and bool(screenshot_url)
+    if not final_url or not report_url:
         return
     hostname = (urllib.parse.urlparse(final_url).hostname or "").lower()
     lookup_urls = [final_url]
@@ -4748,7 +4749,7 @@ def _save_urlscan_preview_cache(entry: Dict[str, Any]) -> None:
             "submitted_url": submitted_url or final_url,
             "report_url": report_url,
             "screenshot_url": screenshot_url,
-            "screenshot_ready": True,
+            "screenshot_ready": screenshot_ready,
             "verdict": entry.get("verdict") or "No malicious classification",
             "severity": entry.get("severity") or "low",
             "details": entry.get("details") or "urlscan preview cached",
@@ -5448,14 +5449,23 @@ def _apply_urlscan_preview_cache_hit(job: Dict[str, Any], cached: Dict[str, Any]
         return job
     job["urlscan"] = cached_summary
     preview = job.setdefault("preview", {})
-    preview["status"] = "ready"
-    preview["source"] = "urlscan"
     preview["final_url"] = cached_summary.get("final_url")
     preview["report_url"] = cached_summary.get("report_url")
-    preview["image_url"] = cached_summary.get("screenshot_url")
-    preview["screenshot_url"] = cached_summary.get("screenshot_url")
+    screenshot_url = cached_summary.get("screenshot_url")
+    if screenshot_url:
+        preview["status"] = "ready"
+        preview["source"] = "urlscan"
+        preview["image_url"] = screenshot_url
+        preview["screenshot_url"] = screenshot_url
+        preview["reason"] = None
+    else:
+        preview["status"] = "pending"
+        preview["source"] = "urlscan"
+        preview["image_url"] = None
+        preview["screenshot_url"] = None
+        preview["reason"] = cached_summary.get("reason") or "urlscan_screenshot_pending"
     preview["cache_hit"] = True
-    preview["reason"] = None
+    preview.setdefault("reason", "urlscan_screenshot_pending")
     analysis = job.get("analysis") if isinstance(job.get("analysis"), dict) else {}
     evidence = analysis.setdefault("evidence", {})
     summary = evidence.setdefault("external_intel_summary", {})
@@ -5480,7 +5490,7 @@ def _urlscan_preview_cache_entry_from_job(job: Dict[str, Any]) -> Optional[Dict[
     )
     screenshot_url = urlscan_state.get("screenshot_url") or preview.get("screenshot_url")
     report_url = urlscan_state.get("report_url") or preview.get("report_url")
-    if not final_url or not screenshot_url or not report_url:
+    if not final_url or not report_url:
         return None
     return {
         "uuid": urlscan_state.get("uuid"),
@@ -5489,6 +5499,7 @@ def _urlscan_preview_cache_entry_from_job(job: Dict[str, Any]) -> Optional[Dict[
         "final_url": final_url,
         "report_url": report_url,
         "screenshot_url": screenshot_url,
+        "screenshot_ready": bool(screenshot_url),
         "verdict": urlscan_state.get("verdict") or "No malicious classification",
         "severity": urlscan_state.get("severity") or "low",
         "details": urlscan_state.get("details") or "urlscan preview cached",
@@ -6230,6 +6241,9 @@ async def _refresh_orchestrated_job(job: Dict[str, Any], request: Request) -> Di
                     preview["screenshot_url"] = None
                     preview["image_url"] = None
                     preview["reason"] = "urlscan_screenshot_pending"
+                cache_entry = _urlscan_preview_cache_entry_from_job(job)
+                if cache_entry:
+                    _save_urlscan_preview_cache(cache_entry)
                 if result.get("final_url"):
                     job["primary_final_url"] = result.get("final_url")
                     resolved_urls = job.get("resolved_urls") if isinstance(job.get("resolved_urls"), list) else []
