@@ -223,6 +223,34 @@ def _is_cache_entry_valid(entry: Dict[str, Any], now: int) -> bool:
     return expires_at > now
 
 
+def _cache_entry_covers_requested_sources(
+    entry: Dict[str, Any],
+    *,
+    include_virustotal: bool,
+    include_urlhaus: bool,
+    vt_key: Optional[str],
+    urlhaus_key: str,
+    web_risk_enabled: bool,
+) -> bool:
+    sources = entry.get("sources")
+    if not isinstance(sources, dict):
+        return False
+
+    required_sources: List[str] = []
+    if web_risk_enabled:
+        required_sources.append(WEB_RISK_SOURCE)
+    if include_virustotal and vt_key:
+        required_sources.append(VIRUS_TOTAL_SOURCE)
+    if include_urlhaus and urlhaus_key:
+        required_sources.append(URLHAUS_SOURCE)
+
+    for source_name in required_sources:
+        source_payload = sources.get(source_name)
+        if not isinstance(source_payload, dict) or not source_payload.get("consulted"):
+            return False
+    return True
+
+
 def _normalize_cached_entry(entry: Dict[str, Any], url: str, ttl: int) -> Dict[str, Any]:
     cached_at = _coerce_int(entry.get("cached_at", int(time.time())))
     created_at = _coerce_int(entry.get("created_at", cached_at))
@@ -761,20 +789,31 @@ def get_reputation_for_urls(
     results: Dict[str, Dict[str, Any]] = {}
     need_fetch: List[str] = []
     updated_cache_entries: Dict[str, Any] = {}
+    web_risk_enabled = has_web_risk_key()
+    vt_key = os.getenv("VIRUSTOTAL_API_KEY", "").strip() or None
+    urlhaus_key = _urlhaus_auth_key()
 
     for url in normalized_urls:
         key = _url_hash(url)
         cached_entry = _load_cache_entry(cache, url)
-        if cached_entry is not None and _is_cache_entry_valid(cached_entry, now):
+        if (
+            cached_entry is not None
+            and _is_cache_entry_valid(cached_entry, now)
+            and _cache_entry_covers_requested_sources(
+                cached_entry,
+                include_virustotal=include_virustotal,
+                include_urlhaus=include_urlhaus,
+                vt_key=vt_key,
+                urlhaus_key=urlhaus_key,
+                web_risk_enabled=web_risk_enabled,
+            )
+        ):
             results[key] = _normalize_cached_entry(cached_entry, url, REPUTATION_CACHE_TTL_SECONDS)
             continue
         need_fetch.append(url)
 
     if need_fetch:
-        web_risk_enabled = has_web_risk_key()
         web_risk_matches = check_urls_against_web_risk(need_fetch) if web_risk_enabled else {}
-        vt_key = os.getenv("VIRUSTOTAL_API_KEY", "").strip() or None
-        urlhaus_key = _urlhaus_auth_key()
         vt_matches = _fetch_virustotal(need_fetch, vt_key) if include_virustotal else {}
         urlhaus_matches = _fetch_urlhaus(need_fetch, urlhaus_key) if include_urlhaus else {}
         should_persist_results = persist_partial or (include_virustotal and include_urlhaus)

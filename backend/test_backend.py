@@ -3898,6 +3898,77 @@ def test_reputation_cache_persists_only_touched_remote_entries(monkeypatch, tmp_
     assert old_key not in saved_remote_subsets[0]
 
 
+def test_reputation_cache_refetches_when_configured_source_was_not_consulted(monkeypatch, tmp_path):
+    cache_path = tmp_path / "url_reputation_cache.json"
+    url = "https://cached-before-urlhaus.example/path"
+    key = url_reputation._url_hash(url)
+    now = int(time.time())
+    calls = {"urlhaus": 0}
+    existing_cache = {
+        key: {
+            "version": url_reputation.REPUTATION_CACHE_VERSION,
+            "url": url,
+            "verdict": "clean",
+            "risk_score": 0,
+            "confidence": 0.95,
+            "created_at": now,
+            "cached_at": now,
+            "expires_at": now + 3600,
+            "sources": {
+                "google_web_risk": {"status": "clean", "consulted": True, "score": 0},
+                "virustotal": {"status": "clean", "consulted": True, "score": 0},
+                "urlhaus": {"status": "unknown", "consulted": False, "details": {"status": "not_configured"}},
+            },
+        }
+    }
+
+    monkeypatch.setattr(url_reputation, "ENABLE_URL_REPUTATION", True)
+    monkeypatch.setattr(url_reputation, "REPUTATION_CACHE_PATH", cache_path)
+    monkeypatch.setattr(url_reputation, "_load_cache", lambda path: dict(existing_cache))
+    monkeypatch.setattr(url_reputation, "_save_cache", lambda path, data, remote_subset=None: None)
+    monkeypatch.setattr(url_reputation, "has_web_risk_key", lambda: True)
+    monkeypatch.setattr(url_reputation, "check_urls_against_web_risk", lambda urls: {})
+    monkeypatch.setenv("VIRUSTOTAL_API_KEY", "vt-secret")
+    monkeypatch.setattr(url_reputation, "_urlhaus_auth_key", lambda: "urlhaus-secret")
+    monkeypatch.setattr(
+        url_reputation,
+        "_fetch_virustotal",
+        lambda urls, api_key: {
+            url_reputation._url_hash(urls[0]): {
+                "status": "clean",
+                "threat_type": "unknown",
+                "score": 0,
+                "details": {"status": "clean"},
+                "query_ms": 5,
+            }
+        },
+    )
+
+    def fake_urlhaus(urls, auth_key=None):
+        calls["urlhaus"] += 1
+        return {
+            url_reputation._url_hash(urls[0]): {
+                "status": "clean",
+                "threat_type": "unknown",
+                "score": 0,
+                "details": {"status": "not_listed"},
+                "query_ms": 6,
+            }
+        }
+
+    monkeypatch.setattr(url_reputation, "_fetch_urlhaus", fake_urlhaus)
+
+    result = url_reputation.get_reputation_for_urls(
+        [url],
+        include_virustotal=True,
+        include_urlhaus=True,
+    )
+
+    assert calls["urlhaus"] == 1
+    assert result[key]["cached"] is True
+    assert result[key]["sources"]["urlhaus"]["consulted"] is True
+
+
 def test_urlhaus_without_auth_key_is_not_consulted(monkeypatch):
     def fail_post(*args, **kwargs):
         raise AssertionError("URLhaus must not be called without Auth-Key.")
