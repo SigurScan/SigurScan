@@ -109,16 +109,18 @@ def preseed_one(
                 "screenshot_url": preview.get("screenshot_url"),
                 "elapsed_seconds": round(time.time() - started_at, 2),
             }
-        if last_payload.get("status") == "complete":
-            return {
-                "label": seed.get("label"),
-                "url": seed.get("url"),
-                "status": "complete_without_preview",
-                "scan_id": scan_id,
-                "elapsed_seconds": round(time.time() - started_at, 2),
-            }
         sleep(poll_interval_seconds)
 
+    preview = last_payload.get("preview") if isinstance(last_payload.get("preview"), dict) else {}
+    if last_payload.get("status") == "complete":
+        return {
+            "label": seed.get("label"),
+            "url": seed.get("url"),
+            "status": "complete_without_cached_preview",
+            "scan_id": scan_id,
+            "has_screenshot_url": bool(preview.get("screenshot_url")),
+            "elapsed_seconds": round(time.time() - started_at, 2),
+        }
     return {
         "label": seed.get("label"),
         "url": seed.get("url"),
