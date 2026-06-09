@@ -75,11 +75,6 @@ android {
         )
         buildConfigField(
             "String",
-            "VIRUS_TOTAL_API_KEY",
-            "\"\""
-        )
-        buildConfigField(
-            "String",
             "GOOGLE_WEB_RISK_API_KEY",
             "\"\""
         )
@@ -102,7 +97,6 @@ android {
             buildConfigField("String", "SIGURSCAN_BACKEND_BASE_URL", buildConfigSafeString("SIGURSCAN_RELEASE_BACKEND_BASE_URL", "SIGURSCAN_RELEASE_BACKEND_BASE_URL"))
             buildConfigField("String", "SIGURSCAN_PRIVACY_URL", buildConfigSafeString("SIGURSCAN_RELEASE_PRIVACY_URL", "SIGURSCAN_RELEASE_PRIVACY_URL"))
             buildConfigField("String", "URLSCAN_API_KEY", "\"\"")
-            buildConfigField("String", "VIRUS_TOTAL_API_KEY", "\"\"")
             buildConfigField("String", "GOOGLE_WEB_RISK_API_KEY", "\"\"")
             if (hasReleaseKeystore) {
                 signingConfig = signingConfigs.getByName("release")

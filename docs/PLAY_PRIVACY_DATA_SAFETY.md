@@ -32,7 +32,7 @@ In release, cheile provider nu sunt incluse in APK. Providerii se acceseaza prin
 - SigurScan backend/Vercel pentru scanare;
 - urlscan.io pentru sandbox si screenshot securizat al URL-ului final;
 - Google Web Risk / Safe Browsing backend-side, unde este configurat;
-- VirusTotal backend-side/fallback, unde este configurat;
+- URLhaus si Phishing.Database backend-side, unde sunt configurate;
 - Supabase, accesat doar backend-side, pentru evenimente agregate, feedback si campanii comunitare validate.
 
 Privacy Policy publica pentru Play Console:
@@ -89,8 +89,8 @@ Nu se face:
 - `ENABLE_RATE_LIMIT=true` pe backend pentru productie.
 - `REQUIRE_API_KEY=true` doar pentru clienti privati/admin sau dupa app attestation/backend-issued token; nu pune shared API secrets in APK.
 - Supabase RLS hardening aplicat remote: anon nu citeste/scrie tabele brute de telemetry, feedback, device sau community reports.
-- `SIGURSCAN_URLSCAN_API_KEY`, Google Web Risk si VirusTotal configurate doar in backend/Vercel.
-- VirusTotal trebuie folosit doar ca fallback si numai cu licenta/policy compatibila cu produs comercial.
+- `SIGURSCAN_URLSCAN_API_KEY`, Google Web Risk, URLhaus si Phishing.Database configurate doar in backend/Vercel.
+- VirusTotal Public API nu este folosit in produsul comercial v1; daca revine, trebuie contract/licenta compatibila comercial.
 - Confirmare ca release APK/AAB nu contine provider keys.
 
 ## Verificari executate

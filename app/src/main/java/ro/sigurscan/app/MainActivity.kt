@@ -2747,7 +2747,7 @@ private fun publicThreatSource(source: String): String {
     return when {
         normalized.contains("urlscan") -> "Analiză izolată"
         normalized.contains("web risk") || normalized.contains("webrisk") || normalized.contains("google") -> "Reputație globală"
-        normalized.contains("virustotal") || normalized == "vt" -> "Reputație suplimentară"
+        normalized.contains("phishing.database") || normalized.contains("phishing_database") -> "Listă phishing activ"
         normalized.contains("backend") -> "Analiză SigurScan"
         else -> "Sursă de verificare"
     }
@@ -2773,9 +2773,9 @@ private fun publicThreatDetails(details: String?): String? {
             normalized.contains("api key") ||
             normalized.contains("backend") ||
             normalized.contains("urlscan") ||
-            normalized.contains("virustotal") ||
+            normalized.contains("phishing.database") ||
+            normalized.contains("phishing_database") ||
             normalized.contains("web risk") ||
-            normalized.contains("vt score") ||
             normalized.contains("engines:") ||
             normalized.contains("sandbox") ->
             "Verificarea online nu a returnat suficiente detalii publice. Folosește și canalul oficial."

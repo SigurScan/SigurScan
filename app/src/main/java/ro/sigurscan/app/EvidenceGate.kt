@@ -22,7 +22,7 @@ enum class EvidenceSource {
     ROMANIA_SCENARIO,
     GOOGLE_WEB_RISK,
     URLSCAN,
-    VIRUSTOTAL,
+    PHISHING_DATABASE,
     CLAIM_VERIFIER,
     USER_FEEDBACK,
     CORPUS,
@@ -32,7 +32,7 @@ enum class EvidenceSource {
 enum class ProviderId {
     WEB_RISK,
     URLSCAN,
-    VIRUSTOTAL,
+    PHISHING_DATABASE,
     INFRA,
     CLAIM_VERIFIER,
     OFFICIAL_REGISTRY,
@@ -65,8 +65,8 @@ enum class EvidenceCode {
     URLSCAN_VERDICT_PHISHING,
     URLSCAN_VERDICT_MALWARE,
     URLSCAN_NO_CLASSIFICATION,
-    VIRUSTOTAL_MALICIOUS_CONSENSUS,
-    VIRUSTOTAL_LOW_OR_NO_DETECTION,
+    PHISHING_DATABASE_LISTED,
+    PHISHING_DATABASE_NOT_LISTED,
     OFFER_CLAIM_CONFIRMED,
     OFFER_CLAIM_NOT_FOUND,
     OFFER_CLAIM_INCONCLUSIVE,
@@ -205,7 +205,7 @@ object EvidenceGatePolicy {
         EvidenceCode.WEBRISK_MATCH_SOCIAL_ENGINEERING_EXT,
         EvidenceCode.URLSCAN_VERDICT_PHISHING,
         EvidenceCode.URLSCAN_VERDICT_MALWARE,
-        EvidenceCode.VIRUSTOTAL_MALICIOUS_CONSENSUS,
+        EvidenceCode.PHISHING_DATABASE_LISTED,
         EvidenceCode.APK_DOWNLOAD_UNOFFICIAL,
         EvidenceCode.REMOTE_ACCESS_DOWNLOAD_UNOFFICIAL -> GateAction.DO_NOT_CONTINUE
 
@@ -248,7 +248,7 @@ object EvidenceGatePolicy {
 
         EvidenceCode.WEBRISK_NO_MATCH,
         EvidenceCode.URLSCAN_NO_CLASSIFICATION,
-        EvidenceCode.VIRUSTOTAL_LOW_OR_NO_DETECTION,
+        EvidenceCode.PHISHING_DATABASE_NOT_LISTED,
         EvidenceCode.OFFER_CLAIM_CONFIRMED,
         EvidenceCode.OFFER_CLAIM_NOT_FOUND,
         EvidenceCode.OFFER_CLAIM_INCONCLUSIVE,
@@ -294,7 +294,7 @@ object EvidenceGatePolicy {
         if (signal.code == EvidenceCode.USER_REPORT_UNVERIFIED) return false
         if (signal.code == EvidenceCode.WEBRISK_NO_MATCH) return false
         if (signal.code == EvidenceCode.URLSCAN_NO_CLASSIFICATION) return false
-        if (signal.code == EvidenceCode.VIRUSTOTAL_LOW_OR_NO_DETECTION) return false
+        if (signal.code == EvidenceCode.PHISHING_DATABASE_NOT_LISTED) return false
         return true
     }
 }
@@ -354,10 +354,10 @@ class EvidenceGate(private val nowMillis: () -> Long = { System.currentTimeMilli
             ctx
         )
 
-        ctx.has(EvidenceCode.VIRUSTOTAL_MALICIOUS_CONSENSUS) -> final(
+        ctx.has(EvidenceCode.PHISHING_DATABASE_LISTED) -> final(
             GateAction.DO_NOT_CONTINUE,
-            "VT_CONSENSUS",
-            ctx.firstIds(EvidenceCode.VIRUSTOTAL_MALICIOUS_CONSENSUS),
+            "PHISHING_DATABASE_LISTED",
+            ctx.firstIds(EvidenceCode.PHISHING_DATABASE_LISTED),
             ctx
         )
 
@@ -750,7 +750,7 @@ class EvidenceGate(private val nowMillis: () -> Long = { System.currentTimeMilli
                 EvidenceCode.WEBRISK_MATCH_SOCIAL_ENGINEERING_EXT,
                 EvidenceCode.URLSCAN_VERDICT_PHISHING,
                 EvidenceCode.URLSCAN_VERDICT_MALWARE,
-                EvidenceCode.VIRUSTOTAL_MALICIOUS_CONSENSUS,
+                EvidenceCode.PHISHING_DATABASE_LISTED,
                 EvidenceCode.HOMOGLYPH_DOMAIN,
                 EvidenceCode.PUNYCODE_HOST,
                 EvidenceCode.TYPOSQUAT_LOOKALIKE,
@@ -949,7 +949,7 @@ class EvidenceGate(private val nowMillis: () -> Long = { System.currentTimeMilli
             EvidenceCode.WEBRISK_MATCH_SOCIAL_ENGINEERING_EXT,
             EvidenceCode.URLSCAN_VERDICT_PHISHING,
             EvidenceCode.URLSCAN_VERDICT_MALWARE,
-            EvidenceCode.VIRUSTOTAL_MALICIOUS_CONSENSUS
+            EvidenceCode.PHISHING_DATABASE_LISTED
         )
         fun needsProviderReviewBeforeVerdict(): Boolean {
             if (snapshot.completeness == EvidenceCompleteness.LOCAL_ONLY) return true
@@ -1024,7 +1024,7 @@ class EvidenceGate(private val nowMillis: () -> Long = { System.currentTimeMilli
             val requiredProviders = if (targetUrl().isNullOrBlank()) {
                 setOf(ProviderId.CLAIM_VERIFIER)
             } else {
-                setOf(ProviderId.WEB_RISK, ProviderId.URLSCAN, ProviderId.VIRUSTOTAL)
+                setOf(ProviderId.WEB_RISK, ProviderId.URLSCAN, ProviderId.PHISHING_DATABASE)
             }
             if (snapshot.providerStates.values.any { it.provider in requiredProviders && it.status == ProviderStatus.OK }) return true
             return active.any { signal ->
@@ -1033,7 +1033,7 @@ class EvidenceGate(private val nowMillis: () -> Long = { System.currentTimeMilli
                     else -> signal.source in setOf(
                         EvidenceSource.GOOGLE_WEB_RISK,
                         EvidenceSource.URLSCAN,
-                        EvidenceSource.VIRUSTOTAL
+                        EvidenceSource.PHISHING_DATABASE
                     )
                 }
             }

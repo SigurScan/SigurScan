@@ -16,8 +16,8 @@ class ThreatIntelOrchestratorTest {
     )
 
     @Test
-    fun virusTotalIsSkippedForLowRiskWhenWebRiskIsClean() {
-        val shouldRun = ThreatIntelOrchestrator.shouldRunVirusTotal(
+    fun deepReputationIsSkippedForLowRiskWhenWebRiskIsClean() {
+        val shouldRun = ThreatIntelOrchestrator.shouldRunDeepReputation(
             riskLevel = "low",
             existingThreatIntel = emptyList(),
             webRisk = ThreatIntelSourceResult(
@@ -31,8 +31,8 @@ class ThreatIntelOrchestratorTest {
     }
 
     @Test
-    fun virusTotalRunsWhenLocalRiskIsHighEvenIfWebRiskIsClean() {
-        val shouldRun = ThreatIntelOrchestrator.shouldRunVirusTotal(
+    fun deepReputationRunsWhenLocalRiskIsHighEvenIfWebRiskIsClean() {
+        val shouldRun = ThreatIntelOrchestrator.shouldRunDeepReputation(
             riskLevel = "high",
             existingThreatIntel = emptyList(),
             webRisk = ThreatIntelSourceResult(
@@ -46,8 +46,8 @@ class ThreatIntelOrchestratorTest {
     }
 
     @Test
-    fun virusTotalRunsWhenExistingEvidenceIsUnclearOrSuspicious() {
-        val shouldRun = ThreatIntelOrchestrator.shouldRunVirusTotal(
+    fun deepReputationRunsWhenExistingEvidenceIsUnclearOrSuspicious() {
+        val shouldRun = ThreatIntelOrchestrator.shouldRunDeepReputation(
             riskLevel = "low",
             existingThreatIntel = listOf(
                 ThreatIntelSourceResult(
@@ -67,8 +67,8 @@ class ThreatIntelOrchestratorTest {
     }
 
     @Test
-    fun virusTotalIsSkippedWhenWebRiskAlreadyConfirmsThreat() {
-        val shouldRun = ThreatIntelOrchestrator.shouldRunVirusTotal(
+    fun deepReputationIsSkippedWhenWebRiskAlreadyConfirmsThreat() {
+        val shouldRun = ThreatIntelOrchestrator.shouldRunDeepReputation(
             riskLevel = "high",
             existingThreatIntel = emptyList(),
             webRisk = ThreatIntelSourceResult(

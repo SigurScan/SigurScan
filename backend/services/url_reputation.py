@@ -1,13 +1,12 @@
 """URL reputation aggregation service with multi-source support.
 
 This module performs:
-- multi-source lookups (Google Web Risk, VirusTotal, URLhaus);
+- multi-source lookups (Google Web Risk, Phishing.Database, URLhaus);
 - per-source confidence scoring;
 - cache-safe persistence with source metadata;
 - aggregated verdict/reputation payload used by ScamAtlas.
 """
 
-import base64
 import hashlib
 import json
 import os
@@ -15,6 +14,7 @@ import time
 from collections import Counter
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+from urllib.parse import urlparse, urlunparse
 
 import requests
 
@@ -23,17 +23,17 @@ from services.google_web_risk import check_urls_against_web_risk, has_web_risk_k
 
 
 WEB_RISK_SOURCE = "google_web_risk"
-VIRUS_TOTAL_SOURCE = "virustotal"
+PHISHING_DATABASE_SOURCE = "phishing_database"
 URLHAUS_SOURCE = "urlhaus"
 
 WEB_RISK_WEIGHT = 60
-VIRUS_TOTAL_WEIGHT = 45
+PHISHING_DATABASE_WEIGHT = 80
 URLHAUS_WEIGHT = 55
-SOURCE_ORDER = [WEB_RISK_SOURCE, VIRUS_TOTAL_SOURCE, URLHAUS_SOURCE]
+SOURCE_ORDER = [WEB_RISK_SOURCE, PHISHING_DATABASE_SOURCE, URLHAUS_SOURCE]
 
 SOURCE_WEIGHTS = {
     WEB_RISK_SOURCE: WEB_RISK_WEIGHT,
-    VIRUS_TOTAL_SOURCE: VIRUS_TOTAL_WEIGHT,
+    PHISHING_DATABASE_SOURCE: PHISHING_DATABASE_WEIGHT,
     URLHAUS_SOURCE: URLHAUS_WEIGHT,
 }
 
@@ -45,20 +45,38 @@ SOURCE_STATUS_WEIGHTS = {
     "error": 0.0,
 }
 
-REPUTATION_CACHE_VERSION = 2
-VIRUS_TOTAL_API_URL = "https://www.virustotal.com/api/v3/urls/"
+REPUTATION_CACHE_VERSION = 3
+PHISHING_DATABASE_DOMAINS_URL = os.getenv(
+    "PHISHING_DATABASE_DOMAINS_URL",
+    "https://raw.githubusercontent.com/Phishing-Database/Phishing.Database/master/phishing-domains-ACTIVE.txt",
+)
+PHISHING_DATABASE_LINKS_URL = os.getenv(
+    "PHISHING_DATABASE_LINKS_URL",
+    "https://phish.co.za/latest/phishing-links-ACTIVE.txt",
+)
 URLHAUS_API_URL = "https://urlhaus-api.abuse.ch/v1/url/"
-VIRUS_TOTAL_TIMEOUT_SECONDS = float(os.getenv("VIRUS_TOTAL_TIMEOUT_SECONDS", "3.0"))
+PHISHING_DATABASE_TIMEOUT_SECONDS = float(os.getenv("PHISHING_DATABASE_TIMEOUT_SECONDS", "4.0"))
+PHISHING_DATABASE_FEED_TTL_SECONDS = int(os.getenv("PHISHING_DATABASE_FEED_TTL_SECONDS", "3600"))
 URLHAUS_TIMEOUT_SECONDS = float(os.getenv("URLHAUS_TIMEOUT_SECONDS", "3.0"))
 URLHAUS_AUTH_KEY = (
     os.getenv("URLHAUS_AUTH_KEY", "").strip()
     or os.getenv("URLHAUS_API_KEY", "").strip()
     or os.getenv("ABUSECH_AUTH_KEY", "").strip()
 )
-VIRUS_TOTAL_MALICIOUS_CONSENSUS_MIN_ENGINES = max(
-    1,
-    int(os.getenv("VIRUSTOTAL_HARD_MALICIOUS_MIN_ENGINES", "2")),
-)
+ENABLE_PHISHING_DATABASE = os.getenv("ENABLE_PHISHING_DATABASE", "true").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+PHISHING_DATABASE_MAX_FEED_BYTES = int(os.getenv("PHISHING_DATABASE_MAX_FEED_BYTES", "20000000"))
+
+_PHISHING_DATABASE_CACHE: Dict[str, Any] = {
+    "loaded_at": 0,
+    "domains": set(),
+    "links": set(),
+    "error": None,
+}
 
 DEFAULT_CACHE_TTL_SECONDS = int(os.getenv("URL_REPUTATION_CACHE_TTL_SECONDS", "43200"))
 MAX_REPUTATION_URLS = int(os.getenv("MAX_REPUTATION_URLS", "60"))
@@ -226,9 +244,8 @@ def _is_cache_entry_valid(entry: Dict[str, Any], now: int) -> bool:
 def _cache_entry_covers_requested_sources(
     entry: Dict[str, Any],
     *,
-    include_virustotal: bool,
+    include_phishing_database: bool,
     include_urlhaus: bool,
-    vt_key: Optional[str],
     urlhaus_key: str,
     web_risk_enabled: bool,
 ) -> bool:
@@ -239,8 +256,8 @@ def _cache_entry_covers_requested_sources(
     required_sources: List[str] = []
     if web_risk_enabled:
         required_sources.append(WEB_RISK_SOURCE)
-    if include_virustotal and vt_key:
-        required_sources.append(VIRUS_TOTAL_SOURCE)
+    if include_phishing_database and ENABLE_PHISHING_DATABASE:
+        required_sources.append(PHISHING_DATABASE_SOURCE)
     if include_urlhaus and urlhaus_key:
         required_sources.append(URLHAUS_SOURCE)
 
@@ -495,120 +512,158 @@ def _parse_urlhaus_record(payload: Dict[str, Any]) -> Dict[str, Any]:
     return {}
 
 
-def _fetch_virustotal(urls: List[str], api_key: Optional[str]) -> Dict[str, Dict[str, Any]]:
-    output: Dict[str, Dict[str, Any]] = {}
-    if not api_key:
-        for url in urls:
-            key = _url_hash(url)
-            output[key] = {"status": "unknown", "threat_type": "unknown", "score": 0, "details": {"error": "missing_api_key"}}
-        return output
+def _download_text_feed(url: str) -> str:
+    response = requests.get(url, timeout=PHISHING_DATABASE_TIMEOUT_SECONDS)
+    response.raise_for_status()
+    content = response.content[:PHISHING_DATABASE_MAX_FEED_BYTES + 1]
+    if len(content) > PHISHING_DATABASE_MAX_FEED_BYTES:
+        raise ValueError(f"feed_too_large:{url}")
+    return content.decode("utf-8", errors="ignore")
 
-    headers = {"x-apikey": api_key}
+
+def _feed_lines(text: str) -> set[str]:
+    values: set[str] = set()
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or line.startswith("!"):
+            continue
+        values.add(line.lower())
+    return values
+
+
+def _load_phishing_database_feeds() -> Dict[str, Any]:
+    now = int(time.time())
+    cached_at = _coerce_int(_PHISHING_DATABASE_CACHE.get("loaded_at", 0), 0)
+    if cached_at and now - cached_at < PHISHING_DATABASE_FEED_TTL_SECONDS:
+        return _PHISHING_DATABASE_CACHE
+
+    if not ENABLE_PHISHING_DATABASE:
+        _PHISHING_DATABASE_CACHE.update({
+            "loaded_at": now,
+            "domains": set(),
+            "links": set(),
+            "error": "disabled",
+        })
+        return _PHISHING_DATABASE_CACHE
+
+    try:
+        domains_text = _download_text_feed(PHISHING_DATABASE_DOMAINS_URL)
+        links_text = _download_text_feed(PHISHING_DATABASE_LINKS_URL)
+        _PHISHING_DATABASE_CACHE.update({
+            "loaded_at": now,
+            "domains": _feed_lines(domains_text),
+            "links": _feed_lines(links_text),
+            "error": None,
+            "domains_url": PHISHING_DATABASE_DOMAINS_URL,
+            "links_url": PHISHING_DATABASE_LINKS_URL,
+        })
+    except Exception as exc:
+        # If a warm cache exists, keep using it; otherwise expose a provider error.
+        if not _PHISHING_DATABASE_CACHE.get("domains") and not _PHISHING_DATABASE_CACHE.get("links"):
+            _PHISHING_DATABASE_CACHE.update({
+                "loaded_at": now,
+                "domains": set(),
+                "links": set(),
+            })
+        _PHISHING_DATABASE_CACHE["error"] = str(exc)
+    return _PHISHING_DATABASE_CACHE
+
+
+def _canonical_url_variants(url: str) -> set[str]:
+    parsed = urlparse(url.strip())
+    if not parsed.scheme or not parsed.netloc:
+        return {url.strip().lower()}
+    hostname = (parsed.hostname or "").lower()
+    netloc = hostname
+    if parsed.port:
+        netloc = f"{hostname}:{parsed.port}"
+    path = parsed.path or "/"
+    normalized = urlunparse((parsed.scheme.lower(), netloc, path, "", parsed.query, "")).lower()
+    variants = {normalized}
+    if normalized.endswith("/"):
+        variants.add(normalized.rstrip("/"))
+    else:
+        variants.add(normalized + "/")
+    return variants
+
+
+def _host_from_url(url: str) -> str:
+    try:
+        return (urlparse(url).hostname or "").strip(".").lower()
+    except Exception:
+        return ""
+
+
+def _domain_matches_feed(hostname: str, feed_domains: set[str]) -> Optional[str]:
+    if not hostname:
+        return None
+    hostname = hostname.strip(".").lower()
+    if hostname in feed_domains:
+        return hostname
+    labels = hostname.split(".")
+    for index in range(1, max(1, len(labels) - 1)):
+        candidate = ".".join(labels[index:])
+        # Avoid broad false positives from shared base domains. A listed
+        # three-label domain may protect its subdomains; two-label domains
+        # require exact match above.
+        if candidate.count(".") >= 2 and candidate in feed_domains:
+            return candidate
+    return None
+
+
+def _fetch_phishing_database(urls: List[str]) -> Dict[str, Dict[str, Any]]:
+    output: Dict[str, Dict[str, Any]] = {}
+    start = time.perf_counter()
+    feed = _load_phishing_database_feeds()
+    query_ms = int((time.perf_counter() - start) * 1000)
+    domains = feed.get("domains") if isinstance(feed.get("domains"), set) else set()
+    links = feed.get("links") if isinstance(feed.get("links"), set) else set()
+    error = feed.get("error")
+
     for url in urls:
         key = _url_hash(url)
-        output[key] = {
-            "status": "error",
-            "threat_type": "error",
-            "score": 0,
-            "details": {"error": "not_scanned"},
-            "query_ms": 0,
-        }
-        try:
-            start = time.perf_counter()
-            url_id = base64.urlsafe_b64encode(url.encode("utf-8")).decode("ascii").rstrip("=")
-            response = requests.get(
-                f"{VIRUS_TOTAL_API_URL}{url_id}",
-                headers=headers,
-                timeout=VIRUS_TOTAL_TIMEOUT_SECONDS,
-            )
-            query_ms = int((time.perf_counter() - start) * 1000)
-            if response.status_code == 404:
-                output[key] = {
-                    "status": "clean",
-                    "threat_type": "unknown",
-                    "score": 0,
-                    "details": {"status": "not_found"},
-                    "query_ms": query_ms,
-                }
-                continue
-            if response.status_code != 200:
-                output[key] = {
-                    "status": "error",
-                    "threat_type": "error",
-                    "score": 0,
-                    "details": {"error": f"HTTP {response.status_code}"},
-                    "query_ms": query_ms,
-                }
-                continue
-
-            payload = response.json()
-            if not isinstance(payload, dict):
-                output[key] = {
-                    "status": "error",
-                    "threat_type": "error",
-                    "score": 0,
-                    "details": {"error": "invalid_payload"},
-                    "query_ms": query_ms,
-                }
-                continue
-
-            attributes = payload.get("data", {}).get("attributes", {})
-            stats = attributes.get("last_analysis_stats", {})
-            analysis_results = attributes.get("last_analysis_results", {})
-            flagged_engines = []
-            if isinstance(analysis_results, dict):
-                for engine_name, engine_result in analysis_results.items():
-                    if not isinstance(engine_result, dict):
-                        continue
-                    category = str(engine_result.get("category") or "").strip().lower()
-                    if category not in {"malicious", "suspicious"}:
-                        continue
-                    flagged_engines.append(
-                        {
-                            "engine": str(engine_name or engine_result.get("engine_name") or "unknown")[:80],
-                            "category": category,
-                            "result": str(engine_result.get("result") or "unknown")[:160],
-                            "method": str(engine_result.get("method") or "unknown")[:80],
-                        }
-                    )
-            malicious = _coerce_int(stats.get("malicious", 0), 0)
-            suspicious = _coerce_int(stats.get("suspicious", 0), 0)
-
-            if malicious <= 0 and suspicious <= 0:
-                output[key] = {
-                    "status": "clean",
-                    "threat_type": "unknown",
-                    "score": 0,
-                    "details": {"status": "clean"},
-                    "query_ms": query_ms,
-                    "last_analysis_date": attributes.get("last_analysis_date"),
-                    "stats": stats,
-                }
-                continue
-
-            status = "malicious" if malicious >= VIRUS_TOTAL_MALICIOUS_CONSENSUS_MIN_ENGINES else "suspicious"
-            output[key] = {
-                "status": status,
-                "threat_type": status,
-                "score": min(100, max((malicious * 20) + (suspicious * 10), 35)),
-                "details": {
-                    "status": status,
-                    "provider": "virustotal",
-                    "stats": stats,
-                    "flagged_engines": flagged_engines[:12],
-                    "last_analysis_date": attributes.get("last_analysis_date"),
-                },
-                "query_ms": query_ms,
-            }
-        except Exception as exc:
+        if error and not domains and not links:
             output[key] = {
                 "status": "error",
                 "threat_type": "error",
                 "score": 0,
-                "details": {"error": str(exc)},
-                "query_ms": 0,
+                "details": {"error": str(error), "provider": "phishing_database"},
+                "query_ms": query_ms,
             }
+            continue
 
+        matched_link = next((variant for variant in _canonical_url_variants(url) if variant in links), None)
+        matched_domain = _domain_matches_feed(_host_from_url(url), domains)
+        if matched_link or matched_domain:
+            output[key] = {
+                "status": "malicious",
+                "threat_type": "phishing",
+                "score": 92,
+                "details": {
+                    "provider": "phishing_database",
+                    "status": "listed",
+                    "match_type": "url" if matched_link else "domain",
+                    "matched_value": matched_link or matched_domain,
+                    "domains_loaded": len(domains),
+                    "links_loaded": len(links),
+                    "feed_version_loaded_at": _coerce_int(feed.get("loaded_at", 0), 0),
+                },
+                "query_ms": query_ms,
+            }
+            continue
+
+        output[key] = {
+            "status": "clean",
+            "threat_type": "unknown",
+            "score": 0,
+            "details": {
+                "status": "not_listed",
+                "provider": "phishing_database",
+                "domains_loaded": len(domains),
+                "links_loaded": len(links),
+            },
+            "query_ms": query_ms,
+        }
     return output
 
 
@@ -760,7 +815,7 @@ def _aggregate_reputation(url: str, per_source: Dict[str, Dict[str, Any]]) -> Di
 def get_reputation_for_urls(
     urls: List[str],
     *,
-    include_virustotal: bool = True,
+    include_phishing_database: bool = True,
     include_urlhaus: bool = True,
     persist_partial: bool = False,
 ) -> Dict[str, Dict[str, Any]]:
@@ -790,7 +845,6 @@ def get_reputation_for_urls(
     need_fetch: List[str] = []
     updated_cache_entries: Dict[str, Any] = {}
     web_risk_enabled = has_web_risk_key()
-    vt_key = os.getenv("VIRUSTOTAL_API_KEY", "").strip() or None
     urlhaus_key = _urlhaus_auth_key()
 
     for url in normalized_urls:
@@ -801,9 +855,8 @@ def get_reputation_for_urls(
             and _is_cache_entry_valid(cached_entry, now)
             and _cache_entry_covers_requested_sources(
                 cached_entry,
-                include_virustotal=include_virustotal,
+                include_phishing_database=bool(include_phishing_database),
                 include_urlhaus=include_urlhaus,
-                vt_key=vt_key,
                 urlhaus_key=urlhaus_key,
                 web_risk_enabled=web_risk_enabled,
             )
@@ -814,9 +867,9 @@ def get_reputation_for_urls(
 
     if need_fetch:
         web_risk_matches = check_urls_against_web_risk(need_fetch) if web_risk_enabled else {}
-        vt_matches = _fetch_virustotal(need_fetch, vt_key) if include_virustotal else {}
+        phishing_database_matches = _fetch_phishing_database(need_fetch) if include_phishing_database else {}
         urlhaus_matches = _fetch_urlhaus(need_fetch, urlhaus_key) if include_urlhaus else {}
-        should_persist_results = persist_partial or (include_virustotal and include_urlhaus)
+        should_persist_results = persist_partial or (bool(include_phishing_database) and include_urlhaus)
 
         for url in need_fetch:
             key = _url_hash(url)
@@ -836,23 +889,20 @@ def get_reputation_for_urls(
                 "score": 100 if web_risk_entry else 0,
             }
 
-            vt_default_error = "skipped_fast_scan" if not include_virustotal else (
-                "missing_api_key" if not vt_key else "not_scanned"
-            )
-            vt_entry = vt_matches.get(key, {
-                "status": "unknown" if (not include_virustotal or not vt_key) else "error",
-                "threat_type": "unknown" if (not include_virustotal or not vt_key) else "error",
+            phishing_database_entry = phishing_database_matches.get(key, {
+                "status": "unknown" if not include_phishing_database else "error",
+                "threat_type": "unknown" if not include_phishing_database else "error",
                 "score": 0,
-                "details": {"status": vt_default_error},
+                "details": {"status": "skipped_fast_scan" if not include_phishing_database else "not_scanned"},
                 "query_ms": 0,
             })
-            per_source[VIRUS_TOTAL_SOURCE] = {
-                "status": vt_entry.get("status", "unknown"),
-                "consulted": bool(include_virustotal and vt_key),
-                "threat_type": vt_entry.get("threat_type", "unknown"),
-                "details": vt_entry.get("details", {}),
-                "score": _coerce_int(vt_entry.get("score", 0), 0),
-                "query_ms": _coerce_int(vt_entry.get("query_ms", 0), 0),
+            per_source[PHISHING_DATABASE_SOURCE] = {
+                "status": phishing_database_entry.get("status", "unknown"),
+                "consulted": bool(include_phishing_database and ENABLE_PHISHING_DATABASE),
+                "threat_type": phishing_database_entry.get("threat_type", "unknown"),
+                "details": phishing_database_entry.get("details", {}),
+                "score": _coerce_int(phishing_database_entry.get("score", 0), 0),
+                "query_ms": _coerce_int(phishing_database_entry.get("query_ms", 0), 0),
             }
 
             urlhaus_default_error = "skipped_fast_scan" if not include_urlhaus else "not_scanned"
@@ -896,6 +946,6 @@ def get_reputation_for_urls(
             else:
                 results[key] = dict(aggregated, cached=False)
 
-    if need_fetch and (persist_partial or (include_virustotal and include_urlhaus)):
+    if need_fetch and (persist_partial or (bool(include_phishing_database) and include_urlhaus)):
         _save_cache(REPUTATION_CACHE_PATH, cache, remote_subset=updated_cache_entries)
     return results

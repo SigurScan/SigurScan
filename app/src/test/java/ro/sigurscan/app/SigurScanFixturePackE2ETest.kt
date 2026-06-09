@@ -161,7 +161,7 @@ class SigurScanFixturePackE2ETest {
             completeness = providerModel.completeness,
             registryVersion = case.registryVersion,
             corpusVersion = case.policyVersion,
-            virusTotalConfigured = providerModel.virusTotalConfigured
+            phishingDatabaseConfigured = providerModel.phishingDatabaseConfigured
         )
     }
 
@@ -188,7 +188,7 @@ class SigurScanFixturePackE2ETest {
             completeness = providerModel.completeness,
             registryVersion = case.registryVersion,
             corpusVersion = case.policyVersion,
-            virusTotalConfigured = providerModel.virusTotalConfigured
+            phishingDatabaseConfigured = providerModel.phishingDatabaseConfigured
         )
     }
 
@@ -200,10 +200,10 @@ class SigurScanFixturePackE2ETest {
                 providerStates = mapOf(
                     ProviderId.WEB_RISK to ProviderState(ProviderId.WEB_RISK, ProviderStatus.SKIPPED, note = "privacy skip"),
                     ProviderId.URLSCAN to ProviderState(ProviderId.URLSCAN, ProviderStatus.SKIPPED, note = "privacy skip"),
-                    ProviderId.VIRUSTOTAL to ProviderState(ProviderId.VIRUSTOTAL, ProviderStatus.SKIPPED, note = "privacy skip")
+                    ProviderId.PHISHING_DATABASE to ProviderState(ProviderId.PHISHING_DATABASE, ProviderStatus.SKIPPED, note = "privacy skip")
                 ),
                 completeness = EvidenceCompleteness.LOCAL_ONLY,
-                virusTotalConfigured = false
+                phishingDatabaseConfigured = false
             )
         }
 
@@ -234,20 +234,20 @@ class SigurScanFixturePackE2ETest {
             }
         }
 
-        var virusTotalConfigured = false
-        mock.providers["virustotal"]?.let { provider ->
-            virusTotalConfigured = shouldSubmitExternal
+        var phishingDatabaseConfigured = false
+        (mock.providers["phishing_database"] ?: mock.providers["virustotal"])?.let { provider ->
+            phishingDatabaseConfigured = shouldSubmitExternal
             val status = if (provider.status == "NOT_RUN" && shouldSubmitExternal) {
                 ProviderStatus.OK
             } else {
                 providerStatus(provider.status)
             }
-            providerStates[ProviderId.VIRUSTOTAL] = ProviderState(ProviderId.VIRUSTOTAL, status)
+            providerStates[ProviderId.PHISHING_DATABASE] = ProviderState(ProviderId.PHISHING_DATABASE, status)
             when (provider.verdict) {
-                "MALICIOUS_HIGH" -> threatIntel += ThreatIntelSourceResult("VirusTotal", "Malicious", "high", "malicious=5 suspicious=2")
-                "LOW_ENGINE_HIT" -> threatIntel += ThreatIntelSourceResult("VirusTotal", "Low detection", "low", "malicious=1 suspicious=0")
+                "MALICIOUS_HIGH" -> threatIntel += ThreatIntelSourceResult("Phishing.Database", "Malicious", "high", "malicious=5 suspicious=2")
+                "LOW_ENGINE_HIT" -> threatIntel += ThreatIntelSourceResult("Phishing.Database", "Low detection", "low", "malicious=1 suspicious=0")
                 null -> if (status == ProviderStatus.OK) {
-                    threatIntel += ThreatIntelSourceResult("VirusTotal", "Clean", "low", "legacy fixture mock: no detection")
+                    threatIntel += ThreatIntelSourceResult("Phishing.Database", "Clean", "low", "legacy fixture mock: no detection")
                 }
             }
         }
@@ -258,7 +258,7 @@ class SigurScanFixturePackE2ETest {
         if (shouldSubmitExternal && !hasUnavailablePillar) {
             providerStates.putIfAbsent(ProviderId.WEB_RISK, ProviderState(ProviderId.WEB_RISK, ProviderStatus.OK))
             providerStates.putIfAbsent(ProviderId.URLSCAN, ProviderState(ProviderId.URLSCAN, ProviderStatus.OK))
-            providerStates.putIfAbsent(ProviderId.VIRUSTOTAL, ProviderState(ProviderId.VIRUSTOTAL, ProviderStatus.OK))
+            providerStates.putIfAbsent(ProviderId.PHISHING_DATABASE, ProviderState(ProviderId.PHISHING_DATABASE, ProviderStatus.OK))
             providerStates.putIfAbsent(ProviderId.CLAIM_VERIFIER, ProviderState(ProviderId.CLAIM_VERIFIER, ProviderStatus.OK))
         }
 
@@ -268,7 +268,7 @@ class SigurScanFixturePackE2ETest {
             else -> EvidenceCompleteness.LOCAL_ONLY
         }
 
-        return ProviderModel(finalUrl, threatIntel, providerStates, completeness, virusTotalConfigured)
+        return ProviderModel(finalUrl, threatIntel, providerStates, completeness, phishingDatabaseConfigured)
     }
 
     private fun providerStatus(status: String?): ProviderStatus {
@@ -341,7 +341,7 @@ class SigurScanFixturePackE2ETest {
         val threatIntel: List<ThreatIntelSourceResult>,
         val providerStates: Map<ProviderId, ProviderState>,
         val completeness: EvidenceCompleteness,
-        val virusTotalConfigured: Boolean
+        val phishingDatabaseConfigured: Boolean
     )
 
     companion object {

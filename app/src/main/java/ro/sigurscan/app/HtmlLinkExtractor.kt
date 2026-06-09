@@ -13,8 +13,8 @@ object HtmlLinkExtractor {
     private const val MAX_DECODE_VARIANTS = 24
 
     private val urlRegex = Pattern.compile(
-        "(?:https?://|www\\.)[\\w\\-.~:/?#\\[\\]@!$&'()*+,;=%]+",
-        Pattern.CASE_INSENSITIVE or Pattern.UNICODE_CHARACTER_CLASS
+        "(?:https?://|www\\.)[\\p{L}\\p{N}_\\-.~:/?#\\[\\]@!$&'()*+,;=%]+",
+        Pattern.CASE_INSENSITIVE
     )
 
     fun extractHtmlLinks(content: String): List<String> = extractHtmlLinks(content) { it }

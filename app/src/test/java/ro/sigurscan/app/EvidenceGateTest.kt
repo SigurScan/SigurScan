@@ -261,7 +261,7 @@ class EvidenceGateTest {
     @Test
     fun vtConsensusIsDoNotContinue() {
         val result = evaluate(
-            EvidenceCode.VIRUSTOTAL_MALICIOUS_CONSENSUS,
+            EvidenceCode.PHISHING_DATABASE_LISTED,
             finalUrl = "https://malicious.example.net/"
         )
 
@@ -381,7 +381,7 @@ class EvidenceGateTest {
             EvidenceCode.NO_SENSITIVE_FORM,
             EvidenceCode.WEBRISK_NO_MATCH,
             EvidenceCode.URLSCAN_NO_CLASSIFICATION,
-            EvidenceCode.VIRUSTOTAL_LOW_OR_NO_DETECTION,
+            EvidenceCode.PHISHING_DATABASE_NOT_LISTED,
             EvidenceCode.OFFER_CLAIM_INCONCLUSIVE,
             primaryUrl = "https://buyback.yoxo.ro",
             finalUrl = "https://buyback.yoxo.ro/?r=1#/yoxo-ro/ro"
@@ -410,7 +410,7 @@ class EvidenceGateTest {
     }
 
     @Test
-    fun officialDomainCanBeSafeWithoutVirusTotalWhenRequiredPillarsAreClean() {
+    fun officialDomainCanBeSafeWithoutPhishingDatabaseWhenRequiredPillarsAreClean() {
         val result = evaluate(
             EvidenceCode.OFFICIAL_DOMAIN_EXACT,
             EvidenceCode.NO_SENSITIVE_FORM,
@@ -421,7 +421,7 @@ class EvidenceGateTest {
             providerStates = mapOf(
                 ProviderId.WEB_RISK to ProviderState(ProviderId.WEB_RISK, ProviderStatus.OK),
                 ProviderId.URLSCAN to ProviderState(ProviderId.URLSCAN, ProviderStatus.OK),
-                ProviderId.VIRUSTOTAL to ProviderState(ProviderId.VIRUSTOTAL, ProviderStatus.SKIPPED)
+                ProviderId.PHISHING_DATABASE to ProviderState(ProviderId.PHISHING_DATABASE, ProviderStatus.SKIPPED)
             )
         )
 
@@ -440,7 +440,7 @@ class EvidenceGateTest {
             providerStates = mapOf(
                 ProviderId.WEB_RISK to ProviderState(ProviderId.WEB_RISK, ProviderStatus.OK),
                 ProviderId.URLSCAN to ProviderState(ProviderId.URLSCAN, ProviderStatus.OK),
-                ProviderId.VIRUSTOTAL to ProviderState(ProviderId.VIRUSTOTAL, ProviderStatus.SKIPPED, note = "not_required"),
+                ProviderId.PHISHING_DATABASE to ProviderState(ProviderId.PHISHING_DATABASE, ProviderStatus.SKIPPED, note = "not_required"),
                 ProviderId.CLAIM_VERIFIER to ProviderState(ProviderId.CLAIM_VERIFIER, ProviderStatus.SKIPPED, note = "not_required")
             )
         )
@@ -491,13 +491,13 @@ class EvidenceGateTest {
             EvidenceCode.PROMO_TEXT,
             EvidenceCode.WEBRISK_NO_MATCH,
             EvidenceCode.URLSCAN_NO_CLASSIFICATION,
-            EvidenceCode.VIRUSTOTAL_LOW_OR_NO_DETECTION,
+            EvidenceCode.PHISHING_DATABASE_NOT_LISTED,
             primaryUrl = "https://smyk.ro/catalogul-ziua-copilului",
             finalUrl = "https://smyk.ro/catalogul-ziua-copilului",
             providerStates = mapOf(
                 ProviderId.WEB_RISK to ProviderState(ProviderId.WEB_RISK, ProviderStatus.OK),
                 ProviderId.URLSCAN to ProviderState(ProviderId.URLSCAN, ProviderStatus.OK),
-                ProviderId.VIRUSTOTAL to ProviderState(ProviderId.VIRUSTOTAL, ProviderStatus.OK),
+                ProviderId.PHISHING_DATABASE to ProviderState(ProviderId.PHISHING_DATABASE, ProviderStatus.OK),
                 ProviderId.CLAIM_VERIFIER to ProviderState(ProviderId.CLAIM_VERIFIER, ProviderStatus.PENDING)
             )
         )
@@ -514,13 +514,13 @@ class EvidenceGateTest {
             EvidenceCode.OFFICIAL_DOMAIN_EXACT,
             EvidenceCode.NO_SENSITIVE_FORM,
             EvidenceCode.WEBRISK_NO_MATCH,
-            EvidenceCode.VIRUSTOTAL_LOW_OR_NO_DETECTION,
+            EvidenceCode.PHISHING_DATABASE_NOT_LISTED,
             primaryUrl = "https://smyk.ro/catalogul-ziua-copilului",
             finalUrl = "https://smyk.ro/catalogul-ziua-copilului",
             providerStates = mapOf(
                 ProviderId.WEB_RISK to ProviderState(ProviderId.WEB_RISK, ProviderStatus.OK),
                 ProviderId.URLSCAN to ProviderState(ProviderId.URLSCAN, ProviderStatus.PENDING),
-                ProviderId.VIRUSTOTAL to ProviderState(ProviderId.VIRUSTOTAL, ProviderStatus.OK)
+                ProviderId.PHISHING_DATABASE to ProviderState(ProviderId.PHISHING_DATABASE, ProviderStatus.OK)
             )
         )
 
@@ -537,7 +537,7 @@ class EvidenceGateTest {
             EvidenceCode.NO_SENSITIVE_FORM,
             EvidenceCode.WEBRISK_NO_MATCH,
             EvidenceCode.URLSCAN_NO_CLASSIFICATION,
-            EvidenceCode.VIRUSTOTAL_LOW_OR_NO_DETECTION,
+            EvidenceCode.PHISHING_DATABASE_NOT_LISTED,
             primaryUrl = "https://smyk.ro/catalogul-ziua-copilului"
         )
 
@@ -608,7 +608,7 @@ class EvidenceGateTest {
     private fun completedUrlProviderStates(): Map<ProviderId, ProviderState> = mapOf(
         ProviderId.WEB_RISK to ProviderState(ProviderId.WEB_RISK, ProviderStatus.OK),
         ProviderId.URLSCAN to ProviderState(ProviderId.URLSCAN, ProviderStatus.OK),
-        ProviderId.VIRUSTOTAL to ProviderState(ProviderId.VIRUSTOTAL, ProviderStatus.OK),
+        ProviderId.PHISHING_DATABASE to ProviderState(ProviderId.PHISHING_DATABASE, ProviderStatus.OK),
         ProviderId.CLAIM_VERIFIER to ProviderState(ProviderId.CLAIM_VERIFIER, ProviderStatus.OK)
     )
 
@@ -661,8 +661,8 @@ class EvidenceGateTest {
         EvidenceCode.URLSCAN_VERDICT_MALWARE,
         EvidenceCode.URLSCAN_NO_CLASSIFICATION -> EvidenceSource.URLSCAN
 
-        EvidenceCode.VIRUSTOTAL_MALICIOUS_CONSENSUS,
-        EvidenceCode.VIRUSTOTAL_LOW_OR_NO_DETECTION -> EvidenceSource.VIRUSTOTAL
+        EvidenceCode.PHISHING_DATABASE_LISTED,
+        EvidenceCode.PHISHING_DATABASE_NOT_LISTED -> EvidenceSource.PHISHING_DATABASE
 
         EvidenceCode.OFFER_CLAIM_CONFIRMED,
         EvidenceCode.OFFER_CLAIM_NOT_FOUND,
@@ -706,7 +706,7 @@ class EvidenceGateTest {
     private fun providerFor(code: EvidenceCode): ProviderId? = when (sourceFor(code)) {
         EvidenceSource.GOOGLE_WEB_RISK -> ProviderId.WEB_RISK
         EvidenceSource.URLSCAN -> ProviderId.URLSCAN
-        EvidenceSource.VIRUSTOTAL -> ProviderId.VIRUSTOTAL
+        EvidenceSource.PHISHING_DATABASE -> ProviderId.PHISHING_DATABASE
         EvidenceSource.INFRA_ANALYZER -> ProviderId.INFRA
         EvidenceSource.CLAIM_VERIFIER -> ProviderId.CLAIM_VERIFIER
         EvidenceSource.OFFICIAL_REGISTRY -> ProviderId.OFFICIAL_REGISTRY

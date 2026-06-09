@@ -41,3 +41,4 @@ backend/data/*.db
 
 # Supabase local CLI state
 supabase/.temp/
+.vercel

@@ -247,8 +247,8 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
     private val recognizer by lazy { TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS) }
     private val barcodeScanner by lazy { BarcodeScanning.getClient() }
     private val URLSCAN_API_KEY = BuildConfig.URLSCAN_API_KEY
-    private val VIRUS_TOTAL_API_KEY = BuildConfig.VIRUS_TOTAL_API_KEY
     private val GOOGLE_WEB_RISK_API_KEY = BuildConfig.GOOGLE_WEB_RISK_API_KEY
+    private val pendingScreenshotRefreshes = mutableSetOf<String>()
     private val threatIntelClient = OkHttpClient.Builder()
         .callTimeout(12, TimeUnit.SECONDS)
         .readTimeout(12, TimeUnit.SECONDS)
@@ -314,7 +314,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
             history = runCatching {
                 val raw = prefs.getString("history", null) ?: return@runCatching emptyList()
                 val type = object : TypeToken<List<OfflineAssessment>>() {}.type
-                gson.fromJson<List<OfflineAssessment>>(raw, type)
+                gson.fromJson<List<OfflineAssessment>>(raw, type).take(50)
             }.getOrDefault(emptyList()),
             triageProgress = runCatching {
                 val raw = prefs.getString("triage_steps_state", null) ?: return@runCatching emptyMap()
@@ -577,7 +577,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                 completeness = completeness,
                 registryVersion = BrandKnowledgeRegistry.registryVersion(),
                 corpusVersion = BrandKnowledgeRegistry.corpusVersion(),
-                virusTotalConfigured = VIRUS_TOTAL_API_KEY.isNotBlank()
+                phishingDatabaseConfigured = true
             )
         )
         val gateResult = evidenceGate.evaluate(snapshot)
@@ -647,10 +647,10 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                 completeness = EvidenceCompleteness.PARTIAL_ONLINE,
                 registryVersion = BrandKnowledgeRegistry.registryVersion(),
                 corpusVersion = BrandKnowledgeRegistry.corpusVersion(),
-                virusTotalConfigured = VIRUS_TOTAL_API_KEY.isNotBlank()
+                phishingDatabaseConfigured = true
             )
         )
-        val providerIds = setOf(ProviderId.WEB_RISK, ProviderId.URLSCAN, ProviderId.VIRUSTOTAL, ProviderId.CLAIM_VERIFIER)
+        val providerIds = setOf(ProviderId.WEB_RISK, ProviderId.URLSCAN, ProviderId.PHISHING_DATABASE, ProviderId.CLAIM_VERIFIER)
         val retainedSignals = previous.signals.filterNot { it.provider in providerIds }
         val mergedSnapshot = previous.copy(
             finalUrl = threatSnapshot.finalUrl ?: previous.finalUrl,
@@ -712,21 +712,21 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
     private fun unavailableProviderStates(): Map<ProviderId, ProviderState> = mapOf(
         ProviderId.WEB_RISK to ProviderState(ProviderId.WEB_RISK, ProviderStatus.ERROR, note = "Backend/provider unavailable"),
         ProviderId.URLSCAN to ProviderState(ProviderId.URLSCAN, ProviderStatus.ERROR, note = "Backend/provider unavailable"),
-        ProviderId.VIRUSTOTAL to ProviderState(ProviderId.VIRUSTOTAL, ProviderStatus.ERROR, note = "VirusTotal unavailable or not configured"),
+        ProviderId.PHISHING_DATABASE to ProviderState(ProviderId.PHISHING_DATABASE, ProviderStatus.ERROR, note = "Phishing.Database unavailable"),
         ProviderId.CLAIM_VERIFIER to ProviderState(ProviderId.CLAIM_VERIFIER, ProviderStatus.ERROR, note = "Offer/claim verification unavailable")
     )
 
     private fun pendingOnlineProviderStates(): Map<ProviderId, ProviderState> = mapOf(
         ProviderId.WEB_RISK to ProviderState(ProviderId.WEB_RISK, ProviderStatus.PENDING, note = "Backend reputation check running"),
         ProviderId.URLSCAN to ProviderState(ProviderId.URLSCAN, ProviderStatus.PENDING, note = "Sandbox preview running"),
-        ProviderId.VIRUSTOTAL to ProviderState(ProviderId.VIRUSTOTAL, ProviderStatus.PENDING, note = "VirusTotal reputation check running"),
+        ProviderId.PHISHING_DATABASE to ProviderState(ProviderId.PHISHING_DATABASE, ProviderStatus.PENDING, note = "Phishing.Database reputation check running"),
         ProviderId.CLAIM_VERIFIER to ProviderState(ProviderId.CLAIM_VERIFIER, ProviderStatus.PENDING, note = "Offer/claim verification running")
     )
 
     private fun backendUnavailableWhileSandboxRuns(): Map<ProviderId, ProviderState> = mapOf(
         ProviderId.WEB_RISK to ProviderState(ProviderId.WEB_RISK, ProviderStatus.ERROR, note = "Backend reputation check unavailable"),
         ProviderId.URLSCAN to ProviderState(ProviderId.URLSCAN, ProviderStatus.PENDING, note = "Sandbox preview still running"),
-        ProviderId.VIRUSTOTAL to ProviderState(ProviderId.VIRUSTOTAL, ProviderStatus.ERROR, note = "VirusTotal unavailable or not configured"),
+        ProviderId.PHISHING_DATABASE to ProviderState(ProviderId.PHISHING_DATABASE, ProviderStatus.ERROR, note = "Phishing.Database unavailable"),
         ProviderId.CLAIM_VERIFIER to ProviderState(ProviderId.CLAIM_VERIFIER, ProviderStatus.ERROR, note = "Offer/claim verification unavailable")
     )
 
@@ -934,7 +934,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
         return listOfNotNull(
             state("google_web_risk", ProviderId.WEB_RISK),
             state("urlscan", ProviderId.URLSCAN),
-            state("virustotal", ProviderId.VIRUSTOTAL),
+            state("phishing_database", ProviderId.PHISHING_DATABASE),
             state("claim_verifier", ProviderId.CLAIM_VERIFIER)
         ).associateBy { it.provider }
     }
@@ -1017,15 +1017,14 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                 redirectChain = chain,
                 threatIntel = threatIntel,
                 providerStates = providerStates,
-                backendEvidence = evidence,
                 backendReasons = response.reasons ?: emptyList(),
                 completeness = EvidenceCompleteness.FULL,
                 registryVersion = BrandKnowledgeRegistry.registryVersion(),
                 corpusVersion = BrandKnowledgeRegistry.corpusVersion(),
-                virusTotalConfigured = VIRUS_TOTAL_API_KEY.isNotBlank()
+                phishingDatabaseConfigured = true
             )
         )
-        val gateResult = evidenceGate.evaluate(snapshot)
+        val gateResult = backendGateResult(response)
         return result.withGate(
             snapshot = snapshot,
             gateResult = gateResult,
@@ -1050,27 +1049,43 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
             )
         )
         val base = currentAssessmentForScan(response.scanId) ?: evaluateOfflineText(rawInput).copy(scanId = response.scanId)
-        return applyEvidenceGate(
-            current = base.copy(
-                scanId = response.scanId,
-                serverInfo = response.statusMessage ?: "Scanarea rulează. Așteptăm rezultatele complete.",
-                redirectChain = primaryUrl?.let { listOf(it) }.orEmpty(),
-                finalUrl = primaryUrl,
-                reputationVerdict = "Se verifică",
-                domainAgeText = "Se verifică",
-                sslStatus = primaryUrl?.let { if (it.startsWith("https", ignoreCase = true)) "Valid (HTTPS)" else "Neverificat" } ?: "Neverificat",
-                aiConfidence = "Analiză online în curs",
-                threatIntel = threatIntel,
-                screenshotUrl = response.preview?.screenshotUrl,
-                sandboxReportUrl = response.preview?.reportUrl
-            ),
-            rawInput = rawInput,
-            primaryUrl = urls.firstOrNull(),
-            finalUrl = response.preview?.finalUrl,
+        val updated = base.copy(
+            scanId = response.scanId,
+            serverInfo = response.statusMessage ?: "Scanarea rulează. Așteptăm rezultatele complete.",
             redirectChain = primaryUrl?.let { listOf(it) }.orEmpty(),
+            finalUrl = primaryUrl,
+            reputationVerdict = "Se verifică",
+            domainAgeText = "Se verifică",
+            sslStatus = primaryUrl?.let { if (it.startsWith("https", ignoreCase = true)) "Valid (HTTPS)" else "Neverificat" } ?: "Neverificat",
+            aiConfidence = "Analiză online în curs",
             threatIntel = threatIntel,
-            providerStates = providerStatesFromOrchestratedPillars(response.pillars),
-            completeness = EvidenceCompleteness.PARTIAL_ONLINE
+            screenshotUrl = response.preview?.screenshotUrl,
+            sandboxReportUrl = response.preview?.reportUrl
+        )
+        val snapshot = EvidenceSignalNormalizer.buildSnapshot(
+            EvidenceNormalizerInput(
+                scanId = response.scanId,
+                inputKind = activeEvidenceInputKind(rawInput) ?: inferEvidenceInputKind(rawInput),
+                channel = activeEvidenceChannel(rawInput) ?: inferEvidenceChannel(rawInput),
+                rawText = rawInput,
+                htmlContent = activeEvidenceHtml(rawInput),
+                extractedLinks = activeEvidenceLinks(rawInput),
+                primaryUrl = urls.firstOrNull(),
+                finalUrl = response.preview?.finalUrl,
+                redirectChain = primaryUrl?.let { listOf(it) }.orEmpty(),
+                threatIntel = threatIntel,
+                providerStates = providerStatesFromOrchestratedPillars(response.pillars),
+                completeness = EvidenceCompleteness.PARTIAL_ONLINE,
+                registryVersion = BrandKnowledgeRegistry.registryVersion(),
+                corpusVersion = BrandKnowledgeRegistry.corpusVersion(),
+                phishingDatabaseConfigured = true
+            )
+        )
+        return updated.withGate(
+            snapshot = snapshot,
+            gateResult = backendScanInProgressGateResult(),
+            rawInput = rawInput,
+            mergedThreatIntel = threatIntel
         )
     }
 
@@ -1081,9 +1096,11 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
         existingScanId: String?
     ) {
         val providerStates = providerStatesFromOrchestratedPillars(response.pillars)
+        val remoteScreenshotUrl = response.preview?.screenshotUrl
+        var stableScreenshot: String? = null
         val preview = if (response.result != null) {
-            val stableScreenshot = withContext(Dispatchers.IO) {
-                downloadSandboxScreenshotProxy(response.preview?.screenshotUrl)
+            stableScreenshot = withContext(Dispatchers.IO) {
+                downloadSandboxScreenshotProxy(remoteScreenshotUrl)
             }
             response.preview?.copy(screenshotUrl = stableScreenshot ?: response.preview.screenshotUrl)
         } else {
@@ -1099,15 +1116,18 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
             )
         } ?: buildPendingAssessmentFromOrchestratedResponse(response, rawInput, urls)
         publishAssessmentResult(existingScanId ?: response.scanId, updated)
+        if (response.result != null && stableScreenshot == null && !remoteScreenshotUrl.isNullOrBlank()) {
+            scheduleSandboxScreenshotRefresh(response.scanId, remoteScreenshotUrl)
+        }
     }
 
     private fun shouldContinueOrchestratedPolling(response: OrchestratedScanResponse): Boolean {
         val status = response.status?.lowercase(Locale.US)
+        if (response.result == null) return true
+        if (response.result.isFinal == false) return true
         if (status == "complete") return false
         return status == "scanning" ||
-                status == "ready" ||
-                response.result == null ||
-                response.result.isFinal == false
+                status == "ready"
     }
 
     private suspend fun runBackendOrchestratedScan(rawInput: String, htmlPayload: String?, urls: List<String>) {
@@ -1668,6 +1688,30 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
 	            }
 	        }.getOrNull()
 	    }
+
+    private fun scheduleSandboxScreenshotRefresh(scanId: String, screenshotUrl: String) {
+        if (!pendingScreenshotRefreshes.add(scanId)) return
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                repeat(8) { attempt ->
+                    if (attempt > 0) kotlinx.coroutines.delay(10_000L)
+                    val stableScreenshot = downloadSandboxScreenshotProxy(screenshotUrl)
+                    if (stableScreenshot != null) {
+                        withContext(Dispatchers.Main) {
+                            updateAssessmentAndHistory(scanId) { current ->
+                                current.copy(screenshotUrl = stableScreenshot)
+                            }
+                        }
+                        return@launch
+                    }
+                }
+            } finally {
+                withContext(Dispatchers.Main) {
+                    pendingScreenshotRefreshes.remove(scanId)
+                }
+            }
+        }
+    }
 
     fun onQrPicked(uri: Uri, context: Context) {
         loading = true
@@ -2473,77 +2517,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
         val webRisk = async { fetchGoogleWebRiskThreatIntel(url) }.await()
         webRisk?.let { result = upsertThreatIntel(result, it).toMutableList() }
 
-        fetchVirusTotalThreatIntel(url)?.let {
-            result = upsertThreatIntel(result, it).toMutableList()
-        }
-
         return@coroutineScope result.distinctBy { it.source.lowercase(Locale.getDefault()) }
-    }
-
-    private suspend fun fetchVirusTotalThreatIntel(url: String): ThreatIntelSourceResult? {
-        if (VIRUS_TOTAL_API_KEY.isBlank()) return null
-
-        val urlId = virusTotalUrlId(url)
-        if (urlId.isBlank()) return null
-
-        val request = Request.Builder()
-            .url("https://www.virustotal.com/api/v3/urls/$urlId")
-            .addHeader("x-apikey", VIRUS_TOTAL_API_KEY)
-            .addHeader("accept", "application/json")
-            .build()
-
-        return runCatching {
-            threatIntelClient.newCall(request).execute().use { response ->
-                val body = response.body?.string()
-                if (!response.isSuccessful || body.isNullOrBlank()) {
-                    if (response.code == 404) {
-                        return@runCatching ThreatIntelSourceResult(
-                            source = "VirusTotal",
-                            verdict = "Not Found",
-                            severity = "low",
-                            details = "URL nou sau neindexat încă în baza VirusTotal."
-                        )
-                    }
-                    return@runCatching null
-                }
-
-                val payload = gson.fromJson(body, Map::class.java) as? Map<*, *> ?: return@runCatching null
-                val data = payload["data"] as? Map<*, *> ?: return@runCatching null
-                val attributes = data["attributes"] as? Map<*, *> ?: return@runCatching null
-                val stats = attributes["last_analysis_stats"] as? Map<*, *>
-                if (stats == null) return@runCatching null
-
-                val malicious = asInt(stats["malicious"])
-                val suspicious = asInt(stats["suspicious"])
-                val harmless = asInt(stats["harmless"])
-                val undetected = asInt(stats["undetected"])
-                val timeout = asInt(stats["timeout"])
-                val total = malicious + suspicious + harmless + undetected + timeout
-                val score = if (total > 0) ((malicious + suspicious) * 100.0 / total).roundToInt() else 0
-                val verdict = when {
-                    malicious > 0 -> "Malicious"
-                    suspicious > 0 -> "Suspicious"
-                    total > 0 -> "Clean"
-                    else -> "Unknown"
-                }
-
-                val details = buildString {
-                    append("VT score: $score. Engines: total=$total, malicious=$malicious, suspicious=$suspicious.")
-                    val flagged = parseThreatIntelEngineFlags(attributes["last_analysis_results"])
-                    if (flagged.isNotBlank()) {
-                        append(" Flags: ")
-                        append(flagged)
-                    }
-                }
-
-                ThreatIntelSourceResult(
-                    source = "VirusTotal",
-                    verdict = verdict,
-                    severity = if (verdict == "Clean") "low" else "high",
-                    details = details
-                )
-            }
-        }.getOrElse { null }
     }
 
     private fun parseThreatIntelEngineFlags(raw: Any?): String {
@@ -2932,8 +2906,11 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private fun saveHistory() {
-        val json = gson.toJson(historyItems.toList())
-        prefs.edit().putString("history", json).apply()
+        val snapshot = historyItems.toList().take(50)
+        viewModelScope.launch(Dispatchers.IO) {
+            val json = gson.toJson(snapshot)
+            prefs.edit().putString("history", json).apply()
+        }
     }
 
     private fun loadHistory() {

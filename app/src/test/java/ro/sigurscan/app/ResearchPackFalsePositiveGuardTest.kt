@@ -93,7 +93,7 @@ class ResearchPackFalsePositiveGuardTest {
             providerStates = mapOf(
                 ProviderId.WEB_RISK to ProviderState(ProviderId.WEB_RISK, ProviderStatus.OK),
                 ProviderId.URLSCAN to ProviderState(ProviderId.URLSCAN, ProviderStatus.OK),
-                ProviderId.VIRUSTOTAL to ProviderState(ProviderId.VIRUSTOTAL, ProviderStatus.SKIPPED, note = "not_required"),
+                ProviderId.PHISHING_DATABASE to ProviderState(ProviderId.PHISHING_DATABASE, ProviderStatus.SKIPPED, note = "not_required"),
                 ProviderId.CLAIM_VERIFIER to ProviderState(ProviderId.CLAIM_VERIFIER, ProviderStatus.OK)
             ),
             completeness = EvidenceCompleteness.FULL

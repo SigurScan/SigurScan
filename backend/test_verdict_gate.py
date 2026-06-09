@@ -181,7 +181,7 @@ def test_unknown_clean_established_domain_is_safe_without_manual_registry():
             "redacted_text": "Hipo iti recomanda evenimentul Angajatori de TOP. Inscrie-te https://www.hipo.ro/ADT_TM",
         },
         "resolution": {"status": "resolved", "completeness": True, "final_url": "https://www.hipo.ro/ADT_TM"},
-        "providers": {"verdict": "clean", "hits": ["google_web_risk", "virustotal", "urlhaus"], "completeness": True},
+        "providers": {"verdict": "clean", "hits": ["google_web_risk", "phishing_database", "urlhaus"], "completeness": True},
         "identity": {
             "claimed_brand": None,
             "status": "unknown",
@@ -222,7 +222,7 @@ def test_unknown_clean_new_domain_stays_suspect_without_manual_registry():
             "redacted_text": "Inscrie-te la campanie pe https://promo-nou.example",
         },
         "resolution": {"status": "resolved", "completeness": True, "final_url": "https://promo-nou.example"},
-        "providers": {"verdict": "clean", "hits": ["google_web_risk", "virustotal", "urlhaus"], "completeness": True},
+        "providers": {"verdict": "clean", "hits": ["google_web_risk", "phishing_database", "urlhaus"], "completeness": True},
         "identity": {
             "claimed_brand": None,
             "status": "unknown",
@@ -269,7 +269,7 @@ def test_unknown_clean_established_marketing_domain_ignores_semantic_false_posit
         },
         "providers": {
             "verdict": "clean",
-            "hits": ["google_web_risk", "virustotal", "urlhaus", "urlscan"],
+            "hits": ["google_web_risk", "phishing_database", "urlhaus", "urlscan"],
             "completeness": True,
         },
         "identity": {
@@ -320,7 +320,7 @@ def test_established_domain_cannot_override_brand_mismatch_and_card_request():
             "completeness": True,
             "final_url": "https://www.tipografia-arteum.ro/dhl/plata",
         },
-        "providers": {"verdict": "clean", "hits": ["google_web_risk", "virustotal", "urlhaus"], "completeness": True},
+        "providers": {"verdict": "clean", "hits": ["google_web_risk", "phishing_database", "urlhaus"], "completeness": True},
         "identity": {
             "claimed_brand": "DHL",
             "status": "unrelated",
@@ -357,7 +357,7 @@ def test_homoglyph_identity_spoof_stays_dangerous_even_with_clean_providers():
             "redacted_text": "ING Home'Bank: autentificare suspectă detectată. Confirmați identitatea: https://ıng-home.ro/verificare",
         },
         "resolution": {"status": "resolved", "completeness": True, "final_url": "https://xn--ng-home-qqa.ro/verificare"},
-        "providers": {"verdict": "clean", "hits": ["google_web_risk", "virustotal", "urlhaus"], "completeness": True},
+        "providers": {"verdict": "clean", "hits": ["google_web_risk", "phishing_database", "urlhaus"], "completeness": True},
         "identity": {
             "claimed_brand": "ING",
             "status": "lookalike",
@@ -394,7 +394,7 @@ def test_delegated_deeplink_clean_young_domain_can_be_safe():
             "redacted_text": "Vodafone: factura ta pe luna mai este disponibilă. Vizualizează: https://vfro.page.link/8Hk2",
         },
         "resolution": {"status": "resolved", "completeness": True, "final_url": "https://vfro.page.link/8Hk2"},
-        "providers": {"verdict": "clean", "hits": ["google_web_risk", "virustotal", "urlhaus"], "completeness": True},
+        "providers": {"verdict": "clean", "hits": ["google_web_risk", "phishing_database", "urlhaus"], "completeness": True},
         "identity": {
             "claimed_brand": "Vodafone România",
             "status": "delegated",

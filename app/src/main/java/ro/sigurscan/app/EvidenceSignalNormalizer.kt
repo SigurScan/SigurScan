@@ -25,7 +25,7 @@ data class EvidenceNormalizerInput(
     val completeness: EvidenceCompleteness? = null,
     val registryVersion: String = "local",
     val corpusVersion: String = "local",
-    val virusTotalConfigured: Boolean = false
+    val phishingDatabaseConfigured: Boolean = true
 )
 
 object EvidenceSignalNormalizer {
@@ -312,7 +312,9 @@ object EvidenceSignalNormalizer {
             when {
                 sourceKey.contains("webrisk") -> mapWebRisk(builder, item, text, targetKey)
                 source.contains("urlscan") -> mapUrlscan(builder, item, text, targetKey)
-                source.contains("virustotal") || source == "vt" -> mapVirusTotal(builder, item, text, targetKey)
+                sourceKey.contains("phishingdatabase") || source.contains("phishing.database") || source.contains("phishing_database") -> {
+                    mapPhishingDatabase(builder, item, text, targetKey)
+                }
                 sourceKey.contains("aiofferwebcheck") || sourceKey.contains("offerclaim") -> mapOfferClaimVerifier(builder, item, text, targetKey)
                 sourceKey.contains("infrahomoglyph") || sourceKey.contains("infratyposquat") ||
                     sourceKey.contains("infradomainage") || sourceKey.contains("infraentropy") ||
@@ -387,15 +389,17 @@ object EvidenceSignalNormalizer {
         }
     }
 
-    private fun mapVirusTotal(builder: SignalBuilder, item: ThreatIntelSourceResult, text: String, targetKey: String) {
+    private fun mapPhishingDatabase(builder: SignalBuilder, item: ThreatIntelSourceResult, text: String, targetKey: String) {
         val high = item.severity.equals("high", ignoreCase = true)
-        val maliciousCount = Regex("""malicious\s*[=:]\s*(\d+)""").find(text)?.groupValues?.getOrNull(1)?.toIntOrNull() ?: 0
+        val providerText = listOf(item.verdict, item.severity, item.details.orEmpty())
+            .joinToString(" ")
+            .lowercase(Locale.US)
         when {
-            maliciousCount >= 3 || (high && containsAny(text, "malicious", "suspicious")) -> {
-                builder.add(EvidenceSource.VIRUSTOTAL, EvidenceCode.VIRUSTOTAL_MALICIOUS_CONSENSUS, targetKey = targetKey, provider = ProviderId.VIRUSTOTAL)
+            containsAny(providerText, "not_listed", "not listed", "clean", "no match", "low") -> {
+                builder.add(EvidenceSource.PHISHING_DATABASE, EvidenceCode.PHISHING_DATABASE_NOT_LISTED, targetKey = targetKey, provider = ProviderId.PHISHING_DATABASE)
             }
-            containsAny(text, "clean", "harmless", "undetected", "not found", "low") -> {
-                builder.add(EvidenceSource.VIRUSTOTAL, EvidenceCode.VIRUSTOTAL_LOW_OR_NO_DETECTION, targetKey = targetKey, provider = ProviderId.VIRUSTOTAL)
+            containsAny(providerText, "listed", "malicious", "blacklisted") || high -> {
+                builder.add(EvidenceSource.PHISHING_DATABASE, EvidenceCode.PHISHING_DATABASE_LISTED, targetKey = targetKey, provider = ProviderId.PHISHING_DATABASE)
             }
         }
     }
@@ -849,12 +853,12 @@ object EvidenceSignalNormalizer {
     ): Map<ProviderId, ProviderState> {
         val states = mutableMapOf<ProviderId, ProviderState>()
         states.putAll(input.providerStates)
-        listOf(ProviderId.WEB_RISK, ProviderId.URLSCAN, ProviderId.VIRUSTOTAL).forEach { provider ->
+        listOf(ProviderId.WEB_RISK, ProviderId.URLSCAN, ProviderId.PHISHING_DATABASE).forEach { provider ->
             if (states[provider] == null) {
                 val hasSignal = signals.any { it.provider == provider }
                 states[provider] = when {
                     hasSignal -> ProviderState(provider, ProviderStatus.OK)
-                    provider == ProviderId.VIRUSTOTAL && !input.virusTotalConfigured -> ProviderState(provider, ProviderStatus.SKIPPED, note = "VirusTotal not configured")
+                    provider == ProviderId.PHISHING_DATABASE && !input.phishingDatabaseConfigured -> ProviderState(provider, ProviderStatus.SKIPPED, note = "Phishing.Database disabled")
                     else -> ProviderState(provider, ProviderStatus.NOT_RUN)
                 }
             }
@@ -899,7 +903,7 @@ object EvidenceSignalNormalizer {
         return when {
             sourceKey.contains("webrisk") -> ProviderId.WEB_RISK
             source.contains("urlscan") -> ProviderId.URLSCAN
-            source.contains("virustotal") || source == "vt" -> ProviderId.VIRUSTOTAL
+            sourceKey.contains("phishingdatabase") || source.contains("phishing.database") || source.contains("phishing_database") -> ProviderId.PHISHING_DATABASE
             sourceKey.contains("aiofferwebcheck") || sourceKey.contains("offerclaim") -> ProviderId.CLAIM_VERIFIER
             sourceKey.contains("infrahomoglyph") || sourceKey.contains("infratyposquat") ||
                 sourceKey.contains("infradomainage") || sourceKey.contains("infraentropy") ||

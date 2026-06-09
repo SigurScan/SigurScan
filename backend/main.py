@@ -169,17 +169,12 @@ FAST_REPUTATION_INCLUDE_URLHAUS = os.getenv("FAST_REPUTATION_INCLUDE_URLHAUS", "
     "yes",
     "on",
 }
-ENABLE_VT_FALLBACK = os.getenv("ENABLE_VT_FALLBACK", "true").strip().lower() in {
+ENABLE_DEEP_REPUTATION_FALLBACK = os.getenv("ENABLE_DEEP_REPUTATION_FALLBACK", "true").strip().lower() in {
     "1",
     "true",
     "yes",
     "on",
 }
-VT_FALLBACK_RISK_SCORE = int(os.getenv("VT_FALLBACK_RISK_SCORE", "50"))
-VIRUSTOTAL_HARD_MALICIOUS_MIN_ENGINES = max(
-    1,
-    int(os.getenv("VIRUSTOTAL_HARD_MALICIOUS_MIN_ENGINES", "2")),
-)
 DOMAIN_SUSPICIOUS_AGE_DAYS = int(os.getenv("DOMAIN_SUSPICIOUS_AGE_DAYS", "30"))
 DOMAIN_ESTABLISHED_AGE_DAYS = int(os.getenv("DOMAIN_ESTABLISHED_AGE_DAYS", "365"))
 
@@ -208,7 +203,7 @@ def _provider_config_status() -> Dict[str, Any]:
     """Expose provider readiness without leaking secrets."""
 
     web_risk_configured = _env_present("GOOGLE_WEB_RISK_API_KEY")
-    virustotal_configured = _env_present("VIRUSTOTAL_API_KEY")
+    phishing_database_enabled = os.getenv("ENABLE_PHISHING_DATABASE", "true").strip().lower() in {"1", "true", "yes", "on"}
     mistral_configured = _env_present("MISTRAL_API_KEY")
     gemini_configured = _env_present("GEMINI_API_KEY")
     offer_claim_configured = gemini_configured
@@ -225,9 +220,9 @@ def _provider_config_status() -> Dict[str, Any]:
                 "configured": web_risk_configured and not PRIVACY_SAFE_MODE,
                 "extended_threat_types_env": bool(os.getenv("GOOGLE_WEB_RISK_THREAT_TYPES", "").strip()),
             },
-            "virustotal": {
-                "configured": virustotal_configured and not PRIVACY_SAFE_MODE and ENABLE_VT_FALLBACK,
-                "policy": "fallback_or_required_by_orchestrated_reputation",
+            "phishing_database": {
+                "configured": phishing_database_enabled and not PRIVACY_SAFE_MODE,
+                "policy": "open_feed_runtime_reputation",
             },
             "ai_explanation": {
                 "configured": (mistral_configured or gemini_configured) and ENABLE_CLOUD_AI_EXPLANATION,
@@ -1573,7 +1568,7 @@ def _feedback_sample_payload(row: Dict[str, Any]) -> Dict[str, Any]:
 def _gather_external_intel(
     resolved_urls: List[Dict[str, Any]],
     *,
-    include_virustotal: bool = True,
+    include_phishing_database: bool = True,
     include_urlhaus: bool = True,
     persist_partial: bool = False,
 ) -> Dict[str, Dict[str, Any]]:
@@ -1586,7 +1581,7 @@ def _gather_external_intel(
     ]
     return get_reputation_for_urls(
         final_urls,
-        include_virustotal=include_virustotal,
+        include_phishing_database=include_phishing_database,
         include_urlhaus=include_urlhaus,
         persist_partial=persist_partial,
     )
@@ -1595,14 +1590,14 @@ def _gather_external_intel(
 def _gather_external_intel_safe(
     resolved_urls: List[Dict[str, Any]],
     *,
-    include_virustotal: bool,
+    include_phishing_database: bool,
     include_urlhaus: bool,
     persist_partial: bool = False,
 ) -> Dict[str, Dict[str, Any]]:
     try:
         return _gather_external_intel(
             resolved_urls,
-            include_virustotal=include_virustotal,
+            include_phishing_database=include_phishing_database,
             include_urlhaus=include_urlhaus,
             persist_partial=persist_partial,
         )
@@ -1612,10 +1607,8 @@ def _gather_external_intel_safe(
         return _gather_external_intel(resolved_urls)  # type: ignore[call-arg]
 
 
-def _analysis_needs_vt_fallback(analysis: Dict[str, Any]) -> bool:
-    if PRIVACY_SAFE_MODE or not ENABLE_VT_FALLBACK:
-        return False
-    if not os.getenv("VIRUSTOTAL_API_KEY", "").strip():
+def _analysis_needs_deep_reputation_fallback(analysis: Dict[str, Any]) -> bool:
+    if PRIVACY_SAFE_MODE or not ENABLE_DEEP_REPUTATION_FALLBACK:
         return False
 
     evidence = analysis.get("evidence", {}) if isinstance(analysis.get("evidence"), dict) else {}
@@ -1661,7 +1654,7 @@ def _analyze_with_reputation(
     if threat_intel is None:
         threat_intel = _gather_external_intel_safe(
             resolved_urls,
-            include_virustotal=True,
+            include_phishing_database=True,
             include_urlhaus=(not use_fast) or FAST_REPUTATION_INCLUDE_URLHAUS,
             persist_partial=False,
         )
@@ -1673,19 +1666,19 @@ def _analyze_with_reputation(
         analyze_kwargs["email_context"] = email_context
     analysis = engine.analyze(redacted_text, **analyze_kwargs)
 
-    if use_fast and allow_deep_fallback and _analysis_needs_vt_fallback(analysis):
+    if use_fast and allow_deep_fallback and _analysis_needs_deep_reputation_fallback(analysis):
         deep_threat_intel = _gather_external_intel_safe(
             resolved_urls,
-            include_virustotal=True,
+            include_phishing_database=True,
             include_urlhaus=True,
             persist_partial=True,
         )
         if deep_threat_intel:
             analyze_kwargs["external_threat_intel"] = deep_threat_intel
             analysis = engine.analyze(redacted_text, **analyze_kwargs)
-            analysis.setdefault("evidence", {})["vt_fallback"] = True
+            analysis.setdefault("evidence", {})["deep_reputation_fallback"] = True
     else:
-        analysis.setdefault("evidence", {})["vt_fallback"] = False
+        analysis.setdefault("evidence", {})["deep_reputation_fallback"] = False
 
     analysis.setdefault("evidence", {})["fast_reputation_mode"] = use_fast
     return analysis
@@ -1720,11 +1713,7 @@ def _external_intel_summary_from_threat_intel(threat_intel: Dict[str, Dict[str, 
             existing_status = str(existing.get("status") or "unknown") if isinstance(existing, dict) else "unknown"
             if not isinstance(existing, dict) or severity_rank(status) >= severity_rank(existing_status):
                 malicious_hit_count = (
-                    _virustotal_malicious_hit_count(source_data)
-                    if source_name == "virustotal"
-                    else 1
-                    if status in {"malicious", "phishing", "malware"}
-                    else 0
+                    1 if status in {"malicious", "phishing", "malware"} else 0
                 )
                 summary[source_name] = {
                     "source": source_name,
@@ -1739,9 +1728,7 @@ def _external_intel_summary_from_threat_intel(threat_intel: Dict[str, Dict[str, 
                 }
             elif existing is not None:
                 existing["url_count"] = int(existing.get("url_count") or 0) + 1
-                if source_name == "virustotal":
-                    existing["malicious_hit_count"] = int(existing.get("malicious_hit_count") or 0) + _virustotal_malicious_hit_count(source_data)
-                elif status in {"malicious", "phishing", "malware"}:
+                if status in {"malicious", "phishing", "malware"}:
                     existing["malicious_hit_count"] = int(existing.get("malicious_hit_count") or 0) + 1
     return summary
 
@@ -1813,37 +1800,8 @@ def _provider_payload_is_hard_bad(raw: Dict[str, Any], *, include_suspicious: bo
     return any(token in verdict for token in bad_tokens)
 
 
-def _virustotal_malicious_hit_count(raw: Dict[str, Any]) -> int:
-    candidates: List[int] = []
-    for key in ("malicious_hit_count", "malicious"):
-        try:
-            candidates.append(int(raw.get(key) or 0))
-        except Exception:
-            pass
-    details = raw.get("details") if isinstance(raw.get("details"), dict) else {}
-    stats = details.get("stats") if isinstance(details.get("stats"), dict) else {}
-    try:
-        candidates.append(int(stats.get("malicious") or 0))
-    except Exception:
-        pass
-    if not isinstance(raw.get("details"), dict):
-        details_text = str(raw.get("details") or "")
-        match = re.search(r"\b(\d{1,3})\s+(?:engines?|vendors?)\s+malicious\b", details_text, re.IGNORECASE)
-        if match:
-            try:
-                candidates.append(int(match.group(1)))
-            except Exception:
-                pass
-    direct_stats = raw.get("stats") if isinstance(raw.get("stats"), dict) else {}
-    try:
-        candidates.append(int(direct_stats.get("malicious") or 0))
-    except Exception:
-        pass
-    return max(candidates or [0])
-
-
 def _has_authoritative_bad_provider_verdict(summary: Dict[str, Any]) -> bool:
-    for name in ("google_web_risk", "urlscan", "urlscan.io", "urlhaus"):
+    for name in ("google_web_risk", "phishing_database", "urlscan", "urlscan.io", "urlhaus"):
         raw = summary.get(name)
         if isinstance(raw, dict) and _provider_payload_is_hard_bad(raw):
             return True
@@ -1853,16 +1811,8 @@ def _has_authoritative_bad_provider_verdict(summary: Dict[str, Any]) -> bool:
 def _has_bad_provider_verdict(summary: Dict[str, Any]) -> bool:
     if _has_authoritative_bad_provider_verdict(summary):
         return True
-    raw_vt = summary.get("virustotal")
-    if isinstance(raw_vt, dict):
-        malicious_hits = _virustotal_malicious_hit_count(raw_vt)
-        if malicious_hits >= VIRUSTOTAL_HARD_MALICIOUS_MIN_ENGINES:
-            return True
-        # VirusTotal is an aggregator. A single/flaky engine or a plain
-        # suspicious label remains diagnostic context, not a hard block.
-        return False
 
-    provider_names = ("google_web_risk", "urlscan", "urlscan.io", "urlhaus")
+    provider_names = ("google_web_risk", "phishing_database", "urlscan", "urlscan.io", "urlhaus")
     for name in provider_names:
         raw = summary.get(name)
         if isinstance(raw, dict) and _provider_payload_is_hard_bad(raw):
@@ -2347,7 +2297,7 @@ def _provider_verdict_for_decision_bundle(
 
     consulted = []
     unknown = []
-    for name in ("google_web_risk", "virustotal", "urlscan", "urlscan.io", "urlhaus", "ai_offer_web_check"):
+    for name in ("google_web_risk", "phishing_database", "urlscan", "urlscan.io", "urlhaus", "ai_offer_web_check"):
         raw = summary.get(name)
         if not isinstance(raw, dict):
             continue
@@ -3016,7 +2966,7 @@ def _apply_provider_gate_verdict(
     offer_status = str(offer.get("status", "")).lower() if isinstance(offer, dict) else ""
     official_destination = _official_destination_confirmed(resolved_urls, claimed_brand)
     web_risk_consulted = _source_ready(summary, "google_web_risk")
-    vt_consulted = _source_ready(summary, "virustotal")
+    phishing_database_consulted = _source_ready(summary, "phishing_database")
     urlscan_consulted = any(_source_ready(summary, name) for name in ("urlscan", "urlscan.io"))
     sensitive_url_path = _has_sensitive_url_path(resolved_urls)
     brand_warning = _brand_warning_matches_text(claimed_brand, raw_text)
@@ -3033,7 +2983,7 @@ def _apply_provider_gate_verdict(
         missing_required_pillars.append("verificare oferta/claim")
     consulted_sources = [
         name
-        for name in ("google_web_risk", "virustotal", "urlscan", "urlscan.io", "urlhaus")
+        for name in ("google_web_risk", "phishing_database", "urlscan", "urlscan.io", "urlhaus")
         if _source_ready(summary, name)
     ]
     consulted_sources = sorted(set(consulted_sources))
@@ -3043,7 +2993,7 @@ def _apply_provider_gate_verdict(
         "version": "verdict_gate_v2",
         "official_destination": official_destination,
         "web_risk_consulted": web_risk_consulted,
-        "virustotal_consulted": vt_consulted,
+        "phishing_database_consulted": phishing_database_consulted,
         "urlscan_consulted": urlscan_consulted,
         "claim_required": claim_required,
         "claim_consulted": claim_consulted,
@@ -4338,7 +4288,7 @@ PRIVACY_POLICY_HTML = """<!doctype html>
     <ul>
       <li><strong>urlscan.io</strong> pentru sandbox si preview securizat al paginii finale;</li>
       <li><strong>Google Web Risk</strong> pentru verificari de malware/phishing/social engineering;</li>
-      <li><strong>VirusTotal</strong> doar ca fallback/intaritor cand este configurat cu licenta potrivita;</li>
+      <li><strong>Phishing.Database</strong> ca feed open-source pentru domenii si linkuri active de phishing;</li>
       <li><strong>Supabase</strong> pentru evenimente agregate, feedback si campanii comunitare;</li>
       <li>provider AI optional pentru explicatii, cu fallback local cand este dezactivat.</li>
     </ul>
@@ -5054,16 +5004,16 @@ def _build_orchestrated_pillars(job: Dict[str, Any]) -> Dict[str, Dict[str, Any]
     if not has_urls:
         final_url_pillar = _pillar("not_required", required=False, details="mesajul nu contine URL verificabil")
         web_risk_pillar = _pillar("not_required", required=False, details="nu exista URL pentru Web Risk")
-        virustotal_pillar = _pillar("not_required", required=False, details="nu exista URL pentru VirusTotal")
+        phishing_database_pillar = _pillar("not_required", required=False, details="nu exista URL pentru Phishing.Database")
     else:
         final_url_pillar = _pillar("ok" if final_url else "pending", details=str(final_url or "se rezolva destinatia finala"))
         web_risk_pillar = _provider_pillar_from_summary(summary, "google_web_risk")
-        virustotal_pillar = _provider_pillar_from_summary(summary, "virustotal")
+        phishing_database_pillar = _provider_pillar_from_summary(summary, "phishing_database")
 
     return {
         "final_url": final_url_pillar,
         "google_web_risk": web_risk_pillar,
-        "virustotal": virustotal_pillar,
+        "phishing_database": phishing_database_pillar,
         "urlscan": urlscan_pillar,
         "claim_verifier": _pillar(
             (
@@ -5135,8 +5085,17 @@ def _urlscan_enhancement_done(job: Dict[str, Any]) -> bool:
     return status in {"error", "timeout", "rate_limited", "skipped"}
 
 
+def _urlscan_result_ready_for_verdict(job: Dict[str, Any]) -> bool:
+    raw_urls = job.get("urls") if isinstance(job.get("urls"), list) else []
+    if not raw_urls:
+        return True
+    urlscan_state = job.get("urlscan") if isinstance(job.get("urlscan"), dict) else {}
+    status = str(urlscan_state.get("status") or "").strip().lower()
+    return status in {"finished", "error", "timeout", "rate_limited", "skipped"}
+
+
 def _baseline_pillars_ready_without_urlscan(pillars: Dict[str, Dict[str, Any]]) -> bool:
-    required_names = ("final_url", "google_web_risk", "virustotal", "claim_verifier")
+    required_names = ("final_url", "google_web_risk", "phishing_database", "claim_verifier")
     for name in required_names:
         pillar = pillars.get(name)
         if not isinstance(pillar, dict):
@@ -5297,7 +5256,10 @@ def _orchestrated_status_payload(job: Dict[str, Any]) -> Dict[str, Any]:
 def _orchestrated_can_finalize_result(job: Dict[str, Any], pillars: Dict[str, Dict[str, Any]]) -> bool:
     if str(job.get("pipeline_stage") or "").strip().lower() == "done":
         return True
-    return _all_required_pillars_terminal(pillars) and _urlscan_enhancement_done(job)
+    # User-facing verdicts wait for the urlscan report when a URL exists, but
+    # not for screenshot availability. The screenshot is an async visual
+    # enhancement and can fill in after the final label is already available.
+    return _all_required_pillars_terminal(pillars) and _urlscan_result_ready_for_verdict(job)
 
 
 def _orchestrated_result_is_final(job: Dict[str, Any], analysis: Dict[str, Any]) -> bool:
@@ -5612,7 +5574,7 @@ async def _run_orchestrated_fast_lane(job: Dict[str, Any], request: Request) -> 
         "fast_lane.reputation",
         lambda: _gather_external_intel_safe(
             resolved_urls,
-            include_virustotal=True,
+            include_phishing_database=True,
             include_urlhaus=True,
             persist_partial=False,
         ),
@@ -5719,7 +5681,7 @@ async def _refresh_orchestrated_job(job: Dict[str, Any], request: Request) -> Di
         resolved_urls = job.get("resolved_urls") if isinstance(job.get("resolved_urls"), list) else []
         threat_intel = _gather_external_intel_safe(
             resolved_urls,
-            include_virustotal=True,
+            include_phishing_database=True,
             include_urlhaus=False,
             persist_partial=False,
         )
@@ -5772,7 +5734,7 @@ async def _refresh_orchestrated_job(job: Dict[str, Any], request: Request) -> Di
         existing_intel = job.get("threat_intel") if isinstance(job.get("threat_intel"), dict) else {}
         urlhaus_intel = _gather_external_intel_safe(
             resolved_urls,
-            include_virustotal=False,
+            include_phishing_database=False,
             include_urlhaus=True,
             persist_partial=False,
         )

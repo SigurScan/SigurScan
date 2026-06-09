@@ -149,7 +149,8 @@ class SigurScanFixturePackDeviceE2ETest {
     private fun snapshotForV2(packRoot: File, case: V2Case): EvidenceSnapshot {
         val urlscan = gson.fromJson(packRoot.resolve(case.providerMocks.getValue("urlscan")).readText(), V2UrlscanMock::class.java)
         val webRisk = gson.fromJson(packRoot.resolve(case.providerMocks.getValue("web_risk")).readText(), V2WebRiskMock::class.java)
-        val virusTotal = gson.fromJson(packRoot.resolve(case.providerMocks.getValue("virustotal")).readText(), V2VirusTotalMock::class.java)
+        val phishingDatabaseMockPath = case.providerMocks["phishing_database"] ?: case.providerMocks.getValue("virustotal")
+        val phishingDatabase = gson.fromJson(packRoot.resolve(phishingDatabaseMockPath).readText(), V2PhishingDatabaseMock::class.java)
         val primaryUrl = case.primaryUrl
         val finalUrl = urlscan.finalUrl.takeIf { urlscan.status == "SUCCESS" } ?: primaryUrl
         val targetKey = hostOf(finalUrl ?: primaryUrl) ?: case.id
@@ -159,7 +160,7 @@ class SigurScanFixturePackDeviceE2ETest {
         case.expectedSignals.forEach { signalName ->
             addMappedSignals(signals, signalName, case.id, targetKey)
         }
-        addV2ProviderSignals(signals, providerStates, case.id, targetKey, urlscan, webRisk, virusTotal)
+        addV2ProviderSignals(signals, providerStates, case.id, targetKey, urlscan, webRisk, phishingDatabase)
         finalizeCompletedFixturePillars(signals, providerStates, case.id, targetKey, case.providerMocks.isNotEmpty())
 
         return EvidenceSnapshot(
@@ -205,7 +206,7 @@ class SigurScanFixturePackDeviceE2ETest {
             buildSet {
                 add(ProviderId.WEB_RISK)
                 add(ProviderId.URLSCAN)
-                add(ProviderId.VIRUSTOTAL)
+                add(ProviderId.PHISHING_DATABASE)
                 if (requiresFixtureClaimVerification(snapshot)) add(ProviderId.CLAIM_VERIFIER)
             }
         } else {
@@ -231,7 +232,7 @@ class SigurScanFixturePackDeviceE2ETest {
                     EvidenceCode.WEBRISK_MATCH_SOCIAL_ENGINEERING_EXT,
                     EvidenceCode.URLSCAN_VERDICT_PHISHING,
                     EvidenceCode.URLSCAN_VERDICT_MALWARE,
-                    EvidenceCode.VIRUSTOTAL_MALICIOUS_CONSENSUS,
+                    EvidenceCode.PHISHING_DATABASE_LISTED,
                     EvidenceCode.APK_DOWNLOAD_UNOFFICIAL,
                     EvidenceCode.REMOTE_ACCESS_DOWNLOAD_UNOFFICIAL
                 )
@@ -309,14 +310,14 @@ class SigurScanFixturePackDeviceE2ETest {
                 addSignal(signals, caseId, targetKey, EvidenceSource.URLSCAN, EvidenceCode.NO_SENSITIVE_FORM, ProviderId.URLSCAN)
             }
         }
-        mock.providers["virustotal"]?.let { provider ->
+        (mock.providers["phishing_database"] ?: mock.providers["virustotal"])?.let { provider ->
             val status = if (provider.status.equals("NOT_RUN", ignoreCase = true) && shouldSubmitExternal) {
                 ProviderStatus.OK
             } else {
                 provider.status.toProviderStatus()
             }
-            states[ProviderId.VIRUSTOTAL] = ProviderState(ProviderId.VIRUSTOTAL, status)
-            addVirusTotalVerdictSignals(signals, caseId, targetKey, provider.verdict)
+            states[ProviderId.PHISHING_DATABASE] = ProviderState(ProviderId.PHISHING_DATABASE, status)
+            addPhishingDatabaseVerdictSignals(signals, caseId, targetKey, provider.verdict)
         }
     }
 
@@ -341,7 +342,7 @@ class SigurScanFixturePackDeviceE2ETest {
 
         states.putIfAbsent(ProviderId.WEB_RISK, ProviderState(ProviderId.WEB_RISK, ProviderStatus.OK))
         states.putIfAbsent(ProviderId.URLSCAN, ProviderState(ProviderId.URLSCAN, ProviderStatus.OK))
-        states.putIfAbsent(ProviderId.VIRUSTOTAL, ProviderState(ProviderId.VIRUSTOTAL, ProviderStatus.OK))
+        states.putIfAbsent(ProviderId.PHISHING_DATABASE, ProviderState(ProviderId.PHISHING_DATABASE, ProviderStatus.OK))
         states.putIfAbsent(ProviderId.CLAIM_VERIFIER, ProviderState(ProviderId.CLAIM_VERIFIER, ProviderStatus.OK))
         if (signals.none { it.provider == ProviderId.CLAIM_VERIFIER }) {
             addSignal(
@@ -362,11 +363,11 @@ class SigurScanFixturePackDeviceE2ETest {
         targetKey: String,
         urlscan: V2UrlscanMock,
         webRisk: V2WebRiskMock,
-        virusTotal: V2VirusTotalMock
+        virusTotal: V2PhishingDatabaseMock
     ) {
         states[ProviderId.URLSCAN] = ProviderState(ProviderId.URLSCAN, urlscan.status.toProviderStatus())
         states[ProviderId.WEB_RISK] = ProviderState(ProviderId.WEB_RISK, webRisk.status.toProviderStatus())
-        states[ProviderId.VIRUSTOTAL] = ProviderState(ProviderId.VIRUSTOTAL, virusTotal.status.toProviderStatus())
+        states[ProviderId.PHISHING_DATABASE] = ProviderState(ProviderId.PHISHING_DATABASE, virusTotal.status.toProviderStatus())
 
         addUrlscanVerdictSignals(signals, caseId, targetKey, urlscan.verdict)
         urlscan.forms.forEach { form ->
@@ -403,9 +404,9 @@ class SigurScanFixturePackDeviceE2ETest {
         val suspicious = virusTotal.stats?.suspicious ?: 0
         if (virusTotal.status == "SUCCESS") {
             if (malicious >= 5 || malicious + suspicious >= 8) {
-                addSignal(signals, caseId, targetKey, EvidenceSource.VIRUSTOTAL, EvidenceCode.VIRUSTOTAL_MALICIOUS_CONSENSUS, ProviderId.VIRUSTOTAL)
+                addSignal(signals, caseId, targetKey, EvidenceSource.PHISHING_DATABASE, EvidenceCode.PHISHING_DATABASE_LISTED, ProviderId.PHISHING_DATABASE)
             } else {
-                addSignal(signals, caseId, targetKey, EvidenceSource.VIRUSTOTAL, EvidenceCode.VIRUSTOTAL_LOW_OR_NO_DETECTION, ProviderId.VIRUSTOTAL)
+                addSignal(signals, caseId, targetKey, EvidenceSource.PHISHING_DATABASE, EvidenceCode.PHISHING_DATABASE_NOT_LISTED, ProviderId.PHISHING_DATABASE)
             }
         }
     }
@@ -431,11 +432,11 @@ class SigurScanFixturePackDeviceE2ETest {
         else -> false
     }
 
-    private fun addVirusTotalVerdictSignals(signals: MutableList<EvidenceSignal>, caseId: String, targetKey: String, rawVerdict: String?) {
+    private fun addPhishingDatabaseVerdictSignals(signals: MutableList<EvidenceSignal>, caseId: String, targetKey: String, rawVerdict: String?) {
         when (rawVerdict.orEmpty().uppercase(Locale.US)) {
-            "MALICIOUS_HIGH" -> addSignal(signals, caseId, targetKey, EvidenceSource.VIRUSTOTAL, EvidenceCode.VIRUSTOTAL_MALICIOUS_CONSENSUS, ProviderId.VIRUSTOTAL)
+            "MALICIOUS_HIGH" -> addSignal(signals, caseId, targetKey, EvidenceSource.PHISHING_DATABASE, EvidenceCode.PHISHING_DATABASE_LISTED, ProviderId.PHISHING_DATABASE)
             "LOW_ENGINE_HIT", "LOW", "CLEAN", "NOT_RUN" ->
-                addSignal(signals, caseId, targetKey, EvidenceSource.VIRUSTOTAL, EvidenceCode.VIRUSTOTAL_LOW_OR_NO_DETECTION, ProviderId.VIRUSTOTAL)
+                addSignal(signals, caseId, targetKey, EvidenceSource.PHISHING_DATABASE, EvidenceCode.PHISHING_DATABASE_NOT_LISTED, ProviderId.PHISHING_DATABASE)
         }
     }
 
@@ -448,8 +449,8 @@ class SigurScanFixturePackDeviceE2ETest {
     private fun mappedCodes(rawName: String): List<EvidenceCode> = when (rawName.uppercase(Locale.US)) {
         "WEB_RISK_NO_MATCH" -> listOf(EvidenceCode.WEBRISK_NO_MATCH)
         "WEB_RISK_MALWARE" -> listOf(EvidenceCode.WEBRISK_MATCH_MALWARE)
-        "VT_MULTI_ENGINE_MALICIOUS" -> listOf(EvidenceCode.VIRUSTOTAL_MALICIOUS_CONSENSUS)
-        "VT_SINGLE_OR_LOW_ENGINE_HIT" -> listOf(EvidenceCode.VIRUSTOTAL_LOW_OR_NO_DETECTION)
+        "VT_MULTI_ENGINE_MALICIOUS" -> listOf(EvidenceCode.PHISHING_DATABASE_LISTED)
+        "VT_SINGLE_OR_LOW_ENGINE_HIT" -> listOf(EvidenceCode.PHISHING_DATABASE_NOT_LISTED)
         "OFFICIAL_DOMAIN_EXACT_MATCH" -> listOf(EvidenceCode.OFFICIAL_DOMAIN_EXACT)
         "OFFICIAL_TRACKING_DOMAIN_MATCH" -> listOf(EvidenceCode.APPROVED_TRACKER_DOMAIN, EvidenceCode.TRACKING_ONLY_NO_PAYMENT)
         "OFFICIAL_DOMAIN_MISMATCH", "LOOKALIKE_DOMAIN", "PUNYCODE_OR_HOMOGLYPH" -> listOf(EvidenceCode.OFFICIAL_DOMAIN_MISMATCH)
@@ -502,8 +503,8 @@ class SigurScanFixturePackDeviceE2ETest {
         EvidenceCode.URLSCAN_VERDICT_PHISHING,
         EvidenceCode.URLSCAN_VERDICT_MALWARE,
         EvidenceCode.URLSCAN_NO_CLASSIFICATION -> EvidenceSource.URLSCAN
-        EvidenceCode.VIRUSTOTAL_MALICIOUS_CONSENSUS,
-        EvidenceCode.VIRUSTOTAL_LOW_OR_NO_DETECTION -> EvidenceSource.VIRUSTOTAL
+        EvidenceCode.PHISHING_DATABASE_LISTED,
+        EvidenceCode.PHISHING_DATABASE_NOT_LISTED -> EvidenceSource.PHISHING_DATABASE
         EvidenceCode.OFFICIAL_DOMAIN_EXACT,
         EvidenceCode.DELEGATED_DOMAIN_EXACT,
         EvidenceCode.APPROVED_TRACKER_DOMAIN,
@@ -517,7 +518,7 @@ class SigurScanFixturePackDeviceE2ETest {
     private fun providerFor(source: EvidenceSource): ProviderId? = when (source) {
         EvidenceSource.GOOGLE_WEB_RISK -> ProviderId.WEB_RISK
         EvidenceSource.URLSCAN -> ProviderId.URLSCAN
-        EvidenceSource.VIRUSTOTAL -> ProviderId.VIRUSTOTAL
+        EvidenceSource.PHISHING_DATABASE -> ProviderId.PHISHING_DATABASE
         EvidenceSource.OFFICIAL_REGISTRY -> ProviderId.OFFICIAL_REGISTRY
         EvidenceSource.CORPUS -> ProviderId.CORPUS
         EvidenceSource.RAG -> ProviderId.RAG
@@ -684,12 +685,12 @@ class SigurScanFixturePackDeviceE2ETest {
         val threats: List<String> = emptyList()
     )
 
-    private data class V2VirusTotalMock(
+    private data class V2PhishingDatabaseMock(
         val status: String,
-        val stats: V2VirusTotalStats? = null
+        val stats: V2PhishingDatabaseStats? = null
     )
 
-    private data class V2VirusTotalStats(
+    private data class V2PhishingDatabaseStats(
         val malicious: Int = 0,
         val suspicious: Int = 0
     )

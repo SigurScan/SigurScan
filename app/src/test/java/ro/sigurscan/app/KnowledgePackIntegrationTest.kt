@@ -59,9 +59,9 @@ class KnowledgePackIntegrationTest {
                 threatIntel = listOf(
                     ThreatIntelSourceResult("Google Web Risk", "No Threats", "low", "NO_MATCH"),
                     ThreatIntelSourceResult("urlscan.io", "No malicious classification", "low", "NO_VISIBLE_RISK"),
-                    ThreatIntelSourceResult("VirusTotal", "Clean", "low", "malicious=0")
+                    ThreatIntelSourceResult("Phishing.Database", "Clean", "low", "malicious=0")
                 ),
-                virusTotalConfigured = true
+                phishingDatabaseConfigured = true
             )
         )
 

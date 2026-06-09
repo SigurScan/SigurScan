@@ -114,7 +114,7 @@ internal object ThreatIntelOrchestrator {
         }.getOrElse { normalized }
     }
 
-    fun shouldRunVirusTotal(
+    fun shouldRunDeepReputation(
         riskLevel: String,
         existingThreatIntel: List<ThreatIntelSourceResult>,
         webRisk: ThreatIntelSourceResult?
@@ -141,7 +141,7 @@ internal object ThreatIntelOrchestrator {
     ): OfflineAssessment {
         val strongest = threatIntel.firstOrNull { item ->
             item.severity.equals("high", ignoreCase = true) &&
-                listOf("Google Web Risk", "urlscan.io", "VirusTotal").any { source ->
+                listOf("Google Web Risk", "urlscan.io", "Phishing.Database", "phishing_database", "URLhaus").any { source ->
                     item.source.equals(source, ignoreCase = true)
                 }
         } ?: return current.copy(threatIntel = threatIntel)

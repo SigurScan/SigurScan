@@ -205,7 +205,7 @@ class LaunchAcceptanceRomaniaTest {
             providerStates = mapOf(
                 ProviderId.WEB_RISK to ProviderState(ProviderId.WEB_RISK, ProviderStatus.ERROR),
                 ProviderId.URLSCAN to ProviderState(ProviderId.URLSCAN, ProviderStatus.TIMEOUT),
-                ProviderId.VIRUSTOTAL to ProviderState(ProviderId.VIRUSTOTAL, ProviderStatus.SKIPPED)
+                ProviderId.PHISHING_DATABASE to ProviderState(ProviderId.PHISHING_DATABASE, ProviderStatus.SKIPPED)
             )
         )
 
@@ -215,23 +215,23 @@ class LaunchAcceptanceRomaniaTest {
     }
 
     @Test
-    fun virusTotalFallbackMaliciousConsensusCanStopTheFlow() {
+    fun phishingDatabaseMaliciousProviderCanStopTheFlow() {
         val snapshot = snapshot(
             rawText = "Domeniu necunoscut cu plata card.",
             primaryUrl = "https://unknown-pay.example.net/card",
             finalUrl = "https://unknown-pay.example.net/card",
             threatIntel = listOf(
                 ThreatIntelSourceResult(
-                    source = "VirusTotal",
+                    source = "Phishing.Database",
                     verdict = "Malicious",
                     severity = "high",
-                    details = "Engines: total=70, malicious=4, suspicious=2"
+                    details = "Active phishing feed listed this URL"
                 )
             ),
-            virusTotalConfigured = true
+            phishingDatabaseConfigured = true
         )
 
-        assertCodes(snapshot, EvidenceCode.VIRUSTOTAL_MALICIOUS_CONSENSUS)
+        assertCodes(snapshot, EvidenceCode.PHISHING_DATABASE_LISTED)
         assertEquals(GateAction.DO_NOT_CONTINUE, gate.evaluate(snapshot).action)
     }
 
@@ -256,7 +256,7 @@ class LaunchAcceptanceRomaniaTest {
         redirectChain: List<String> = emptyList(),
         threatIntel: List<ThreatIntelSourceResult> = emptyList(),
         providerStates: Map<ProviderId, ProviderState> = emptyMap(),
-        virusTotalConfigured: Boolean = false,
+        phishingDatabaseConfigured: Boolean = false,
         autoCompleteProviders: Boolean = true
     ): EvidenceSnapshot {
         val effectiveProviderStates = if (
@@ -276,7 +276,7 @@ class LaunchAcceptanceRomaniaTest {
                 threatIntel = threatIntel,
                 providerStates = effectiveProviderStates,
                 completeness = if (effectiveProviderStates.isNotEmpty()) EvidenceCompleteness.PARTIAL_ONLINE else null,
-                virusTotalConfigured = virusTotalConfigured
+                phishingDatabaseConfigured = phishingDatabaseConfigured
             )
         )
     }
@@ -284,7 +284,7 @@ class LaunchAcceptanceRomaniaTest {
     private fun completedUrlProviderStates(): Map<ProviderId, ProviderState> = mapOf(
         ProviderId.WEB_RISK to ProviderState(ProviderId.WEB_RISK, ProviderStatus.OK),
         ProviderId.URLSCAN to ProviderState(ProviderId.URLSCAN, ProviderStatus.OK),
-        ProviderId.VIRUSTOTAL to ProviderState(ProviderId.VIRUSTOTAL, ProviderStatus.OK),
+        ProviderId.PHISHING_DATABASE to ProviderState(ProviderId.PHISHING_DATABASE, ProviderStatus.OK),
         ProviderId.CLAIM_VERIFIER to ProviderState(ProviderId.CLAIM_VERIFIER, ProviderStatus.OK)
     )
 

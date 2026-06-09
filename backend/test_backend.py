@@ -501,7 +501,7 @@ def test_provider_gate_keeps_official_destination_partial_until_all_pillars_comp
         "evidence": {
             "external_intel_summary": {
                 "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
-                "virustotal": {"status": "clean", "verdict": "clean", "consulted": True},
+                "phishing_database": {"status": "clean", "verdict": "clean", "consulted": True},
             }
         },
     }
@@ -537,7 +537,7 @@ def test_provider_gate_marks_yoxo_official_clean_pillars_as_low_risk():
             "offer_claim_verification": {"status": "confirmed"},
             "external_intel_summary": {
                 "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
-                "virustotal": {"status": "clean", "verdict": "clean", "consulted": True},
+                "phishing_database": {"status": "clean", "verdict": "clean", "consulted": True},
                 "urlscan": {"status": "clean", "verdict": "clean", "consulted": True},
             },
         },
@@ -569,7 +569,7 @@ def test_provider_gate_marks_clean_first_party_domain_claim_as_low_risk():
         "evidence": {
             "external_intel_summary": {
                 "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
-                "virustotal": {"status": "clean", "verdict": "clean", "consulted": True},
+                "phishing_database": {"status": "clean", "verdict": "clean", "consulted": True},
                 "urlscan": {"status": "clean", "verdict": "clean", "consulted": True},
             },
             "semantic_review": {
@@ -612,7 +612,7 @@ def test_provider_gate_does_not_trust_brand_like_compound_domain_claim():
         "evidence": {
             "external_intel_summary": {
                 "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
-                "virustotal": {"status": "clean", "verdict": "clean", "consulted": True},
+                "phishing_database": {"status": "clean", "verdict": "clean", "consulted": True},
                 "urlscan": {"status": "clean", "verdict": "clean", "consulted": True},
             },
             "semantic_review": {
@@ -654,7 +654,7 @@ def test_provider_gate_marks_clean_shortener_to_named_first_party_domain_as_low_
         "evidence": {
             "external_intel_summary": {
                 "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
-                "virustotal": {"status": "clean", "verdict": "clean", "consulted": True},
+                "phishing_database": {"status": "clean", "verdict": "clean", "consulted": True},
                 "urlscan": {"status": "clean", "verdict": "clean", "consulted": True},
             },
             "semantic_review": {
@@ -696,7 +696,7 @@ def test_provider_gate_exposes_established_domain_as_positive_context():
         "evidence": {
             "external_intel_summary": {
                 "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
-                "virustotal": {"status": "clean", "verdict": "clean", "consulted": True},
+                "phishing_database": {"status": "clean", "verdict": "clean", "consulted": True},
                 "urlscan": {"status": "clean", "verdict": "clean", "consulted": True},
             },
             "semantic_review": {
@@ -790,7 +790,7 @@ def test_provider_gate_multi_url_official_lure_does_not_mask_phishing_link():
         "evidence": {
             "external_intel_summary": {
                 "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
-                "virustotal": {"status": "clean", "verdict": "clean", "consulted": True},
+                "phishing_database": {"status": "clean", "verdict": "clean", "consulted": True},
                 "urlhaus": {"status": "clean", "verdict": "clean", "consulted": True},
             },
             "semantic_review": {
@@ -834,7 +834,7 @@ def test_provider_gate_multi_url_official_lure_does_not_mask_phishing_link():
     pillars = {
         "final_url": {"status": "ok", "required": True},
         "google_web_risk": {"status": "ok", "required": True},
-        "virustotal": {"status": "ok", "required": True},
+        "phishing_database": {"status": "ok", "required": True},
         "urlscan": {"status": "pending", "required": False},
         "claim_verifier": {"status": "ok", "required": True},
         "semantic_review": {"status": "ok", "required": True},
@@ -857,7 +857,7 @@ def test_provider_gate_does_not_mark_new_first_party_domain_as_low_risk():
         "evidence": {
             "external_intel_summary": {
                 "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
-                "virustotal": {"status": "clean", "verdict": "clean", "consulted": True},
+                "phishing_database": {"status": "clean", "verdict": "clean", "consulted": True},
                 "urlscan": {"status": "clean", "verdict": "clean", "consulted": True},
             },
             "semantic_review": {
@@ -901,7 +901,7 @@ def test_provider_gate_does_not_mark_url_only_unknown_clean_domain_as_low_risk()
         "evidence": {
             "external_intel_summary": {
                 "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
-                "virustotal": {"status": "clean", "verdict": "clean", "consulted": True},
+                "phishing_database": {"status": "clean", "verdict": "clean", "consulted": True},
                 "urlscan": {"status": "clean", "verdict": "clean", "consulted": True},
             },
             "semantic_review": {
@@ -1064,7 +1064,7 @@ def test_provider_gate_projection_is_pure_and_matches_apply():
             "offer_claim_verification": {"status": "confirmed"},
             "external_intel_summary": {
                 "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
-                "virustotal": {"status": "clean", "verdict": "clean", "consulted": True},
+                "phishing_database": {"status": "clean", "verdict": "clean", "consulted": True},
                 "urlscan": {"status": "clean", "verdict": "clean", "consulted": True},
             },
         },
@@ -1091,7 +1091,7 @@ def test_provider_gate_projection_is_pure_and_matches_apply():
     assert projection["provider_gate"]["official_destination"] is True
 
 
-def test_provider_gate_virustotal_malicious_is_decisive_provider_risk():
+def test_provider_gate_phishing_database_malicious_is_decisive_provider_risk():
     analysis = {
         "claimed_brand": "Nespecificat",
         "risk_level": "low",
@@ -1100,7 +1100,7 @@ def test_provider_gate_virustotal_malicious_is_decisive_provider_risk():
         "evidence": {
             "external_intel_summary": {
                 "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
-                "virustotal": {
+                "phishing_database": {
                     "status": "malicious",
                     "verdict": "malicious",
                     "severity": "high",
@@ -1126,7 +1126,7 @@ def test_provider_gate_virustotal_malicious_is_decisive_provider_risk():
     assert result["risk_level"] == "high"
     assert result["risk_score"] == 90
     assert result["detected_family_id"] == "provider-gate-bad-provider"
-    assert result["evidence"]["provider_gate"]["virustotal_consulted"] is True
+    assert result["evidence"]["provider_gate"]["phishing_database_consulted"] is True
 
 
 def test_provider_gate_web_risk_malicious_is_decisive_provider_risk_when_other_providers_clean():
@@ -1144,7 +1144,7 @@ def test_provider_gate_web_risk_malicious_is_decisive_provider_risk_when_other_p
                     "risk_score": 100,
                     "threat_type": "SOCIAL_ENGINEERING",
                 },
-                "virustotal": {"status": "clean", "verdict": "clean", "consulted": True},
+                "phishing_database": {"status": "clean", "verdict": "clean", "consulted": True},
                 "urlscan": {"status": "clean", "verdict": "clean", "consulted": True},
                 "urlhaus": {"status": "clean", "verdict": "clean", "consulted": True},
             }
@@ -1169,7 +1169,7 @@ def test_provider_gate_web_risk_malicious_is_decisive_provider_risk_when_other_p
     provider_gate = result["evidence"]["provider_gate"]
     assert provider_gate["reason"] == "provider_malicious"
     assert provider_gate["web_risk_consulted"] is True
-    assert provider_gate["virustotal_consulted"] is True
+    assert provider_gate["phishing_database_consulted"] is True
     assert provider_gate["urlscan_consulted"] is True
     assert "google_web_risk" in provider_gate["consulted_sources"]
 
@@ -1318,7 +1318,7 @@ def test_provider_gate_official_safety_education_does_not_trigger_false_positive
             "external_intel_summary": {
                 "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
                 "urlscan": {"status": "clean", "verdict": "clean", "consulted": True},
-                "virustotal": {"status": "clean", "verdict": "clean", "consulted": True},
+                "phishing_database": {"status": "clean", "verdict": "clean", "consulted": True},
             },
         },
     }
@@ -1377,7 +1377,7 @@ def test_provider_gate_sensitive_url_path_on_unofficial_domain_is_high_risk():
     assert result["detected_family_id"] == "provider-gate-sensitive-wrong-channel"
 
 
-def test_provider_gate_can_mark_official_destination_clean_without_virustotal():
+def test_provider_gate_can_mark_official_destination_clean_without_phishing_database():
     analysis = {
         "claimed_brand": "eMAG",
         "risk_level": "medium",
@@ -1406,7 +1406,7 @@ def test_provider_gate_can_mark_official_destination_clean_without_virustotal():
 
     assert result["risk_level"] == "low"
     assert result["detected_family_id"] == "provider-gate-official-clean"
-    assert "VirusTotal" not in result["evidence"]["provider_gate"]["missing_required_pillars"]
+    assert "Phishing.Database" not in result["evidence"]["provider_gate"]["missing_required_pillars"]
     assert result["evidence"]["provider_gate"]["official_destination"] is True
 
 
@@ -1423,7 +1423,7 @@ def test_provider_gate_yoxo_onelink_subscription_notice_is_low_risk():
             "offer_claim_verification": {"status": "inconclusive"},
             "external_intel_summary": {
                 "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
-                "virustotal": {"status": "clean", "verdict": "clean", "consulted": True},
+                "phishing_database": {"status": "clean", "verdict": "clean", "consulted": True},
                 "urlscan": {"status": "clean", "verdict": "No malicious classification", "consulted": True},
             },
         },
@@ -1452,7 +1452,7 @@ def test_provider_gate_yoxo_onelink_subscription_notice_is_low_risk():
     assert result["evidence"]["brand_warning"]["triggered"] is False
 
 
-def test_provider_gate_yoxo_weak_virustotal_single_engine_does_not_hard_block():
+def test_provider_gate_yoxo_unknown_phishing_database_feed_does_not_hard_block():
     analysis = {
         "claimed_brand": "YOXO",
         "risk_level": "critical",
@@ -1465,17 +1465,11 @@ def test_provider_gate_yoxo_weak_virustotal_single_engine_does_not_hard_block():
             "offer_claim_verification": {"status": "inconclusive"},
             "external_intel_summary": {
                 "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
-                "virustotal": {
-                    "status": "malicious",
-                    "verdict": "malicious",
+                "phishing_database": {
+                    "status": "unknown",
+                    "verdict": "unknown",
                     "consulted": True,
-                    "malicious_hit_count": 1,
-                    "details": {
-                        "stats": {"harmless": 62, "malicious": 1, "suspicious": 0, "undetected": 32},
-                        "flagged_engines": [
-                            {"engine": "FlakyVendor", "category": "malicious", "result": "phishing"}
-                        ],
-                    },
+                    "details": {"status": "feed_unavailable"},
                 },
                 "urlscan": {"status": "clean", "verdict": "No malicious classification", "consulted": True},
             },
@@ -1504,7 +1498,7 @@ def test_provider_gate_yoxo_weak_virustotal_single_engine_does_not_hard_block():
     assert result["evidence"]["provider_gate"]["official_destination"] is True
 
 
-def test_provider_gate_virustotal_consensus_still_hard_blocks():
+def test_provider_gate_phishing_database_active_feed_hit_hard_blocks():
     analysis = {
         "claimed_brand": "Nespecificat",
         "risk_level": "low",
@@ -1516,13 +1510,16 @@ def test_provider_gate_virustotal_consensus_still_hard_blocks():
             "offer_claim_verification": {"status": "skipped"},
             "external_intel_summary": {
                 "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
-                "virustotal": {
+                "phishing_database": {
                     "status": "malicious",
                     "verdict": "malicious",
                     "consulted": True,
-                    "malicious_hit_count": 3,
+                    "malicious_hit_count": 1,
                     "details": {
-                        "stats": {"harmless": 48, "malicious": 3, "suspicious": 1, "undetected": 30},
+                        "provider": "phishing_database",
+                        "status": "listed",
+                        "match_type": "domain",
+                        "matched_value": "unknown.example.com",
                     },
                 },
                 "urlscan": {"status": "clean", "verdict": "No malicious classification", "consulted": True},
@@ -1631,7 +1628,7 @@ def test_provider_gate_deeplink_to_untrusted_destination_stays_suspicious():
             "offer_claim_verification": {"status": "not_found"},
             "external_intel_summary": {
                 "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
-                "virustotal": {"status": "clean", "verdict": "clean", "consulted": True},
+                "phishing_database": {"status": "clean", "verdict": "clean", "consulted": True},
                 "urlscan": {"status": "clean", "verdict": "clean", "consulted": True},
             },
         },
@@ -1668,7 +1665,7 @@ def test_provider_gate_keeps_official_bank_domain_suspect_when_message_requests_
             "offer_claim_verification": {"status": "confirmed"},
             "external_intel_summary": {
                 "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
-                "virustotal": {"status": "clean", "verdict": "clean", "consulted": True},
+                "phishing_database": {"status": "clean", "verdict": "clean", "consulted": True},
                 "urlscan": {"status": "clean", "verdict": "clean", "consulted": True},
             },
         },
@@ -1710,7 +1707,7 @@ def test_provider_gate_exposes_brand_warning_for_fake_fan_delivery_payment():
             "offer_claim_verification": {"status": "inconclusive"},
             "external_intel_summary": {
                 "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
-                "virustotal": {"status": "clean", "verdict": "clean", "consulted": True},
+                "phishing_database": {"status": "clean", "verdict": "clean", "consulted": True},
                 "urlscan": {"status": "clean", "verdict": "clean", "consulted": True},
             },
         },
@@ -1895,7 +1892,7 @@ def test_orchestrated_post_accepts_without_running_providers(monkeypatch):
     assert payload["result"] is None
     assert payload["pillars"]["final_url"]["status"] == "pending"
     assert payload["pillars"]["google_web_risk"]["status"] == "pending"
-    assert payload["pillars"]["virustotal"]["status"] == "pending"
+    assert payload["pillars"]["phishing_database"]["status"] == "pending"
     assert payload["pillars"]["claim_verifier"]["status"] == "not_required"
     assert payload["pillars"]["urlscan"]["status"] == "pending"
     assert payload["preview"]["screenshot_url"] is None
@@ -1937,7 +1934,7 @@ def test_orchestrated_first_poll_runs_fast_lane_without_publishing_final_verdict
 
     def fake_external_intel(urls, *args, **kwargs):
         calls.append(kwargs)
-        output = _clean_web_risk_and_vt_for_resolved_urls(urls)
+        output = _clean_web_risk_and_phishing_database_for_resolved_urls(urls)
         for entry in output.values():
             entry.setdefault("sources", {})["urlhaus"] = {
                 "status": "clean",
@@ -1992,7 +1989,7 @@ def test_orchestrated_first_poll_runs_fast_lane_without_publishing_final_verdict
     assert refreshed["preview"].get("screenshot_url") is None
     assert calls == [
         {
-            "include_virustotal": True,
+            "include_phishing_database": True,
             "include_urlhaus": True,
             "persist_partial": False,
         }
@@ -2063,7 +2060,7 @@ def test_orchestrated_resolved_stage_collects_fast_reputation_without_urlhaus(mo
 
     def fake_external_intel(resolved_urls, *args, **kwargs):
         calls.append(kwargs)
-        return _clean_web_risk_and_vt_for_resolved_urls(resolved_urls)
+        return _clean_web_risk_and_phishing_database_for_resolved_urls(resolved_urls)
 
     with monkeypatch.context() as patched:
         patched.setattr(app_main, "_gather_external_intel_safe", fake_external_intel)
@@ -2074,7 +2071,7 @@ def test_orchestrated_resolved_stage_collects_fast_reputation_without_urlhaus(mo
     assert refreshed["pipeline_stage"] == "urlhaus_ready"
     assert calls == [
         {
-            "include_virustotal": True,
+            "include_phishing_database": True,
             "include_urlhaus": False,
             "persist_partial": False,
         }
@@ -2101,14 +2098,14 @@ def test_orchestrated_urlhaus_stage_collects_urlhaus_once(monkeypatch):
                 "success": True,
             }
         ],
-        "threat_intel": _clean_web_risk_and_vt_for_resolved_urls(
+        "threat_intel": _clean_web_risk_and_phishing_database_for_resolved_urls(
             [{"final_url": "https://example.com/login"}]
         ),
         "analysis": {
             "evidence": {
                 "external_intel_summary": {
                     "google_web_risk": {"status": "clean", "consulted": True},
-                    "virustotal": {"status": "clean", "consulted": True},
+                    "phishing_database": {"status": "clean", "consulted": True},
                 }
             }
         },
@@ -2119,7 +2116,7 @@ def test_orchestrated_urlhaus_stage_collects_urlhaus_once(monkeypatch):
 
     def fake_external_intel(resolved_urls, *args, **kwargs):
         calls.append(kwargs)
-        output = _clean_web_risk_and_vt_for_resolved_urls(resolved_urls)
+        output = _clean_web_risk_and_phishing_database_for_resolved_urls(resolved_urls)
         for entry in output.values():
             entry.setdefault("sources", {})["urlhaus"] = {
                 "status": "clean",
@@ -2127,7 +2124,7 @@ def test_orchestrated_urlhaus_stage_collects_urlhaus_once(monkeypatch):
                 "score": 0,
                 "threat_type": "unknown",
             }
-            entry["sources"]["virustotal"] = {
+            entry["sources"]["phishing_database"] = {
                 "status": "unknown",
                 "consulted": False,
                 "score": 0,
@@ -2145,14 +2142,14 @@ def test_orchestrated_urlhaus_stage_collects_urlhaus_once(monkeypatch):
     assert refreshed["pipeline_stage"] == "reputation_ready"
     assert calls == [
         {
-            "include_virustotal": False,
+            "include_phishing_database": False,
             "include_urlhaus": True,
             "persist_partial": False,
         }
     ]
     summary = refreshed["analysis"]["evidence"]["external_intel_summary"]
-    assert summary["virustotal"]["status"] == "clean"
-    assert summary["virustotal"]["consulted"] is True
+    assert summary["phishing_database"]["status"] == "clean"
+    assert summary["phishing_database"]["consulted"] is True
     assert summary["urlhaus"]["status"] == "clean"
     assert summary["urlhaus"]["consulted"] is True
 
@@ -2192,7 +2189,7 @@ def test_orchestrated_reputation_stage_runs_mistral_as_semantic_pillar(monkeypat
             "evidence": {
                 "external_intel_summary": {
                     "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
-                    "virustotal": {"status": "clean", "verdict": "clean", "consulted": True},
+                    "phishing_database": {"status": "clean", "verdict": "clean", "consulted": True},
                 }
             },
         }
@@ -2285,7 +2282,7 @@ def test_orchestrated_reputation_analysis_reuses_existing_intel_without_deep_fal
                 "has_domain_mismatch": True,
                 "external_intel_summary": {
                     "google_web_risk": {"status": "clean", "consulted": True},
-                    "virustotal": {"status": "clean", "consulted": True},
+                    "phishing_database": {"status": "clean", "consulted": True},
                 },
             },
         }
@@ -2295,7 +2292,7 @@ def test_orchestrated_reputation_analysis_reuses_existing_intel_without_deep_fal
 
     with monkeypatch.context() as patched:
         patched.setattr(app_main, "PRIVACY_SAFE_MODE", False)
-        patched.setattr(app_main, "ENABLE_VT_FALLBACK", True)
+        patched.setattr(app_main, "ENABLE_DEEP_REPUTATION_FALLBACK", True)
         patched.setattr(app_main.engine, "analyze", fake_engine_analyze)
         patched.setattr(app_main, "_gather_external_intel_safe", fail_external_intel)
         analysis = app_main._analyze_with_reputation(
@@ -2306,14 +2303,14 @@ def test_orchestrated_reputation_analysis_reuses_existing_intel_without_deep_fal
                 "https://example.com": {
                     "sources": {
                         "google_web_risk": {"status": "clean", "consulted": True},
-                        "virustotal": {"status": "clean", "consulted": True},
+                        "phishing_database": {"status": "clean", "consulted": True},
                     }
                 }
             },
             allow_deep_fallback=False,
         )
 
-    assert analysis["evidence"]["vt_fallback"] is False
+    assert analysis["evidence"]["deep_reputation_fallback"] is False
 
 
 def test_orchestrated_text_scan_completes_safe_after_urlscan_preview(monkeypatch):
@@ -2349,7 +2346,7 @@ def test_orchestrated_text_scan_completes_safe_after_urlscan_preview(monkeypatch
     assert payload["result"]["evidence"]["provider_gate"]["urlscan_consulted"] is True
 
 
-def test_orchestrated_scan_waits_when_urlscan_report_exists_but_screenshot_is_not_ready(monkeypatch):
+def test_orchestrated_scan_finalizes_when_urlscan_report_exists_but_screenshot_is_not_ready(monkeypatch):
     client = TestClient(app_main.app)
     message = (
         "Ai un telefon sau o tableta pe care nu le mai folosesti? "
@@ -2374,8 +2371,11 @@ def test_orchestrated_scan_waits_when_urlscan_report_exists_but_screenshot_is_no
 
     assert response.status_code == 200
     assert payload["status"] == "scanning"
+    assert "preview" in payload["status_message"].lower()
     assert payload["pillars"]["urlscan"]["status"] == "ok"
-    assert payload["result"] is None
+    assert payload["result"]["user_risk_label"] == "SIGUR"
+    assert payload["result"]["risk_level"] == "low"
+    assert payload["result"]["is_final"] is True
     assert payload["preview"]["screenshot_url"] is not None
 
 
@@ -2472,7 +2472,7 @@ def test_orchestrated_scan_keeps_clean_verdict_when_urlscan_screenshot_times_out
         patched.setattr(app_main, "URLSCAN_API_KEY", "server-only-key")
         patched.setattr(app_main, "ORCHESTRATED_URLSCAN_PENDING_TIMEOUT_SECONDS", 1)
         patched.setattr(app_main, "_safe_scan_url_list", _fake_yoxo_safe_scan)
-        patched.setattr(app_main, "_gather_external_intel_safe", _clean_web_risk_and_vt_for_resolved_urls)
+        patched.setattr(app_main, "_gather_external_intel_safe", _clean_web_risk_and_phishing_database_for_resolved_urls)
         patched.setattr(app_main, "_enrich_offer_claim_verification_async", _fake_inconclusive_offer_claim)
         patched.setattr(app_main.requests, "post", _fake_urlscan_post)
         patched.setattr(app_main.requests, "get", _fake_urlscan_get_clean_without_screenshot)
@@ -2533,7 +2533,7 @@ def test_orchestrated_urlscan_result_poll_does_not_probe_screenshot_same_request
             "evidence": {
                 "external_intel_summary": {
                     "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
-                    "virustotal": {"status": "clean", "verdict": "clean", "consulted": True},
+                    "phishing_database": {"status": "clean", "verdict": "clean", "consulted": True},
                 },
                 "offer_claim_verification": {"status": "confirmed"},
                 "semantic_review": {
@@ -2705,7 +2705,7 @@ def test_orchestrated_final_verdict_reuses_ai_explanation_cache(monkeypatch):
             "offer_claim_verification": {"status": "confirmed"},
                 "external_intel_summary": {
                     "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
-                    "virustotal": {"status": "clean", "verdict": "clean", "consulted": True},
+                    "phishing_database": {"status": "clean", "verdict": "clean", "consulted": True},
                     "urlscan": {"status": "clean", "verdict": "clean", "consulted": True},
                 },
             },
@@ -2778,7 +2778,7 @@ def test_orchestrated_urlscan_final_url_can_downgrade_stale_structural_danger(mo
             "offer_claim_verification": {"status": "inconclusive"},
             "external_intel_summary": {
                 "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
-                "virustotal": {"status": "clean", "verdict": "clean", "consulted": True},
+                "phishing_database": {"status": "clean", "verdict": "clean", "consulted": True},
                 "urlscan": {
                     "status": "clean",
                     "verdict": "No malicious classification",
@@ -2899,7 +2899,7 @@ def test_urlscan_finished_without_screenshot_is_reputation_ok_not_error():
             "evidence": {
                 "external_intel_summary": {
                     "google_web_risk": {"status": "clean", "consulted": True},
-                    "virustotal": {"status": "clean", "consulted": True},
+                    "phishing_database": {"status": "clean", "consulted": True},
                     "urlscan": {"status": "clean", "consulted": True},
                 },
                 "offer_claim_verification": {"status": "skipped"},
@@ -2962,7 +2962,7 @@ def test_orchestrated_urlscan_timeout_can_rehydrate_finished_report(monkeypatch)
             "evidence": {
                 "external_intel_summary": {
                     "google_web_risk": {"status": "clean", "consulted": True},
-                    "virustotal": {"status": "clean", "consulted": True},
+                    "phishing_database": {"status": "clean", "consulted": True},
                 },
                 "offer_claim_verification": {"status": "skipped"},
             },
@@ -3219,7 +3219,7 @@ def test_orchestrated_urlscan_submit_requires_owned_reservation(monkeypatch):
                 "offer_claim_verification": {"status": "confirmed"},
                 "external_intel_summary": {
                     "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
-                    "virustotal": {"status": "clean", "verdict": "clean", "consulted": True},
+                    "phishing_database": {"status": "clean", "verdict": "clean", "consulted": True},
                 },
             },
         },
@@ -3288,7 +3288,7 @@ def test_orchestrated_urlscan_submit_success_sets_submitted_stage(monkeypatch):
                 "offer_claim_verification": {"status": "confirmed"},
                 "external_intel_summary": {
                     "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
-                    "virustotal": {"status": "clean", "verdict": "clean", "consulted": True},
+                    "phishing_database": {"status": "clean", "verdict": "clean", "consulted": True},
                 },
             },
         },
@@ -3344,14 +3344,14 @@ def _clean_external_intel_for_resolved_urls(resolved_urls, *args, **kwargs):
             "risk_score": 0,
             "sources": {
                 "google_web_risk": {"status": "clean", "consulted": True, "score": 0, "threat_type": "unknown"},
-                "virustotal": {"status": "clean", "consulted": True, "score": 0, "threat_type": "unknown"},
+                "phishing_database": {"status": "clean", "consulted": True, "score": 0, "threat_type": "unknown"},
                 "urlscan": {"status": "clean", "consulted": True, "score": 0, "threat_type": "unknown"},
             },
         }
     return output
 
 
-def _clean_web_risk_and_vt_for_resolved_urls(resolved_urls, *args, **kwargs):
+def _clean_web_risk_and_phishing_database_for_resolved_urls(resolved_urls, *args, **kwargs):
     output = {}
     for entry in resolved_urls:
         final_url = entry.get("final_url") or entry.get("url")
@@ -3362,13 +3362,13 @@ def _clean_web_risk_and_vt_for_resolved_urls(resolved_urls, *args, **kwargs):
             "risk_score": 0,
             "sources": {
                 "google_web_risk": {"status": "clean", "consulted": True, "score": 0, "threat_type": "unknown"},
-                "virustotal": {"status": "clean", "consulted": True, "score": 0, "threat_type": "unknown"},
+                "phishing_database": {"status": "clean", "consulted": True, "score": 0, "threat_type": "unknown"},
             },
         }
     return output
 
 
-def _clean_web_risk_and_weak_vt_for_resolved_urls(resolved_urls, *args, **kwargs):
+def _clean_web_risk_and_weak_phishing_database_for_resolved_urls(resolved_urls, *args, **kwargs):
     output = {}
     for entry in resolved_urls:
         final_url = entry.get("final_url") or entry.get("url")
@@ -3379,7 +3379,7 @@ def _clean_web_risk_and_weak_vt_for_resolved_urls(resolved_urls, *args, **kwargs
             "risk_score": 35,
             "sources": {
                 "google_web_risk": {"status": "clean", "consulted": True, "score": 0, "threat_type": "unknown"},
-                "virustotal": {
+                "phishing_database": {
                     "status": "suspicious",
                     "verdict": "suspicious",
                     "consulted": True,
@@ -3403,7 +3403,7 @@ def _clean_web_risk_and_weak_vt_for_resolved_urls(resolved_urls, *args, **kwargs
     return output
 
 
-def _clean_web_risk_and_consensus_vt_for_resolved_urls(resolved_urls, *args, **kwargs):
+def _clean_web_risk_and_consensus_phishing_database_for_resolved_urls(resolved_urls, *args, **kwargs):
     output = {}
     for entry in resolved_urls:
         final_url = entry.get("final_url") or entry.get("url")
@@ -3414,7 +3414,7 @@ def _clean_web_risk_and_consensus_vt_for_resolved_urls(resolved_urls, *args, **k
             "risk_score": 70,
             "sources": {
                 "google_web_risk": {"status": "clean", "consulted": True, "score": 0, "threat_type": "unknown"},
-                "virustotal": {
+                "phishing_database": {
                     "status": "malicious",
                     "verdict": "malicious",
                     "consulted": True,
@@ -3435,30 +3435,33 @@ def _clean_web_risk_and_consensus_vt_for_resolved_urls(resolved_urls, *args, **k
     return output
 
 
-def test_external_intel_summary_preserves_virustotal_malicious_engine_count():
+def test_external_intel_summary_marks_phishing_database_feed_hit_once():
     summary = app_main._external_intel_summary_from_threat_intel(
         {
             "https://unknown.example.com/": {
                 "verdict": "malicious",
                 "risk_score": 70,
                 "sources": {
-                    "virustotal": {
+                    "phishing_database": {
                         "status": "malicious",
                         "verdict": "malicious",
                         "consulted": True,
                         "score": 70,
-                        "malicious_hit_count": 3,
-                        "details": {"stats": {"malicious": 3, "suspicious": 1}},
+                        "details": {
+                            "provider": "phishing_database",
+                            "status": "listed",
+                            "match_type": "domain",
+                        },
                     }
                 },
             }
         }
     )
 
-    assert summary["virustotal"]["malicious_hit_count"] == 3
+    assert summary["phishing_database"]["malicious_hit_count"] == 1
 
 
-def _malicious_web_risk_and_vt_for_resolved_urls(resolved_urls, *args, **kwargs):
+def _malicious_web_risk_and_phishing_database_for_resolved_urls(resolved_urls, *args, **kwargs):
     output = {}
     for entry in resolved_urls:
         final_url = entry.get("final_url") or entry.get("url")
@@ -3475,7 +3478,7 @@ def _malicious_web_risk_and_vt_for_resolved_urls(resolved_urls, *args, **kwargs)
                     "score": 95,
                     "threat_type": "SOCIAL_ENGINEERING",
                 },
-                "virustotal": {
+                "phishing_database": {
                     "status": "malicious",
                     "verdict": "malicious",
                     "consulted": True,
@@ -3618,7 +3621,7 @@ async def _fake_inconclusive_yoxo_offer_claim(text, analysis, resolved_urls):
     return offer_claim
 
 
-def test_orchestrated_yoxo_weak_vt_and_urlscan_prevented_finalizes_safe(monkeypatch):
+def test_orchestrated_yoxo_weak_phishing_database_and_urlscan_prevented_finalizes_safe(monkeypatch):
     client = TestClient(app_main.app)
     message = (
         "In 24 de ore se va efectua automat plata abonamentului tau Orange YOXO cu numarul 0755287867. "
@@ -3631,7 +3634,7 @@ def test_orchestrated_yoxo_weak_vt_and_urlscan_prevented_finalizes_safe(monkeypa
         patched.setattr(app_main, "ENABLE_CLOUD_AI_EXPLANATION", False)
         patched.setattr(app_main, "URLSCAN_API_KEY", "server-only-key")
         patched.setattr(app_main, "_safe_scan_url_list", _fake_yoxo_onelink_to_app_store_scan)
-        patched.setattr(app_main, "_gather_external_intel_safe", _clean_web_risk_and_weak_vt_for_resolved_urls)
+        patched.setattr(app_main, "_gather_external_intel_safe", _clean_web_risk_and_weak_phishing_database_for_resolved_urls)
         patched.setattr(app_main, "_enrich_offer_claim_verification_async", _fake_inconclusive_yoxo_offer_claim)
         patched.setattr(app_main.requests, "post", _fake_urlscan_post_scan_prevented)
 
@@ -3644,7 +3647,7 @@ def test_orchestrated_yoxo_weak_vt_and_urlscan_prevented_finalizes_safe(monkeypa
     assert response.status_code == 200
     assert payload["status"] == "complete"
     assert payload["pillars"]["google_web_risk"]["status"] == "ok"
-    assert payload["pillars"]["virustotal"]["status"] == "ok"
+    assert payload["pillars"]["phishing_database"]["status"] == "ok"
     assert payload["pillars"]["urlscan"]["status"] in {"ok", "not_required"}
     assert payload["preview"]["screenshot_url"] is None
     assert payload["result"]["user_risk_label"] == "SIGUR"
@@ -3666,7 +3669,7 @@ def test_orchestrated_fan_payment_scam_finalizes_dangerous_when_urlscan_rejects_
         patched.setattr(app_main, "ENABLE_CLOUD_AI_EXPLANATION", False)
         patched.setattr(app_main, "URLSCAN_API_KEY", "server-only-key")
         patched.setattr(app_main, "_safe_scan_url_list", _fake_fan_relivrare_scan)
-        patched.setattr(app_main, "_gather_external_intel_safe", _clean_web_risk_and_vt_for_resolved_urls)
+        patched.setattr(app_main, "_gather_external_intel_safe", _clean_web_risk_and_phishing_database_for_resolved_urls)
         patched.setattr(app_main, "_enrich_offer_claim_verification_async", _fake_inconclusive_offer_claim)
         patched.setattr(app_main.requests, "post", _fake_urlscan_post_rejects_domain)
 
@@ -3679,7 +3682,7 @@ def test_orchestrated_fan_payment_scam_finalizes_dangerous_when_urlscan_rejects_
     assert response.status_code == 200
     assert payload["status"] == "complete"
     assert payload["pillars"]["google_web_risk"]["status"] == "ok"
-    assert payload["pillars"]["virustotal"]["status"] == "ok"
+    assert payload["pillars"]["phishing_database"]["status"] == "ok"
     assert payload["pillars"]["urlscan"]["status"] == "error"
     assert payload["preview"]["screenshot_url"] is None
     assert payload["result"]["user_risk_label"] == "PERICULOS"
@@ -3696,7 +3699,7 @@ def test_orchestrated_hard_malicious_provider_finalizes_even_when_urlscan_reject
         patched.setattr(app_main, "ENABLE_CLOUD_AI_EXPLANATION", False)
         patched.setattr(app_main, "URLSCAN_API_KEY", "server-only-key")
         patched.setattr(app_main, "_safe_scan_url_list", _fake_google_test_phishing_scan)
-        patched.setattr(app_main, "_gather_external_intel_safe", _malicious_web_risk_and_vt_for_resolved_urls)
+        patched.setattr(app_main, "_gather_external_intel_safe", _malicious_web_risk_and_phishing_database_for_resolved_urls)
         patched.setattr(
             app_main,
             "_enrich_offer_claim_verification_async",
@@ -3717,7 +3720,7 @@ def test_orchestrated_hard_malicious_provider_finalizes_even_when_urlscan_reject
     assert response.status_code == 200
     assert payload["status"] == "complete"
     assert payload["pillars"]["google_web_risk"]["status"] == "ok"
-    assert payload["pillars"]["virustotal"]["status"] == "ok"
+    assert payload["pillars"]["phishing_database"]["status"] == "ok"
     assert payload["pillars"]["urlscan"]["status"] == "error"
     assert payload["pillars"]["claim_verifier"]["status"] == "not_required"
     assert payload["result"]["user_risk_label"] == "PERICULOS"
@@ -3779,7 +3782,7 @@ def test_privacy_policy_is_public_and_discloses_user_initiated_scans(monkeypatch
     assert "clipboard" in body
     assert "urlscan.io" in body
     assert "google web risk" in body
-    assert "virustotal" in body
+    assert "phishing.database" in body
 
 
 def test_build_ai_explanation_uses_fallback_in_safe_mode(monkeypatch):
@@ -3831,7 +3834,7 @@ def test_safe_scan_url_entry_is_non_network_static():
         app_main.PRIVACY_SAFE_MODE = original_mode
 
 
-def test_fast_reputation_skips_vt_and_does_not_persist_partial(monkeypatch, tmp_path):
+def test_fast_reputation_skips_optional_sources_and_does_not_persist_partial(monkeypatch, tmp_path):
     cache_path = tmp_path / "url_reputation_cache.json"
     saved_cache = []
 
@@ -3843,8 +3846,8 @@ def test_fast_reputation_skips_vt_and_does_not_persist_partial(monkeypatch, tmp_
     monkeypatch.setattr(url_reputation, "check_urls_against_web_risk", lambda urls: {})
     monkeypatch.setattr(
         url_reputation,
-        "_fetch_virustotal",
-        lambda urls, api_key: (_ for _ in ()).throw(AssertionError("VT should be skipped in fast mode")),
+        "_fetch_phishing_database",
+        lambda urls: (_ for _ in ()).throw(AssertionError("Phishing.Database should be skipped in fast mode")),
     )
     monkeypatch.setattr(
         url_reputation,
@@ -3854,16 +3857,67 @@ def test_fast_reputation_skips_vt_and_does_not_persist_partial(monkeypatch, tmp_
 
     result = url_reputation.get_reputation_for_urls(
         ["https://example.com/login"],
-        include_virustotal=False,
+        include_phishing_database=False,
         include_urlhaus=False,
     )
 
     key = url_reputation._url_hash("https://example.com/login")
     assert key in result
     assert result[key]["cached"] is False
-    assert result[key]["sources"]["virustotal"]["consulted"] is False
+    assert result[key]["sources"]["phishing_database"]["consulted"] is False
     assert result[key]["sources"]["urlhaus"]["consulted"] is False
     assert saved_cache == []
+
+
+def test_reputation_uses_phishing_database_feed_as_active_provider(monkeypatch, tmp_path):
+    cache_path = tmp_path / "url_reputation_cache.json"
+    url = "https://evil-phishing.example/login"
+    key = url_reputation._url_hash(url)
+
+    monkeypatch.setattr(url_reputation, "ENABLE_URL_REPUTATION", True)
+    monkeypatch.setattr(url_reputation, "REPUTATION_CACHE_PATH", cache_path)
+    monkeypatch.setattr(url_reputation, "_load_cache", lambda path: {})
+    monkeypatch.setattr(url_reputation, "_save_cache", lambda path, data, remote_subset=None: None)
+    monkeypatch.setattr(url_reputation, "has_web_risk_key", lambda: True)
+    monkeypatch.setattr(url_reputation, "check_urls_against_web_risk", lambda urls: {})
+    monkeypatch.setattr(
+        url_reputation,
+        "_fetch_phishing_database",
+        lambda urls: {
+            key: {
+                "status": "malicious",
+                "threat_type": "phishing",
+                "score": 92,
+                "details": {"provider": "phishing_database", "match_type": "domain"},
+                "query_ms": 1,
+            }
+        },
+        raising=False,
+    )
+    monkeypatch.setattr(
+        url_reputation,
+        "_fetch_urlhaus",
+        lambda urls, auth_key=None: {
+            key: {
+                "status": "clean",
+                "threat_type": "unknown",
+                "score": 0,
+                "details": {"status": "not_listed"},
+                "query_ms": 1,
+            }
+        },
+    )
+
+    result = url_reputation.get_reputation_for_urls(
+        [url],
+        include_phishing_database=True,
+        include_urlhaus=True,
+    )
+
+    assert result[key]["sources"]["phishing_database"]["consulted"] is True
+    assert result[key]["sources"]["phishing_database"]["status"] == "malicious"
+    assert set(result[key]["sources"]) == {"google_web_risk", "phishing_database", "urlhaus"}
+    assert result[key]["verdict"] == "malicious"
 
 
 def test_reputation_cache_persists_only_touched_remote_entries(monkeypatch, tmp_path):
@@ -3891,8 +3945,8 @@ def test_reputation_cache_persists_only_touched_remote_entries(monkeypatch, tmp_
     monkeypatch.setattr(url_reputation, "check_urls_against_web_risk", lambda urls: {})
     monkeypatch.setattr(
         url_reputation,
-        "_fetch_virustotal",
-        lambda urls, api_key: {
+        "_fetch_phishing_database",
+        lambda urls: {
             url_reputation._url_hash(urls[0]): {
                 "status": "clean",
                 "threat_type": "unknown",
@@ -3918,7 +3972,7 @@ def test_reputation_cache_persists_only_touched_remote_entries(monkeypatch, tmp_
 
     result = url_reputation.get_reputation_for_urls(
         ["https://new.example/path"],
-        include_virustotal=True,
+        include_phishing_database=True,
         include_urlhaus=True,
     )
 
@@ -3947,7 +4001,7 @@ def test_reputation_cache_refetches_when_configured_source_was_not_consulted(mon
             "expires_at": now + 3600,
             "sources": {
                 "google_web_risk": {"status": "clean", "consulted": True, "score": 0},
-                "virustotal": {"status": "clean", "consulted": True, "score": 0},
+                "phishing_database": {"status": "clean", "consulted": True, "score": 0},
                 "urlhaus": {"status": "unknown", "consulted": False, "details": {"status": "not_configured"}},
             },
         }
@@ -3959,12 +4013,11 @@ def test_reputation_cache_refetches_when_configured_source_was_not_consulted(mon
     monkeypatch.setattr(url_reputation, "_save_cache", lambda path, data, remote_subset=None: None)
     monkeypatch.setattr(url_reputation, "has_web_risk_key", lambda: True)
     monkeypatch.setattr(url_reputation, "check_urls_against_web_risk", lambda urls: {})
-    monkeypatch.setenv("VIRUSTOTAL_API_KEY", "vt-secret")
     monkeypatch.setattr(url_reputation, "_urlhaus_auth_key", lambda: "urlhaus-secret")
     monkeypatch.setattr(
         url_reputation,
-        "_fetch_virustotal",
-        lambda urls, api_key: {
+        "_fetch_phishing_database",
+        lambda urls: {
             url_reputation._url_hash(urls[0]): {
                 "status": "clean",
                 "threat_type": "unknown",
@@ -3991,7 +4044,7 @@ def test_reputation_cache_refetches_when_configured_source_was_not_consulted(mon
 
     result = url_reputation.get_reputation_for_urls(
         [url],
-        include_virustotal=True,
+        include_phishing_database=True,
         include_urlhaus=True,
     )
 
@@ -4090,43 +4143,44 @@ def test_supabase_reputation_cache_uses_single_batch_upsert(monkeypatch):
     assert "resolution=merge-duplicates" in posted[0]["headers"]["Prefer"]
 
 
-def test_virustotal_single_engine_is_suspicious_not_malicious(monkeypatch):
-    class FakeResponse:
-        status_code = 200
+def test_phishing_database_marks_active_domain_malicious(monkeypatch):
+    monkeypatch.setattr(
+        url_reputation,
+        "_load_phishing_database_feeds",
+        lambda: {
+            "loaded_at": int(time.time()),
+            "domains": {"evil.example.com"},
+            "links": set(),
+            "error": None,
+        },
+    )
 
-        @staticmethod
-        def json():
-            return {
-                "data": {
-                    "attributes": {
-                        "last_analysis_stats": {
-                            "harmless": 62,
-                            "malicious": 1,
-                            "suspicious": 0,
-                            "undetected": 32,
-                        },
-                        "last_analysis_results": {
-                            "FlakyVendor": {
-                                "category": "malicious",
-                                "result": "phishing",
-                                "method": "blacklist",
-                            }
-                        },
-                        "last_analysis_date": 1780000000,
-                    }
-                }
-            }
+    result = url_reputation._fetch_phishing_database(["https://evil.example.com/login"])
+    key = url_reputation._url_hash("https://evil.example.com/login")
 
-    monkeypatch.setattr(url_reputation.requests, "get", lambda *args, **kwargs: FakeResponse())
-    monkeypatch.setattr(url_reputation, "VIRUS_TOTAL_MALICIOUS_CONSENSUS_MIN_ENGINES", 2)
+    assert result[key]["status"] == "malicious"
+    assert result[key]["threat_type"] == "phishing"
+    assert result[key]["details"]["provider"] == "phishing_database"
+    assert result[key]["details"]["match_type"] == "domain"
 
-    result = url_reputation._fetch_virustotal(["https://apps.apple.com/example"], "fake-key")
+
+def test_phishing_database_clean_when_not_listed(monkeypatch):
+    monkeypatch.setattr(
+        url_reputation,
+        "_load_phishing_database_feeds",
+        lambda: {
+            "loaded_at": int(time.time()),
+            "domains": {"evil.example.com"},
+            "links": {"https://evil.example.com/login"},
+            "error": None,
+        },
+    )
+
+    result = url_reputation._fetch_phishing_database(["https://apps.apple.com/example"])
     key = url_reputation._url_hash("https://apps.apple.com/example")
 
-    assert result[key]["status"] == "suspicious"
-    assert result[key]["threat_type"] == "suspicious"
-    assert result[key]["details"]["stats"]["malicious"] == 1
-    assert result[key]["details"]["flagged_engines"][0]["engine"] == "FlakyVendor"
+    assert result[key]["status"] == "clean"
+    assert result[key]["details"]["status"] == "not_listed"
 
 
 def test_email_auth_context_skips_dns_in_safe_mode(monkeypatch):
@@ -5206,10 +5260,10 @@ def test_evaluation_readiness_payload(monkeypatch):
             "ttl_seconds": 43200,
             "items": 10,
             "valid_items": 8,
-            "provider_errors": {"google_web_risk": 0, "virustotal": 1},
+            "provider_errors": {"google_web_risk": 0, "phishing_database": 1},
             "source_stats": {
                 "google_web_risk": {"entries": 10, "consulted": 10},
-                "virustotal": {"entries": 10, "consulted": 10},
+                "phishing_database": {"entries": 10, "consulted": 10},
                 "urlhaus": {"entries": 10, "consulted": 10},
             },
         },
@@ -5234,7 +5288,7 @@ def test_health_reports_provider_config_without_secrets(monkeypatch):
         patched.setenv("MISTRAL_API_KEY", "super-secret-mistral")
         patched.setenv("GEMINI_API_KEY", "super-secret-gemini")
         patched.setenv("GOOGLE_WEB_RISK_API_KEY", "super-secret-webrisk")
-        patched.setenv("VIRUSTOTAL_API_KEY", "super-secret-vt")
+        patched.setenv("ENABLE_PHISHING_DATABASE", "true")
         patched.setattr(app_main, "URLSCAN_API_KEY", "super-secret-urlscan")
         patched.setattr(app_main, "PRIVACY_SAFE_MODE", False)
         payload = app_main.read_health()
@@ -5242,7 +5296,7 @@ def test_health_reports_provider_config_without_secrets(monkeypatch):
     serialized = json.dumps(payload)
     assert payload["config"]["providers"]["urlscan"]["configured"] is True
     assert payload["config"]["providers"]["google_web_risk"]["configured"] is True
-    assert payload["config"]["providers"]["virustotal"]["configured"] is True
+    assert payload["config"]["providers"]["phishing_database"]["configured"] is True
     assert payload["config"]["providers"]["ai_explanation"]["configured"] is True
     assert "super-secret" not in serialized
 
@@ -5278,7 +5332,7 @@ def test_evidence_bundle_is_stable_and_privacy_safe():
             "has_domain_mismatch": False,
             "external_intel_summary": {
                 "google_web_risk": {"status": "clean", "verdict": "no_match", "consulted": True},
-                "virustotal": {"status": "clean", "verdict": "clean", "consulted": True},
+                "phishing_database": {"status": "clean", "verdict": "clean", "consulted": True},
             },
             "provider_gate": {
                 "official_destination": True,
@@ -5322,7 +5376,7 @@ def test_evidence_bundle_is_stable_and_privacy_safe():
 
 def test_adjudication_validator_rejects_invented_danger():
     evidence = {
-        "providers": {"google_web_risk": {"status": "clean"}, "virustotal": {"status": "clean"}},
+        "providers": {"google_web_risk": {"status": "clean"}, "phishing_database": {"status": "clean"}},
         "brand": {"official_destination": True, "mismatch": False},
         "text_signals": {"direct_sensitive_request": False, "sensitive_url_path": False},
         "urls": [{"final_registered_domain": "apple.com"}],

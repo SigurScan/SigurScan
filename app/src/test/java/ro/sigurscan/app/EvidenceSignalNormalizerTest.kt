@@ -390,17 +390,17 @@ class EvidenceSignalNormalizerTest {
             finalUrl = "https://example.com",
             threatIntel = listOf(
                 ThreatIntelSourceResult(
-                    source = "VirusTotal",
+                    source = "Phishing.Database",
                     verdict = "Clean",
                     severity = "low",
                     details = "Engines: malicious=0, suspicious=0, undetected=65"
                 )
             ),
-            virusTotalConfigured = true
+            phishingDatabaseConfigured = true
         )
 
-        assertCodes(snapshot, EvidenceCode.VIRUSTOTAL_LOW_OR_NO_DETECTION)
-        assertEquals(ProviderStatus.OK, snapshot.providerStates[ProviderId.VIRUSTOTAL]?.status)
+        assertCodes(snapshot, EvidenceCode.PHISHING_DATABASE_NOT_LISTED)
+        assertEquals(ProviderStatus.OK, snapshot.providerStates[ProviderId.PHISHING_DATABASE]?.status)
         assertEquals(GateAction.INSUFFICIENT_EVIDENCE, gate.evaluate(snapshot).action)
     }
 
@@ -411,17 +411,17 @@ class EvidenceSignalNormalizerTest {
             finalUrl = "https://bad.example.net",
             threatIntel = listOf(
                 ThreatIntelSourceResult(
-                    source = "VirusTotal",
+                    source = "Phishing.Database",
                     verdict = "Malicious",
                     severity = "high",
                     details = "Engines: total=70, malicious=4, suspicious=1"
                 )
             ),
-            virusTotalConfigured = true,
+            phishingDatabaseConfigured = true,
             providerStates = completedUrlProviderStates()
         )
 
-        assertCodes(snapshot, EvidenceCode.VIRUSTOTAL_MALICIOUS_CONSENSUS)
+        assertCodes(snapshot, EvidenceCode.PHISHING_DATABASE_LISTED)
         assertEquals(GateAction.DO_NOT_CONTINUE, gate.evaluate(snapshot).action)
     }
 
@@ -465,7 +465,7 @@ class EvidenceSignalNormalizerTest {
                     severity = "low"
                 ),
                 ThreatIntelSourceResult(
-                    source = "VirusTotal",
+                    source = "Phishing.Database",
                     verdict = "Clean",
                     severity = "low"
                 ),
@@ -475,14 +475,14 @@ class EvidenceSignalNormalizerTest {
                     severity = "unknown"
                 )
             ),
-            virusTotalConfigured = true
+            phishingDatabaseConfigured = true
         )
 
         assertCodes(
             snapshot,
             EvidenceCode.WEBRISK_NO_MATCH,
             EvidenceCode.URLSCAN_NO_CLASSIFICATION,
-            EvidenceCode.VIRUSTOTAL_LOW_OR_NO_DETECTION,
+            EvidenceCode.PHISHING_DATABASE_NOT_LISTED,
             EvidenceCode.OFFER_CLAIM_INCONCLUSIVE,
             EvidenceCode.OFFICIAL_DOMAIN_EXACT,
             EvidenceCode.NO_SENSITIVE_FORM
@@ -510,7 +510,7 @@ class EvidenceSignalNormalizerTest {
                     severity = "low"
                 ),
                 ThreatIntelSourceResult(
-                    source = "VirusTotal",
+                    source = "Phishing.Database",
                     verdict = "clean",
                     severity = "low"
                 ),
@@ -521,14 +521,14 @@ class EvidenceSignalNormalizerTest {
                     details = "official_source_found=true; official_domains=idroid.ro; Claim terms were found on an official destination/page."
                 )
             ),
-            virusTotalConfigured = true
+            phishingDatabaseConfigured = true
         )
 
         assertCodes(
             snapshot,
             EvidenceCode.WEBRISK_NO_MATCH,
             EvidenceCode.URLSCAN_NO_CLASSIFICATION,
-            EvidenceCode.VIRUSTOTAL_LOW_OR_NO_DETECTION,
+            EvidenceCode.PHISHING_DATABASE_NOT_LISTED,
             EvidenceCode.OFFER_CLAIM_CONFIRMED,
             EvidenceCode.OFFICIAL_DOMAIN_EXACT,
             EvidenceCode.NO_SENSITIVE_FORM
@@ -556,19 +556,19 @@ class EvidenceSignalNormalizerTest {
                     severity = "low"
                 ),
                 ThreatIntelSourceResult(
-                    source = "VirusTotal",
+                    source = "Phishing.Database",
                     verdict = "clean",
                     severity = "low"
                 )
             ),
-            virusTotalConfigured = true
+            phishingDatabaseConfigured = true
         )
 
         assertCodes(
             snapshot,
             EvidenceCode.WEBRISK_NO_MATCH,
             EvidenceCode.URLSCAN_NO_CLASSIFICATION,
-            EvidenceCode.VIRUSTOTAL_LOW_OR_NO_DETECTION,
+            EvidenceCode.PHISHING_DATABASE_NOT_LISTED,
             EvidenceCode.OFFICIAL_DOMAIN_EXACT,
             EvidenceCode.NO_SENSITIVE_FORM
         )
@@ -769,7 +769,7 @@ class EvidenceSignalNormalizerTest {
         finalUrl: String? = null,
         redirectChain: List<String> = emptyList(),
         threatIntel: List<ThreatIntelSourceResult> = emptyList(),
-        virusTotalConfigured: Boolean = false,
+        phishingDatabaseConfigured: Boolean = false,
         providerStates: Map<ProviderId, ProviderState> = emptyMap(),
         backendEvidence: Map<String, Any>? = null
     ): EvidenceSnapshot {
@@ -791,7 +791,7 @@ class EvidenceSignalNormalizerTest {
                 threatIntel = threatIntel,
                 providerStates = effectiveProviderStates,
                 backendEvidence = backendEvidence,
-                virusTotalConfigured = virusTotalConfigured
+                phishingDatabaseConfigured = phishingDatabaseConfigured
             )
         )
     }
@@ -799,7 +799,7 @@ class EvidenceSignalNormalizerTest {
     private fun completedUrlProviderStates(): Map<ProviderId, ProviderState> = mapOf(
         ProviderId.WEB_RISK to ProviderState(ProviderId.WEB_RISK, ProviderStatus.OK),
         ProviderId.URLSCAN to ProviderState(ProviderId.URLSCAN, ProviderStatus.OK),
-        ProviderId.VIRUSTOTAL to ProviderState(ProviderId.VIRUSTOTAL, ProviderStatus.OK),
+        ProviderId.PHISHING_DATABASE to ProviderState(ProviderId.PHISHING_DATABASE, ProviderStatus.OK),
         ProviderId.CLAIM_VERIFIER to ProviderState(ProviderId.CLAIM_VERIFIER, ProviderStatus.OK)
     )
 

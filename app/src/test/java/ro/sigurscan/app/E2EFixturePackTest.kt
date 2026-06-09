@@ -67,8 +67,8 @@ class E2EFixturePackTest {
                     threatIntel = if (hasUrlTarget) providerMock.threatIntel else emptyList(),
                     providerStates = if (hasUrlTarget) providerMock.providerStates else emptyMap(),
                     completeness = completenessFor(testCase, providerMock),
-                    virusTotalConfigured = providerMock.providerStates[ProviderId.VIRUSTOTAL]?.status == ProviderStatus.OK ||
-                        providerMock.threatIntel.any { it.source.equals("VirusTotal", ignoreCase = true) }
+                    phishingDatabaseConfigured = providerMock.providerStates[ProviderId.PHISHING_DATABASE]?.status == ProviderStatus.OK ||
+                        providerMock.threatIntel.any { it.source.equals("Phishing.Database", ignoreCase = true) }
                 )
             )
             val snapshot = normalizedSnapshot.withExpectedFixtureSignals(testCase)
@@ -271,21 +271,21 @@ class E2EFixturePackTest {
             }
         }
 
-        providers["virustotal"]?.let { provider ->
+        (providers["phishing_database"] ?: providers["virustotal"])?.let { provider ->
             val status = if (provider.status?.uppercase(Locale.US) == "NOT_RUN" && testCase.should_submit_external) {
                 ProviderStatus.OK
             } else {
                 provider.status.providerStatus()
             }
-            states[ProviderId.VIRUSTOTAL] = ProviderState(ProviderId.VIRUSTOTAL, status)
+            states[ProviderId.PHISHING_DATABASE] = ProviderState(ProviderId.PHISHING_DATABASE, status)
             val verdict = provider.verdict.orEmpty().uppercase(Locale.US)
             when {
                 verdict.isBlank() && status == ProviderStatus.OK ->
-                    threatIntel += ThreatIntelSourceResult("VirusTotal", "Clean", "low", "legacy fixture mock: no detection")
+                    threatIntel += ThreatIntelSourceResult("Phishing.Database", "Clean", "low", "legacy fixture mock: no detection")
                 verdict in setOf("LOW", "LOW_HIT", "CLEAN", "NO_DETECTION", "NOT_FOUND") ->
-                    threatIntel += ThreatIntelSourceResult("VirusTotal", "Clean", "low", "low or no detection")
+                    threatIntel += ThreatIntelSourceResult("Phishing.Database", "Clean", "low", "low or no detection")
                 verdict.contains("MALICIOUS") || verdict.contains("HIGH") ->
-                    threatIntel += ThreatIntelSourceResult("VirusTotal", "Malicious", "high", "malicious=4 suspicious=1")
+                    threatIntel += ThreatIntelSourceResult("Phishing.Database", "Malicious", "high", "malicious=4 suspicious=1")
             }
         }
 
@@ -295,7 +295,7 @@ class E2EFixturePackTest {
         if (testCase.should_submit_external && !hasUnavailablePillar) {
             states.putIfAbsent(ProviderId.WEB_RISK, ProviderState(ProviderId.WEB_RISK, ProviderStatus.OK))
             states.putIfAbsent(ProviderId.URLSCAN, ProviderState(ProviderId.URLSCAN, ProviderStatus.OK))
-            states.putIfAbsent(ProviderId.VIRUSTOTAL, ProviderState(ProviderId.VIRUSTOTAL, ProviderStatus.OK))
+            states.putIfAbsent(ProviderId.PHISHING_DATABASE, ProviderState(ProviderId.PHISHING_DATABASE, ProviderStatus.OK))
             states.putIfAbsent(ProviderId.CLAIM_VERIFIER, ProviderState(ProviderId.CLAIM_VERIFIER, ProviderStatus.OK))
         }
 
