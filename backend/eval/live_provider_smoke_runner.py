@@ -124,6 +124,9 @@ def _post_scan(base_url: str, case: LiveSmokeCase, timeout: float) -> Dict[str, 
 def _poll_scan(base_url: str, scan_id: str, max_seconds: int, poll_interval: float, timeout: float) -> Dict[str, Any]:
     deadline = time.monotonic() + max_seconds
     last_payload: Dict[str, Any] = {}
+    timings: Dict[str, float] = {}
+    start_at = time.monotonic()
+
     while time.monotonic() < deadline:
         try:
             response = requests.get(
@@ -141,15 +144,31 @@ def _poll_scan(base_url: str, scan_id: str, max_seconds: int, poll_interval: flo
         last_payload = response.json()
         result = last_payload.get("result") if isinstance(last_payload.get("result"), dict) else None
         status = str(last_payload.get("status") or "").lower()
+        now = time.monotonic()
+
+        if result and result.get("is_final") is True and "time_to_verdict_sec" not in timings:
+            timings["time_to_verdict_sec"] = round(now - start_at, 2)
+
+        preview = last_payload.get("preview") if isinstance(last_payload.get("preview"), dict) else {}
+        if preview.get("report_url") and "time_to_preview_report_sec" not in timings:
+            timings["time_to_preview_report_sec"] = round(now - start_at, 2)
+        if preview.get("screenshot_url") and "time_to_preview_screenshot_sec" not in timings:
+            timings["time_to_preview_screenshot_sec"] = round(now - start_at, 2)
+
         if status in {"complete", "incomplete"}:
-            return last_payload
+            if result and result.get("is_final") is True:
+                timings.setdefault("time_to_verdict_sec", round(now - start_at, 2))
+            return {"result_payload": last_payload, "timings": timings}
         if result and result.get("is_final") is True and status != "scanning":
-            return last_payload
+            timings.setdefault("time_to_verdict_sec", round(now - start_at, 2))
+            return {"result_payload": last_payload, "timings": timings}
         time.sleep(poll_interval)
-    return last_payload
+
+    return {"result_payload": last_payload, "timings": timings}
 
 
 def _run_case(base_url: str, case: LiveSmokeCase, poll_interval: float, timeout: float) -> Dict[str, Any]:
+    started_at = time.monotonic()
     blocked = _blocked_live_target(case.text)
     if blocked:
         return {
@@ -160,7 +179,9 @@ def _run_case(base_url: str, case: LiveSmokeCase, poll_interval: float, timeout:
         }
 
     try:
+        post_start = time.monotonic()
         started = _post_scan(base_url, case, timeout)
+        scan_id_time = time.monotonic()
     except requests.RequestException as exc:
         return {
             "id": case.case_id,
@@ -180,7 +201,9 @@ def _run_case(base_url: str, case: LiveSmokeCase, poll_interval: float, timeout:
         }
 
     try:
-        final_payload = _poll_scan(base_url, scan_id, case.max_seconds, poll_interval, timeout)
+        poll_result = _poll_scan(base_url, scan_id, case.max_seconds, poll_interval, timeout)
+        final_payload = poll_result["result_payload"]
+        poll_timings = poll_result["timings"]
     except requests.RequestException as exc:
         return {
             "id": case.case_id,
@@ -191,6 +214,7 @@ def _run_case(base_url: str, case: LiveSmokeCase, poll_interval: float, timeout:
         }
 
     result = final_payload.get("result") if isinstance(final_payload.get("result"), dict) else {}
+    end_at = time.monotonic()
     label = str(result.get("user_risk_label") or "NECUNOSCUT")
     preview = final_payload.get("preview") if isinstance(final_payload.get("preview"), dict) else {}
     evidence = result.get("evidence") if isinstance(result.get("evidence"), dict) else {}
@@ -214,6 +238,13 @@ def _run_case(base_url: str, case: LiveSmokeCase, poll_interval: float, timeout:
         "provider_gate_reason": provider_gate.get("reason"),
         "provider_summary": provider_summary,
         "status_message": final_payload.get("status_message"),
+        "timings": {
+            "time_to_scan_id_sec": round(scan_id_time - post_start, 2),
+            "time_to_verdict_sec": poll_timings.get("time_to_verdict_sec"),
+            "time_to_preview_report_sec": poll_timings.get("time_to_preview_report_sec"),
+            "time_to_preview_screenshot_sec": poll_timings.get("time_to_preview_screenshot_sec"),
+            "time_to_completion_sec": round(end_at - started_at, 2),
+        },
     }
 
 
