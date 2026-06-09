@@ -744,17 +744,34 @@ async function captureOne(browser, input, outDir, bucket, table) {
       return row;
     }
 
+    const reachable = Boolean(response && response.ok());
+    const error = response ? (response.ok() ? null : `http_status:${response.status()}`) : 'http_response_missing';
+    if (!reachable) {
+      row = makeBaseRow({
+        input,
+        finalUrl: finalNorm,
+        redirectChain,
+        status: statusFromError(error),
+        reachable: false,
+        error
+      });
+      row.http_status = response ? response.status() : null;
+      row.page_title = await safeTitle(page);
+      await uploadOrWrite(row, null, outDir, bucket, table);
+      stats.failedDeadUrls += 1;
+      stats.failed.push({ original_url: originalUrl, error: row.error });
+      return row;
+    }
+
     const clip = await getScreenshotClip(page);
     screenshotBuffer = await page.screenshot({ type: 'png', fullPage: false, clip, timeout: NAV_TIMEOUT_MS });
-    const reachable = Boolean(response && response.ok());
-    const error = response && !response.ok() ? `http_status:${response.status()}` : null;
     row = makeBaseRow({
       input,
       finalUrl: finalNorm,
       redirectChain,
-      status: reachable ? 'ready' : statusFromError(error),
-      reachable,
-      error
+      status: 'ready',
+      reachable: true,
+      error: null
     });
     row.http_status = response ? response.status() : null;
     row.page_title = await safeTitle(page);
@@ -764,10 +781,6 @@ async function captureOne(browser, input, outDir, bucket, table) {
     row.content_hash = sha256Buffer(screenshotBuffer);
     await uploadOrWrite(row, screenshotBuffer, outDir, bucket, table);
     stats.screenshotsCapturedNew += 1;
-    if (!row.reachable) {
-      stats.failedDeadUrls += 1;
-      stats.failed.push({ original_url: originalUrl, error: row.error });
-    }
     return row;
   } catch (err) {
     const fallbackFinal = normalizeUrl(page.url()) || normalizeUrl(originalUrl) || originalUrl;
