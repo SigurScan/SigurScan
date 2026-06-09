@@ -5594,7 +5594,6 @@ async def _run_orchestrated_fast_lane(job: Dict[str, Any], request: Request) -> 
     job = _persist_orchestrated_job(job)
     _emit_orchestrated_telemetry("orchestrated_stage_analysis_ready", job, fast_lane=True, claim_required=claim_required)
 
-    job = await _submit_orchestrated_urlscan_preview_once(job, request)
     return await _finalize_orchestrated_job_if_ready(job, request)
 
 

@@ -1695,7 +1695,7 @@ def test_orchestrated_post_accepts_without_running_providers(monkeypatch):
     assert payload["preview"]["screenshot_url"] is None
 
 
-def test_orchestrated_first_poll_runs_fast_lane_and_submits_preview(monkeypatch):
+def test_orchestrated_first_poll_runs_fast_lane_without_blocking_on_preview(monkeypatch):
     calls = []
     job = {
         "scan_id": "orch_fast_lane",
@@ -1764,14 +1764,8 @@ def test_orchestrated_first_poll_runs_fast_lane_and_submits_preview(monkeypatch)
             },
         }
 
-    async def fake_submit(url, payload, request):
-        return {
-            "uuid": "urlscan-fast-lane",
-            "status": "pending",
-            "submitted_url": url,
-            "report_url": "https://urlscan.io/result/urlscan-fast-lane/",
-            "screenshot_url": "/v1/sandbox/urlscan/urlscan-fast-lane/screenshot",
-        }
+    async def fail_submit(url, payload, request):
+        raise AssertionError("First orchestrated poll must not submit urlscan preview.")
 
     async def fake_ai(*args, **kwargs):
         return {"summary": "ok", "bullets": []}
@@ -1781,20 +1775,19 @@ def test_orchestrated_first_poll_runs_fast_lane_and_submits_preview(monkeypatch)
         patched.setattr(app_main, "_gather_external_intel_safe", fake_external_intel)
         patched.setattr(app_main, "_analyze_with_reputation", fake_analyze)
         patched.setattr(app_main, "_claim_verifier_required", lambda analysis: False)
-        patched.setattr(app_main, "_submit_orchestrated_urlscan", fake_submit)
+        patched.setattr(app_main, "_submit_orchestrated_urlscan", fail_submit)
         patched.setattr(app_main, "_build_ai_explanation_async", fake_ai)
         patched.setattr(app_main, "_persist_orchestrated_job", lambda candidate: candidate)
         patched.setattr(app_main, "_emit_orchestrated_telemetry", lambda *args, **kwargs: None)
         patched.setattr(app_main, "_emit_scan_event", lambda *args, **kwargs: None)
         refreshed = asyncio.run(app_main._refresh_orchestrated_job(job, None))
 
-    assert refreshed["pipeline_stage"] == "urlscan_submitted"
+    assert refreshed["pipeline_stage"] == "analysis_ready"
     assert refreshed["result"]["user_risk_label"] == "SIGUR"
     assert refreshed["result"]["is_final"] is True
-    assert refreshed["urlscan"]["uuid"] == "urlscan-fast-lane"
-    assert refreshed["urlscan"]["status"] == "pending"
-    assert refreshed["preview"]["report_url"] == "https://urlscan.io/result/urlscan-fast-lane/"
-    assert refreshed["preview"]["screenshot_url"] == "/v1/sandbox/urlscan/urlscan-fast-lane/screenshot"
+    assert refreshed["urlscan"]["status"] == "queued"
+    assert refreshed["preview"].get("report_url") is None
+    assert refreshed["preview"].get("screenshot_url") is None
     assert calls == [
         {
             "include_virustotal": True,
@@ -2170,6 +2163,7 @@ def test_orchestrated_clean_verdict_submits_preview_before_complete(monkeypatch)
             json={"input_type": "text", "text": message, "source_channel": "android_native"},
         ).json()
         response, payload = _poll_orchestrated(client, start["scan_id"], count=1)
+        _, with_preview = _poll_orchestrated(client, start["scan_id"], count=1)
 
     assert response.status_code == 200
     assert payload["status"] == "complete"
@@ -2177,8 +2171,13 @@ def test_orchestrated_clean_verdict_submits_preview_before_complete(monkeypatch)
     assert payload["result"]["risk_level"] == "low"
     assert payload["pillars"]["urlscan"]["required"] is False
     assert payload["pillars"]["urlscan"]["status"] == "pending"
-    assert payload["preview"]["report_url"] == "https://urlscan.io/result/urlscan-yoxo-1/"
-    assert payload["preview"]["screenshot_url"] == "http://testserver/v1/sandbox/urlscan/urlscan-yoxo-1/screenshot"
+    assert payload["preview"]["report_url"] is None
+    assert payload["preview"]["screenshot_url"] is None
+    assert with_preview["status"] == "complete"
+    assert with_preview["result"]["user_risk_label"] == "SIGUR"
+    assert with_preview["pillars"]["urlscan"]["status"] == "pending"
+    assert with_preview["preview"]["report_url"] == "https://urlscan.io/result/urlscan-yoxo-1/"
+    assert with_preview["preview"]["screenshot_url"] == "http://testserver/v1/sandbox/urlscan/urlscan-yoxo-1/screenshot"
 
 
 def test_orchestrated_urlscan_late_risk_upgrades_provisional_safe_verdict(monkeypatch):
@@ -2204,11 +2203,17 @@ def test_orchestrated_urlscan_late_risk_upgrades_provisional_safe_verdict(monkey
             json={"input_type": "text", "text": message, "source_channel": "android_native"},
         ).json()
         _, provisional = _poll_orchestrated(client, start["scan_id"], count=1)
+        _, preview_pending = _poll_orchestrated(client, start["scan_id"], count=1)
         _, upgraded = _poll_orchestrated(client, start["scan_id"], count=1)
 
     assert provisional["status"] == "complete"
     assert provisional["result"]["user_risk_label"] == "SIGUR"
     assert provisional["pillars"]["urlscan"]["status"] == "pending"
+    assert provisional["preview"]["report_url"] is None
+    assert preview_pending["status"] == "complete"
+    assert preview_pending["result"]["user_risk_label"] == "SIGUR"
+    assert preview_pending["pillars"]["urlscan"]["status"] == "pending"
+    assert preview_pending["preview"]["report_url"] == "https://urlscan.io/result/urlscan-yoxo-1/"
     assert upgraded["status"] == "complete"
     assert upgraded["pillars"]["urlscan"]["status"] == "ok"
     assert upgraded["result"]["user_risk_label"] == "PERICULOS"
