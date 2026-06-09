@@ -182,6 +182,34 @@ def test_offer_claim_verifier_confirms_yoxo_buyback_on_official_destination(monk
     assert result["knowledge_target"] == "buyback YOXO"
 
 
+def test_offer_claim_verifier_prefers_fast_official_fetch_before_gemini(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-gemini-key")
+    monkeypatch.setattr(
+        "services.offer_claim_verifier._fetch_page_text",
+        lambda url: "yoxo buyback evaluare online telefon plata in cont transport gratuit",
+    )
+    monkeypatch.setattr(
+        "services.offer_claim_verifier._verify_with_gemini_search",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("Gemini must not run when official evidence confirms the claim")),
+    )
+
+    text = (
+        "Ai un telefon sau o tableta pe care nu le mai folosesti? "
+        "Acum le poti transforma rapid in bani cu serviciul de buy-back YOXO. "
+        "Afla cat valoreaza dispozitivul tau: buyback.yoxo.ro"
+    )
+    result = verify_offer_claim(
+        text,
+        {"claimed_brand": "YOXO"},
+        [{"final_url": "https://buyback.yoxo.ro", "final_hostname": "buyback.yoxo.ro"}],
+        brand_registry={"YOXO": ["yoxo.ro", "buyback.yoxo.ro", "orange.ro"]},
+    )
+
+    assert result["status"] == "confirmed"
+    assert result["method"] == "official_page_fetch"
+    assert result["official_source_found"] is True
+
+
 def test_offer_claim_verifier_uses_runtime_knowledge_sources_for_yoxo(monkeypatch):
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     checked_urls = []

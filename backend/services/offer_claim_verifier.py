@@ -123,6 +123,18 @@ def verify_offer_claim(
     if not query and not final_urls:
         return _payload("skipped", "unknown", "No concrete claim or URL to verify.", confidence=0)
 
+    official_result = _verify_with_official_pages(
+        text=text,
+        claimed_brand=claimed_brand,
+        official_domains=official_domains,
+        final_urls=final_urls,
+        query=query,
+        claim_target=claim_target,
+    )
+
+    if official_result.get("status") == "confirmed":
+        return official_result
+
     gemini_result = _verify_with_gemini_search(
         text=text,
         claimed_brand=claimed_brand,
@@ -137,18 +149,6 @@ def verify_offer_claim(
         and gemini_result.get("method") != "gemini_google_search_error"
     ):
         return gemini_result
-
-    official_result = _verify_with_official_pages(
-        text=text,
-        claimed_brand=claimed_brand,
-        official_domains=official_domains,
-        final_urls=final_urls,
-        query=query,
-        claim_target=claim_target,
-    )
-
-    if official_result.get("status") == "confirmed":
-        return official_result
 
     if gemini_result is None:
         return official_result
