@@ -5832,6 +5832,10 @@ async def _run_orchestrated_fast_lane(job: Dict[str, Any], request: Request) -> 
     job["primary_final_url"] = primary_final_url
     preview = job.setdefault("preview", {})
     preview["final_url"] = primary_final_url
+    if primary_final_url:
+        cached_preview = _load_urlscan_preview_cache(primary_final_url)
+        if cached_preview:
+            job = _apply_urlscan_preview_cache_hit(job, cached_preview)
     next_stage = "analysis_ready" if _has_bad_provider_verdict(summary) else "semantic_ready"
     _set_orchestrated_stage(job, next_stage)
     job = _timed_orchestrated_component(

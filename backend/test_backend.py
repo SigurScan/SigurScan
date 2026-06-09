@@ -2676,6 +2676,83 @@ def test_orchestrated_urlscan_preview_cache_hit_skips_submit(monkeypatch):
     assert refreshed["analysis"]["evidence"]["external_intel_summary"]["urlscan"]["status"] == "clean"
 
 
+def test_orchestrated_fast_lane_attaches_cached_preview_before_submit_stage(monkeypatch):
+    job = {
+        "scan_id": "orch_fast_lane_cache_hit",
+        "created_at": int(time.time()),
+        "pipeline_stage": "queued",
+        "status": "scanning",
+        "input_type": "text",
+        "source_channel": "android_native",
+        "urls": ["https://tiny.cc/MarTM"],
+        "redacted_text": "Promo Martisor https://tiny.cc/MarTM",
+        "analysis": {},
+        "resolved_urls": [],
+        "primary_final_url": None,
+        "claim_verifier_required": False,
+        "urlscan": {"status": "queued"},
+        "preview": {"screenshot_url": None, "report_url": None, "final_url": None},
+        "extra_fields": {},
+        "sandbox_options": {},
+        "orchestration_metrics": {"poll_count": 0, "stage_sequence": [], "stage_durations_ms": {}},
+    }
+    resolved = [
+        {
+            "url": "https://tiny.cc/MarTM",
+            "final_url": "https://bilete.sublime.ro/regulament.pdf",
+            "hostname": "tiny.cc",
+            "final_hostname": "bilete.sublime.ro",
+            "registered_domain": "tiny.cc",
+            "final_registered_domain": "sublime.ro",
+            "success": True,
+        }
+    ]
+    analysis = {
+        "risk_score": 10,
+        "risk_level": "low",
+        "detected_family": "Provideri curați",
+        "detected_family_id": "provider-gate-official-clean",
+        "claimed_brand": "Nespecificat",
+        "reasons": [],
+        "safe_actions": [],
+        "evidence": {
+            "external_intel_summary": {
+                "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
+                "phishing_database": {"status": "clean", "verdict": "clean", "consulted": True},
+            }
+        },
+    }
+    cached = {
+        "uuid": "cached-fast-lane",
+        "final_url": "https://bilete.sublime.ro/regulament.pdf",
+        "report_url": "https://urlscan.io/result/cached-fast-lane/",
+        "screenshot_url": "https://backend/v1/sandbox/urlscan/cached-fast-lane/screenshot",
+        "verdict": "No malicious classification",
+        "severity": "low",
+        "details": "urlscan preview cache hit",
+        "score": 0,
+        "categories": [],
+        "brands": [],
+    }
+
+    with monkeypatch.context() as patched:
+        patched.setattr(app_main, "_safe_scan_url_list", lambda urls: resolved)
+        patched.setattr(app_main, "_gather_external_intel_safe", lambda *args, **kwargs: {})
+        patched.setattr(app_main, "_external_intel_summary_from_threat_intel", lambda intel: analysis["evidence"]["external_intel_summary"])
+        patched.setattr(app_main, "_analyze_with_reputation", lambda *args, **kwargs: dict(analysis))
+        patched.setattr(app_main, "_enrich_local_semantic_review", lambda *args, **kwargs: None)
+        patched.setattr(app_main, "_load_urlscan_preview_cache", lambda final_url: dict(cached))
+        patched.setattr(app_main, "_persist_orchestrated_job", lambda candidate: candidate)
+        patched.setattr(app_main, "_emit_orchestrated_telemetry", lambda *args, **kwargs: None)
+        refreshed = asyncio.run(app_main._run_orchestrated_fast_lane(job, None))
+
+    assert refreshed["pipeline_stage"] == "semantic_ready"
+    assert refreshed["preview"]["cache_hit"] is True
+    assert refreshed["preview"]["screenshot_url"] == "https://backend/v1/sandbox/urlscan/cached-fast-lane/screenshot"
+    assert refreshed["urlscan"]["status"] == "finished"
+    assert refreshed["analysis"]["evidence"]["external_intel_summary"]["urlscan"]["cache_hit"] is True
+
+
 def test_orchestrated_urlscan_preview_cache_saves_when_screenshot_ready(monkeypatch):
     job = {
         "scan_id": "orch_urlscan_cache_save",
