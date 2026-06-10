@@ -75,7 +75,7 @@ def _legacy_orchestrated_pacing(monkeypatch):
     separately in test_orchestrated_latency.py."""
     monkeypatch.setattr(app_main, "ORCHESTRATED_EARLY_VERDICT", False)
     monkeypatch.setattr(app_main, "ORCHESTRATED_DEFER_AI_EXPLANATION", False)
-    monkeypatch.setattr(app_main, "ORCHESTRATED_POLL_TIME_BUDGET_SECONDS", 0)
+    monkeypatch.setattr(app_main, "MAX_SINGLE_POLL_SERVER_WORK_MS", 0)
 
 
 @pytest.fixture(autouse=True)

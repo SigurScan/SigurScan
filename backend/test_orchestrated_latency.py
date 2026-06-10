@@ -52,7 +52,7 @@ def _isolate_preview_caches(monkeypatch):
 def _fast_path_enabled(monkeypatch):
     monkeypatch.setattr(app_main, "ORCHESTRATED_EARLY_VERDICT", True)
     monkeypatch.setattr(app_main, "ORCHESTRATED_DEFER_AI_EXPLANATION", True)
-    monkeypatch.setattr(app_main, "ORCHESTRATED_POLL_TIME_BUDGET_SECONDS", 8.0)
+    monkeypatch.setattr(app_main, "MAX_SINGLE_POLL_SERVER_WORK_MS", 7500)
 
 
 def _patch_clean_scan(patched, urlscan_get=_fake_urlscan_get_clean):
@@ -164,7 +164,7 @@ def test_scan_events_logged_only_for_final_verdicts(monkeypatch):
 
 
 def test_collapse_respects_disabled_budget(monkeypatch):
-    monkeypatch.setattr(app_main, "ORCHESTRATED_POLL_TIME_BUDGET_SECONDS", 0)
+    monkeypatch.setattr(app_main, "MAX_SINGLE_POLL_SERVER_WORK_MS", 0)
     monkeypatch.setattr(app_main, "ORCHESTRATED_EARLY_VERDICT", False)
     monkeypatch.setattr(app_main, "ORCHESTRATED_DEFER_AI_EXPLANATION", False)
     client = TestClient(app_main.app)
