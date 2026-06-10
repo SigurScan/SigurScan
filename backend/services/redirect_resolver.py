@@ -369,6 +369,109 @@ def _extract_soft_redirect(html_snippet: str, base_url: str) -> str | None:
     return None
 
 
+# Query keys used by generic "?url=..."-style redirectors. A value is accepted
+# only when it is itself an absolute URL, so ?next=/cont or ?to=settings on
+# legitimate sites never trigger an unwrap. Mirrors the Android extractor
+# (HtmlLinkExtractor.unwrapRedirectWrapper) so both pipelines agree on targets.
+_GENERIC_REDIRECT_QUERY_KEYS = (
+    "url", "u", "uri", "redirect", "redirect_url", "return_url",
+    "target", "destination", "dest", "next", "continue", "to", "link", "href",
+)
+
+_BRANCH_STYLE_HOSTS = ("sng.link", "app.link", "branch.link", "bnc.lt")
+_BRANCH_FALLBACK_KEYS = (
+    "_fallback_redirect", "fallback_redirect", "fallback", "redirect",
+    "redirect_url", "url", "u", "target", "destination",
+)
+
+
+def _first_query_value(query: Dict[str, List[str]], *keys: str) -> Optional[str]:
+    for key in keys:
+        values = query.get(key)
+        if values:
+            candidate = (values[0] or "").strip()
+            if candidate:
+                return candidate
+    return None
+
+
+def _normalize_unwrapped_candidate(raw: Optional[str]) -> Optional[str]:
+    candidate = (raw or "").strip()
+    if not candidate:
+        return None
+    if candidate.startswith("//"):
+        candidate = "https:" + candidate
+    if not candidate.lower().startswith(("http://", "https://")):
+        return None
+    return candidate
+
+
+def _unwrap_proofpoint_urldefense(url: str) -> Optional[str]:
+    marker = url.find("__")
+    if marker < 0:
+        return None
+    encoded = url[marker + 2:].split("__", 1)[0].split(";", 1)[0]
+    if not encoded.strip():
+        return None
+    candidate = re.sub(r"(?i)hxxps://", "https://", encoded)
+    candidate = re.sub(r"(?i)hxxp://", "http://", candidate)
+    return _normalize_unwrapped_candidate(candidate)
+
+
+def _unwrap_yahoo_redirect(url: str) -> Optional[str]:
+    marker = url.upper().find("/RU=")
+    if marker < 0:
+        return None
+    target = url[marker + len("/RU="):]
+    for stop in ("/RK=", "/RS="):
+        target = target.split(stop, 1)[0]
+    if not target.strip():
+        return None
+    return _normalize_unwrapped_candidate(urllib.parse.unquote(target))
+
+
+def unwrap_tracking_redirect(url: str) -> Optional[str]:
+    """Statically unwraps one layer of known click-tracking/safe-link wrappers
+    (Outlook SafeLinks, Google /url, Facebook l.php, Proofpoint urldefense,
+    Yahoo, Branch-style app links, generic ?url= redirectors).
+
+    No network: the destination is read from the wrapper URL itself, so the
+    real target host is available for the evidence gate even when the wrapper
+    refuses to redirect for non-authenticated HTTP clients.
+    """
+    parsed = urllib.parse.urlparse(url or "")
+    host = (parsed.hostname or "").lower()
+    if not host:
+        return None
+    path = (parsed.path or "").lower()
+    query = urllib.parse.parse_qs(parsed.query or "", keep_blank_values=False)
+
+    target: Optional[str] = None
+    if host.endswith("safelinks.protection.outlook.com"):
+        target = _first_query_value(query, "url")
+    elif host in {"google.com", "www.google.com"} and path.startswith("/url"):
+        target = _first_query_value(query, "q", "url")
+    elif host.endswith("facebook.com") and "/l.php" in path:
+        target = _first_query_value(query, "u")
+    elif host.endswith("urldefense.com"):
+        return _unwrap_proofpoint_urldefense(url)
+    elif host.endswith("yahoo.com") and "/ru=" in url.lower():
+        return _unwrap_yahoo_redirect(url)
+    elif any(host == h or host.endswith("." + h) for h in _BRANCH_STYLE_HOSTS):
+        target = _first_query_value(query, *_BRANCH_FALLBACK_KEYS)
+    else:
+        candidate = _first_query_value(query, *_GENERIC_REDIRECT_QUERY_KEYS)
+        if candidate and candidate.lower().startswith(("http://", "https://", "//")):
+            target = candidate
+        else:
+            return None
+
+    normalized = _normalize_unwrapped_candidate(target)
+    if not normalized or normalized == url:
+        return None
+    return normalized
+
+
 def resolve_redirects_safely(
     url: str,
     max_redirects: int = 15,
@@ -463,6 +566,27 @@ def resolve_redirects_safely(
                 error_msg = f"Scan stopped: {blocked_reason}"
                 chain[-1]["status_code"] = "BLOCKED"
                 break
+
+            # Static unwrap of known tracking/safe-link wrappers: exposes the
+            # real destination without a network hop, even when the wrapper
+            # would not redirect an anonymous HTTP client (e.g. SafeLinks).
+            unwrapped = unwrap_tracking_redirect(current_url)
+            if unwrapped and not any(step["url"] == unwrapped for step in chain):
+                chain[-1]["status_code"] = "UNWRAPPED"
+                current_url = unwrapped
+                hostname, reg_domain = get_domain_info(current_url)
+                is_short = is_known_shortener(current_url)
+                if is_short:
+                    shortener_count += 1
+                chain.append({
+                    "url": current_url,
+                    "hostname": hostname,
+                    "registered_domain": reg_domain,
+                    "status_code": "0",
+                    "is_shortener": is_short,
+                    "redirect_type": "tracking_unwrap",
+                })
+                continue
 
             # We use stream=True so we can inspect headers before downloading content
             # allow_redirects=False so we record each step manually

@@ -25,7 +25,7 @@ from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from pydantic import BaseModel
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Comment
 import email
 from email import policy, message_from_bytes
 from email.message import Message
@@ -1431,6 +1431,29 @@ def _collect_click_targets_from_html(soup: BeautifulSoup) -> list[Dict[str, Any]
             append_target(button_text, area.get("href"), "area", "href")
         if area.get("onclick"):
             append_target(button_text, area.get("onclick"), "area", "onclick")
+
+    # Outlook/VML "bulletproof" buttons used by most branded HTML emails. The
+    # generic loop below skips them because they carry no role/onclick, only href.
+    for vml in soup.find_all(["v:roundrect", "v:rect", "v:shape", "v:oval"]):
+        href = vml.get("href")
+        if href:
+            button_text = _extract_button_text(vml) or "[Buton/Imagine fără text]"
+            append_target(button_text, href, vml.name, "href")
+
+    # Outlook conditional comments (<!--[if mso]> ... <![endif]-->) hide the
+    # VML button markup from html.parser as plain comments, so the linkable
+    # content inside them is parsed separately.
+    for comment in soup.find_all(string=lambda text: isinstance(text, Comment)):
+        raw = str(comment)
+        lowered = raw.lower()
+        if "href" not in lowered or ("[if" not in lowered and "<v:" not in lowered):
+            continue
+        fragment = BeautifulSoup(raw, "html.parser")
+        for node in fragment.find_all(["v:roundrect", "v:rect", "v:shape", "v:oval", "a", "area"]):
+            href = node.get("href")
+            if href:
+                button_text = _extract_button_text(node) or "[Buton/Imagine fără text]"
+                append_target(button_text, href, f"mso-comment:{node.name}", "href")
 
     # Generic click-capable elements commonly used in branded phishing templates
     for tag in soup.find_all(True):
@@ -4578,6 +4601,29 @@ ORCHESTRATED_REQUIRED_PILLAR_TIMEOUT_SECONDS = int(
 ORCHESTRATED_URLSCAN_SUBMIT_RESERVATION_TIMEOUT_SECONDS = int(
     os.getenv("ORCHESTRATED_URLSCAN_SUBMIT_RESERVATION_TIMEOUT_SECONDS", "30")
 )
+# Publish the verdict as soon as the required pillars are terminal, with
+# is_final=false while the urlscan report is still pending. The report can only
+# add severity when it lands (raise-only contract from LAUNCH_ARCHITECTURE_FINAL).
+ORCHESTRATED_EARLY_VERDICT = (
+    os.getenv("ORCHESTRATED_EARLY_VERDICT", "true").strip().lower() in {"1", "true", "yes", "on"}
+)
+# Ship the first publishable verdict with the deterministic fallback
+# explanation and attach the cloud explanation on a later poll.
+ORCHESTRATED_DEFER_AI_EXPLANATION = (
+    os.getenv("ORCHESTRATED_DEFER_AI_EXPLANATION", "true").strip().lower() in {"1", "true", "yes", "on"}
+)
+# One GET poll may advance multiple fast pipeline stages until this budget is
+# spent, instead of one stage per client poll. 0 disables collapsing.
+ORCHESTRATED_POLL_TIME_BUDGET_SECONDS = float(os.getenv("ORCHESTRATED_POLL_TIME_BUDGET_SECONDS", "8"))
+_ORCHESTRATED_FAST_ADVANCE_STAGES = {
+    "queued",
+    "resolved",
+    "urlhaus_ready",
+    "reputation_ready",
+    "semantic_ready",
+    "claim_ready",
+    "analysis_ready",
+}
 URLSCAN_PREVIEW_CACHE_TTL_SECONDS = int(os.getenv("URLSCAN_PREVIEW_CACHE_TTL_SECONDS", str(7 * 24 * 60 * 60)))
 URLSCAN_PREVIEW_CACHE_MAX_ENTRIES = int(os.getenv("URLSCAN_PREVIEW_CACHE_MAX_ENTRIES", "512"))
 FAST_PREVIEW_CACHE_MAX_ENTRIES = int(os.getenv("FAST_PREVIEW_CACHE_MAX_ENTRIES", "512"))
@@ -5083,6 +5129,24 @@ def _orchestrated_result_fingerprint(
     }
     serialized = json.dumps(payload, sort_keys=True, default=str, ensure_ascii=False)
     return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+
+
+def _ai_explanation_fingerprint(analysis: Dict[str, Any]) -> str:
+    """Keyed by what the explanation text actually depends on, not by pillar
+    statuses, so a deferred explanation survives the urlscan report landing
+    as long as the verdict itself did not change."""
+    evidence = analysis.get("evidence", {}) if isinstance(analysis.get("evidence"), dict) else {}
+    gate = evidence.get("verdict_gate") if isinstance(evidence.get("verdict_gate"), dict) else {}
+    basis = {
+        "label": gate.get("label"),
+        "reason_codes": gate.get("reason_codes"),
+        "risk_level": analysis.get("risk_level"),
+        "family": analysis.get("detected_family_id") or analysis.get("detected_family"),
+        "brand": analysis.get("claimed_brand"),
+        "reasons": analysis.get("reasons"),
+    }
+    serialized = json.dumps(basis, sort_keys=True, default=str, ensure_ascii=False)
+    return "analysis:" + hashlib.sha256(serialized.encode("utf-8")).hexdigest()
 
 
 def _sync_resolved_urls_with_urlscan_final(job: Dict[str, Any]) -> None:
@@ -5603,6 +5667,8 @@ def _orchestrated_status_payload(job: Dict[str, Any]) -> Dict[str, Any]:
             if status == "complete" and enhancement_done
             else "Verdictul este finalizat. Preview-ul securizat se poate actualiza separat."
             if status == "complete" and not enhancement_done
+            else "Verdict preliminar disponibil. Verificarea suplimentara (sandbox) continua si poate doar creste nivelul de risc."
+            if status == "scanning" and result is not None
             else "Scanarea continua pana cand pilonii necesari returneaza date."
             if status == "scanning"
             else "Scanarea nu are toti pilonii necesari pentru verdict sigur."
@@ -5623,10 +5689,17 @@ def _orchestrated_status_payload(job: Dict[str, Any]) -> Dict[str, Any]:
 def _orchestrated_can_finalize_result(job: Dict[str, Any], pillars: Dict[str, Dict[str, Any]]) -> bool:
     if str(job.get("pipeline_stage") or "").strip().lower() == "done":
         return True
-    # User-facing verdicts wait for the urlscan report when a URL exists, but
-    # not for screenshot availability. The screenshot is an async visual
-    # enhancement and can fill in after the final label is already available.
-    return _all_required_pillars_terminal(pillars) and _urlscan_result_ready_for_verdict(job)
+    if not _all_required_pillars_terminal(pillars):
+        return False
+    if ORCHESTRATED_EARLY_VERDICT:
+        # The verdict publishes as soon as the required pillars are terminal.
+        # It stays is_final=false until the urlscan report is terminal, and the
+        # report can only raise severity when it lands.
+        return True
+    # Legacy pacing: user-facing verdicts wait for the urlscan report when a
+    # URL exists, but not for screenshot availability. The screenshot is an
+    # async visual enhancement and can fill in after the final label.
+    return _urlscan_result_ready_for_verdict(job)
 
 
 def _orchestrated_result_is_final(job: Dict[str, Any], analysis: Dict[str, Any]) -> bool:
@@ -5664,20 +5737,37 @@ async def _finalize_orchestrated_job_if_ready(job: Dict[str, Any], request: Requ
         _emit_orchestrated_telemetry("orchestrated_verdict_pending", job)
         return job
     fingerprint = _orchestrated_result_fingerprint(job, analysis, pillars, resolved_urls)
-    if existing_result and job.get("result_fingerprint") == fingerprint:
+    explanation_key = _ai_explanation_fingerprint(analysis)
+    explanation_pending = bool(job.get("ai_explanation_pending"))
+    if existing_result and job.get("result_fingerprint") == fingerprint and not explanation_pending:
         return job
 
     explanation_cache = job.get("ai_explanation_cache") if isinstance(job.get("ai_explanation_cache"), dict) else {}
-    ai_explanation = explanation_cache.get("payload") if explanation_cache.get("fingerprint") == fingerprint else None
+    cached_explanation_keys = {explanation_cache.get("fingerprint"), explanation_cache.get("analysis_fingerprint")}
+    ai_explanation = (
+        explanation_cache.get("payload")
+        if {fingerprint, explanation_key} & cached_explanation_keys
+        else None
+    )
+    deferred_explanation = False
     if not isinstance(ai_explanation, dict):
         if job.get("skip_cloud_ai_explanation"):
             ai_explanation = generate_fallback_explanation(job.get("redacted_text", ""), analysis)
+        elif ORCHESTRATED_DEFER_AI_EXPLANATION and existing_result is None and not explanation_pending:
+            # First publishable verdict: never block it on the explainer LLM.
+            # The deterministic fallback ships now; the cloud explanation is
+            # attached by a later poll via ai_explanation_pending.
+            ai_explanation = generate_fallback_explanation(job.get("redacted_text", ""), analysis)
+            deferred_explanation = True
         else:
             ai_explanation = await _build_ai_explanation_async(job.get("redacted_text", ""), analysis, resolved_urls)
-        job["ai_explanation_cache"] = {
-            "fingerprint": fingerprint,
-            "payload": ai_explanation,
-        }
+        if not deferred_explanation:
+            job["ai_explanation_cache"] = {
+                "fingerprint": fingerprint,
+                "analysis_fingerprint": explanation_key,
+                "payload": ai_explanation,
+            }
+    job["ai_explanation_pending"] = deferred_explanation
     scan_id = job["scan_id"]
     response_payload = _build_scan_response(
         "scan",
@@ -5692,24 +5782,29 @@ async def _finalize_orchestrated_job_if_ready(job: Dict[str, Any], request: Requ
         "pillars": pillars,
         "preview": job.get("preview", {}),
     }
-    response_payload["is_final"] = _orchestrated_result_is_final(job, analysis)
+    response_payload["is_final"] = (
+        _orchestrated_result_is_final(job, analysis)
+        and _urlscan_result_ready_for_verdict(job)
+        and not deferred_explanation
+    )
     job["result"] = response_payload
     job["result_fingerprint"] = fingerprint
     _emit_orchestrated_telemetry(
-        "orchestrated_verdict_final",
+        "orchestrated_verdict_final" if response_payload["is_final"] else "orchestrated_verdict_provisional",
         job,
         user_risk_label=response_payload.get("user_risk_label"),
         risk_level=response_payload.get("risk_level"),
         result_fingerprint=fingerprint,
     )
-    _emit_scan_event(
-        scan_id=scan_id,
-        scan_payload=response_payload,
-        analysis=analysis,
-        resolved_urls=resolved_urls,
-        input_channel=job.get("input_type", "text"),
-        source_channel=job.get("source_channel"),
-    )
+    if response_payload["is_final"]:
+        _emit_scan_event(
+            scan_id=scan_id,
+            scan_payload=response_payload,
+            analysis=analysis,
+            resolved_urls=resolved_urls,
+            input_channel=job.get("input_type", "text"),
+            source_channel=job.get("source_channel"),
+        )
     return job
 
 
@@ -6401,6 +6496,17 @@ async def get_orchestrated_scan(scan_id: str, request: Request):
         if not job:
             raise HTTPException(status_code=404, detail="Scanarea nu a fost gasita sau a expirat.")
         job = await _refresh_orchestrated_job(job, request)
+        if ORCHESTRATED_POLL_TIME_BUDGET_SECONDS > 0:
+            # Collapse fast stages into this request instead of spending one
+            # client poll (and its ~1s delay) per stage transition.
+            deadline = time.monotonic() + ORCHESTRATED_POLL_TIME_BUDGET_SECONDS
+            previous_stage = None
+            while time.monotonic() < deadline:
+                stage = str(job.get("pipeline_stage") or "").strip().lower()
+                if stage not in _ORCHESTRATED_FAST_ADVANCE_STAGES or stage == previous_stage:
+                    break
+                previous_stage = stage
+                job = await _refresh_orchestrated_job(job, request)
         response = _orchestrated_status_payload(job)
         job = _persist_orchestrated_job(job)
         return response
