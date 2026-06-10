@@ -1904,7 +1904,7 @@ async def _fake_domain_signals_neutral(domain: str) -> dict:
             "rdap": {"age_days": 365 * 5, "registered": True}}
 
 
-def _fake_confirmed_offer_claim(text, analysis, resolved_urls):
+async def _fake_confirmed_offer_claim(text, analysis, resolved_urls):
     offer_claim = {
         "provider": "ai_offer_web_check",
         "status": "confirmed",

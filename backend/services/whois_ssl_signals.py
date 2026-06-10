@@ -64,6 +64,11 @@ async def check_rdap(domain: str, timeout: Optional[float] = None) -> Dict[str, 
     except (httpx.TimeoutException, httpx.HTTPError):
         return {"age_days": None, "reason": "timeout"}
     if r.status_code == 404:
+        # rdap.org returns 404 both for non-existent domains and for TLDs it
+        # cannot route. ROTLD (.ro) is weakly federated, so a 404 there says
+        # nothing about the domain — never emit the inexistent signal for it.
+        if domain.lower().rstrip(".").endswith(RO_DOMAIN_SUFFIXES):
+            return {"age_days": None, "reason": "unsupported_tld_federation"}
         return {"age_days": None, "registered": False, "reason": "inexistent_domain"}
     if r.status_code != 200:
         return {"age_days": None, "reason": f"http_{r.status_code}"}

@@ -2367,25 +2367,33 @@ def _augment_summary_with_infra_flags(summary: Dict[str, Any], infra_flags: Dict
         }
 
     if infra_flags.get("rdap_inexistent"):
+        # Weighted signal only, never terminal: severity stays below "high" so
+        # _providers_verdict cannot turn an RDAP 404 into a standalone
+        # PERICULOS (rdap.org 404s also happen for TLDs it cannot route).
         summary["infra_rdap"] = {
-            "status": "malicious",
+            "status": "suspicious",
             "verdict": "inexistent_domain",
-            "severity": "high",
+            "severity": "medium",
             "consulted": True,
-            "details": "Domeniul nu există în registrul RDAP (404)",
+            "details": "Domeniul nu apare în registrul RDAP (404); semnal ponderat, nu verdict.",
         }
 
     if infra_flags.get("ssl_invalid"):
+        # severity stays below "high": standalone invalid SSL is a weighted
+        # signal; the terminal path for SSL is the deterministic combo rule
+        # (young domain + invalid SSL + impersonated brand) in verdict_gate.
         summary["infra_ssl"] = {
             "status": "suspicious",
             "verdict": "invalid_certificate",
-            "severity": "high",
+            "severity": "medium",
             "consulted": True,
             "details": "Certificatul SSL este invalid sau auto-semnat",
         }
 
-    if infra_flags.get("host_unreachable"):
-        summary.setdefault("infra_host", {})["unreachable"] = True
+    # host_unreachable intentionally does NOT enter the provider summary: a
+    # pseudo-provider entry with unknown status would block official_clean on
+    # transient network errors. The signal still flows via identity context
+    # (host_unreachable) and the weighted risk score.
 
 
 def _provider_verdict_for_decision_bundle(
