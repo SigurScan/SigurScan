@@ -4,6 +4,7 @@ from typing import Dict, Any, List
 import re
 import logging
 import requests
+import asyncio
 
 logger = logging.getLogger("gemini_explainer")
 
@@ -20,6 +21,12 @@ AI_EXPLAINER_PROVIDER = os.environ.get("AI_EXPLAINER_PROVIDER", "auto").strip().
 MISTRAL_ENDPOINT = "https://api.mistral.ai/v1/chat/completions"
 MISTRAL_API_KEY = os.environ.get("MISTRAL_API_KEY", "").strip()
 MISTRAL_MODEL = os.environ.get("MISTRAL_MODEL", "mistral-small-latest").strip()
+
+# Gemini configuration - model name is configurable via env var
+# Current GA flash model as of 2025: gemini-2.5-flash
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash").strip()
+# Timeout for Gemini API calls (seconds) - strict to avoid blocking polls
+GEMINI_TIMEOUT_SECONDS = float(os.environ.get("GEMINI_TIMEOUT_SECONDS", "8.0"))
 
 
 def _extract_json_text(value: str) -> str:
@@ -119,13 +126,34 @@ def _call_gemini(prompt: str) -> Dict[str, Any]:
 
     # Initialize Google GenAI client (it picks up GEMINI_API_KEY automatically)
     client = genai.Client()
-    response = client.models.generate_content(
-        model='gemini-2.5-flash',
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            response_mime_type="application/json"
-        )
-    )
+    try:
+        # Use asyncio.wait_for to enforce strict timeout on the sync call
+        response = asyncio.run(asyncio.wait_for(
+            asyncio.to_thread(
+                client.models.generate_content,
+                model=GEMINI_MODEL,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json"
+                )
+            ),
+            timeout=GEMINI_TIMEOUT_SECONDS
+        ))
+    except asyncio.TimeoutError:
+        logger.warning("Gemini API timeout after %.1fs (model=%s)", GEMINI_TIMEOUT_SECONDS, GEMINI_MODEL)
+        return {}
+    except Exception as e:
+        # Handle specific error cases gracefully
+        error_str = str(e).lower()
+        if "429" in error_str or "rate limit" in error_str or "quota" in error_str:
+            logger.warning("Gemini rate limited (429): %s", e)
+        elif "403" in error_str or "region" in error_str or "location" in error_str:
+            logger.warning("Gemini regional block (403/region): %s", e)
+        elif "not found" in error_str or "invalid model" in error_str:
+            logger.warning("Gemini invalid model (%s): %s", GEMINI_MODEL, e)
+        else:
+            logger.warning("Gemini API error: %s", e)
+        return {}
 
     response_text = response.text.strip()
     parsed = json.loads(_extract_json_text(response_text))
