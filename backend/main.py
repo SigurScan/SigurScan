@@ -4612,18 +4612,10 @@ ORCHESTRATED_EARLY_VERDICT = (
 ORCHESTRATED_DEFER_AI_EXPLANATION = (
     os.getenv("ORCHESTRATED_DEFER_AI_EXPLANATION", "true").strip().lower() in {"1", "true", "yes", "on"}
 )
-# One GET poll may advance multiple fast pipeline stages until this budget is
-# spent, instead of one stage per client poll. 0 disables collapsing.
-ORCHESTRATED_POLL_TIME_BUDGET_SECONDS = float(os.getenv("ORCHESTRATED_POLL_TIME_BUDGET_SECONDS", "8"))
-_ORCHESTRATED_FAST_ADVANCE_STAGES = {
-    "queued",
-    "resolved",
-    "urlhaus_ready",
-    "reputation_ready",
-    "semantic_ready",
-    "claim_ready",
-    "analysis_ready",
-}
+# Hard cap on server-side wall-clock work per single GET poll.
+# Prevents the fast deterministic bundle from exceeding this limit.
+# Set to 0 to disable server-side time budget entirely.
+MAX_SINGLE_POLL_SERVER_WORK_MS = int(os.getenv("MAX_SINGLE_POLL_SERVER_WORK_MS", "7500"))
 URLSCAN_PREVIEW_CACHE_TTL_SECONDS = int(os.getenv("URLSCAN_PREVIEW_CACHE_TTL_SECONDS", str(7 * 24 * 60 * 60)))
 URLSCAN_PREVIEW_CACHE_MAX_ENTRIES = int(os.getenv("URLSCAN_PREVIEW_CACHE_MAX_ENTRIES", "512"))
 FAST_PREVIEW_CACHE_MAX_ENTRIES = int(os.getenv("FAST_PREVIEW_CACHE_MAX_ENTRIES", "512"))
@@ -6495,18 +6487,23 @@ async def get_orchestrated_scan(scan_id: str, request: Request):
         job = _load_orchestrated_job(scan_id)
         if not job:
             raise HTTPException(status_code=404, detail="Scanarea nu a fost gasita sau a expirat.")
+        poll_started_at = time.perf_counter()
         job = await _refresh_orchestrated_job(job, request)
-        if ORCHESTRATED_POLL_TIME_BUDGET_SECONDS > 0:
-            # Collapse fast stages into this request instead of spending one
-            # client poll (and its ~1s delay) per stage transition.
-            deadline = time.monotonic() + ORCHESTRATED_POLL_TIME_BUDGET_SECONDS
-            previous_stage = None
-            while time.monotonic() < deadline:
+        # Fast deterministic bundle MAY collapse multiple stages in one poll
+        # (queued → analysis_ready). After that, enrichment advances one stage
+        # per poll.  If MAX_SINGLE_POLL_SERVER_WORK_MS is set and we are still
+        # in the fast bundle, collapse until the budget is exhausted.
+        if MAX_SINGLE_POLL_SERVER_WORK_MS > 0:
+            budget_deadline = poll_started_at + (MAX_SINGLE_POLL_SERVER_WORK_MS / 1000.0)
+            while time.perf_counter() < budget_deadline:
                 stage = str(job.get("pipeline_stage") or "").strip().lower()
-                if stage not in _ORCHESTRATED_FAST_ADVANCE_STAGES or stage == previous_stage:
+                if stage in {"done", "urlscan_submitting", "urlscan_submitted"}:
                     break
                 previous_stage = stage
                 job = await _refresh_orchestrated_job(job, request)
+                new_stage = str(job.get("pipeline_stage") or "").strip().lower()
+                if new_stage == previous_stage:
+                    break
         response = _orchestrated_status_payload(job)
         job = _persist_orchestrated_job(job)
         return response
