@@ -68,6 +68,17 @@ def _disable_live_mistral_semantic_pillar_by_default(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _legacy_orchestrated_pacing(monkeypatch):
+    """This module asserts the stage machine one stage per poll, with verdicts
+    finalized only after the urlscan report. The fast-path behavior (stage
+    collapsing, early provisional verdicts, deferred explanations) is covered
+    separately in test_orchestrated_latency.py."""
+    monkeypatch.setattr(app_main, "ORCHESTRATED_EARLY_VERDICT", False)
+    monkeypatch.setattr(app_main, "ORCHESTRATED_DEFER_AI_EXPLANATION", False)
+    monkeypatch.setattr(app_main, "ORCHESTRATED_POLL_TIME_BUDGET_SECONDS", 0)
+
+
+@pytest.fixture(autouse=True)
 def _isolate_urlscan_preview_cache(monkeypatch):
     app_main._URLSCAN_PREVIEW_CACHE.clear()
     app_main._FAST_PREVIEW_CACHE.clear()
