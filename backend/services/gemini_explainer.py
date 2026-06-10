@@ -123,8 +123,8 @@ def _call_gemini(prompt: str) -> Dict[str, Any]:
         return {}
 
     timeout_ms = int(GEMINI_TIMEOUT_SECONDS * 1000)
-    client = genai.Client(http_options=types.HttpOptions(timeout=timeout_ms))
     try:
+        client = genai.Client(http_options=types.HttpOptions(timeout=timeout_ms))
         response = client.models.generate_content(
             model=GEMINI_MODEL,
             contents=prompt,
