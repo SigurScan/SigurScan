@@ -209,8 +209,7 @@ DOMAIN_ESTABLISHED_AGE_DAYS = int(os.getenv("DOMAIN_ESTABLISHED_AGE_DAYS", "365"
 DEFAULT_ALLOWED_ORIGINS = (
     "https://sigurscan.ro,"
     "https://www.sigurscan.ro,"
-    "https://sigurscan-backend.vercel.app,"
-    "https://nudaclick-backend.vercel.app"
+    "https://sigurscan-backend.vercel.app"
 )
 ALLOWED_ORIGINS = [
     origin.strip()
@@ -219,6 +218,13 @@ ALLOWED_ORIGINS = [
 ]
 if not ALLOWED_ORIGINS:
     ALLOWED_ORIGINS = DEFAULT_ALLOWED_ORIGINS.split(",")
+SIGURSCAN_PUBLIC_API_BASE_URL = (
+    os.getenv("SIGURSCAN_PUBLIC_API_BASE_URL", "https://api.sigurscan.com").strip().rstrip("/")
+)
+_LEGACY_SCREENSHOT_PROXY_HOSTS = {
+    "nudaclick-backend.vercel.app",
+    "sigurscan-backend.vercel.app",
+}
 
 def _env_present(*names: str) -> bool:
     return any(os.getenv(name, "").strip() for name in names)
@@ -4746,12 +4752,35 @@ def _urlscan_preview_cache_is_fresh(entry: Dict[str, Any]) -> bool:
     return not expires_at or expires_at > int(time.time())
 
 
+def _normalize_screenshot_proxy_url(raw_url: Any) -> str:
+    value = str(raw_url or "").strip()
+    if not value:
+        return ""
+    public_base = SIGURSCAN_PUBLIC_API_BASE_URL or "https://api.sigurscan.com"
+    parsed_public = urllib.parse.urlparse(public_base)
+    public_host = (parsed_public.hostname or "").lower()
+    parsed = urllib.parse.urlparse(value)
+
+    if parsed.scheme and parsed.netloc:
+        host = (parsed.hostname or "").lower()
+        if _SCREENSHOT_PROXY_PATH_RE.match(parsed.path) and (
+            host in _LEGACY_SCREENSHOT_PROXY_HOSTS or host == public_host
+        ):
+            return f"{public_base}{parsed.path}"
+        return value
+
+    if value.startswith("/") and _SCREENSHOT_PROXY_PATH_RE.match(value):
+        return f"{public_base}{value}"
+
+    return value
+
+
 def _normalize_urlscan_preview_cache_entry(entry: Any) -> Optional[Dict[str, Any]]:
     if not isinstance(entry, dict):
         return None
     final_url = str(entry.get("final_url") or entry.get("canonical_url") or "").strip()
     report_url = str(entry.get("report_url") or "").strip()
-    screenshot_url = str(entry.get("screenshot_url") or "").strip()
+    screenshot_url = _normalize_screenshot_proxy_url(entry.get("screenshot_url"))
     if not final_url or not report_url:
         return None
     normalized = dict(entry)

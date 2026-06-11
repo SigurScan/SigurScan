@@ -3061,6 +3061,25 @@ def test_urlscan_preview_cache_normalize_accepts_report_only(monkeypatch):
     assert normalized["screenshot_url"] == ""
 
 
+def test_urlscan_preview_cache_rewrites_legacy_screenshot_proxy_url():
+    row = {
+        "url_hash": "legacy",
+        "final_url": "https://www.dnsc.ro/",
+        "report_url": "https://urlscan.io/result/legacy-cache-1/",
+        "screenshot_url": "https://nudaclick-backend.vercel.app/v1/sandbox/urlscan/legacy-cache-1/screenshot",
+        "expires_at": int(time.time()) + 3600,
+    }
+
+    normalized = app_main._normalize_urlscan_preview_cache_entry(row)
+
+    assert normalized is not None
+    assert (
+        normalized["screenshot_url"]
+        == "https://api.sigurscan.com/v1/sandbox/urlscan/legacy-cache-1/screenshot"
+    )
+    assert normalized["screenshot_ready"] is True
+
+
 def test_save_urlscan_preview_cache_allows_report_only_entry(monkeypatch):
     app_main._URLSCAN_PREVIEW_CACHE.clear()
     saved = []
@@ -7110,7 +7129,7 @@ def test_backend_security_defaults_are_launch_safe():
     assert app_main.ENABLE_RATE_LIMIT is True
     assert app_main.RATE_LIMIT_PER_MINUTE <= 60
     assert "*" not in app_main.ALLOWED_ORIGINS
-    assert "https://nudaclick-backend.vercel.app" in app_main.ALLOWED_ORIGINS
+    assert "https://nudaclick-backend.vercel.app" not in app_main.ALLOWED_ORIGINS
 
 
 def test_gemini_explainer_handles_429_gracefully(monkeypatch):
