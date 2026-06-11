@@ -67,7 +67,7 @@ class TestParseInvoice:
     def test_enel_invoice(self):
         text = """
         Furnizor: ENEL ENERGIE SA
-        CUI: 14345906
+        CUI: 24387371
         Factura: EF-2026-05-001
         Data factura: 15.05.2026
         Scadenta: 15.06.2026
@@ -77,7 +77,7 @@ class TestParseInvoice:
         IBAN: RO57BTRL1234567890123456
         """
         result = parse_invoice(text)
-        assert result.cui == "14345906"
+        assert result.cui == "24387371"
         assert result.total == 245.80
         assert result.tva == 39.25
         assert result.subtotal == 206.55

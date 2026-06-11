@@ -11,12 +11,12 @@ from services.invoice_orchestrator import scan_invoice
 
 @pytest.mark.asyncio
 async def test_enel_energie():
-    text = "ENEL Energie Muntenia SA\nCUI: 14345906\nFactura nr. 12345678\nData: 01.05.2026\nScadenta: 01.06.2026\nSubtotal: 200.00 RON\nTVA 19%: 38.00 RON\nTotal: 238.00 RON\nIBAN: RO33RNCB1234567890123456"
+    text = "ENEL Energie Muntenia SA\nCUI: 24387371\nFactura nr. 12345678\nData: 01.05.2026\nScadenta: 01.06.2026\nSubtotal: 200.00 RON\nTVA 19%: 38.00 RON\nTotal: 238.00 RON\nIBAN: RO33RNCB1234567890123456"
     with patch("services.invoice_orchestrator.check_cui", new_callable=AsyncMock) as mock_cui:
         mock_cui.return_value.exists = True
         mock_cui.return_value.activ = True
         result = await scan_invoice(text)
-    assert result.fields.cui == "14345906"
+    assert result.fields.cui == "24387371"
     assert result.readiness.state == ReadinessState.READY
     assert result.brand == "enel"
     assert result.brand_match.impersonation_risk is False
@@ -68,34 +68,34 @@ async def test_premier_energy():
 
 @pytest.mark.asyncio
 async def test_engie():
-    text = "Furnizor: Engie Romania S.A.\nCUI: 35194668\nFactura nr. EN-98765\nData: 05.05.2026\nScadenta: 25.05.2026\nSubtotal: 320.00 RON\nTVA 19%: 60.80 RON\nTotal: 380.80 RON\nIBAN: RO33RNCB1234567890123456"
+    text = "Furnizor: Engie Romania S.A.\nCUI: 13093222\nFactura nr. EN-98765\nData: 05.05.2026\nScadenta: 25.05.2026\nSubtotal: 320.00 RON\nTVA 19%: 60.80 RON\nTotal: 380.80 RON\nIBAN: RO33RNCB1234567890123456"
     with patch("services.invoice_orchestrator.check_cui", new_callable=AsyncMock) as mock_cui:
         mock_cui.return_value.exists = True
         mock_cui.return_value.activ = True
         result = await scan_invoice(text)
-    assert result.fields.cui == "35194668"
+    assert result.fields.cui == "13093222"
     assert result.brand == "engie"
 
 
 @pytest.mark.asyncio
 async def test_vodafone():
-    text = "Vodafone Romania S.A.\nCUI: 15049623\nFactura nr. VF-2026-05-001\nData: 01.05.2026\nScadenta: 20.05.2026\nAbonament: 25.00 RON\nTVA 19%: 4.75 RON\nTotal: 29.75 RON\nIBAN: RO33RNCB1234567890123456"
+    text = "Vodafone Romania S.A.\nCUI: 8971726\nFactura nr. VF-2026-05-001\nData: 01.05.2026\nScadenta: 20.05.2026\nAbonament: 25.00 RON\nTVA 19%: 4.75 RON\nTotal: 29.75 RON\nIBAN: RO33RNCB1234567890123456"
     with patch("services.invoice_orchestrator.check_cui", new_callable=AsyncMock) as mock_cui:
         mock_cui.return_value.exists = True
         mock_cui.return_value.activ = True
         result = await scan_invoice(text)
-    assert result.fields.cui == "15049623"
+    assert result.fields.cui == "8971726"
     assert result.brand == "vodafone"
 
 
 @pytest.mark.asyncio
 async def test_orange():
-    text = "Orange Romania S.A.\nCUI: 16339980\nFactura seria OR nr. 123456\nData: 15.04.2026\nScadenta: 05.05.2026\nSubtotal: 59.66 RON\nTVA 19%: 11.34 RON\nTotal: 71.00 RON\nIBAN: RO33RNCB1234567890123456"
+    text = "Orange Romania S.A.\nCUI: 9010105\nFactura seria OR nr. 123456\nData: 15.04.2026\nScadenta: 05.05.2026\nSubtotal: 59.66 RON\nTVA 19%: 11.34 RON\nTotal: 71.00 RON\nIBAN: RO33RNCB1234567890123456"
     with patch("services.invoice_orchestrator.check_cui", new_callable=AsyncMock) as mock_cui:
         mock_cui.return_value.exists = True
         mock_cui.return_value.activ = True
         result = await scan_invoice(text)
-    assert result.fields.cui == "16339980"
+    assert result.fields.cui == "9010105"
     assert result.brand == "orange"
 
 
@@ -147,7 +147,7 @@ async def test_anaf_phishing_commercial_iban():
 
 @pytest.mark.asyncio
 async def test_eon_electrica_not_confused():
-    text = "E.ON Energie Romania S.A.\nCUI: 15877338\nFactura seria EO nr. 111222333\nData: 01.04.2026\nScadenta: 21.04.2026\nEnergie electrica: 250 kWh\nGaze: 800 kWh\nTotal energie: 175.00 RON\nTotal gaze: 280.00 RON\nTVA 19%: 86.45 RON\nTotal de plata: 541.45 RON\nIBAN: RO33RNCB1234567890123456"
+    text = "E.ON Energie Romania S.A.\nCUI: 22043010\nFactura seria EO nr. 111222333\nData: 01.04.2026\nScadenta: 21.04.2026\nEnergie electrica: 250 kWh\nGaze: 800 kWh\nTotal energie: 175.00 RON\nTotal gaze: 280.00 RON\nTVA 19%: 86.45 RON\nTotal de plata: 541.45 RON\nIBAN: RO33RNCB1234567890123456"
     with patch("services.invoice_orchestrator.check_cui", new_callable=AsyncMock) as mock_cui:
         mock_cui.return_value.exists = True
         mock_cui.return_value.activ = True
@@ -253,3 +253,169 @@ def test_readiness_low_confidence_no_total():
     fields = parse_invoice("CUI: 12345678\nIBAN: RO33RNCB1234567890123456\nData: 01.05.2026")
     gate = evaluate_readiness(fields)
     assert gate.state.value == "analysis_allowed_but_low_confidence"
+
+
+@pytest.mark.asyncio
+async def test_emag_invoice():
+    text = "Dante International SA\nCUI: 14399840\nFactura seria EMAG nr. 100000001\nData: 15.05.2026\nScadenta: 30.05.2026\nLaptop Gaming: 4500.00 RON\nTVA 19%: 855.00 RON\nTotal de plata: 5355.00 RON\nIBAN: RO33RNCB1234567890123456"
+    with patch("services.invoice_orchestrator.check_cui", new_callable=AsyncMock) as mock_cui:
+        mock_cui.return_value.exists = True
+        mock_cui.return_value.activ = True
+        result = await scan_invoice(text)
+    assert result.fields.cui == "14399840"
+    assert result.brand == "emag"
+    assert result.brand_match.cui_matches is True
+
+
+@pytest.mark.asyncio
+async def test_altex_invoice():
+    text = "Altex Romania SRL\nCUI: 2864518\nFactura nr. ALT-123456\nData: 10.05.2026\nScadenta: 25.05.2026\nTelevizor LED: 2500.00 RON\nTVA 19%: 475.00 RON\nTotal: 2975.00 RON\nIBAN: RO33RNCB1234567890123456"
+    with patch("services.invoice_orchestrator.check_cui", new_callable=AsyncMock) as mock_cui:
+        mock_cui.return_value.exists = True
+        mock_cui.return_value.activ = True
+        result = await scan_invoice(text)
+    assert result.fields.cui == "2864518"
+    assert result.brand == "altex"
+
+
+@pytest.mark.asyncio
+async def test_dedeman_invoice():
+    text = "Dedeman SRL\nCUI: 2816464\nFactura nr. DED-98765\nData: 20.05.2026\nScadenta: 05.06.2026\nScari alumniniu: 320.00 RON\nTVA 19%: 60.80 RON\nTotal: 380.80 RON\nIBAN: RO33RNCB1234567890123456"
+    with patch("services.invoice_orchestrator.check_cui", new_callable=AsyncMock) as mock_cui:
+        mock_cui.return_value.exists = True
+        mock_cui.return_value.activ = True
+        result = await scan_invoice(text)
+    assert result.fields.cui == "2816464"
+    assert result.brand == "dedeman"
+
+
+@pytest.mark.asyncio
+async def test_kaufland_invoice():
+    text = "Kaufland Romania SC Grupul Schwarz Inf SRL\nCUI: 15991149\nFactura nr. K-2026-05-001\nData: 05.05.2026\nScadenta: 20.05.2026\nCumparaturi: 187.50 RON\nTVA 19%: 35.62 RON\nTotal: 223.12 RON\nIBAN: RO33RNCB1234567890123456"
+    with patch("services.invoice_orchestrator.check_cui", new_callable=AsyncMock) as mock_cui:
+        mock_cui.return_value.exists = True
+        mock_cui.return_value.activ = True
+        result = await scan_invoice(text)
+    assert result.fields.cui == "15991149"
+    assert result.brand == "kaufland"
+
+
+@pytest.mark.asyncio
+async def test_carrefour_invoice():
+    text = "Carrefour Romania SA\nCUI: 11588780\nFactura nr. CR-2026-001\nData: 12.05.2026\nScadenta: 27.05.2026\nCumparaturi: 95.80 RON\nTVA 19%: 18.20 RON\nTotal: 114.00 RON\nIBAN: RO33RNCB1234567890123456"
+    with patch("services.invoice_orchestrator.check_cui", new_callable=AsyncMock) as mock_cui:
+        mock_cui.return_value.exists = True
+        mock_cui.return_value.activ = True
+        result = await scan_invoice(text)
+    assert result.fields.cui == "11588780"
+    assert result.brand == "carrefour"
+
+
+@pytest.mark.asyncio
+async def test_petrom_invoice():
+    text = "OMV Petrom SA\nCUI: 1590082\nFactura seria PM nr. 2026-05-001\nData: 08.05.2026\nScadenta: 23.05.2026\nMotorina Euro 5: 500.00 RON\nTVA 19%: 95.00 RON\nTotal: 595.00 RON\nIBAN: RO33RNCB1234567890123456"
+    with patch("services.invoice_orchestrator.check_cui", new_callable=AsyncMock) as mock_cui:
+        mock_cui.return_value.exists = True
+        mock_cui.return_value.activ = True
+        result = await scan_invoice(text)
+    assert result.fields.cui == "1590082"
+    assert result.brand == "petrom"
+
+
+@pytest.mark.asyncio
+async def test_fan_courier_invoice():
+    text = "FAN Courier Express SRL\nCUI: 13838336\nFactura nr. FC-2026-05-001\nData: 04.05.2026\nScadenta: 19.05.2026\nServicii curierat: 48.00 RON\nTVA 19%: 9.12 RON\nTotal: 57.12 RON\nIBAN: RO33RNCB1234567890123456"
+    with patch("services.invoice_orchestrator.check_cui", new_callable=AsyncMock) as mock_cui:
+        mock_cui.return_value.exists = True
+        mock_cui.return_value.activ = True
+        result = await scan_invoice(text)
+    assert result.fields.cui == "13838336"
+    assert result.brand == "fan_courier"
+
+
+@pytest.mark.asyncio
+async def test_groupama_invoice():
+    text = "Groupama Asigurari SA\nCUI: 6291812\nFactura seria GR nr. POL-123456\nData: 01.05.2026\nScadenta: 01.06.2026\nAsigurare RCA: 850.00 RON\nTVA 19%: 0.00 RON\nPrima totala: 850.00 RON\nIBAN: RO33RNCB1234567890123456"
+    with patch("services.invoice_orchestrator.check_cui", new_callable=AsyncMock) as mock_cui:
+        mock_cui.return_value.exists = True
+        mock_cui.return_value.activ = True
+        result = await scan_invoice(text)
+    assert result.fields.cui == "6291812"
+    assert result.brand == "groupama"
+
+
+@pytest.mark.asyncio
+async def test_hornbach_invoice():
+    text = "Hornbach Baumarkt Romania SRL\nCUI: 17777320\nFactura nr. HB-2026-05-001\nData: 18.05.2026\nScadenta: 02.06.2026\nScule electrice: 450.00 RON\nTVA 19%: 85.50 RON\nTotal: 535.50 RON\nIBAN: RO33RNCB1234567890123456"
+    with patch("services.invoice_orchestrator.check_cui", new_callable=AsyncMock) as mock_cui:
+        mock_cui.return_value.exists = True
+        mock_cui.return_value.activ = True
+        result = await scan_invoice(text)
+    assert result.fields.cui == "17777320"
+    assert result.brand == "hornbach"
+
+
+@pytest.mark.asyncio
+async def test_lidl_invoice():
+    text = "Lidl Romania SRL\nCUI: 16299404\nFactura nr. LI-2026-05-001\nData: 15.05.2026\nScadenta: 30.05.2026\nCumparaturi: 156.30 RON\nTVA 19%: 29.70 RON\nTotal: 186.00 RON\nIBAN: RO33RNCB1234567890123456"
+    with patch("services.invoice_orchestrator.check_cui", new_callable=AsyncMock) as mock_cui:
+        mock_cui.return_value.exists = True
+        mock_cui.return_value.activ = True
+        result = await scan_invoice(text)
+    assert result.fields.cui == "16299404"
+    assert result.brand == "lidl"
+
+
+@pytest.mark.asyncio
+async def test_decathlon_invoice():
+    text = "Decathlon Romania SRL\nCUI: 13173391\nFactura nr. DC-2026-05-001\nData: 22.05.2026\nScadenta: 06.06.2026\nEchipament sport: 215.00 RON\nTVA 19%: 40.85 RON\nTotal: 255.85 RON\nIBAN: RO33RNCB1234567890123456"
+    with patch("services.invoice_orchestrator.check_cui", new_callable=AsyncMock) as mock_cui:
+        mock_cui.return_value.exists = True
+        mock_cui.return_value.activ = True
+        result = await scan_invoice(text)
+    assert result.fields.cui == "13173391"
+    assert result.brand == "decathlon"
+
+
+@pytest.mark.asyncio
+async def test_regina_maria_invoice():
+    text = "Regina Maria Centrul Medical\nCUI: 16414559\nFactura nr. RM-2026-05-001\nData: 10.05.2026\nScadenta: 25.05.2026\nConsultatie cardiologie: 350.00 RON\nTVA 19%: 66.50 RON\nTotal: 416.50 RON\nIBAN: RO33RNCB1234567890123456"
+    with patch("services.invoice_orchestrator.check_cui", new_callable=AsyncMock) as mock_cui:
+        mock_cui.return_value.exists = True
+        mock_cui.return_value.activ = True
+        result = await scan_invoice(text)
+    assert result.fields.cui == "16414559"
+    assert result.brand == "regina_maria"
+
+
+@pytest.mark.asyncio
+async def test_mol_invoice():
+    text = "MOL Romania Petroleum Products SRL\nCUI: 12298427\nFactura seria ML nr. 2026-05-001\nData: 14.05.2026\nScadenta: 29.05.2026\nCarburant: 320.00 RON\nTVA 19%: 60.80 RON\nTotal: 380.80 RON\nIBAN: RO33RNCB1234567890123456"
+    with patch("services.invoice_orchestrator.check_cui", new_callable=AsyncMock) as mock_cui:
+        mock_cui.return_value.exists = True
+        mock_cui.return_value.activ = True
+        result = await scan_invoice(text)
+    assert result.fields.cui == "12298427"
+    assert result.brand == "mol"
+
+
+@pytest.mark.asyncio
+async def test_posta_romana_invoice():
+    text = "Compania Nationala Posta Romana SA\nCUI: 427130\nFactura nr. PR-2026-05-001\nData: 06.05.2026\nScadenta: 21.05.2026\nAbonament casuta postala: 120.00 RON\nTVA 19%: 22.80 RON\nTotal: 142.80 RON\nIBAN: RO33RNCB1234567890123456"
+    with patch("services.invoice_orchestrator.check_cui", new_callable=AsyncMock) as mock_cui:
+        mock_cui.return_value.exists = True
+        mock_cui.return_value.activ = True
+        result = await scan_invoice(text)
+    assert result.fields.cui == "427130"
+    assert result.brand == "posta_romana"
+
+
+@pytest.mark.asyncio
+async def test_allianz_tiriac_invoice():
+    text = "Allianz Tiriac Asigurari SA\nCUI: 6120740\nFactura seria AL nr. POL-789012\nData: 03.05.2026\nScadenta: 03.06.2026\nAsigurare CASCO: 1200.00 RON\nTVA 19%: 0.00 RON\nPrima totala: 1200.00 RON\nIBAN: RO33RNCB1234567890123456"
+    with patch("services.invoice_orchestrator.check_cui", new_callable=AsyncMock) as mock_cui:
+        mock_cui.return_value.exists = True
+        mock_cui.return_value.activ = True
+        result = await scan_invoice(text)
+    assert result.fields.cui == "6120740"
+    assert result.brand == "allianz_tiriac"

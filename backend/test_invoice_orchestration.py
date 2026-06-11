@@ -7,7 +7,7 @@ from services.invoice_readiness_gate import ReadinessState
 
 @pytest.mark.asyncio
 async def test_scan_basic_enel_invoice():
-    text = "Furnizor: ENEL ENERGIE SA\nCUI: RO14345906\nIBAN: RO33RNCB1234567890123456\n" \
+    text = "Furnizor: ENEL ENERGIE SA\nCUI: RO24387371\nIBAN: RO33RNCB1234567890123456\n" \
            "Total: 245.50 RON\nData: 01.06.2026\nScadenta: 15.06.2026"
     with patch("services.invoice_orchestrator.check_cui", new_callable=AsyncMock) as mock_cui:
         mock_cui.return_value.exists = True
@@ -18,7 +18,7 @@ async def test_scan_basic_enel_invoice():
 
         result = await scan_invoice(text)
 
-    assert result.fields.cui == "14345906"
+    assert result.fields.cui == "24387371"
     assert result.fields.iban == "RO33RNCB1234567890123456"
     assert result.fields.emitent == "ENEL ENERGIE SA"
     assert result.fields.total == 245.50

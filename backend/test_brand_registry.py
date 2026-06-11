@@ -21,13 +21,34 @@ class TestDetectClaimedBrand:
         assert detect_claimed_brand("RCS RDS", "factura internet", []) == "digi"
 
     def test_eon_not_detected_as_electrica(self):
-        assert detect_claimed_brand(None, "E.ON Energie Romania S.A.\nCUI: 15877338\nFactura seria EO nr. 111222333\nEnergie electrica: 250 kWh\nTotal: 541.45 RON", []) == "eon"
+        assert detect_claimed_brand(None, "E.ON Energie Romania S.A.\nCUI: 22043010\nFactura seria EO nr. 111222333\nEnergie electrica: 250 kWh\nTotal: 541.45 RON", []) == "eon"
 
     def test_energy_gas_detected(self):
         assert detect_claimed_brand(None, "SC ENERGY GAS PROVIDER SRL\nCUI RO26741040", []) == "energy_gas"
 
     def test_electrica_detected_from_emitent(self):
         assert detect_claimed_brand("Electrica Furnizare SA", "factura energie", []) == "electrica"
+
+    def test_detect_emag(self):
+        assert detect_claimed_brand("Dante International SA", "eMAG factura", []) == "emag"
+
+    def test_detect_altex(self):
+        assert detect_claimed_brand("Altex Romania", "factura", []) == "altex"
+
+    def test_detect_dedeman(self):
+        assert detect_claimed_brand("Dedeman SRL", "factura materiale", []) == "dedeman"
+
+    def test_detect_fan_courier(self):
+        assert detect_claimed_brand("FAN Courier Express", "factura curierat", []) == "fan_courier"
+
+    def test_detect_petrom(self):
+        assert detect_claimed_brand("OMV Petrom SA", "factura carburanti", []) == "petrom"
+
+    def test_detect_carrefour(self):
+        assert detect_claimed_brand(None, "Carrefour Romania\nCUI 11588780\nFactura seria CR", []) == "carrefour"
+
+    def test_detect_kaufland(self):
+        assert detect_claimed_brand("Kaufland Romania", "factura cumparaturi", []) == "kaufland"
 
 
 class TestMatchBrand:
@@ -37,7 +58,7 @@ class TestMatchBrand:
         assert result.impersonation_risk is False
 
     def test_enel_matching_domain(self):
-        result = match_brand("ENEL Energie", "factura", ["https://www.enel.ro/factura"], "14345906", validate_iban("RO33RNCB1234567890123456"), "RO33RNCB1234567890123456")
+        result = match_brand("ENEL Energie", "factura", ["https://www.enel.ro/factura"], "24387371", validate_iban("RO33RNCB1234567890123456"), "RO33RNCB1234567890123456")
         assert result.claimed_brand == "enel"
         assert result.domain_matches is True
         assert result.cui_matches is True
@@ -53,14 +74,14 @@ class TestMatchBrand:
         iban_result = validate_iban("RO33RNCB1234567890123456")
         result = match_brand("ANAF", "amenda", [], "12345678", iban_result, "RO33RNCB1234567890123456")
         assert result.claimed_brand == "anaf"
-        assert result.iban_matches is False  # ANAF requires TREZ, got BCR
+        assert result.iban_matches is False
         assert result.impersonation_risk is True
 
     def test_anaf_with_trezorerie_iban(self):
         iban_result = validate_iban("RO40TREZ1234567890123456")
         result = match_brand("ANAF", "amenda", [], "12345678", iban_result, "RO40TREZ1234567890123456")
         assert result.claimed_brand == "anaf"
-        assert result.iban_matches is True  # TREZ matches
+        assert result.iban_matches is True
         assert result.impersonation_risk is False
 
     def test_wrong_cui_for_brand(self):
@@ -75,7 +96,7 @@ class TestMatchBrand:
         assert result.cui_matches is True
 
     def test_digi_cui_new_format(self):
-        result = match_brand("Digi Romania", "Digi Romania S.A.", [], "33141033", validate_iban("RO51INGB0001000000018827"), "RO51INGB0001000000018827")
+        result = match_brand("Digi Romania", "Digi Romania S.A.", [], "5888716", validate_iban("RO51INGB0001000000018827"), "RO51INGB0001000000018827")
         assert result.claimed_brand == "digi"
         assert result.cui_matches is True
 
@@ -91,3 +112,23 @@ class TestMatchBrand:
         assert result.claimed_brand == "energy_gas"
         assert result.iban_matches is False
         assert result.impersonation_risk is True
+
+    def test_emag_cui_match(self):
+        result = match_brand("eMAG", "factura", [], "14399840", validate_iban("RO33RNCB1234567890123456"), "RO33RNCB1234567890123456")
+        assert result.claimed_brand == "emag"
+        assert result.cui_matches is True
+
+    def test_petrom_cui_match(self):
+        result = match_brand("OMV Petrom", "factura", [], "1590082", validate_iban("RO33RNCB1234567890123456"), "RO33RNCB1234567890123456")
+        assert result.claimed_brand == "petrom"
+        assert result.cui_matches is True
+
+    def test_fan_courier_detected_from_domain(self):
+        result = match_brand(None, "colet", ["https://www.fancourier.ro/tracking"], None, validate_iban("RO33RNCB1234567890123456"), "RO33RNCB1234567890123456")
+        assert result.claimed_brand == "fan_courier"
+        assert result.domain_matches is True
+
+    def test_carrefour_cui_match(self):
+        result = match_brand("Carrefour Romania", "factura", [], "11588780", validate_iban("RO33RNCB1234567890123456"), "RO33RNCB1234567890123456")
+        assert result.claimed_brand == "carrefour"
+        assert result.cui_matches is True

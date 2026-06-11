@@ -1,3 +1,5 @@
+import hashlib
+import time
 from typing import Optional
 from dataclasses import dataclass, field
 from services.invoice_parser import parse_invoice, InvoiceFields
@@ -6,6 +8,53 @@ from services.invoice_coherence import CoherenceResult, check_coherence
 from services.invoice_readiness_gate import evaluate_readiness, ReadinessGateResult
 from services.brand_registry import detect_claimed_brand, match_brand, BrandMatchResult
 from services.anaf_cui import check_cui
+
+
+CACHE_TTL = 43200  # 12 hours
+_cui_cache: dict[str, tuple[float, dict]] = {}
+_verdict_cache: dict[str, tuple[float, "InvoiceScanResult"]] = {}
+
+
+def _cache_key(fields) -> str:
+    raw = f"{fields.cui}|{fields.iban}|{fields.total}|{fields.data_emitere}|{fields.nr_factura}"
+    return hashlib.sha256(raw.encode()).hexdigest()
+
+
+def _cui_cache_key(cui: str) -> str:
+    return f"cui:{cui}"
+
+
+def _get_cached_cui(cui: str) -> dict | None:
+    key = _cui_cache_key(cui)
+    entry = _cui_cache.get(key)
+    if entry and (time.time() - entry[0]) < CACHE_TTL:
+        return entry[1]
+    if entry:
+        del _cui_cache[key]
+    return None
+
+
+def _set_cached_cui(cui: str, data: dict):
+    key = _cui_cache_key(cui)
+    _cui_cache[key] = (time.time(), data)
+
+
+def _get_cached_verdict(fields) -> InvoiceScanResult | None:
+    key = _cache_key(fields)
+    entry = _verdict_cache.get(key)
+    if entry and (time.time() - entry[0]) < CACHE_TTL:
+        cached = entry[1]
+        cached._from_cache = True
+        return cached
+    if entry:
+        del _verdict_cache[key]
+    return None
+
+
+def _set_cached_verdict(fields, result: "InvoiceScanResult"):
+    key = _cache_key(fields)
+    result._from_cache = False
+    _verdict_cache[key] = (time.time(), result)
 
 
 @dataclass
@@ -20,6 +69,7 @@ class InvoiceScanResult:
     anaf_cui_check: Optional[dict] = None
     error: Optional[str] = None
     warnings: list = field(default_factory=list)
+    from_cache: bool = False
 
 
 def _fields_to_coherence(fields: InvoiceFields) -> CoherenceResult:
@@ -45,6 +95,10 @@ async def scan_invoice(ocr_text: str, links: Optional[list[str]] = None) -> Invo
             raw_text=ocr_text, fields=fields, error=error,
             readiness=evaluate_readiness(fields), coherence=coherence,
         )
+
+    cached = _get_cached_verdict(fields)
+    if cached is not None:
+        return cached
 
     all_links = links or []
     warnings: list[str] = []
@@ -80,20 +134,27 @@ async def scan_invoice(ocr_text: str, links: Optional[list[str]] = None) -> Invo
                 + "; ".join(reasons)
             )
 
+    cui_check = None
     if fields.cui:
-        cui_check = await check_cui(fields.cui)
-        anaf_check = {
-            "exists": cui_check.exists,
-            "denumire": cui_check.denumire,
-            "activ": cui_check.activ,
-            "platitor_tva": cui_check.platitor_tva,
-        }
-        if not cui_check.exists:
+        cached_cui = _get_cached_cui(fields.cui)
+        if cached_cui:
+            cui_check = cached_cui
+        else:
+            raw_cui_check = await check_cui(fields.cui)
+            cui_check = {
+                "exists": raw_cui_check.exists,
+                "denumire": raw_cui_check.denumire,
+                "activ": raw_cui_check.activ,
+                "platitor_tva": raw_cui_check.platitor_tva,
+            }
+            _set_cached_cui(fields.cui, cui_check)
+        anaf_check = cui_check
+        if not cui_check["exists"]:
             warnings.append(f"CUI {fields.cui} not found in ANAF registry")
-        elif not cui_check.activ:
-            warnings.append(f"Company {cui_check.denumire} is inactive (since {cui_check.data_inactivare})")
+        elif not cui_check["activ"]:
+            warnings.append(f"Company {cui_check['denumire']} is inactive")
 
-    return InvoiceScanResult(
+    result = InvoiceScanResult(
         raw_text=ocr_text,
         fields=fields,
         readiness=readiness,
@@ -104,3 +165,5 @@ async def scan_invoice(ocr_text: str, links: Optional[list[str]] = None) -> Invo
         anaf_cui_check=anaf_check,
         warnings=warnings,
     )
+    _set_cached_verdict(fields, result)
+    return result
