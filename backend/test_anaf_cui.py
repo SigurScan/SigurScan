@@ -54,6 +54,7 @@ async def test_cui_activ():
         result = await check_cui("14345906")
 
     assert result.exists is True
+    assert result.checked is True
     assert result.denumire == "ENEL ENERGIE SA"
     assert result.activ is True
     assert result.platitor_tva is True
@@ -71,6 +72,7 @@ async def test_cui_inactiv():
         result = await check_cui("99999999")
 
     assert result.exists is True
+    assert result.checked is True
     assert result.denumire == "Firma Inactiva SRL"
     assert result.activ is False
     assert result.data_inactivare == "2025-01-15"
@@ -87,6 +89,7 @@ async def test_cui_nonexistent():
         result = await check_cui("11111111")
 
     assert result.exists is False
+    assert result.checked is True
     assert result.denumire is None
     assert result.activ is False
 
@@ -106,6 +109,7 @@ async def test_anaf_timeout_uses_fallback():
             result = await check_cui("14345906")
 
     assert result.exists is True
+    assert result.checked is True
     assert result.denumire == "ENEL ENERGIE SA"
     assert result.activ is True
 
@@ -121,6 +125,7 @@ async def test_total_timeout_returns_low_confidence():
             result = await check_cui("14345906")
 
     assert result.exists is False
+    assert result.checked is False
     assert result.denumire is None
     assert result.activ is False
 
@@ -129,6 +134,7 @@ async def test_total_timeout_returns_low_confidence():
 async def test_invalid_cui_empty():
     result = await check_cui("")
     assert result.exists is False
+    assert result.checked is True
 
 
 def test_normalize_cui():

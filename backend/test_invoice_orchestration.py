@@ -107,3 +107,24 @@ async def test_scan_coherence_warning():
     text = "Furnizor: Test SRL\nCUI: 12345678\nSubtotal: 100 RON\nTVA: 19 RON\nTotal: 100 RON"
     result = await scan_invoice(text)
     assert not result.coherence.totals_match
+
+
+@pytest.mark.asyncio
+async def test_scan_deterministic_repeatable():
+    text = "Furnizor: ENEL ENERGIE SA\nCUI: RO24387371\nIBAN: RO33RNCB1234567890123456\n" \
+           "Total: 245.50 RON\nData: 01.06.2026\nScadenta: 15.06.2026"
+    mock_data = {
+        "exists": True, "checked": True, "denumire": "ENEL ENERGIE SA",
+        "activ": True, "platitor_tva": True, "data_inactivare": None, "enrolled_efactura": True,
+    }
+    with patch("services.invoice_orchestrator.check_cui", new_callable=AsyncMock) as mock_cui:
+        mock_cui.return_value = type("CuiMock", (), mock_data)()
+        result1 = await scan_invoice(text)
+        result2 = await scan_invoice(text)
+
+    assert result1.fields.cui == result2.fields.cui == "24387371"
+    assert result1.fields.total == result2.fields.total == 245.50
+    assert result1.readiness.state == result2.readiness.state
+    assert result1.brand == result2.brand == "enel"
+    assert result1.brand_match.impersonation_risk == result2.brand_match.impersonation_risk
+    assert result1.warnings == result2.warnings

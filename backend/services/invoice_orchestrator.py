@@ -143,6 +143,7 @@ async def scan_invoice(ocr_text: str, links: Optional[list[str]] = None) -> Invo
             raw_cui_check = await check_cui(fields.cui)
             cui_check = {
                 "exists": raw_cui_check.exists,
+                "checked": raw_cui_check.checked,
                 "denumire": raw_cui_check.denumire,
                 "activ": raw_cui_check.activ,
                 "platitor_tva": raw_cui_check.platitor_tva,

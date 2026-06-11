@@ -6028,6 +6028,17 @@ def _build_orchestrated_text_context(payload: OrchestratedScanRequest) -> Dict[s
             },
         }
 
+    if input_type == "invoice":
+        raw_text = _normalise_obfuscated_text((payload.text or payload.url or "").strip())
+        _validate_text_input("Textul facturii", raw_text, MAX_TEXT_CHARS)
+        return {
+            "input_type": "invoice",
+            "source_channel": source_channel,
+            "raw_text": raw_text,
+            "urls": extract_urls(raw_text),
+            "extra_fields": {"invoice_scan": True},
+        }
+
     raw_text = _normalise_obfuscated_text((payload.text or payload.url or "").strip())
     _validate_text_input("Textul trimis", raw_text, MAX_TEXT_CHARS)
     return {
@@ -6258,6 +6269,237 @@ async def _run_orchestrated_fast_lane(job: Dict[str, Any], request: Request) -> 
     return job
 
 
+async def _run_orchestrated_invoice_fast_lane(job: Dict[str, Any], request: Request) -> Dict[str, Any]:
+    from services.invoice_orchestrator import scan_invoice
+    from services.verdict_gate import verdict as reduce_verdict
+
+    redacted_text = str(job.get("redacted_text") or "")
+    urls = job.get("urls") if isinstance(job.get("urls"), list) else []
+    _set_orchestrated_stage(job, "invoice_parse")
+    try:
+        result = await _timed_orchestrated_component(
+            job,
+            "invoice_fast_lane.scan_invoice",
+            lambda: scan_invoice(redacted_text, links=urls),
+        )
+    except Exception as exc:
+        result = None
+        _emit_orchestrated_telemetry("orchestrated_invoice_error", job, error=str(exc))
+
+    # Build evidence bundle sections for the existing verdict_gate.
+    readiness = result.readiness if result else None
+    brand_match = result.brand_match if result else None
+    fields = result.fields if result else None
+    coherence = result.coherence if result else None
+    anaf = result.anaf_cui_check if result else None
+    iban_result = result.iban_valid if result else None
+
+    readiness_blocks_safe = (readiness and readiness.blocks_safe_verdict) or False
+    impersonation_risk = (brand_match and brand_match.impersonation_risk) or False
+    cui_matches = (brand_match and brand_match.cui_matches) or False
+    iban_matches = (brand_match and brand_match.iban_matches) or False
+    claimed_brand = (result.brand if result else None) or "Nespecificat"
+
+    # Provider section: ANAF + IBAN + coherence as evidence sources.
+    anaf_status = "clean"
+    anaf_reasons = []
+    if anaf:
+        if anaf.get("checked") is False:
+            anaf_status = "unknown"
+            anaf_reasons.append("ANAF temporar indisponibil")
+        elif not anaf.get("exists"):
+            anaf_status = "unknown"
+            anaf_reasons.append("CUI negăsit în registru")
+        elif not anaf.get("activ"):
+            anaf_status = "malicious"
+            anaf_reasons.append("Firmă inactivă")
+
+    iban_status = "clean"
+    iban_reasons = []
+    if iban_result:
+        if not iban_result.valid_structure:
+            iban_status = "suspicious"
+            iban_reasons.append("IBAN invalid MOD-97")
+
+    coherence_status = "clean"
+    coherence_reasons = []
+    if coherence:
+        if not coherence.totals_match:
+            coherence_status = "suspicious"
+            coherence_reasons.append("Totalul nu corespunde cu subtotal+TVA")
+        if not coherence.dates_plausible:
+            coherence_status = "suspicious"
+            coherence_reasons.append("Date incoerente (scadența înaintea emiterii)")
+
+    provider_section = {
+        "verdict": "malicious" if anaf_status == "malicious" else "suspicious" if "suspicious" in (iban_status, coherence_status) else "clean",
+        "anaf": {"status": anaf_status, "verdict": anaf_status, "reasons": anaf_reasons, "completeness": anaf is not None},
+        "iban": {"status": iban_status, "verdict": iban_status, "reasons": iban_reasons, "completeness": iban_result is not None},
+        "coherence": {"status": coherence_status, "verdict": coherence_status, "reasons": coherence_reasons, "completeness": coherence is not None},
+    }
+    if anaf_reasons:
+        provider_section.setdefault("reasons", []).extend(anaf_reasons)
+
+    # Identity section: brand match status.
+    if impersonation_risk:
+        identity_status = "lookalike"
+        identity_reason = "CUI/IBAN nealiniat cu brandul declarat"
+    elif cui_matches and iban_matches:
+        identity_status = "official"
+        identity_reason = "Brand confirmat prin CUI și IBAN"
+    elif claimed_brand != "Nespecificat":
+        identity_status = "unknown"
+        identity_reason = "Brand declarat dar neverificat complet"
+    else:
+        identity_status = "unknown"
+        identity_reason = "Brand nedeclarat"
+
+    identity_section = {
+        "status": identity_status,
+        "claimed_brand": claimed_brand,
+        "domain_reputation": "established" if (brand_match and brand_match.domain_matches) else "unknown",
+        "reason": identity_reason,
+        "completeness": brand_match is not None,
+    }
+
+    # Request section: invoices ask for payment transfer.
+    request_sensitive = "transfer"
+    request_section = {
+        "sensitive": request_sensitive,
+        "channel": "invoice",
+        "completeness": True,
+    }
+
+    # Semantic review: coherence + readiness.
+    semantic_risk = "low"
+    semantic_reasons = []
+    if impersonation_risk:
+        semantic_risk = "high"
+        semantic_reasons.append("Impersonation risk detected")
+    if readiness_blocks_safe:
+        semantic_risk = "medium"
+        semantic_reasons.append("Date insuficiente")
+    if coherence and not coherence.all_ok:
+        semantic_reasons.append("Document incoherent")
+
+    semantic_section = {
+        "status": "done",
+        "risk_class": semantic_risk,
+        "reasons": semantic_reasons,
+        "completeness": readiness is not None,
+    }
+
+    # Resolution: invoices don't need URL resolution.
+    resolution_section = {
+        "status": "not_required",
+        "completeness": True,
+    }
+
+    bundle = {
+        "schema": "sigurscan_evidence_bundle_v2",
+        "input": {
+            "type": "invoice",
+            "redacted_text": str(redacted_text or "")[:4000],
+        },
+        "resolution": resolution_section,
+        "providers": provider_section,
+        "identity": identity_section,
+        "request": request_section,
+        "semantic_review": semantic_section,
+        "context": {
+            "urgency": bool(re.search(r"\b(urgent|azi|acum|24\s*de\s*ore|ultima|expir[ăa])\b", str(redacted_text or ""), re.IGNORECASE)),
+            "passive_payment": bool(re.search(r"\b(plata abonamentului|se va efectua automat plata|factur[ăa])\b", str(redacted_text or ""), re.IGNORECASE)),
+            "apk_or_remote_mention": False,
+        },
+    }
+    import hashlib, json
+    canonical = json.dumps(bundle, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    bundle["evidence_hash"] = "sha256:" + hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+    gate_result = reduce_verdict(bundle)
+
+    # Build analysis dict compatible with the existing contract.
+    analysis: Dict[str, Any] = {
+        "risk_score": 0,
+        "risk_level": "low",
+        "detected_family": "Factura",
+        "detected_family_id": "invoice",
+        "claimed_brand": claimed_brand,
+        "reasons": [],
+        "safe_actions": [],
+        "evidence": {
+            "source_channel": job.get("source_channel"),
+            "invoice": {
+                "fields": {
+                    "emitent": fields.emitent if fields else None,
+                    "cui": fields.cui if fields else None,
+                    "iban": fields.iban if fields else None,
+                    "nr_factura": fields.nr_factura if fields else None,
+                    "data_emitere": fields.data_emitere if fields else None,
+                    "scadenta": fields.scadenta if fields else None,
+                    "subtotal": fields.subtotal if fields else None,
+                    "tva": fields.tva if fields else None,
+                    "total": fields.total if fields else None,
+                },
+                "brand_match": {
+                    "claimed_brand": claimed_brand,
+                    "domain_matches": brand_match.domain_matches if brand_match else None,
+                    "cui_matches": cui_matches,
+                    "iban_matches": iban_matches,
+                    "impersonation_risk": impersonation_risk,
+                },
+                "readiness": {
+                    "state": readiness.state.value if readiness else None,
+                    "blocks_safe_verdict": readiness_blocks_safe,
+                },
+                "warnings": list(result.warnings) if result else [],
+                "verdict_gate": gate_result,
+            },
+        },
+    }
+
+    provider_gate = {
+        "version": "verdict_gate_v2",
+        "decision_contract": "sigurscan_evidence_bundle_v2",
+        "risk_level": gate_result.get("risk_level"),
+        "risk_score": gate_result.get("risk_score"),
+        "reason": ", ".join(gate_result.get("reason_codes") or []),
+        "label": gate_result.get("label"),
+        "detected_family_id": "invoice",
+        "detected_family": "Factură",
+    }
+    evidence = analysis.setdefault("evidence", {})
+    evidence["provider_gate"] = provider_gate
+    evidence["decision_bundle"] = bundle
+    evidence["verdict_gate"] = gate_result
+
+    label = str(gate_result.get("label") or "PENDING").upper()
+    reasons = {
+        "SIGUR": ["Datele facturii sunt coerente și corespund unui emitent cunoscut."],
+        "SUSPECT": ["Nu avem dovezi suficiente pentru a confirma factura ca sigură; verifică pe canalul oficial."],
+        "PERICULOS": ["Dovezile indică risc ridicat: nu efectua plata și nu furniza date."],
+        "PENDING": ["Scanarea nu are încă toate dovezile necesare pentru un verdict final."],
+    }.get(label, ["Verifică pe canalul oficial înainte de plată."])
+    safe_actions = {
+        "SIGUR": ["Poți efectua plata dacă recunoști emitentul și suma."],
+        "SUSPECT": ["Verifică factura în aplicația/site-ul emitentului, nu din linkul din document."],
+        "PERICULOS": ["Nu plăti.", "Nu introduce date personale sau bancare.", "Raportează incidentul."],
+        "PENDING": ["Așteaptă finalizarea verificărilor automate."],
+    }.get(label, ["Așteaptă finalizarea scanării."])
+
+    analysis["risk_level"] = gate_result.get("risk_level")
+    analysis["risk_score"] = gate_result.get("risk_score")
+    analysis["reasons"] = reasons
+    analysis["safe_actions"] = safe_actions
+
+    job["analysis"] = analysis
+    job["claim_verifier_required"] = False
+    _set_orchestrated_stage(job, "analysis_ready")
+    job = _persist_orchestrated_job(job)
+    _emit_orchestrated_telemetry("orchestrated_stage_analysis_ready", job, invoice_fast_lane=True)
+    return job
+
+
 async def _refresh_orchestrated_job(job: Dict[str, Any], request: Request) -> Dict[str, Any]:
     _increment_orchestrated_metric(job, "poll_count")
     stage = str(job.get("pipeline_stage") or "queued").strip().lower()
@@ -6268,6 +6510,8 @@ async def _refresh_orchestrated_job(job: Dict[str, Any], request: Request) -> Di
         return await _finalize_orchestrated_job_if_ready(job, request)
 
     if stage == "queued":
+        if str(job.get("input_type") or "").strip().lower() == "invoice":
+            return await _run_orchestrated_invoice_fast_lane(job, request)
         return await _run_orchestrated_fast_lane(job, request)
 
     if stage == "resolved":

@@ -19,6 +19,7 @@ LISTA_FIRME_TIMEOUT_SECONDS = 3.0
 @dataclass
 class CuiResult:
     exists: bool
+    checked: bool
     denumire: str | None
     activ: bool
     data_inactivare: str | None
@@ -31,24 +32,26 @@ async def check_cui(cui: str, data: str | None = None) -> CuiResult:
     cui_digits = _normalize_cui(cui)
     if not cui_digits or not cui_digits.isdigit():
         return CuiResult(
-            exists=False, denumire=None, activ=False, data_inactivare=None,
+            exists=False, checked=True, denumire=None, activ=False, data_inactivare=None,
             platitor_tva=False, enrolled_efactura=False, raw=None,
         )
     ref_date = data or date.today().isoformat()
+    anaf_ok = False
     try:
         result = await _call_anaf_api(int(cui_digits), ref_date)
-        if result:
+        if result is not None:
+            anaf_ok = True
             return result
     except Exception:
         pass
     try:
         result = await _call_lista_firme_fallback(cui_digits)
-        if result:
+        if result is not None:
             return result
     except Exception:
         pass
     return CuiResult(
-        exists=False, denumire=None, activ=False, data_inactivare=None,
+        exists=False, checked=anaf_ok, denumire=None, activ=False, data_inactivare=None,
         platitor_tva=False, enrolled_efactura=False, raw=None,
     )
 
@@ -88,18 +91,31 @@ def _parse_anaf_entry(entry: Dict[str, Any]) -> CuiResult:
     dg = entry.get("date_generale")
     if not isinstance(dg, dict):
         return CuiResult(
-            exists=False, denumire=None, activ=False, data_inactivare=None,
+            exists=False, checked=True, denumire=None, activ=False, data_inactivare=None,
             platitor_tva=False, enrolled_efactura=False, raw=entry,
         )
     denumire = (dg.get("denumire") or "").strip() or None
-    status_inactiv = (dg.get("statusInactivi") or "").strip().lower()
+    raw_status = dg.get("statusInactivi")
+    if isinstance(raw_status, bool):
+        status_inactiv = "true" if raw_status else "false"
+    else:
+        status_inactiv = (raw_status or "").strip().lower()
     data_inactivare = (dg.get("dataInactivare") or "").strip() or None
-    scp_tva = (dg.get("scpTVA") or "").strip().lower() == "da"
-    enrol_efactura = (dg.get("statusRO_e_Factura") or "").strip().lower() == "da"
+    scp_tva_raw = dg.get("scpTVA")
+    if isinstance(scp_tva_raw, bool):
+        scp_tva = scp_tva_raw
+    else:
+        scp_tva = (scp_tva_raw or "").strip().lower() == "da"
+    enrol_raw = dg.get("statusRO_e_Factura")
+    if isinstance(enrol_raw, bool):
+        enrol_efactura = enrol_raw
+    else:
+        enrol_efactura = (enrol_raw or "").strip().lower() == "da"
     activ = status_inactiv not in {"inactiv", "true"}
     exists = bool(denumire)
     return CuiResult(
         exists=exists,
+        checked=True,
         denumire=denumire,
         activ=activ,
         data_inactivare=data_inactivare,
@@ -121,13 +137,17 @@ async def _call_lista_firme_fallback(cui_digits: str) -> CuiResult | None:
         if response.status_code != 200:
             return None
         data = response.json()
-        if not isinstance(data, dict) or not data.get("denumire"):
-            return None
+        if not isinstance(data, dict):
+            return CuiResult(
+                exists=False, checked=True, denumire=None, activ=False,
+                data_inactivare=None, platitor_tva=False, enrolled_efactura=False, raw=data,
+            )
         denumire = (data.get("denumire") or "").strip() or None
         activ = str(data.get("stare") or "").strip().lower() != "inactiv"
         scp_tva = str(data.get("platitor_tva") or "").strip().lower() in {"da", "true", "1"}
         return CuiResult(
             exists=bool(denumire),
+            checked=True,
             denumire=denumire,
             activ=activ,
             data_inactivare=None,

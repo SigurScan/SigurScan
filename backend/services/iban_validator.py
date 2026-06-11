@@ -13,7 +13,6 @@ RO_BANK_CODES: Dict[str, str] = {
     "RZBR": "Raiffeisen",
     "BACX": "UniCredit",
     "CECE": "CEC Bank",
-    "CECER": "CEC Bank",
     "CARP": "Carpatica (Neutră)",
     "CRCO": "Creditcoop",
     "DAFB": "Alpha Bank",

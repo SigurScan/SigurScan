@@ -6,6 +6,13 @@ from typing import Dict, List, Optional
 
 from services.iban_validator import IbanResult
 
+# SOURCE OF TRUTH for invoice route brand matching.
+# This registry feeds invoice_orchestrator.match_brand() and is the only
+# brand registry used on the inputType=invoice path. The separate registry
+# in scam_atlas.py serves the message/link/email flow and is NOT consulted
+# during invoice scans. Both registries may overlap in content but are
+# maintained independently to match their respective detection contexts.
+
 
 @dataclass
 class BrandEntry:
@@ -131,7 +138,7 @@ BRAND_REGISTRY: Dict[str, BrandEntry] = {
     ),
     # ===== COURIER =====
     "fan_courier": BrandEntry(
-        aliases=["fan courier", "fancourier", "fan", "fanbox"],
+        aliases=["fan courier", "fancourier"],
         domains=["fancourier.ro", "fan.ro", "selfawb.ro"],
         cuis=["13838336"],
         trezorerie_only=False,
@@ -296,7 +303,7 @@ BRAND_REGISTRY: Dict[str, BrandEntry] = {
         official_ibans=[],
     ),
     "mol": BrandEntry(
-        aliases=["mol"],
+        aliases=["mol romania", "mol group"],
         domains=["mol.ro", "molromania.ro"],
         cuis=[],
         trezorerie_only=False,

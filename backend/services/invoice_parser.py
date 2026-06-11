@@ -32,7 +32,6 @@ EMITENT_LABEL = re.compile(
 class InvoiceFields:
     emitent: str | None = None
     cui: str | None = None
-    client: str | None = None
     nr_factura: str | None = None
     data_emitere: str | None = None
     scadenta: str | None = None
