@@ -266,19 +266,22 @@ private fun collectSharedTextCandidates(intent: Intent): List<SharedTextCandidat
 private fun collectSharedStreamUris(intent: Intent): List<Uri> {
     val streams = linkedMapOf<String, Uri>()
 
-    val singleStream = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-        intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
-    } else {
-        @Suppress("DEPRECATION")
-        intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
-    }
-    singleStream?.let { streams[it.toString()] = it }
-
-    if (singleStream == null) {
-        @Suppress("DEPRECATION")
-        runCatching { intent.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM) }
-            .getOrNull()
-            ?.forEach { stream -> streams[stream.toString()] = stream }
+    when (intent.action) {
+        Intent.ACTION_SEND_MULTIPLE -> {
+            @Suppress("DEPRECATION")
+            runCatching { intent.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM) }
+                .getOrNull()
+                ?.forEach { stream -> streams[stream.toString()] = stream }
+        }
+        else -> {
+            val singleStream = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
+            }
+            singleStream?.let { streams[it.toString()] = it }
+        }
     }
 
     val clipData = intent.clipData
