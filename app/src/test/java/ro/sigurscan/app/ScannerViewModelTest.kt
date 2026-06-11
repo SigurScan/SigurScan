@@ -146,6 +146,46 @@ class ScannerViewModelTest {
     }
 
     @Test
+    fun finalOrchestratedVerdictStopsLoadingBeforePreviewRefresh() {
+        val viewModelSource = File("src/main/java/ro/sigurscan/app/ScannerViewModel.kt").readText()
+        val publishStart = viewModelSource.indexOf("private suspend fun publishOrchestratedResponse")
+        val publishEnd = viewModelSource.indexOf("private fun shouldContinueOrchestratedPolling", publishStart)
+        assertTrue("publishOrchestratedResponse must exist.", publishStart >= 0 && publishEnd > publishStart)
+
+        val publishFlow = viewModelSource.substring(publishStart, publishEnd)
+        val finalGateIndex = publishFlow.indexOf("updated.gateResult?.finality == GateFinality.FINAL")
+        val loadingStopIndex = publishFlow.indexOf("loading = false", finalGateIndex)
+        val cacheSaveIndex = publishFlow.indexOf("saveFinalAssessmentToResultCache", finalGateIndex)
+        assertTrue("Final orchestrated verdict branch must exist.", finalGateIndex >= 0)
+        assertTrue(
+            "A final verdict must stop the main loading spinner before any preview/background work continues.",
+            loadingStopIndex > finalGateIndex && loadingStopIndex < cacheSaveIndex
+        )
+        assertTrue(
+            "Preview refresh must remain a background follow-up, not the condition for stopping loading.",
+            publishFlow.contains("scheduleSandboxScreenshotRefresh(response.scanId, remoteScreenshotUrl)")
+        )
+    }
+
+    @Test
+    fun orchestratedVerdictPublishDoesNotSynchronouslyDownloadScreenshot() {
+        val viewModelSource = File("src/main/java/ro/sigurscan/app/ScannerViewModel.kt").readText()
+        val publishStart = viewModelSource.indexOf("private suspend fun publishOrchestratedResponse")
+        val publishEnd = viewModelSource.indexOf("private fun shouldContinueOrchestratedPolling", publishStart)
+        assertTrue("publishOrchestratedResponse must exist.", publishStart >= 0 && publishEnd > publishStart)
+
+        val publishFlow = viewModelSource.substring(publishStart, publishEnd)
+        assertFalse(
+            "Publishing a backend verdict must not block on screenshot download; preview local caching belongs in background refresh.",
+            publishFlow.contains("downloadSandboxScreenshotProxy")
+        )
+        assertFalse(
+            "Publishing a backend verdict must not enter IO just to localize the screenshot before showing the verdict.",
+            publishFlow.contains("withContext(Dispatchers.IO)")
+        )
+    }
+
+    @Test
     fun resultCacheExpiryRemovesStaleRecordsInsteadOfServingOldVerdicts() {
         val viewModelSource = File("src/main/java/ro/sigurscan/app/ScannerViewModel.kt").readText()
         val cacheStart = viewModelSource.indexOf("private fun cachedAssessmentFor")

@@ -1229,15 +1229,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
     ) {
         val providerStates = providerStatesFromOrchestratedPillars(response.pillars)
         val remoteScreenshotUrl = response.preview?.screenshotUrl
-        var stableScreenshot: String? = null
-        val preview = if (response.result != null) {
-            stableScreenshot = withContext(Dispatchers.IO) {
-                downloadSandboxScreenshotProxy(remoteScreenshotUrl)
-            }
-            response.preview?.copy(screenshotUrl = stableScreenshot ?: response.preview.screenshotUrl)
-        } else {
-            response.preview
-        }
+        val preview = response.preview
         val updated = response.result?.let {
             buildAssessmentFromBackendScanResponse(
                 response = it,
@@ -1248,10 +1240,13 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
             )
         } ?: buildPendingAssessmentFromOrchestratedResponse(response, rawInput, urls)
         publishAssessmentResult(existingScanId ?: response.scanId, updated)
-        if (response.result != null && updated.gateResult?.finality == GateFinality.FINAL && !resultCacheKey.isNullOrBlank()) {
-            saveFinalAssessmentToResultCache(resultCacheKey, updated)
+        if (response.result != null && updated.gateResult?.finality == GateFinality.FINAL) {
+            loading = false
+            if (!resultCacheKey.isNullOrBlank()) {
+                saveFinalAssessmentToResultCache(resultCacheKey, updated)
+            }
         }
-        if (response.result != null && stableScreenshot == null && !remoteScreenshotUrl.isNullOrBlank()) {
+        if (response.result != null && !remoteScreenshotUrl.isNullOrBlank()) {
             scheduleSandboxScreenshotRefresh(response.scanId, remoteScreenshotUrl)
         }
     }
