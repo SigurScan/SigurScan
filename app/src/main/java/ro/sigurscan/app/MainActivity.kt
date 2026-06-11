@@ -263,7 +263,7 @@ private fun collectSharedTextCandidates(intent: Intent): List<SharedTextCandidat
     return candidates
 }
 
-private fun collectSharedStreamUris(intent: Intent): List<Uri> {
+internal fun collectSharedStreamUris(intent: Intent): List<Uri> {
     val streams = linkedMapOf<String, Uri>()
 
     when (intent.action) {
