@@ -2091,13 +2091,38 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
         val mimeType = runCatching {
             context.contentResolver.getType(uri)?.lowercase(Locale.getDefault()) ?: ""
         }.getOrDefault("")
-        val lowerName = fileName.lowercase(Locale.getDefault())
-        val isPdf = lowerName.endsWith(".pdf") || mimeType.startsWith("application/pdf")
-        val isHtml = lowerName.endsWith(".html") || lowerName.endsWith(".htm") || mimeType.startsWith("text/html")
-        val isEml = lowerName.endsWith(".eml") || lowerName.endsWith(".msg") || mimeType == "message/rfc822"
-        val isText = lowerName.endsWith(".txt") || mimeType == "text/plain"
+        val importKind = FileImportClassifier.classify(fileName, mimeType)
         
-        if (isText) {
+        if (importKind == FileImportKind.UNSUPPORTED || importKind == FileImportKind.OUTLOOK_MSG_UNSUPPORTED) {
+            val reason = if (importKind == FileImportKind.OUTLOOK_MSG_UNSUPPORTED) {
+                "Fișierele Outlook .msg nu sunt încă suportate. Exportă mesajul ca .eml sau partajează conținutul direct din aplicația de email."
+            } else {
+                "Tipul fișierului nu este suportat pentru scanare. Acceptăm momentan PDF, EML, HTML și TXT."
+            }
+            assessment = applyEvidenceGate(
+                current = OfflineAssessment(
+                    family = "Tip fișier nesuportat",
+                    riskScore = 0,
+                    riskLevel = "unknown",
+                    reasons = listOf(reason),
+                    safeActions = listOf(
+                        "Încarcă un PDF, .eml, .html sau .txt.",
+                        "Pentru poze folosește opțiunea Screenshot/Imagine, iar pentru coduri QR folosește scanarea QR."
+                    ),
+                    keyDangers = listOf("Nu avem suficiente dovezi tehnice pentru verdict."),
+                    originalText = "Fișierul nu a fost scanat: $fileName."
+                ),
+                rawInput = "Tip fișier nesuportat: $fileName",
+                inputKind = "import_unsupported_file",
+                channel = "file_import",
+                providerStates = unavailableProviderStates(),
+                completeness = EvidenceCompleteness.LOCAL_ONLY
+            )
+            loading = false
+            return
+        }
+
+        if (importKind == FileImportKind.TEXT) {
             loading = true
             loadingMsg = "Analizăm fișierul text..."
 
@@ -2125,31 +2150,27 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
             return
         }
 
-        if (isHtml || isEml) {
+        if (importKind == FileImportKind.HTML || importKind == FileImportKind.EMAIL) {
             loading = true
-            loadingMsg = if (isHtml) "Analizăm conținutul HTML..." else "Analizăm fișierul email..."
+            loadingMsg = if (importKind == FileImportKind.HTML) "Analizăm conținutul HTML..." else "Analizăm fișierul email..."
 
             viewModelScope.launch {
                 try {
                     val rawContent = readTextFromUri(uri, context)
-                    val parsedEmail = if (isEml) EmailMessageParser.parse(rawContent) else null
+                    val parsedEmail = if (importKind == FileImportKind.EMAIL) EmailMessageParser.parse(rawContent) else null
 
-                    val htmlContentSource = if (isEml) {
+                    val htmlContentSource = if (importKind == FileImportKind.EMAIL) {
                         parsedEmail?.htmlText?.ifBlank { rawContent } ?: rawContent
                     } else {
                         rawContent
                     }
-                    val visibleMailText = if (isEml) {
+                    val visibleMailText = if (importKind == FileImportKind.EMAIL) {
                         parsedEmail?.bodyForAnalysis?.ifBlank { rawContent } ?: rawContent
                     } else {
                         rawContent
                     }
 
-                    val extractedHtmlLinks = if (isHtml || isEml) {
-                        extractHtmlLinks(htmlContentSource)
-                    } else {
-                        emptyList()
-                    }
+                    val extractedHtmlLinks = extractHtmlLinks(htmlContentSource)
                     val extractedUrls = extractUrls(rawContent)
                     val visibleText = sanitizeSharedText(visibleMailText)
                     val allLinks = (extractedHtmlLinks + extractedUrls).distinct().filter { it.isNotBlank() }
@@ -2158,16 +2179,16 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                     stagedEvidenceHtml = htmlContentSource
                     stagedEvidenceLinks = allLinks
                     stagedEvidenceText = finalText
-                    stagedEvidenceInputKind = if (isEml) "import_email" else "import_html"
-                    stagedEvidenceChannel = if (isEml) "email_file" else "html_file"
+                    stagedEvidenceInputKind = if (importKind == FileImportKind.EMAIL) "import_email" else "import_html"
+                    stagedEvidenceChannel = if (importKind == FileImportKind.EMAIL) "email_file" else "html_file"
                     onScanClick()
                 } catch (e: Exception) {
                     text = "Eroare la citirea conținutului: $fileName"
                     stagedEvidenceHtml = null
                     stagedEvidenceLinks = emptyList()
                     stagedEvidenceText = text
-                    stagedEvidenceInputKind = if (isEml) "import_email" else "import_html"
-                    stagedEvidenceChannel = if (isEml) "email_file" else "html_file"
+                    stagedEvidenceInputKind = if (importKind == FileImportKind.EMAIL) "import_email" else "import_html"
+                    stagedEvidenceChannel = if (importKind == FileImportKind.EMAIL) "email_file" else "html_file"
                     onScanClick()
                 }
             }
@@ -2175,7 +2196,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
         }
 
         loading = true
-        loadingMsg = if (isPdf) "Analizăm documentul PDF..." else "Analizăm fișierul email (.eml)..."
+        loadingMsg = "Analizăm documentul PDF..."
         
         viewModelScope.launch {
             if (!isUploadSizeAllowed(uri, context)) {
@@ -2206,22 +2227,20 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
             var file: File? = null
             try {
                 file = uriToFile(uri, context, MAX_UPLOAD_BYTES)
-                val requestFile = file.asRequestBody(
-                    (if (isPdf) "application/pdf" else "message/rfc822").toMediaTypeOrNull()
-                )
+                val requestFile = file.asRequestBody("application/pdf".toMediaTypeOrNull())
                 val body = MultipartBody.Part.createFormData(
-                    if (isPdf) "pdf_file" else "email_file", 
+                    "pdf_file",
                     file.name, 
                     requestFile
                 )
                 val source = "android_file_upload".toRequestBody("text/plain".toMediaTypeOrNull())
                 
-                val response = if (isPdf) api.extractPdf(body, source) else api.extractEmail(body, source)
+                val response = api.extractPdf(body, source)
                 runBackendOrchestratedScanFromExtraction(
                     response = response,
                     fileName = fileName,
-                    inputKind = if (isPdf) "import_pdf" else "import_email",
-                    channel = if (isPdf) "pdf_ocr" else "email_file"
+                    inputKind = "import_pdf",
+                    channel = "pdf_ocr"
                 )
             } catch (e: Exception) {
                 if (e is UploadSizeExceededException) {
@@ -2249,61 +2268,42 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                     return@launch
                 }
 
-                if (isPdf) {
-                    loadingMsg = "Extragem textul din PDF pentru scanare..."
-                    val fallback = runCatching {
-                        extractTextFromPdfFallback(uri, context)
-                    }.getOrNull() ?: PdfFallbackExtraction("", emptySet())
+                loadingMsg = "Extragem textul din PDF pentru scanare..."
+                val fallback = runCatching {
+                    extractTextFromPdfFallback(uri, context)
+                }.getOrNull() ?: PdfFallbackExtraction("", emptySet())
 
-                    if (fallback.extractedText.isNotBlank() || fallback.extractedLinks.isNotEmpty()) {
-                        val extractedLinks = (
-                            fallback.extractedLinks +
-                                extractUrls(fallback.extractedText) +
-                                extractHtmlLinks(fallback.extractedText)
-                            ).distinct().filter { it.isNotBlank() }
-                        text = MailShareInputAssembler.buildMailScanInput(
-                            fallback.extractedText.ifBlank { "Document PDF fără text OCR detectabil." },
-                            extractedLinks,
-                            fileName
-                        )
-                        stagedEvidenceHtml = null
-                        stagedEvidenceLinks = extractedLinks
-                        stagedEvidenceText = text
-                        stagedEvidenceInputKind = "import_pdf"
-                        stagedEvidenceChannel = "pdf_ocr"
-                        onScanClick()
-                    } else {
-                        assessment = applyEvidenceGate(
-                            current = OfflineAssessment(
-                                family = "Scanare incompletă",
-                                riskScore = 0,
-                                riskLevel = "unknown",
-                                reasons = listOf("Nu s-a putut analiza cloud, iar OCR-ul nu a extras text verificabil din PDF."),
-                                safeActions = listOf("Reîncearcă scanarea sau trimite un PDF cu text/linkuri detectabile."),
-                                keyDangers = listOf("Nu avem suficiente dovezi tehnice pentru verdict."),
-                                originalText = "Eroare la analiza locală a documentului PDF."
-                            ),
-                            rawInput = "PDF fără text OCR verificabil: $fileName",
-                            inputKind = "import_pdf",
-                            channel = "pdf",
-                            providerStates = unavailableProviderStates(),
-                            completeness = EvidenceCompleteness.LOCAL_ONLY
-                        )
-                    }
+                if (fallback.extractedText.isNotBlank() || fallback.extractedLinks.isNotEmpty()) {
+                    val extractedLinks = (
+                        fallback.extractedLinks +
+                            extractUrls(fallback.extractedText) +
+                            extractHtmlLinks(fallback.extractedText)
+                        ).distinct().filter { it.isNotBlank() }
+                    text = MailShareInputAssembler.buildMailScanInput(
+                        fallback.extractedText.ifBlank { "Document PDF fără text OCR detectabil." },
+                        extractedLinks,
+                        fileName
+                    )
+                    stagedEvidenceHtml = null
+                    stagedEvidenceLinks = extractedLinks
+                    stagedEvidenceText = text
+                    stagedEvidenceInputKind = "import_pdf"
+                    stagedEvidenceChannel = "pdf_ocr"
+                    onScanClick()
                 } else {
                     assessment = applyEvidenceGate(
                         current = OfflineAssessment(
                             family = "Scanare incompletă",
                             riskScore = 0,
                             riskLevel = "unknown",
-                            reasons = listOf("Nu s-a putut finaliza scanarea cloud a fișierului."),
-                            safeActions = listOf("Reîncearcă scanarea când conexiunea este disponibilă."),
+                            reasons = listOf("Nu s-a putut analiza cloud, iar OCR-ul nu a extras text verificabil din PDF."),
+                            safeActions = listOf("Reîncearcă scanarea sau trimite un PDF cu text/linkuri detectabile."),
                             keyDangers = listOf("Nu avem suficiente dovezi tehnice pentru verdict."),
-                            originalText = "Eroare conexiune server."
+                            originalText = "Eroare la analiza locală a documentului PDF."
                         ),
-                        rawInput = "Eroare conexiune server pentru fișier: $fileName",
-                        inputKind = "import_file",
-                        channel = "file_or_email",
+                        rawInput = "PDF fără text OCR verificabil: $fileName",
+                        inputKind = "import_pdf",
+                        channel = "pdf",
                         providerStates = unavailableProviderStates(),
                         completeness = EvidenceCompleteness.LOCAL_ONLY
                     )
@@ -2327,78 +2327,6 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
             }
         }
         return name
-    }
-
-    /*private fun extractHtmlLinksLegacy(content: String): List<String> {
-        val links = mutableListOf<String>()
-        val normalised = content.replace("\r", " ").replace("\n", " ")
-        val htmlDecoded = Html.fromHtml(normalised, Html.FROM_HTML_MODE_LEGACY).toString()
-
-        fun addCandidate(raw: String?) {
-            normalizeCandidateUrl(raw)?.let { links.add(it) }
-        }
-
-        val linkAttributePatterns = listOf(
-            "(?i)(href|src|action|formaction|data-href|xlink:href|poster|data-url|data-link|app-url)\\s*=\\s*('|")([^'\"\s>]+)",
-            "(?i)data-[a-z0-9_-]+\\s*=\\s*('|")([^'\"]+)\\1"
-        )
-
-        val jsPatterns = listOf(
-            "(?is)on(?:click|submit|touchstart|mousedown)\\s*=\\s*('|")([^'\"]*)\\1",
-            "(?i)(?:window|document)\\.(?:location|location\\.href|location\\.replace|location\\.assign)\\s*=\\s*('|")([^'\"]+)\\1"
-        )
-
-        linkAttributePatterns.forEach { patternText ->
-            val pattern = Regex(patternText, RegexOption.IGNORE_CASE)
-            pattern.findAll(normalised).forEach { match ->
-                addCandidate(match.groupValues.getOrNull(3))
-            }
-            pattern.findAll(htmlDecoded).forEach { match ->
-                addCandidate(match.groupValues.getOrNull(3))
-            }
-        }
-
-        jsPatterns.forEach { patternText ->
-            val pattern = Regex(patternText, RegexOption.DOT_MATCHES_ALL)
-            pattern.findAll(normalised).forEach { match ->
-                val snippet = match.groupValues.getOrNull(2).orEmpty()
-                URL_REGEX.matcher(snippet).let {
-                    while (it.find()) {
-                        addCandidate(it.group())
-                    }
-                }
-                URL_REGEX.matcher(Html.fromHtml(snippet, Html.FROM_HTML_MODE_LEGACY).toString()).let {
-                    while (it.find()) {
-                        addCandidate(it.group())
-                    }
-                }
-            }
-            pattern.findAll(htmlDecoded).forEach { match ->
-                val snippet = match.groupValues.getOrNull(2).orEmpty()
-                URL_REGEX.matcher(snippet).let {
-                    while (it.find()) {
-                        addCandidate(it.group())
-                    }
-                }
-            }
-        }
-
-        URL_REGEX.matcher(normalised).let {
-            while (it.find()) {
-                addCandidate(it.group())
-            }
-        }
-        URL_REGEX.matcher(htmlDecoded).let {
-            while (it.find()) {
-                addCandidate(it.group())
-            }
-        }
-
-        return links.distinct()
-    }*/
-
-    private fun extractHtmlLinksLegacy(content: String): List<String> {
-        return HtmlLinkExtractor.extractHtmlLinks(content, this::decodeHtmlForParser)
     }
 
     private fun normalizeCandidateUrl(raw: String?): String? {
