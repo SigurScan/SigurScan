@@ -7051,6 +7051,87 @@ async def scan_pdf(
     )
 
 
+@app.post("/v1/scan/invoice")
+async def scan_invoice_endpoint(
+    image_file: UploadFile = File(...),
+    source_channel: Optional[str] = Form("android_native"),
+):
+    """
+    Invoice-specific scan endpoint.
+    Accepts image, runs OCR, extracts invoice fields, validates IBAN/CUI/brand,
+    checks ANAF registry, and returns structured result with warnings.
+    """
+    from services.invoice_orchestrator import scan_invoice
+
+    filename = image_file.filename or "invoice.jpg"
+    image_bytes = await image_file.read()
+    if not image_bytes:
+        raise HTTPException(status_code=400, detail="Imaginea încărcată este goală.")
+
+    _validate_file_upload(
+        filename=filename,
+        content_type=image_file.content_type,
+        file_bytes=image_bytes,
+        max_bytes=MAX_IMAGE_BYTES,
+        allowed_exts=ALLOWED_IMAGE_EXTS,
+        allowed_mime_types=ALLOWED_IMAGE_MIME_TYPES,
+    )
+
+    ocr_text, ocr_warning = await extract_text_for_scan(
+        filename=filename,
+        file_bytes=image_bytes,
+        extract_fn=extract_text_with_vision,
+    )
+
+    extracted_urls = _dedupe_preserve_order(extract_urls(ocr_text))
+    result = await scan_invoice(ocr_text, links=extracted_urls)
+
+    response = {
+        "fields": {
+            "emitent": result.fields.emitent,
+            "cui": result.fields.cui,
+            "iban": result.fields.iban,
+            "nr_factura": result.fields.nr_factura,
+            "data_emitere": result.fields.data_emitere,
+            "scadenta": result.fields.scadenta,
+            "subtotal": result.fields.subtotal,
+            "tva": result.fields.tva,
+            "total": result.fields.total,
+        },
+        "readiness": {
+            "state": result.readiness.state.value,
+            "blocks_safe_verdict": result.readiness.blocks_safe_verdict,
+            "items": [
+                {"id": i.id, "label": i.label, "detail": i.detail, "next_action": i.next_action}
+                for i in result.readiness.items
+            ],
+        },
+        "coherence": {
+            "totals_match": result.coherence.totals_match,
+            "tva_rate_plausible": result.coherence.tva_rate_plausible,
+            "dates_plausible": result.coherence.dates_plausible,
+            "all_ok": result.coherence.all_ok,
+        },
+        "iban": {
+            "valid": result.iban_valid.valid_structure if result.iban_valid else None,
+            "bank": result.iban_valid.bank_name if result.iban_valid else None,
+            "is_trezorerie": result.iban_valid.is_trezorerie if result.iban_valid else None,
+        } if result.iban_valid else None,
+        "brand": result.brand,
+        "brand_match": {
+            "domain_matches": result.brand_match.domain_matches,
+            "cui_matches": result.brand_match.cui_matches,
+            "iban_matches": result.brand_match.iban_matches,
+            "impersonation_risk": result.brand_match.impersonation_risk,
+        } if result.brand_match else None,
+        "anaf": result.anaf_cui_check,
+        "warnings": result.warnings,
+        "error": result.error,
+        "ocr_warning": ocr_warning,
+    }
+    return response
+
+
 @app.post("/v1/feedback")
 async def submit_feedback(payload: FeedbackRequest):
     normalized = (payload.feedback or "").strip().lower()
