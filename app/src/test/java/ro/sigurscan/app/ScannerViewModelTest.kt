@@ -198,6 +198,36 @@ class ScannerViewModelTest {
     }
 
     @Test
+    fun pdfAndUnsupportedFileFailuresStayExplicitAndNonVerdict() {
+        val viewModelSource = File("src/main/java/ro/sigurscan/app/ScannerViewModel.kt").readText()
+        val fileStart = viewModelSource.indexOf("fun onFilePicked(uri: Uri, context: Context)")
+        val fileEnd = viewModelSource.indexOf("private fun getFileName", fileStart)
+        assertTrue("onFilePicked must exist.", fileStart >= 0 && fileEnd > fileStart)
+
+        val fileFlow = viewModelSource.substring(fileStart, fileEnd)
+        assertTrue(
+            "Unsupported file imports must return a clear incomplete-evidence state, not a guessed verdict.",
+            fileFlow.contains("Tipul fișierului nu este suportat pentru scanare")
+        )
+        assertTrue(
+            "Outlook .msg must be explicitly rejected until a real extractor exists.",
+            fileFlow.contains("Fișierele Outlook .msg nu sunt încă suportate")
+        )
+        assertTrue(
+            "Oversized PDFs/files must be stopped before upload with a clear message.",
+            fileFlow.contains("Fișierul depășește limita de")
+        )
+        assertTrue(
+            "Oversized/unsupported file paths must stay unknown, not local-risk.",
+            fileFlow.contains("""riskLevel = "unknown"""")
+        )
+        assertFalse(
+            "PDF incomplete paths should use the same pdf_ocr telemetry channel consistently.",
+            fileFlow.contains("""channel = "pdf"""")
+        )
+    }
+
+    @Test
     fun localOfflineEvaluatorStaysNeutralAndCannotEmitRiskVerdict() {
         val viewModelSource = File("src/main/java/ro/sigurscan/app/ScannerViewModel.kt").readText()
         val start = viewModelSource.indexOf("private fun evaluateOfflineText(scannedText: String): OfflineAssessment")

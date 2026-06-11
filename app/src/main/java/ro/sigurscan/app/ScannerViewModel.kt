@@ -2324,7 +2324,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                         ),
                         rawInput = "PDF fără text OCR verificabil: $fileName",
                         inputKind = "import_pdf",
-                        channel = "pdf",
+                        channel = "pdf_ocr",
                         providerStates = unavailableProviderStates(),
                         completeness = EvidenceCompleteness.LOCAL_ONLY
                     )
