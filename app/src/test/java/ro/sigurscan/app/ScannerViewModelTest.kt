@@ -180,6 +180,24 @@ class ScannerViewModelTest {
     }
 
     @Test
+    fun imageOcrRunsOnDeviceBeforeCloudFallback() {
+        val viewModelSource = File("src/main/java/ro/sigurscan/app/ScannerViewModel.kt").readText()
+        val imageStart = viewModelSource.indexOf("fun onImagePicked(uri: Uri, context: Context)")
+        val imageEnd = viewModelSource.indexOf("private suspend fun runLocalImageOcrScanIfPossible", imageStart)
+        assertTrue("onImagePicked must exist before the local OCR helper.", imageStart >= 0 && imageEnd > imageStart)
+
+        val imageFlow = viewModelSource.substring(imageStart, imageEnd)
+        val localOcrIndex = imageFlow.indexOf("runLocalImageOcrScanIfPossible(uri, context)")
+        val cloudOcrIndex = imageFlow.indexOf("api.extractImage(body, source)")
+        assertTrue("Image scan must try ML Kit/on-device OCR first.", localOcrIndex >= 0)
+        assertTrue("Image scan may call cloud OCR only as fallback.", cloudOcrIndex > localOcrIndex)
+        assertTrue(
+            "Cloud OCR fallback should be clearly gated behind local OCR being unclear.",
+            imageFlow.contains("OCR local neclar. Încercăm extragerea cloud...")
+        )
+    }
+
+    @Test
     fun localOfflineEvaluatorStaysNeutralAndCannotEmitRiskVerdict() {
         val viewModelSource = File("src/main/java/ro/sigurscan/app/ScannerViewModel.kt").readText()
         val start = viewModelSource.indexOf("private fun evaluateOfflineText(scannedText: String): OfflineAssessment")
