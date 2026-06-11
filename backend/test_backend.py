@@ -49,6 +49,7 @@ from main import (
     _collect_click_targets_from_html,
     _dedupe_preserve_order,
     _extract_email_auth_context,
+    _extract_pdf_annotation_links,
     _safe_mode_url_entry,
     _is_domain_aligned,
     _user_risk_level_label,
@@ -149,6 +150,33 @@ def test_extract_urls_does_not_join_sentence_boundary_into_fake_domain():
 
 def test_extract_urls_keeps_obfuscated_plain_domain_with_spaced_dot():
     assert extract_urls("Vezi oferta pe emag . ro azi") == ["https://emag.ro/"]
+
+
+def test_extract_pdf_annotation_links_from_literal_uri():
+    pdf = (
+        b"%PDF-1.7\n"
+        b"1 0 obj << /Type /Annot /Subtype /Link /A << /S /URI "
+        b"/URI (https://pdf.example.com/pay?utm_source=x&token=keep) >> >> endobj"
+    )
+
+    assert _extract_pdf_annotation_links(pdf) == ["https://pdf.example.com/pay?token=keep"]
+
+
+def test_extract_pdf_annotation_links_from_hex_uri():
+    encoded = "https://hex.example.net/login".encode("utf-8").hex().encode("ascii")
+    pdf = b"%PDF-1.7\n1 0 obj << /A << /S /URI /URI <" + encoded + b"> >> >> endobj"
+
+    assert _extract_pdf_annotation_links(pdf) == ["https://hex.example.net/login"]
+
+
+def test_extract_pdf_annotation_links_from_percent_encoded_uri():
+    pdf = (
+        b"%PDF-1.7\n"
+        b"1 0 obj << /A << /S /URI /URI "
+        b"(https%3A%2F%2Fencoded.example.org%2Fverify%3Fref%3Dpdf) >> >> endobj"
+    )
+
+    assert _extract_pdf_annotation_links(pdf) == ["https://encoded.example.org/verify?ref=pdf"]
 
 
 def test_detection_helpers():

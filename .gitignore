@@ -36,6 +36,8 @@ backend/data/scan_events.jsonl
 backend/data/scan_feedback.jsonl
 backend/data/url_reputation_cache.json
 backend/data/_e2e_*_report*.json
+backend/data/_eval_*_report*.json
+backend/data/_eval_report*.json
 backend/eval/*_report*.json
 backend/eval/*report*.json
 backend/data/*.sqlite

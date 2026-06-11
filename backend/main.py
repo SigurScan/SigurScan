@@ -379,6 +379,8 @@ URL_REGEX = re.compile(
     r'[a-zA-Z0-9-._~:/?#\[\]@!$&\'()*+,;=%]*',
     re.IGNORECASE
 )
+_PDF_URI_LITERAL_RE = re.compile(rb"/URI\s*\(((?:\\.|[^\\)]){0,8192})\)", re.IGNORECASE | re.DOTALL)
+_PDF_URI_HEX_RE = re.compile(rb"/URI\s*<([0-9A-Fa-f\s]{6,16384})>", re.IGNORECASE)
 _AUTH_RESULT_RE = re.compile(r"\b(spf|dkim|dmarc)\s*=\s*([a-z]+)", re.IGNORECASE)
 _DKIM_SIGNATURE_DOMAIN_RE = re.compile(r"\bd=([^;\\s]+)", re.IGNORECASE)
 _DKIM_SIGNATURE_SELECTOR_RE = re.compile(r"\bs=([^;\\s]+)", re.IGNORECASE)
@@ -1139,6 +1141,109 @@ def extract_urls(text: str) -> List[str]:
         if len(urls) >= MAX_URLS_PER_SCAN:
             break
     return urls
+
+
+def _decode_pdf_string_bytes(value: bytes) -> str:
+    """Decode a PDF literal/hex string enough to recover URI annotation targets."""
+    if not value:
+        return ""
+
+    if value.startswith(b"\xfe\xff"):
+        return value[2:].decode("utf-16-be", errors="replace")
+    if value.startswith(b"\xff\xfe"):
+        return value[2:].decode("utf-16-le", errors="replace")
+    return value.decode("utf-8", errors="replace")
+
+
+def _decode_pdf_literal_string(value: bytes) -> str:
+    output = bytearray()
+    index = 0
+    while index < len(value):
+        current = value[index]
+        if current != 0x5C:  # backslash
+            output.append(current)
+            index += 1
+            continue
+
+        index += 1
+        if index >= len(value):
+            break
+        escaped = value[index]
+        index += 1
+
+        if escaped in b"nrtbf":
+            output.append({ord("n"): 10, ord("r"): 13, ord("t"): 9, ord("b"): 8, ord("f"): 12}[escaped])
+            continue
+        if escaped in b"\\()":
+            output.append(escaped)
+            continue
+        if escaped in b"\r\n":
+            if escaped == 13 and index < len(value) and value[index] == 10:
+                index += 1
+            continue
+        if 48 <= escaped <= 55:
+            octal = bytes([escaped])
+            for _ in range(2):
+                if index < len(value) and 48 <= value[index] <= 55:
+                    octal += bytes([value[index]])
+                    index += 1
+                else:
+                    break
+            output.append(int(octal, 8) & 0xFF)
+            continue
+        output.append(escaped)
+
+    return _decode_pdf_string_bytes(bytes(output))
+
+
+def _urls_from_pdf_uri_text(value: str) -> List[str]:
+    decoded = html.unescape(urllib.parse.unquote((value or "").strip()))
+    variants = [decoded]
+    collapsed = re.sub(r"\s+", "", decoded)
+    if collapsed and collapsed != decoded:
+        variants.append(collapsed)
+
+    urls: List[str] = []
+    for variant in variants:
+        canonical = _canonicalize_url(variant)
+        if canonical:
+            urls.append(canonical)
+            continue
+        urls.extend(extract_urls(variant))
+    return _dedupe_preserve_order(urls)
+
+
+def _extract_pdf_annotation_links(pdf_bytes: bytes) -> List[str]:
+    """
+    Extract clickable /URI annotation targets from raw PDF bytes.
+
+    This complements OCR: scam PDFs often put the risky URL behind a button or
+    rectangle, where the visible text says "Plateste" but the target is stored
+    only in the PDF annotation dictionary.
+    """
+    if not pdf_bytes:
+        return []
+
+    urls: List[str] = []
+    for match in _PDF_URI_LITERAL_RE.finditer(pdf_bytes):
+        urls.extend(_urls_from_pdf_uri_text(_decode_pdf_literal_string(match.group(1))))
+        if len(urls) >= MAX_URLS_PER_SCAN:
+            break
+
+    if len(urls) < MAX_URLS_PER_SCAN:
+        for match in _PDF_URI_HEX_RE.finditer(pdf_bytes):
+            try:
+                hex_value = re.sub(rb"\s+", b"", match.group(1))
+                if len(hex_value) % 2:
+                    hex_value += b"0"
+                decoded_hex = _decode_pdf_string_bytes(bytes.fromhex(hex_value.decode("ascii")))
+                urls.extend(_urls_from_pdf_uri_text(decoded_hex))
+            except Exception:
+                continue
+            if len(urls) >= MAX_URLS_PER_SCAN:
+                break
+
+    return _dedupe_preserve_order(urls)[:MAX_URLS_PER_SCAN]
 
 
 def _extract_button_text(node: Any) -> str:
@@ -6818,7 +6923,8 @@ async def extract_pdf_for_orchestration(
         extract_fn=extract_text_from_pdf_with_vision,
     )
     redacted_text = redact_pii(ocr_text)
-    extracted_urls = _dedupe_preserve_order(extract_urls(ocr_text) + extract_urls(redacted_text))
+    annotation_urls = _extract_pdf_annotation_links(pdf_bytes)
+    extracted_urls = _dedupe_preserve_order(annotation_urls + extract_urls(ocr_text) + extract_urls(redacted_text))
     return {
         "input_type": "pdf_ocr",
         "source_channel": source_channel,
@@ -6826,7 +6932,7 @@ async def extract_pdf_for_orchestration(
         "extracted_urls": extracted_urls,
         "html_content": None,
         "warning": ocr_warning,
-        "hidden_url_visibility": False,
+        "hidden_url_visibility": bool(annotation_urls),
     }
 
 

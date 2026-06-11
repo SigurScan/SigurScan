@@ -1755,14 +1755,22 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
 
     fun onImagePicked(uri: Uri, context: Context) {
         loading = true
-        loadingMsg = "Extragem textul din screenshot prin OCR..."
+        loadingMsg = "Citim imaginea pe device..."
         
         viewModelScope.launch {
             var file: File? = null
             try {
+                val handledLocally = runCatching {
+                    runLocalImageOcrScanIfPossible(uri, context)
+                }.getOrDefault(false)
+                if (handledLocally) return@launch
+
+                loadingMsg = "OCR local neclar. Încercăm extragerea cloud..."
                 if (!isUploadSizeAllowed(uri, context)) {
-                    loadingMsg = "Imaginea este prea mare pentru scanare cloud, încerc OCR local."
-                    performLocalOcr(uri, context)
+                    publishImageExtractionIncomplete(
+                        fileName = getFileName(uri, context),
+                        reason = "Imaginea este prea mare pentru scanarea cloud, iar OCR-ul local nu a extras text verificabil."
+                    )
                 } else {
                     file = uriToFile(uri, context, MAX_UPLOAD_BYTES)
                     val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
@@ -1778,17 +1786,63 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                     )
                 }
             } catch (e: Exception) {
-                if (e is UploadSizeExceededException) {
-                    loadingMsg = "Imaginea este prea mare pentru scanare cloud. Încerc OCR local."
-                    performLocalOcr(uri, context)
+                val reason = if (e is UploadSizeExceededException) {
+                    "Imaginea este prea mare pentru scanarea cloud, iar OCR-ul local nu a extras text verificabil."
                 } else {
-                    performLocalOcr(uri, context)
+                    "Nu am putut extrage text verificabil din imagine. Reîncearcă cu o captură mai clară."
                 }
+                publishImageExtractionIncomplete(
+                    fileName = getFileName(uri, context),
+                    reason = reason
+                )
             } finally {
                 file?.delete()
                 loading = false
             }
         }
+    }
+
+    private suspend fun runLocalImageOcrScanIfPossible(uri: Uri, context: Context): Boolean {
+        val image = InputImage.fromFilePath(context, uri)
+        val extractedText = runCatching { extractTextFromImage(image) }.getOrNull().orEmpty().trim()
+        if (extractedText.isBlank()) return false
+
+        val extractedLinks = (extractUrls(extractedText) + extractHtmlLinks(extractedText))
+            .mapNotNull { normalizeCandidateUrl(it) ?: it.takeIf { candidate -> candidate.isNotBlank() } }
+            .distinct()
+        val assembledInput = MailShareInputAssembler.buildMailScanInput(
+            extractedText,
+            extractedLinks,
+            getFileName(uri, context)
+        )
+        text = assembledInput
+        stagedEvidenceHtml = null
+        stagedEvidenceLinks = extractedLinks
+        stagedEvidenceText = assembledInput
+        stagedEvidenceInputKind = "upload_image"
+        stagedEvidenceChannel = "image_ocr"
+        runBackendOrchestratedScan(assembledInput, null, extractedLinks)
+        return true
+    }
+
+    private fun publishImageExtractionIncomplete(fileName: String, reason: String) {
+        val result = applyEvidenceGate(
+            current = OfflineAssessment(
+                family = "Scanare incompletă",
+                riskScore = 0,
+                riskLevel = "unknown",
+                reasons = listOf(reason),
+                safeActions = listOf("Reîncearcă scanarea cu o imagine mai clară sau copiază textul/linkul în câmpul de scanare."),
+                keyDangers = listOf("Nu avem suficiente dovezi tehnice pentru verdict."),
+                originalText = "Nu s-a extras conținut verificabil din $fileName."
+            ),
+            rawInput = "Imagine fără text OCR verificabil: $fileName",
+            inputKind = "upload_image",
+            channel = "image_ocr",
+            providerStates = unavailableProviderStates(),
+            completeness = EvidenceCompleteness.LOCAL_ONLY
+        )
+        publishAssessmentResult(null, result)
     }
 
     private suspend fun extractTextFromBitmap(bitmap: Bitmap): String = extractTextFromImage(InputImage.fromBitmap(bitmap, 0))
@@ -1853,25 +1907,6 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                 extractedText = textFromOcr,
                 extractedLinks = extractedLinks
             )
-        }
-    }
-
-    private fun performLocalOcr(uri: Uri, context: Context) {
-        viewModelScope.launch {
-            try {
-                val image = InputImage.fromFilePath(context, uri)
-                val extractedText = runCatching { extractTextFromImage(image) }.getOrNull().orEmpty()
-                if (extractedText.isNotBlank()) {
-                    text = extractedText
-                    stagedEvidenceHtml = null
-                    stagedEvidenceLinks = extractUrls(extractedText) + extractHtmlLinks(extractedText)
-                    stagedEvidenceText = extractedText
-                    stagedEvidenceInputKind = "upload_image"
-                    stagedEvidenceChannel = "image_ocr"
-                    onScanClick()
-                }
-            } catch (_: Exception) {
-            }
         }
     }
 
