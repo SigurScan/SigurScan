@@ -14,6 +14,35 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class SharedIntentStreamExtractorInstrumentedTest {
     @Test
+    fun actionSendPlainTextMessageIsPlainTextOnly() {
+        val message = "Coletul tău ajunge azi. Detalii: https://delivery.example.test/status"
+        val intent = Intent(Intent.ACTION_SEND)
+            .setType("text/plain")
+            .putExtra(Intent.EXTRA_TEXT, message)
+
+        val payload = resolveSharedTextPayload(intent)
+
+        assertEquals(SharedContentFidelity.PLAIN_TEXT_ONLY, payload?.fidelity)
+        assertEquals(false, payload?.preserveHtml)
+        assertEquals("Conținut text partajat", payload?.sourceLabel)
+        assertEquals(message, payload?.text)
+    }
+
+    @Test
+    fun actionSendBrowserUrlIsPlainTextOnly() {
+        val url = "https://sigurscan.example.test/articol"
+        val intent = Intent(Intent.ACTION_SEND)
+            .setType("text/plain")
+            .putExtra(Intent.EXTRA_TEXT, url)
+
+        val payload = resolveSharedTextPayload(intent)
+
+        assertEquals(SharedContentFidelity.PLAIN_TEXT_ONLY, payload?.fidelity)
+        assertEquals(false, payload?.preserveHtml)
+        assertEquals(url, payload?.text)
+    }
+
+    @Test
     fun actionSendPrefersExtraHtmlTextOverVisibleText() {
         val html = """<a href="https://rides.sng.link/Aw5zn/hw3r?_fallback_redirect=https%3A%2F%2Fwww.uber.com">Comandă o cursă</a>"""
         val intent = Intent(Intent.ACTION_SEND)
@@ -81,6 +110,26 @@ class SharedIntentStreamExtractorInstrumentedTest {
         val uri = Uri.parse("content://ro.sigurscan.test/share/email.eml")
         val intent = Intent(Intent.ACTION_SEND)
             .setType("message/rfc822")
+            .putExtra(Intent.EXTRA_STREAM, uri)
+
+        assertEquals(listOf(uri), collectSharedStreamUris(intent))
+    }
+
+    @Test
+    fun actionSendReadsImageStreamUri() {
+        val uri = Uri.parse("content://ro.sigurscan.test/share/screenshot.png")
+        val intent = Intent(Intent.ACTION_SEND)
+            .setType("image/png")
+            .putExtra(Intent.EXTRA_STREAM, uri)
+
+        assertEquals(listOf(uri), collectSharedStreamUris(intent))
+    }
+
+    @Test
+    fun actionSendReadsPdfStreamUri() {
+        val uri = Uri.parse("content://ro.sigurscan.test/share/invoice.pdf")
+        val intent = Intent(Intent.ACTION_SEND)
+            .setType("application/pdf")
             .putExtra(Intent.EXTRA_STREAM, uri)
 
         assertEquals(listOf(uri), collectSharedStreamUris(intent))
