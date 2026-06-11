@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+.vercel/
+.pytest_cache/
+__pycache__/
+*.pyc
+*.pyo
+*.sqlite
+*.db
+data/scan_events.jsonl
+data/scan_feedback.jsonl
+data/url_reputation_cache.json
+data/_e2e_*_report*.json
+eval/*_report*.json
+eval/*report*.json

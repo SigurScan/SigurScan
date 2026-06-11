@@ -214,3 +214,48 @@ def test_collapse_respects_disabled_budget(monkeypatch):
     assert payload["status"] == "scanning"
     assert payload["result"] is None
     assert payload["diagnostics"]["pipeline_stage"] in {"semantic_ready", "analysis_ready"}
+
+
+def test_low_poll_budget_defers_ai_explanation(monkeypatch):
+    monkeypatch.setattr(app_main, "MAX_SINGLE_POLL_SERVER_WORK_MS", 1)
+    monkeypatch.setattr(app_main, "ORCHESTRATED_DEFER_AI_EXPLANATION", False)
+    monkeypatch.setattr(app_main, "AI_EXPLANATION_STAGE_HEADROOM_SECONDS", 999999)
+    client = TestClient(app_main.app)
+    explainer_calls = []
+
+    async def fake_explainer(text, analysis, resolved_urls):
+        explainer_calls.append(True)
+        return {"summary": "cloud explanation", "source": "fake-llm"}
+
+    with monkeypatch.context() as patched:
+        _patch_clean_scan(patched, urlscan_get=None)
+        patched.setattr(app_main, "_build_ai_explanation_async", fake_explainer)
+
+        start = _start_scan(client)
+        _, payload = _poll_orchestrated(client, start["scan_id"], count=1)
+
+    assert payload["result"] is not None
+    assert not explainer_calls, "AI explainer must be deferred when poll budget is insufficient"
+    assert payload["result"].get("explanation", {}).get("source") != "fake-llm"
+
+
+def test_ample_poll_budget_runs_ai_explanation(monkeypatch):
+    monkeypatch.setattr(app_main, "MAX_SINGLE_POLL_SERVER_WORK_MS", 7500)
+    monkeypatch.setattr(app_main, "ORCHESTRATED_DEFER_AI_EXPLANATION", False)
+    monkeypatch.setattr(app_main, "AI_EXPLANATION_STAGE_HEADROOM_SECONDS", 0)
+    client = TestClient(app_main.app)
+    explainer_calls = []
+
+    async def fake_explainer(text, analysis, resolved_urls):
+        explainer_calls.append(True)
+        return {"summary": "cloud explanation", "source": "fake-llm"}
+
+    with monkeypatch.context() as patched:
+        _patch_clean_scan(patched, urlscan_get=None)
+        patched.setattr(app_main, "_build_ai_explanation_async", fake_explainer)
+
+        start = _start_scan(client)
+        _, payload = _poll_orchestrated(client, start["scan_id"], count=1)
+
+    assert payload["result"] is not None
+    assert explainer_calls, "AI explainer must run when poll budget is sufficient"

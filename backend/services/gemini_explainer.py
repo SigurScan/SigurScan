@@ -112,9 +112,13 @@ def _call_mistral(prompt: str) -> Dict[str, Any]:
         payload.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
     )
     if not message_content:
+        logger.warning("Mistral returned empty content; status=%s payload_keys=%s", response.status_code, list(payload.keys()))
         return {}
     parsed = json.loads(_extract_json_text(message_content))
-    return parsed if isinstance(parsed, dict) else {}
+    if not isinstance(parsed, dict):
+        logger.warning("Mistral returned non-dict JSON; type=%s", type(parsed).__name__)
+        return {}
+    return parsed
 
 
 def _call_gemini(prompt: str) -> Dict[str, Any]:

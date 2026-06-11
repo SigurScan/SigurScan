@@ -1,6 +1,7 @@
 import os
 import importlib
 import asyncio
+import contextvars
 import re
 import ipaddress
 import time
@@ -4692,6 +4693,19 @@ _LLM_STAGE_HEADROOM_SECONDS = (
     + AI_EXPLANATION_TIMEOUT_SECONDS
     + 1.0
 )
+# Optional per-stage headroom override for the AI explanation step inside
+# _finalize_orchestrated_job_if_ready. When the remaining poll budget is below
+# this threshold the cloud explanation is deferred. Defaults to the explanation
+# timeout plus 1s overhead (the LLM enrichment stages have already completed by
+# the time finalize runs). Set this higher in production when
+# AI_EXPLANATION_TIMEOUT_SECONDS exceeds MAX_SINGLE_POLL_SERVER_WORK_MS / 1000.
+AI_EXPLANATION_STAGE_HEADROOM_SECONDS = float(
+    os.getenv("AI_EXPLANATION_STAGE_HEADROOM_SECONDS", str(AI_EXPLANATION_TIMEOUT_SECONDS + 1.0))
+)
+# Context variable carrying the wall-clock deadline for the current poll.
+# Set in get_orchestrated_scan; consumed by _finalize_orchestrated_job_if_ready
+# to decide whether to defer the cloud AI explanation.
+_POLL_BUDGET_DEADLINE: contextvars.ContextVar[Optional[float]] = contextvars.ContextVar("_POLL_BUDGET_DEADLINE", default=None)
 URLSCAN_PREVIEW_CACHE_TTL_SECONDS = int(os.getenv("URLSCAN_PREVIEW_CACHE_TTL_SECONDS", str(7 * 24 * 60 * 60)))
 URLSCAN_PREVIEW_CACHE_MAX_ENTRIES = int(os.getenv("URLSCAN_PREVIEW_CACHE_MAX_ENTRIES", "512"))
 FAST_PREVIEW_CACHE_MAX_ENTRIES = int(os.getenv("FAST_PREVIEW_CACHE_MAX_ENTRIES", "512"))
@@ -5828,7 +5842,12 @@ async def _finalize_orchestrated_job_if_ready(job: Dict[str, Any], request: Requ
             ai_explanation = generate_fallback_explanation(job.get("redacted_text", ""), analysis)
             deferred_explanation = True
         else:
-            ai_explanation = await _build_ai_explanation_async(job.get("redacted_text", ""), analysis, resolved_urls)
+            budget_deadline = _POLL_BUDGET_DEADLINE.get()
+            if budget_deadline is not None and budget_deadline - time.perf_counter() < AI_EXPLANATION_STAGE_HEADROOM_SECONDS:
+                ai_explanation = generate_fallback_explanation(job.get("redacted_text", ""), analysis)
+                deferred_explanation = True
+            else:
+                ai_explanation = await _build_ai_explanation_async(job.get("redacted_text", ""), analysis, resolved_urls)
         if not deferred_explanation:
             job["ai_explanation_cache"] = {
                 "fingerprint": fingerprint,
@@ -6609,31 +6628,42 @@ async def get_orchestrated_scan(scan_id: str, request: Request):
         if not job:
             raise HTTPException(status_code=404, detail="Scanarea nu a fost gasita sau a expirat.")
         poll_started_at = time.perf_counter()
-        job = await _refresh_orchestrated_job(job, request)
-        # Fast deterministic bundle MAY collapse multiple stages in one poll
-        # (queued → analysis_ready). After that, enrichment advances one stage
-        # per poll.  If MAX_SINGLE_POLL_SERVER_WORK_MS is set and we are still
-        # in the fast bundle, collapse until the budget is exhausted.
-        if MAX_SINGLE_POLL_SERVER_WORK_MS > 0:
-            budget_deadline = poll_started_at + (MAX_SINGLE_POLL_SERVER_WORK_MS / 1000.0)
-            while time.perf_counter() < budget_deadline:
-                stage = str(job.get("pipeline_stage") or "").strip().lower()
-                if stage in {"done", "urlscan_submitting", "urlscan_submitted"}:
-                    break
-                # Cloud-LLM stages may consume their full timeouts once
-                # entered; the deadline check above cannot interrupt them.
-                # Enter them only with enough remaining budget so a single
-                # poll can never approach the serverless maxDuration.
-                if stage in {"semantic_ready", "claim_ready"} and (
-                    budget_deadline - time.perf_counter() < _LLM_STAGE_HEADROOM_SECONDS
-                ):
-                    break
-                previous_stage = stage
-                job = await _refresh_orchestrated_job(job, request)
-                new_stage = str(job.get("pipeline_stage") or "").strip().lower()
-                if new_stage == previous_stage:
-                    break
-        response = _orchestrated_status_payload(job)
+        budget_deadline = (
+            poll_started_at + (MAX_SINGLE_POLL_SERVER_WORK_MS / 1000.0)
+            if MAX_SINGLE_POLL_SERVER_WORK_MS > 0
+            else None
+        )
+        _budget_set = budget_deadline is not None
+        if _budget_set:
+            _POLL_BUDGET_DEADLINE.set(budget_deadline)
+        try:
+            job = await _refresh_orchestrated_job(job, request)
+            # Fast deterministic bundle MAY collapse multiple stages in one poll
+            # (queued → analysis_ready). After that, enrichment advances one stage
+            # per poll.  If MAX_SINGLE_POLL_SERVER_WORK_MS is set and we are still
+            # in the fast bundle, collapse until the budget is exhausted.
+            if MAX_SINGLE_POLL_SERVER_WORK_MS > 0:
+                while time.perf_counter() < budget_deadline:
+                    stage = str(job.get("pipeline_stage") or "").strip().lower()
+                    if stage in {"done", "urlscan_submitting", "urlscan_submitted"}:
+                        break
+                    # Cloud-LLM stages may consume their full timeouts once
+                    # entered; the deadline check above cannot interrupt them.
+                    # Enter them only with enough remaining budget so a single
+                    # poll can never approach the serverless maxDuration.
+                    if stage in {"semantic_ready", "claim_ready"} and (
+                        budget_deadline - time.perf_counter() < _LLM_STAGE_HEADROOM_SECONDS
+                    ):
+                        break
+                    previous_stage = stage
+                    job = await _refresh_orchestrated_job(job, request)
+                    new_stage = str(job.get("pipeline_stage") or "").strip().lower()
+                    if new_stage == previous_stage:
+                        break
+            response = _orchestrated_status_payload(job)
+        finally:
+            if _budget_set:
+                _POLL_BUDGET_DEADLINE.set(None)
         job = _persist_orchestrated_job(job)
         return response
 
