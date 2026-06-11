@@ -816,7 +816,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
             severity = "unknown",
             details = "Se generează captura paginii finale."
         )
-        val preliminary = evaluateOfflineText(rawInput).copy(
+        val preliminary = buildNeutralPendingAssessment(rawInput).copy(
             serverInfo = "Se generează captura paginii finale...",
             redirectChain = listOf(primaryUrl),
             finalUrl = primaryUrl,
@@ -850,7 +850,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
             severity = "unknown",
             details = "Scanarea rulează pe backend prin pilonii necesari."
         )
-        val preliminary = evaluateOfflineText(rawInput).copy(
+        val preliminary = buildNeutralPendingAssessment(rawInput).copy(
             scanId = UUID.randomUUID().toString(),
             serverInfo = "Scanarea rulează. Așteptăm rezultatele complete.",
             redirectChain = primaryUrl?.let { listOf(it) }.orEmpty(),
@@ -1179,7 +1179,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                 details = response.statusMessage ?: "Scanarea rulează."
             )
         )
-        val base = currentAssessmentForScan(response.scanId) ?: evaluateOfflineText(rawInput).copy(scanId = response.scanId)
+        val base = currentAssessmentForScan(response.scanId) ?: buildNeutralPendingAssessment(rawInput).copy(scanId = response.scanId)
         val updated = base.copy(
             scanId = response.scanId,
             serverInfo = response.statusMessage ?: "Scanarea rulează. Așteptăm rezultatele complete.",
@@ -1297,7 +1297,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
             } catch (orchestratedError: Exception) {
                 val fallbackPrimaryUrl = urls.firstOrNull()?.let(::normalizeUrl)
                 val result = applyEvidenceGate(
-                    current = evaluateOfflineText(rawInput).copy(
+                    current = buildNeutralPendingAssessment(rawInput).copy(
                         scanId = UUID.randomUUID().toString(),
                         serverInfo = "Nu am putut obține rezultatele pilonilor. Reîncearcă scanarea.",
                         finalUrl = fallbackPrimaryUrl,
@@ -2936,7 +2936,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
         throw IllegalArgumentException("Nu se poate citi conținutul fișierului.")
     }
 
-    private fun evaluateOfflineText(scannedText: String): OfflineAssessment {
+    private fun buildNeutralPendingAssessment(scannedText: String): OfflineAssessment {
         val urls = extractUrls(scannedText)
 
         return OfflineAssessment(

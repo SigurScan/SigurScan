@@ -367,11 +367,15 @@ class ScannerViewModelTest {
     }
 
     @Test
-    fun localOfflineEvaluatorStaysNeutralAndCannotEmitRiskVerdict() {
+    fun neutralPendingAssessmentBuilderCannotEmitRiskVerdict() {
         val viewModelSource = File("src/main/java/ro/sigurscan/app/ScannerViewModel.kt").readText()
-        val start = viewModelSource.indexOf("private fun evaluateOfflineText(scannedText: String): OfflineAssessment")
+        assertFalse(
+            "ScannerViewModel must not keep an offline verdict evaluator; pending UI state is not a verdict.",
+            viewModelSource.contains("evaluateOfflineText")
+        )
+        val start = viewModelSource.indexOf("private fun buildNeutralPendingAssessment(scannedText: String): OfflineAssessment")
         val end = viewModelSource.indexOf("fun onCommunityReport()", start)
-        assertTrue("evaluateOfflineText must exist as a neutral pending-state builder.", start >= 0 && end > start)
+        assertTrue("Neutral pending-state builder must exist and stay non-verdict.", start >= 0 && end > start)
 
         val functionBody = viewModelSource.substring(start, end)
         assertTrue(functionBody.contains("""riskLevel = "unknown""""))
