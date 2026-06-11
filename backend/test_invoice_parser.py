@@ -118,3 +118,19 @@ class TestParseInvoice:
         result = parse_invoice(text)
         assert result.cui == "12345678"
         assert result.iban == "RO33RNCB1234567890123456"
+
+    def test_emitent_fallback_first_line(self):
+        result = parse_invoice("ENEL Energie SA\nCUI: 14345906\nTotal: 100 RON")
+        assert result.emitent == "ENEL Energie SA"
+
+    def test_emitent_fallback_skips_date(self):
+        result = parse_invoice("15.05.2026\nENEL Energie\nCUI: 14345906\nTotal: 100 RON")
+        assert result.emitent == "ENEL Energie"
+
+    def test_nr_factura_seria_slash_nr(self):
+        result = parse_invoice("Factura seria FDB25 / nr. 39486801\nTotal: 100 RON")
+        assert result.nr_factura == "39486801"
+
+    def test_nr_factura_seria_nr(self):
+        result = parse_invoice("Seria ABC Nr. 999\nTotal: 100 RON")
+        assert result.nr_factura == "999"

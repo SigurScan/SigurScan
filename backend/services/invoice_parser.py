@@ -172,6 +172,17 @@ def parse_invoice(
     # Emitent
     emit_match = EMITENT_LABEL.search(text)
     emitent = emit_match.group(1).strip() if emit_match else None
+    if not emitent:
+        for line in text.split("\n")[:5]:
+            line = line.strip()
+            if not line:
+                continue
+            if re.search(r"[A-Za-z]{3,}", line) and not re.match(
+                r"^(CUI|CIF|RO|Nr\.?\s|Factura|Data|Scaden|Perioada|Client|Cod|Seria|Stimate|Subtotal|Total|TVA|IBAN|Tel)",
+                line, re.IGNORECASE,
+            ):
+                emitent = line
+                break
 
     # Dates
     all_dates = _extract_dates(text)
@@ -185,11 +196,17 @@ def parse_invoice(
     total = amounts["total"][0] if amounts["total"] else None
 
     nr_factura_match = re.search(
-        r"(?:nr[. ]?factur[ai]|serie|număr|numar|factura nr)\s*[.:\s]*\s*(\S+)",
+        r"(?:"
+        r"factura\s+seri[aă]\s+\S+\s*/\s*nr[.\s]*"  # Factura seria FDB25 / nr.
+        r"|seri[aă]\s+\S+\s+nr[.\s]*"                # Seria ABC nr.
+        r"|nr[.\s]*factur[ai]"                         # nr. factura / nr factura
+        r"|num[aă]r[.\s]*factur[ăa]"                   # număr factură
+        r"|factura\s+nr[.\s]*"                         # factura nr.
+        r")\s*[.:\s]*\s*(\S+)",
         text,
         re.IGNORECASE,
     )
-    nr_factura = nr_factura_match.group(1).strip().rstrip(".") if nr_factura_match else None
+    nr_factura = nr_factura_match.group(1).strip().rstrip(".,") if nr_factura_match else None
 
     return InvoiceFields(
         emitent=emitent,
