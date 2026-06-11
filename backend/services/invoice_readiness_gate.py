@@ -86,7 +86,7 @@ def evaluate_readiness(fields: InvoiceFields, ocr_confidence: float | None = Non
             )
         )
 
-    if confidence < 0.4:
+    if confidence < 0.6:
         items.append(
             ReadinessGateItem(
                 id="low-ocr-confidence",
