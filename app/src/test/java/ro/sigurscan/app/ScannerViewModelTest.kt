@@ -104,6 +104,82 @@ class ScannerViewModelTest {
     }
 
     @Test
+    fun resultCacheHitShortCircuitsBackendUnlessUserForcesRefresh() {
+        val viewModelSource = File("src/main/java/ro/sigurscan/app/ScannerViewModel.kt").readText()
+        val scanStart = viewModelSource.indexOf("fun onScanClick(forceRefresh: Boolean = false)")
+        val scanEnd = viewModelSource.indexOf("private fun isTrustedOfficialUrl", scanStart)
+        assertTrue("onScanClick must exist.", scanStart >= 0 && scanEnd > scanStart)
+
+        val scanFlow = viewModelSource.substring(scanStart, scanEnd)
+        val cacheGuardIndex = scanFlow.indexOf("if (!forceRefresh)")
+        val cacheHitIndex = scanFlow.indexOf("cachedAssessmentFor(cacheKey)?.let")
+        val backendScanIndex = scanFlow.indexOf("runBackendOrchestratedScan(rawInput, htmlPayload, urls)")
+        assertTrue("Result cache must be guarded by forceRefresh=false.", cacheGuardIndex >= 0)
+        assertTrue("Result cache hit must be checked before backend orchestration.", cacheHitIndex > cacheGuardIndex)
+        assertTrue("Backend orchestration must still run on cache miss or forced refresh.", backendScanIndex > cacheHitIndex)
+
+        val cacheHitFlow = scanFlow.substring(cacheHitIndex, backendScanIndex)
+        assertTrue("Cache hit must publish the cached assessment.", cacheHitFlow.contains("assessment = cached"))
+        assertTrue("Cache hit must stop the loading state immediately.", cacheHitFlow.contains("loading = false"))
+        assertTrue("Cache hit must not continue into backend orchestration.", cacheHitFlow.contains("return@launch"))
+    }
+
+    @Test
+    fun resultCacheOnlyStoresFinalGateResultsAndStripsCacheStatus() {
+        val viewModelSource = File("src/main/java/ro/sigurscan/app/ScannerViewModel.kt").readText()
+        val saveStart = viewModelSource.indexOf("private fun saveFinalAssessmentToResultCache")
+        val saveEnd = viewModelSource.indexOf("private fun trimResultCache", saveStart)
+        assertTrue("saveFinalAssessmentToResultCache must exist.", saveStart >= 0 && saveEnd > saveStart)
+
+        val saveFlow = viewModelSource.substring(saveStart, saveEnd)
+        assertTrue(
+            "Only final backend/gate results may be cached; provisional scans must keep polling instead.",
+            saveFlow.contains("assessment.gateResult?.finality != GateFinality.FINAL")
+        )
+        assertTrue(
+            "Cached records must be stored cleanly so a future cache hit adds fresh cacheStatus metadata.",
+            saveFlow.contains("assessment.copy(cacheStatus = null)")
+        )
+        assertTrue("Cached records must expire on the shared freshness TTL.", saveFlow.contains("now + RESULT_CACHE_TTL_MILLIS"))
+        assertTrue("Cache writes must enforce the LRU cap.", saveFlow.contains("trimResultCache()"))
+        assertTrue("Cache writes must persist across app restarts.", saveFlow.contains("persistResultCache()"))
+    }
+
+    @Test
+    fun resultCacheExpiryRemovesStaleRecordsInsteadOfServingOldVerdicts() {
+        val viewModelSource = File("src/main/java/ro/sigurscan/app/ScannerViewModel.kt").readText()
+        val cacheStart = viewModelSource.indexOf("private fun cachedAssessmentFor")
+        val cacheEnd = viewModelSource.indexOf("private fun saveFinalAssessmentToResultCache", cacheStart)
+        assertTrue("cachedAssessmentFor must exist.", cacheStart >= 0 && cacheEnd > cacheStart)
+
+        val cacheFlow = viewModelSource.substring(cacheStart, cacheEnd)
+        assertTrue("Fresh cache entries may be served.", cacheFlow.contains("cached.expiresAtMillis > now"))
+        assertTrue(
+            "Stale cache entries must be removed so old provider results cannot become permanent truth.",
+            cacheFlow.contains("resultCache.remove(cacheKey)")
+        )
+        assertTrue("Stale cache eviction must be persisted.", cacheFlow.contains("persistResultCache()"))
+        assertTrue("Cache hits must be visible to the user.", cacheFlow.contains("Verificat anterior"))
+    }
+
+    @Test
+    fun cachedResultUiClearlyOffersRescanWithoutChangingVerdictCopy() {
+        val activitySource = File("src/main/java/ro/sigurscan/app/MainActivity.kt").readText()
+        assertTrue(
+            "Result screen must pass a forced refresh action to bypass cached verdicts.",
+            activitySource.contains("onRescan = { viewModel.onScanClick(forceRefresh = true) }")
+        )
+        assertTrue(
+            "Cached results must show a clear rescan action for a fresh provider run.",
+            activitySource.contains("Text(\"Rescanează acum\"")
+        )
+        assertTrue(
+            "Cached results must be labelled as previously verified, not as a new live scan.",
+            activitySource.contains("if (assessment.cacheStatus != null) \"Verificat anterior\" else null")
+        )
+    }
+
+    @Test
     fun uploadedMediaAndMailUseOrchestratedPipelineAfterExtraction() {
         val viewModelSource = File("src/main/java/ro/sigurscan/app/ScannerViewModel.kt").readText()
         val apiSource = File("src/main/java/ro/sigurscan/app/SigurScanApi.kt").readText()
