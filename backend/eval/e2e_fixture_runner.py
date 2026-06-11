@@ -459,6 +459,11 @@ def _infer_offer_status(case: Dict[str, Any], expected_status: str, resolved_url
 
 def _expected_user_status(case: Dict[str, Any]) -> str:
     decision = str(case.get("expected_decision") or case.get("expectedDecision") or "").upper()
+    # NO_REPLY is an action, not always a fraud verdict. In the 3-label
+    # SigurScan UI, legitimate OTP/security education messages should warn the
+    # user not to share codes without labeling the real sender as PERICULOS.
+    if decision == "NO_REPLY" and case.get("groundTruthIsScam") is False:
+        return "SUSPECT"
     if decision in ACTION_TO_USER_STATUS:
         return ACTION_TO_USER_STATUS[decision]
     if "expectedSeverityUi" in case and str(case.get("expectedSeverityUi") or "").upper() in SEVERITY_TO_USER_STATUS:
