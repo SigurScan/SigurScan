@@ -19,12 +19,12 @@ class _FakeClient:
     def __init__(self):
         self.calls = []
 
-    def post(self, url, json=None, timeout=None):
-        self.calls.append(("post", url, json, timeout))
+    def post(self, url, json=None, timeout=None, headers=None):
+        self.calls.append(("post", url, json, timeout, headers))
         return _FakeResponse({"scan_id": "orch_seed_1"})
 
-    def get(self, url, timeout=None):
-        self.calls.append(("get", url, None, timeout))
+    def get(self, url, timeout=None, headers=None):
+        self.calls.append(("get", url, None, timeout, headers))
         return _FakeResponse(
             {
                 "status": "scanning",
@@ -44,13 +44,13 @@ class _FakeClientPreviewAfterSubmit:
         self.calls = []
         self.poll_count = 0
 
-    def post(self, url, json=None, timeout=None):
-        self.calls.append(("post", url, json, timeout))
+    def post(self, url, json=None, timeout=None, headers=None):
+        self.calls.append(("post", url, json, timeout, headers))
         return _FakeResponse({"scan_id": "orch_seed_2"})
 
-    def get(self, url, timeout=None):
+    def get(self, url, timeout=None, headers=None):
         self.poll_count += 1
-        self.calls.append(("get", url, None, timeout))
+        self.calls.append(("get", url, None, timeout, headers))
         if self.poll_count == 1:
             return _FakeResponse(
                 {
@@ -85,13 +85,13 @@ class _FakeClientCompleteBeforeCacheSaved:
         self.calls = []
         self.poll_count = 0
 
-    def post(self, url, json=None, timeout=None):
-        self.calls.append(("post", url, json, timeout))
+    def post(self, url, json=None, timeout=None, headers=None):
+        self.calls.append(("post", url, json, timeout, headers))
         return _FakeResponse({"scan_id": "orch_seed_3"})
 
-    def get(self, url, timeout=None):
+    def get(self, url, timeout=None, headers=None):
         self.poll_count += 1
-        self.calls.append(("get", url, None, timeout))
+        self.calls.append(("get", url, None, timeout, headers))
         if self.poll_count == 1:
             return _FakeResponse(
                 {
@@ -126,13 +126,13 @@ class _FakeClientTimeoutThenCacheSaved:
         self.calls = []
         self.poll_count = 0
 
-    def post(self, url, json=None, timeout=None):
-        self.calls.append(("post", url, json, timeout))
+    def post(self, url, json=None, timeout=None, headers=None):
+        self.calls.append(("post", url, json, timeout, headers))
         return _FakeResponse({"scan_id": "orch_seed_4"})
 
-    def get(self, url, timeout=None):
+    def get(self, url, timeout=None, headers=None):
         self.poll_count += 1
-        self.calls.append(("get", url, None, timeout))
+        self.calls.append(("get", url, None, timeout, headers))
         if self.poll_count == 1:
             raise preseed.requests.Timeout("poll timed out")
         return _FakeResponse(
@@ -229,6 +229,23 @@ def test_preseed_one_posts_url_payload_and_stops_on_preview():
         "url": "https://www.fancourier.ro/",
         "source_channel": "preview_seed",
     }
+
+
+def test_preseed_one_forwards_api_key_to_post_and_poll_requests():
+    client = _FakeClient()
+
+    preseed.preseed_one(
+        {"label": "FAN", "url": "https://www.fancourier.ro/"},
+        base_url="https://backend.example/",
+        client=client,
+        timeout_seconds=20,
+        poll_interval_seconds=0,
+        api_key="seed-secret",
+        sleep=lambda _: None,
+    )
+
+    assert client.calls[0][4]["X-API-KEY"] == "seed-secret"
+    assert client.calls[1][4]["X-API-KEY"] == "seed-secret"
 
 
 def test_preseed_one_waits_for_complete_when_preview_is_not_cached_yet():

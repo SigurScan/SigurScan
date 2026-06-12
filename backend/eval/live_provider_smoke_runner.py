@@ -21,7 +21,7 @@ import requests
 
 
 REPO_DIR = Path(__file__).resolve().parents[2]
-DEFAULT_BASE_URL = os.getenv("SIGURSCAN_LIVE_SMOKE_BASE_URL", "https://nudaclick-backend.vercel.app").rstrip("/")
+DEFAULT_BASE_URL = os.getenv("SIGURSCAN_LIVE_SMOKE_BASE_URL", "https://api.sigurscan.com").rstrip("/")
 RUN_ENV = "SIGURSCAN_RUN_LIVE_PROVIDER_SMOKE"
 API_KEY_ENV = "SIGURSCAN_LIVE_SMOKE_API_KEY"
 DEFAULT_LIVE_MALICIOUS_URL = "https://00000000000000000000000000000000000000000.xyz"

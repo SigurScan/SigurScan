@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import time
 from pathlib import Path
 from typing import Any, Callable, Iterable
@@ -18,7 +19,16 @@ import requests
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_SEED_PATH = ROOT / "backend" / "data" / "preview_seed_urls_ro.json"
-DEFAULT_BASE_URL = "https://nudaclick-backend.vercel.app"
+DEFAULT_BASE_URL = "https://api.sigurscan.com"
+PRESEED_API_KEY_ENV = "SIGURSCAN_PRESEED_API_KEY"
+LIVE_SMOKE_API_KEY_ENV = "SIGURSCAN_LIVE_SMOKE_API_KEY"
+
+
+def _auth_headers(api_key: str | None = None) -> dict[str, str] | None:
+    key = (api_key or "").strip()
+    if not key:
+        return None
+    return {"X-API-KEY": key}
 
 
 def _normalize_seed_entry(entry: Any) -> dict[str, Any] | None:
@@ -72,14 +82,17 @@ def preseed_one(
     timeout_seconds: int = 90,
     poll_interval_seconds: float = 2.0,
     request_timeout_seconds: float = 12.0,
+    api_key: str | None = None,
     sleep: Callable[[float], None] = time.sleep,
 ) -> dict[str, Any]:
     session = client or requests.Session()
     base = base_url.rstrip("/")
+    headers = _auth_headers(api_key)
     started_at = time.time()
     start_response = session.post(
         f"{base}/v1/scan/orchestrated",
         json=_orchestrated_payload(seed),
+        headers=headers,
         timeout=request_timeout_seconds,
     )
     start_response.raise_for_status()
@@ -90,7 +103,11 @@ def preseed_one(
     last_payload: dict[str, Any] = {}
     while time.time() - started_at <= timeout_seconds:
         try:
-            response = session.get(f"{base}/v1/scan/orchestrated/{scan_id}", timeout=request_timeout_seconds)
+            response = session.get(
+                f"{base}/v1/scan/orchestrated/{scan_id}",
+                headers=headers,
+                timeout=request_timeout_seconds,
+            )
             response.raise_for_status()
             payload = response.json()
         except requests.Timeout:
@@ -145,6 +162,7 @@ def run_preseed(
     offset: int = 0,
     timeout_seconds: int = 90,
     poll_interval_seconds: float = 2.0,
+    api_key: str | None = None,
 ) -> list[dict[str, Any]]:
     selected = list(seeds)
     if isinstance(offset, int) and offset > 0:
@@ -164,6 +182,7 @@ def run_preseed(
             client=session,
             timeout_seconds=timeout_seconds,
             poll_interval_seconds=poll_interval_seconds,
+            api_key=api_key,
         )
         for seed in selected
     ]
@@ -177,6 +196,11 @@ def main() -> int:
     parser.add_argument("--offset", type=int, default=0)
     parser.add_argument("--timeout", type=int, default=90)
     parser.add_argument("--poll-interval", type=float, default=2.0)
+    parser.add_argument(
+        "--api-key",
+        default=os.getenv(PRESEED_API_KEY_ENV) or os.getenv(LIVE_SMOKE_API_KEY_ENV) or "",
+        help=f"SigurScan app API key. Defaults to {PRESEED_API_KEY_ENV}, then {LIVE_SMOKE_API_KEY_ENV}.",
+    )
     parser.add_argument("--execute", action="store_true", help="Actually call the backend. Default is dry-run.")
     args = parser.parse_args()
 
@@ -189,6 +213,7 @@ def main() -> int:
         offset=args.offset,
         timeout_seconds=args.timeout,
         poll_interval_seconds=args.poll_interval,
+        api_key=args.api_key,
     )
     print(json.dumps({"dry_run": not args.execute, "count": len(results), "results": results}, ensure_ascii=False, indent=2))
     return 0
