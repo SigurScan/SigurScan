@@ -54,7 +54,7 @@ def test_impersonation_atlas_examples_are_runtime_covered():
 def test_impersonation_runtime_seed_has_canonical_imp_block():
     ids = {family["id"] for family in ScamAtlasEngine().families}
 
-    for family_id in [f"IMP-{index:02d}" for index in range(1, 13)]:
+    for family_id in [f"IMP-{index:02d}" for index in range(1, 14)]:
         assert family_id in ids
 
 

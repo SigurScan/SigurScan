@@ -1,0 +1,5098 @@
+{
+  "runtime_role": "test_oracle_only",
+  "purpose": "Research fixtures for recall, false-positive guards and gate evaluation.",
+  "sources": [
+    "docs/fable_handoff/sigurscan_op_impersonare_atlas_2026.zip",
+    "docs/fable_handoff/raport-cercetare-aprofundată (2).md"
+  ],
+  "fixtures": [
+    {
+      "id": "OPIMP-D-001",
+      "family": "IMP-01",
+      "channel": "sms",
+      "input_text": "ANAF: aveți rambursare fiscală disponibilă. Confirmați cardul și CNP-ul pe https://anaf-verificare-rambursare.test pentru a primi banii azi.",
+      "urls": [
+        "https://anaf-verificare-rambursare.test"
+      ],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "card",
+          "OTP",
+          "login",
+          "date_personale",
+          "IBAN schimbat"
+        ],
+        "sensitive_request": true,
+        "has_url": true
+      },
+      "expected_signals": [
+        "state_body_payment_to_commercial_iban",
+        "fake_state_document_legal_threat"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "state_body_payment_to_commercial_iban",
+          "fake_state_document_legal_threat"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-002",
+      "family": "IMP-01",
+      "channel": "email",
+      "input_text": "Poliția Română: amendă electronică neachitată. Plătiți în 2 ore prin QR atașat, altfel se emite poprire. Link: https://politia-plata-dosar.invalid/pay",
+      "urls": [
+        "https://politia-plata-dosar.invalid/pay"
+      ],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "card",
+          "OTP",
+          "login",
+          "date_personale",
+          "IBAN schimbat"
+        ],
+        "sensitive_request": true,
+        "has_url": true
+      },
+      "expected_signals": [
+        "fake_state_document_legal_threat",
+        "spv_anaf_link_nonofficial"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "fake_state_document_legal_threat",
+          "spv_anaf_link_nonofficial"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-003",
+      "family": "IMP-01",
+      "channel": "pdf",
+      "input_text": "DNSC: contul dvs. a fost folosit într-un atac. Completați datele cardului pentru verificarea identității pe https://dnsc-alerta-cont.test",
+      "urls": [
+        "https://dnsc-alerta-cont.test"
+      ],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "card",
+          "OTP",
+          "login",
+          "date_personale",
+          "IBAN schimbat"
+        ],
+        "sensitive_request": true,
+        "has_url": true
+      },
+      "expected_signals": [
+        "spv_anaf_link_nonofficial",
+        "state_asks_card_otp_or_cnp"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "spv_anaf_link_nonofficial",
+          "state_asks_card_otp_or_cnp"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-004",
+      "family": "IMP-01",
+      "channel": "phone_transcript",
+      "input_text": "Europol/Interpol: citație electronică pentru infracțiuni online. Pentru închiderea dosarului achitați taxa procedurală în BTC la walletul din document.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "card",
+          "OTP",
+          "login",
+          "date_personale",
+          "IBAN schimbat"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "spv_anaf_link_nonofficial",
+        "state_asks_card_otp_or_cnp"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "spv_anaf_link_nonofficial",
+          "state_asks_card_otp_or_cnp"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-005",
+      "family": "IMP-01",
+      "channel": "html_email",
+      "input_text": "Instanța vă informează că aveți ordin de plată. Descărcați formularul și introduceți datele bancare: https://portal-justitie-plata.example/login",
+      "urls": [
+        "https://portal-justitie-plata.example/login"
+      ],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "card",
+          "OTP",
+          "login",
+          "date_personale",
+          "IBAN schimbat"
+        ],
+        "sensitive_request": true,
+        "has_url": true
+      },
+      "expected_signals": [
+        "spv_anaf_link_nonofficial",
+        "state_asks_card_otp_or_cnp"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "spv_anaf_link_nonofficial",
+          "state_asks_card_otp_or_cnp"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-S-006",
+      "family": "IMP-01",
+      "channel": "email",
+      "input_text": "ANAF informare: aveți mesaj în SPV. Accesați manual portalul oficial pentru detalii.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "card",
+          "OTP",
+          "login",
+          "date_personale",
+          "IBAN schimbat"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [
+        "state_body_payment_to_commercial_iban"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "pending_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "impersonation_possible",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "state_body_payment_to_commercial_iban"
+        ]
+      },
+      "expected_final_verdict": "SUSPECT",
+      "why": "Pattern has context risk but lacks hard sensitive request/provider hit; atlas/corpus alone capped at SUSPECT."
+    },
+    {
+      "id": "OPIMP-S-007",
+      "family": "IMP-01",
+      "channel": "pdf",
+      "input_text": "Email cu text fiscal urgent, dar fără link și fără plată; expeditorul trebuie verificat.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "card",
+          "OTP",
+          "login",
+          "date_personale",
+          "IBAN schimbat"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [
+        "state_body_payment_to_commercial_iban"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "pending_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "impersonation_possible",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "state_body_payment_to_commercial_iban"
+        ]
+      },
+      "expected_final_verdict": "SUSPECT",
+      "why": "Pattern has context risk but lacks hard sensitive request/provider hit; atlas/corpus alone capped at SUSPECT."
+    },
+    {
+      "id": "OPIMP-S-008",
+      "family": "IMP-01",
+      "channel": "phone_transcript",
+      "input_text": "Notificare despre amendă, fără cerere de card, cu domeniu necunoscut în semnătură.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "card",
+          "OTP",
+          "login",
+          "date_personale",
+          "IBAN schimbat"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [
+        "state_body_payment_to_commercial_iban"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "pending_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "impersonation_possible",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "state_body_payment_to_commercial_iban"
+        ]
+      },
+      "expected_final_verdict": "SUSPECT",
+      "why": "Pattern has context risk but lacks hard sensitive request/provider hit; atlas/corpus alone capped at SUSPECT."
+    },
+    {
+      "id": "OPIMP-FP-009",
+      "family": "IMP-01",
+      "channel": "pdf",
+      "input_text": "ANAF: Aveți o notificare în SPV. Accesați manual www.anaf.ro sau aplicația oficială; nu conține link de plată.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "card",
+          "OTP",
+          "login",
+          "date_personale",
+          "IBAN schimbat"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [],
+      "mocked_provider_results": {
+        "web_risk": "clean",
+        "urlhaus": "not_listed",
+        "phishing_db": "not_listed",
+        "urlscan": "clean_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "none",
+        "max_solo": "SIGUR",
+        "reason_codes": []
+      },
+      "expected_final_verdict": "SIGUR",
+      "why": "False-positive guard: official/established context, clean providers, no sensitive request, no wrong-channel payment."
+    },
+    {
+      "id": "OPIMP-FP-010",
+      "family": "IMP-01",
+      "channel": "phone_transcript",
+      "input_text": "Comunicare DNSC educațională despre phishing, fără cerere de date sau bani.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "card",
+          "OTP",
+          "login",
+          "date_personale",
+          "IBAN schimbat"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [],
+      "mocked_provider_results": {
+        "web_risk": "clean",
+        "urlhaus": "not_listed",
+        "phishing_db": "not_listed",
+        "urlscan": "clean_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "none",
+        "max_solo": "SIGUR",
+        "reason_codes": []
+      },
+      "expected_final_verdict": "SIGUR",
+      "why": "False-positive guard: official/established context, clean providers, no sensitive request, no wrong-channel payment."
+    },
+    {
+      "id": "OPIMP-D-011",
+      "family": "IMP-02",
+      "channel": "sms",
+      "input_text": "BNR Antifraudă: cineva a făcut credit pe numele dvs. Mutați imediat banii într-un cont sigur indicat de consultant.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "OTP",
+          "login",
+          "card",
+          "bani",
+          "remote_access",
+          "crypto"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "bank_safe_account_transfer",
+        "bank_asks_otp_pin_cvv_password"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "bank_safe_account_transfer",
+          "bank_asks_otp_pin_cvv_password"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-012",
+      "family": "IMP-02",
+      "channel": "phone_transcript",
+      "input_text": "BT: tranzacție suspectă. Nu închideți apelul. Spuneți codul primit prin SMS pentru anulare.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "OTP",
+          "login",
+          "card",
+          "bani",
+          "remote_access",
+          "crypto"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "bank_asks_otp_pin_cvv_password",
+        "bank_remote_access_request"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "bank_asks_otp_pin_cvv_password",
+          "bank_remote_access_request"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-013",
+      "family": "IMP-02",
+      "channel": "email",
+      "input_text": "Revolut Security: cont limitat, intrați pe https://revolut-verify-account.test și confirmați parola.",
+      "urls": [
+        "https://revolut-verify-account.test"
+      ],
+      "expected_extractions": {
+        "identity_claimed": [
+          "OTP",
+          "login",
+          "card",
+          "bani",
+          "remote_access",
+          "crypto"
+        ],
+        "sensitive_request": true,
+        "has_url": true
+      },
+      "expected_signals": [
+        "bank_remote_access_request",
+        "revolut_or_fintech_login_link"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "bank_remote_access_request",
+          "revolut_or_fintech_login_link"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-014",
+      "family": "IMP-02",
+      "channel": "whatsapp",
+      "input_text": "BCR George: card blocat. Actualizați datele de autentificare pe linkul primit sau pierdeți accesul.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "OTP",
+          "login",
+          "card",
+          "bani",
+          "remote_access",
+          "crypto"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "bank_remote_access_request",
+        "revolut_or_fintech_login_link"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "bank_remote_access_request",
+          "revolut_or_fintech_login_link"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-015",
+      "family": "IMP-02",
+      "channel": "html_email",
+      "input_text": "Raiffeisen: pentru protecție instalați AnyDesk și vă ghidăm să anulăm tranzacția.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "OTP",
+          "login",
+          "card",
+          "bani",
+          "remote_access",
+          "crypto"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "bank_remote_access_request",
+        "revolut_or_fintech_login_link"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "bank_remote_access_request",
+          "revolut_or_fintech_login_link"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-S-016",
+      "family": "IMP-02",
+      "channel": "phone_transcript",
+      "input_text": "Mesaj de la bancă despre securitate, fără coduri, dar cu link de tracking către o pagină informativă.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "OTP",
+          "login",
+          "card",
+          "bani",
+          "remote_access",
+          "crypto"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [
+        "bank_safe_account_transfer"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "pending_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "impersonation_possible",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "bank_safe_account_transfer"
+        ]
+      },
+      "expected_final_verdict": "SUSPECT",
+      "why": "Pattern has context risk but lacks hard sensitive request/provider hit; atlas/corpus alone capped at SUSPECT."
+    },
+    {
+      "id": "OPIMP-S-017",
+      "family": "IMP-02",
+      "channel": "email",
+      "input_text": "Alertă tranzacție suspectă fără cerere de OTP, spune să verifici în aplicația oficială.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "OTP",
+          "login",
+          "card",
+          "bani",
+          "remote_access",
+          "crypto"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [
+        "bank_safe_account_transfer"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "pending_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "impersonation_possible",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "bank_safe_account_transfer"
+        ]
+      },
+      "expected_final_verdict": "SUSPECT",
+      "why": "Pattern has context risk but lacks hard sensitive request/provider hit; atlas/corpus alone capped at SUSPECT."
+    },
+    {
+      "id": "OPIMP-S-018",
+      "family": "IMP-02",
+      "channel": "whatsapp",
+      "input_text": "Revolut email informativ cu link, final URL încă neverificat.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "OTP",
+          "login",
+          "card",
+          "bani",
+          "remote_access",
+          "crypto"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [
+        "bank_safe_account_transfer"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "pending_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "impersonation_possible",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "bank_safe_account_transfer"
+        ]
+      },
+      "expected_final_verdict": "SUSPECT",
+      "why": "Pattern has context risk but lacks hard sensitive request/provider hit; atlas/corpus alone capped at SUSPECT."
+    },
+    {
+      "id": "OPIMP-FP-019",
+      "family": "IMP-02",
+      "channel": "email",
+      "input_text": "BT mesaj educațional: banca nu cere PIN, parole sau CVV prin telefon, SMS sau email.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "OTP",
+          "login",
+          "card",
+          "bani",
+          "remote_access",
+          "crypto"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [],
+      "mocked_provider_results": {
+        "web_risk": "clean",
+        "urlhaus": "not_listed",
+        "phishing_db": "not_listed",
+        "urlscan": "clean_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "none",
+        "max_solo": "SIGUR",
+        "reason_codes": []
+      },
+      "expected_final_verdict": "SIGUR",
+      "why": "False-positive guard: official/established context, clean providers, no sensitive request, no wrong-channel payment."
+    },
+    {
+      "id": "OPIMP-FP-020",
+      "family": "IMP-02",
+      "channel": "whatsapp",
+      "input_text": "BCR email informativ: nu accesa internet banking din linkuri primite pe e-mail.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "OTP",
+          "login",
+          "card",
+          "bani",
+          "remote_access",
+          "crypto"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [],
+      "mocked_provider_results": {
+        "web_risk": "clean",
+        "urlhaus": "not_listed",
+        "phishing_db": "not_listed",
+        "urlscan": "clean_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "none",
+        "max_solo": "SIGUR",
+        "reason_codes": []
+      },
+      "expected_final_verdict": "SIGUR",
+      "why": "False-positive guard: official/established context, clean providers, no sensitive request, no wrong-channel payment."
+    },
+    {
+      "id": "OPIMP-D-021",
+      "family": "IMP-03",
+      "channel": "sms",
+      "input_text": "FAN Courier: coletul dvs. este blocat. Plătiți taxa 4,99 lei și introduceți cardul pe https://fan-livrare-locker.test",
+      "urls": [
+        "https://fan-livrare-locker.test"
+      ],
+      "expected_extractions": {
+        "identity_claimed": [
+          "card",
+          "CVV",
+          "OTP",
+          "whatsapp_code",
+          "date_personale",
+          "bani"
+        ],
+        "sensitive_request": true,
+        "has_url": true
+      },
+      "expected_signals": [
+        "courier_fee_card_form",
+        "courier_whatsapp_code"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "courier_fee_card_form",
+          "courier_whatsapp_code"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-022",
+      "family": "IMP-03",
+      "channel": "whatsapp",
+      "input_text": "Poșta Română: adresa coletului este incompletă. Confirmați cardul pentru reexpediere: https://posta-ro-track.invalid/card",
+      "urls": [
+        "https://posta-ro-track.invalid/card"
+      ],
+      "expected_extractions": {
+        "identity_claimed": [
+          "card",
+          "CVV",
+          "OTP",
+          "whatsapp_code",
+          "date_personale",
+          "bani"
+        ],
+        "sensitive_request": true,
+        "has_url": true
+      },
+      "expected_signals": [
+        "courier_whatsapp_code",
+        "courier_lookalike_domain"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "courier_whatsapp_code",
+          "courier_lookalike_domain"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-023",
+      "family": "IMP-03",
+      "channel": "email",
+      "input_text": "SAMEDAY easybox: lockerul expiră azi. Introduceți codul WhatsApp pentru verificare livrare.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "card",
+          "CVV",
+          "OTP",
+          "whatsapp_code",
+          "date_personale",
+          "bani"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "courier_lookalike_domain",
+        "parcel_address_locker_update"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "courier_lookalike_domain",
+          "parcel_address_locker_update"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-024",
+      "family": "IMP-03",
+      "channel": "qr",
+      "input_text": "DHL: taxă vamală urgentă. Plătiți prin linkul https://dhl-ro-customs.example/pay",
+      "urls": [
+        "https://dhl-ro-customs.example/pay"
+      ],
+      "expected_extractions": {
+        "identity_claimed": [
+          "card",
+          "CVV",
+          "OTP",
+          "whatsapp_code",
+          "date_personale",
+          "bani"
+        ],
+        "sensitive_request": true,
+        "has_url": true
+      },
+      "expected_signals": [
+        "courier_lookalike_domain",
+        "parcel_address_locker_update"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "courier_lookalike_domain",
+          "parcel_address_locker_update"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-025",
+      "family": "IMP-03",
+      "channel": "html_email",
+      "input_text": "FANBOX: actualizare locker. Domeniul din SMS este https://fanbox-secure-delivery.test și cere CVC.",
+      "urls": [
+        "https://fanbox-secure-delivery.test"
+      ],
+      "expected_extractions": {
+        "identity_claimed": [
+          "card",
+          "CVV",
+          "OTP",
+          "whatsapp_code",
+          "date_personale",
+          "bani"
+        ],
+        "sensitive_request": true,
+        "has_url": true
+      },
+      "expected_signals": [
+        "courier_lookalike_domain",
+        "parcel_address_locker_update"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "courier_lookalike_domain",
+          "parcel_address_locker_update"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-S-026",
+      "family": "IMP-03",
+      "channel": "whatsapp",
+      "input_text": "SMS curier despre livrare întârziată fără plată, dar domeniul este shortener necunoscut.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "card",
+          "CVV",
+          "OTP",
+          "whatsapp_code",
+          "date_personale",
+          "bani"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [
+        "courier_fee_card_form"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "pending_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "impersonation_possible",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "courier_fee_card_form"
+        ]
+      },
+      "expected_final_verdict": "SUSPECT",
+      "why": "Pattern has context risk but lacks hard sensitive request/provider hit; atlas/corpus alone capped at SUSPECT."
+    },
+    {
+      "id": "OPIMP-S-027",
+      "family": "IMP-03",
+      "channel": "email",
+      "input_text": "Email DHL informativ cu tracking, final URL pending.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "card",
+          "CVV",
+          "OTP",
+          "whatsapp_code",
+          "date_personale",
+          "bani"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [
+        "courier_fee_card_form"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "pending_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "impersonation_possible",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "courier_fee_card_form"
+        ]
+      },
+      "expected_final_verdict": "SUSPECT",
+      "why": "Pattern has context risk but lacks hard sensitive request/provider hit; atlas/corpus alone capped at SUSPECT."
+    },
+    {
+      "id": "OPIMP-S-028",
+      "family": "IMP-03",
+      "channel": "qr",
+      "input_text": "Notificare easybox cu link scurt, fără card/OTP.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "card",
+          "CVV",
+          "OTP",
+          "whatsapp_code",
+          "date_personale",
+          "bani"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [
+        "courier_fee_card_form"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "pending_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "impersonation_possible",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "courier_fee_card_form"
+        ]
+      },
+      "expected_final_verdict": "SUSPECT",
+      "why": "Pattern has context risk but lacks hard sensitive request/provider hit; atlas/corpus alone capped at SUSPECT."
+    },
+    {
+      "id": "OPIMP-FP-029",
+      "family": "IMP-03",
+      "channel": "email",
+      "input_text": "FAN Courier tracking oficial pe https://www.fancourier.ro/awb-tracking/ fără card/OTP.",
+      "urls": [
+        "https://www.fancourier.ro/awb-tracking/"
+      ],
+      "expected_extractions": {
+        "identity_claimed": [
+          "card",
+          "CVV",
+          "OTP",
+          "whatsapp_code",
+          "date_personale",
+          "bani"
+        ],
+        "sensitive_request": false,
+        "has_url": true
+      },
+      "expected_signals": [],
+      "mocked_provider_results": {
+        "web_risk": "clean",
+        "urlhaus": "not_listed",
+        "phishing_db": "not_listed",
+        "urlscan": "clean_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "none",
+        "max_solo": "SIGUR",
+        "reason_codes": []
+      },
+      "expected_final_verdict": "SIGUR",
+      "why": "False-positive guard: official/established context, clean providers, no sensitive request, no wrong-channel payment."
+    },
+    {
+      "id": "OPIMP-FP-030",
+      "family": "IMP-03",
+      "channel": "qr",
+      "input_text": "DHL tracking pe dhl.com, fără plată sau date sensibile.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "card",
+          "CVV",
+          "OTP",
+          "whatsapp_code",
+          "date_personale",
+          "bani"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [],
+      "mocked_provider_results": {
+        "web_risk": "clean",
+        "urlhaus": "not_listed",
+        "phishing_db": "not_listed",
+        "urlscan": "clean_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "none",
+        "max_solo": "SIGUR",
+        "reason_codes": []
+      },
+      "expected_final_verdict": "SIGUR",
+      "why": "False-positive guard: official/established context, clean providers, no sensitive request, no wrong-channel payment."
+    },
+    {
+      "id": "OPIMP-D-031",
+      "family": "IMP-04",
+      "channel": "ocr_image",
+      "input_text": "Microsoft Support: computer infectat. Sunați imediat numărul din pop-up și nu închideți fereastra.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "remote_access",
+          "gift_card",
+          "crypto",
+          "card",
+          "login",
+          "date_personale"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "techsupport_popup_phone_number",
+        "techsupport_remote_access"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "techsupport_popup_phone_number",
+          "techsupport_remote_access"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-032",
+      "family": "IMP-04",
+      "channel": "phone_transcript",
+      "input_text": "Apple Security: iCloud blocat. Instalați aplicația de suport de la https://apple-fix-support.test/setup.",
+      "urls": [
+        "https://apple-fix-support.test/setup."
+      ],
+      "expected_extractions": {
+        "identity_claimed": [
+          "remote_access",
+          "gift_card",
+          "crypto",
+          "card",
+          "login",
+          "date_personale"
+        ],
+        "sensitive_request": true,
+        "has_url": true
+      },
+      "expected_signals": [
+        "techsupport_remote_access",
+        "techsupport_giftcard_crypto_payment"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "techsupport_remote_access",
+          "techsupport_giftcard_crypto_payment"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-033",
+      "family": "IMP-04",
+      "channel": "link",
+      "input_text": "Suport tehnic Windows: pentru deblocare cumpărați carduri cadou de 500 lei și dictați codurile.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "remote_access",
+          "gift_card",
+          "crypto",
+          "card",
+          "login",
+          "date_personale"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "techsupport_giftcard_crypto_payment",
+        "fake_antivirus_download"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "techsupport_giftcard_crypto_payment",
+          "fake_antivirus_download"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-034",
+      "family": "IMP-04",
+      "channel": "html_email",
+      "input_text": "Operator internet: modemul trimite viruși. Instalați TeamViewer și permiteți acces tehnicianului.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "remote_access",
+          "gift_card",
+          "crypto",
+          "card",
+          "login",
+          "date_personale"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "techsupport_giftcard_crypto_payment",
+        "fake_antivirus_download"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "techsupport_giftcard_crypto_payment",
+          "fake_antivirus_download"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-035",
+      "family": "IMP-04",
+      "channel": "email",
+      "input_text": "Antivirus update: descărcați urgent fișierul secure-cleaner.exe de pe https://pc-clean-alert.invalid",
+      "urls": [
+        "https://pc-clean-alert.invalid"
+      ],
+      "expected_extractions": {
+        "identity_claimed": [
+          "remote_access",
+          "gift_card",
+          "crypto",
+          "card",
+          "login",
+          "date_personale"
+        ],
+        "sensitive_request": true,
+        "has_url": true
+      },
+      "expected_signals": [
+        "techsupport_giftcard_crypto_payment",
+        "fake_antivirus_download"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "techsupport_giftcard_crypto_payment",
+          "fake_antivirus_download"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-S-036",
+      "family": "IMP-04",
+      "channel": "phone_transcript",
+      "input_text": "Email Microsoft informativ despre securitate, fără plată, dar cu link scurt.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "remote_access",
+          "gift_card",
+          "crypto",
+          "card",
+          "login",
+          "date_personale"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [
+        "techsupport_popup_phone_number"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "pending_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "impersonation_possible",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "techsupport_popup_phone_number"
+        ]
+      },
+      "expected_final_verdict": "SUSPECT",
+      "why": "Pattern has context risk but lacks hard sensitive request/provider hit; atlas/corpus alone capped at SUSPECT."
+    },
+    {
+      "id": "OPIMP-S-037",
+      "family": "IMP-04",
+      "channel": "link",
+      "input_text": "Pop-up browser spune alertă, dar nu afișează număr sau plată; doar suspect până la provider.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "remote_access",
+          "gift_card",
+          "crypto",
+          "card",
+          "login",
+          "date_personale"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [
+        "techsupport_popup_phone_number"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "pending_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "impersonation_possible",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "techsupport_popup_phone_number"
+        ]
+      },
+      "expected_final_verdict": "SUSPECT",
+      "why": "Pattern has context risk but lacks hard sensitive request/provider hit; atlas/corpus alone capped at SUSPECT."
+    },
+    {
+      "id": "OPIMP-S-038",
+      "family": "IMP-04",
+      "channel": "html_email",
+      "input_text": "Mesaj ISP cere actualizare router pe portal, final URL neverificat.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "remote_access",
+          "gift_card",
+          "crypto",
+          "card",
+          "login",
+          "date_personale"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [
+        "techsupport_popup_phone_number"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "pending_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "impersonation_possible",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "techsupport_popup_phone_number"
+        ]
+      },
+      "expected_final_verdict": "SUSPECT",
+      "why": "Pattern has context risk but lacks hard sensitive request/provider hit; atlas/corpus alone capped at SUSPECT."
+    },
+    {
+      "id": "OPIMP-FP-039",
+      "family": "IMP-04",
+      "channel": "link",
+      "input_text": "Microsoft Support articol oficial despre tech support scams pe support.microsoft.com, fără telefon de apelat în pop-up.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "remote_access",
+          "gift_card",
+          "crypto",
+          "card",
+          "login",
+          "date_personale"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [],
+      "mocked_provider_results": {
+        "web_risk": "clean",
+        "urlhaus": "not_listed",
+        "phishing_db": "not_listed",
+        "urlscan": "clean_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "none",
+        "max_solo": "SIGUR",
+        "reason_codes": []
+      },
+      "expected_final_verdict": "SIGUR",
+      "why": "False-positive guard: official/established context, clean providers, no sensitive request, no wrong-channel payment."
+    },
+    {
+      "id": "OPIMP-FP-040",
+      "family": "IMP-04",
+      "channel": "html_email",
+      "input_text": "Apple Support alertă educațională pe support.apple.com, fără date/card.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "remote_access",
+          "gift_card",
+          "crypto",
+          "card",
+          "login",
+          "date_personale"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [],
+      "mocked_provider_results": {
+        "web_risk": "clean",
+        "urlhaus": "not_listed",
+        "phishing_db": "not_listed",
+        "urlscan": "clean_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "none",
+        "max_solo": "SIGUR",
+        "reason_codes": []
+      },
+      "expected_final_verdict": "SIGUR",
+      "why": "False-positive guard: official/established context, clean providers, no sensitive request, no wrong-channel payment."
+    },
+    {
+      "id": "OPIMP-D-041",
+      "family": "IMP-05",
+      "channel": "whatsapp",
+      "input_text": "Mamă, mi s-a stricat telefonul, salvează numărul ăsta. Am nevoie urgent de 1800 lei până diseară.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "OTP",
+          "whatsapp_code",
+          "date_personale"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "family_new_number_money",
+        "family_emergency_accident"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "family_new_number_money",
+          "family_emergency_accident"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-042",
+      "family": "IMP-05",
+      "channel": "sms",
+      "input_text": "Bunico, am avut accident și sunt la poliție. Trimite bani la avocatul care te sună acum.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "OTP",
+          "whatsapp_code",
+          "date_personale"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "family_emergency_accident",
+        "whatsapp_code_from_contact"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "family_emergency_accident",
+          "whatsapp_code_from_contact"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-043",
+      "family": "IMP-05",
+      "channel": "social_dm",
+      "input_text": "Prietena mea are nevoie de votul tău, intră pe https://voteaza-ana-petitie.test și trimite codul WhatsApp.",
+      "urls": [
+        "https://voteaza-ana-petitie.test"
+      ],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "OTP",
+          "whatsapp_code",
+          "date_personale"
+        ],
+        "sensitive_request": true,
+        "has_url": true
+      },
+      "expected_signals": [
+        "whatsapp_code_from_contact",
+        "petition_or_vote_hook"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "whatsapp_code_from_contact",
+          "petition_or_vote_hook"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-044",
+      "family": "IMP-05",
+      "channel": "whatsapp",
+      "input_text": "Sunt eu, am pierdut portofelul. Nu pot vorbi la telefon, transferă pe Revolut la prietenul meu.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "OTP",
+          "whatsapp_code",
+          "date_personale"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "whatsapp_code_from_contact",
+        "petition_or_vote_hook"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "whatsapp_code_from_contact",
+          "petition_or_vote_hook"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-045",
+      "family": "IMP-05",
+      "channel": "sms",
+      "input_text": "Semnează petiția pentru adăpost, apoi introdu codul primit prin SMS ca să confirmi.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "OTP",
+          "whatsapp_code",
+          "date_personale"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "whatsapp_code_from_contact",
+        "petition_or_vote_hook"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "whatsapp_code_from_contact",
+          "petition_or_vote_hook"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-S-046",
+      "family": "IMP-05",
+      "channel": "sms",
+      "input_text": "Contact spune că are număr nou, dar nu cere bani sau coduri.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "OTP",
+          "whatsapp_code",
+          "date_personale"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [
+        "family_new_number_money"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "pending_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "impersonation_possible",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "family_new_number_money"
+        ]
+      },
+      "expected_final_verdict": "SUSPECT",
+      "why": "Pattern has context risk but lacks hard sensitive request/provider hit; atlas/corpus alone capped at SUSPECT."
+    },
+    {
+      "id": "OPIMP-S-047",
+      "family": "IMP-05",
+      "channel": "social_dm",
+      "input_text": "Rudă cere să fie sunată urgent, fără link/date.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "OTP",
+          "whatsapp_code",
+          "date_personale"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [
+        "family_new_number_money"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "pending_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "impersonation_possible",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "family_new_number_money"
+        ]
+      },
+      "expected_final_verdict": "SUSPECT",
+      "why": "Pattern has context risk but lacks hard sensitive request/provider hit; atlas/corpus alone capped at SUSPECT."
+    },
+    {
+      "id": "OPIMP-S-048",
+      "family": "IMP-05",
+      "channel": "whatsapp",
+      "input_text": "Mesaj de petiție fără coduri/date, doar link necunoscut.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "OTP",
+          "whatsapp_code",
+          "date_personale"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [
+        "family_new_number_money"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "pending_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "impersonation_possible",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "family_new_number_money"
+        ]
+      },
+      "expected_final_verdict": "SUSPECT",
+      "why": "Pattern has context risk but lacks hard sensitive request/provider hit; atlas/corpus alone capped at SUSPECT."
+    },
+    {
+      "id": "OPIMP-FP-049",
+      "family": "IMP-05",
+      "channel": "social_dm",
+      "input_text": "Membru familie spune că are număr nou și cere să fie sunat pe numărul vechi, fără bani/coduri.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "OTP",
+          "whatsapp_code",
+          "date_personale"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [],
+      "mocked_provider_results": {
+        "web_risk": "clean",
+        "urlhaus": "not_listed",
+        "phishing_db": "not_listed",
+        "urlscan": "clean_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "none",
+        "max_solo": "SIGUR",
+        "reason_codes": []
+      },
+      "expected_final_verdict": "SIGUR",
+      "why": "False-positive guard: official/established context, clean providers, no sensitive request, no wrong-channel payment."
+    },
+    {
+      "id": "OPIMP-FP-050",
+      "family": "IMP-05",
+      "channel": "whatsapp",
+      "input_text": "Contact trimite petiție publică, fără coduri WhatsApp, fără date sensibile.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "OTP",
+          "whatsapp_code",
+          "date_personale"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [],
+      "mocked_provider_results": {
+        "web_risk": "clean",
+        "urlhaus": "not_listed",
+        "phishing_db": "not_listed",
+        "urlscan": "clean_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "none",
+        "max_solo": "SIGUR",
+        "reason_codes": []
+      },
+      "expected_final_verdict": "SIGUR",
+      "why": "False-positive guard: official/established context, clean providers, no sensitive request, no wrong-channel payment."
+    },
+    {
+      "id": "OPIMP-D-051",
+      "family": "IMP-06",
+      "channel": "email",
+      "input_text": "De la CEO: plătește factura atașată azi pe noul IBAN, confidențial, nu suna furnizorul.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "IBAN schimbat",
+          "invoice_payment",
+          "date_contabile"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "bec_iban_change",
+        "bec_replyto_domain_mismatch"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "bec_iban_change",
+          "bec_replyto_domain_mismatch"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-052",
+      "family": "IMP-06",
+      "channel": "html_email",
+      "input_text": "Furnizorul nostru și-a schimbat banca. Actualizați IBAN-ul în ERP și achitați restanța azi.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "IBAN schimbat",
+          "invoice_payment",
+          "date_contabile"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "bec_replyto_domain_mismatch",
+        "ceo_confidential_payment"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "bec_replyto_domain_mismatch",
+          "ceo_confidential_payment"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-053",
+      "family": "IMP-06",
+      "channel": "pdf",
+      "input_text": "Reply-To diferit: invoice@furnizor-payments.example trimite aceeași factură, dar cu IBAN nou.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "IBAN schimbat",
+          "invoice_payment",
+          "date_contabile"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "ceo_confidential_payment",
+        "invoice_same_vendor_different_iban"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "ceo_confidential_payment",
+          "invoice_same_vendor_different_iban"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-054",
+      "family": "IMP-06",
+      "channel": "whatsapp",
+      "input_text": "CFO: avem audit, trebuie plata urgentă către consultantul extern, detalii în PDF.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "IBAN schimbat",
+          "invoice_payment",
+          "date_contabile"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "ceo_confidential_payment",
+        "invoice_same_vendor_different_iban"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "ceo_confidential_payment",
+          "invoice_same_vendor_different_iban"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-055",
+      "family": "IMP-06",
+      "channel": "email",
+      "input_text": "Contabilitate: plata către furnizor se face de azi în contul de rezervă trimis pe WhatsApp.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "IBAN schimbat",
+          "invoice_payment",
+          "date_contabile"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "ceo_confidential_payment",
+        "invoice_same_vendor_different_iban"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "ceo_confidential_payment",
+          "invoice_same_vendor_different_iban"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-S-056",
+      "family": "IMP-06",
+      "channel": "html_email",
+      "input_text": "Furnizor trimite factura cu IBAN schimbat, dar cere confirmare pe canal oficial.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "IBAN schimbat",
+          "invoice_payment",
+          "date_contabile"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [
+        "bec_iban_change"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "pending_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "impersonation_possible",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "bec_iban_change"
+        ]
+      },
+      "expected_final_verdict": "SUSPECT",
+      "why": "Pattern has context risk but lacks hard sensitive request/provider hit; atlas/corpus alone capped at SUSPECT."
+    },
+    {
+      "id": "OPIMP-S-057",
+      "family": "IMP-06",
+      "channel": "pdf",
+      "input_text": "Email de la furnizor cu Reply-To diferit, fără cerere urgentă de plată.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "IBAN schimbat",
+          "invoice_payment",
+          "date_contabile"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [
+        "bec_iban_change"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "pending_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "impersonation_possible",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "bec_iban_change"
+        ]
+      },
+      "expected_final_verdict": "SUSPECT",
+      "why": "Pattern has context risk but lacks hard sensitive request/provider hit; atlas/corpus alone capped at SUSPECT."
+    },
+    {
+      "id": "OPIMP-S-058",
+      "family": "IMP-06",
+      "channel": "whatsapp",
+      "input_text": "CEO cere verificare document, nu plată; context business.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "IBAN schimbat",
+          "invoice_payment",
+          "date_contabile"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [
+        "bec_iban_change"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "pending_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "impersonation_possible",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "bec_iban_change"
+        ]
+      },
+      "expected_final_verdict": "SUSPECT",
+      "why": "Pattern has context risk but lacks hard sensitive request/provider hit; atlas/corpus alone capped at SUSPECT."
+    },
+    {
+      "id": "OPIMP-FP-059",
+      "family": "IMP-06",
+      "channel": "pdf",
+      "input_text": "Furnizor trimite factură obișnuită cu IBAN deja existent în ERP și domeniu oficial.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "IBAN schimbat",
+          "invoice_payment",
+          "date_contabile"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [],
+      "mocked_provider_results": {
+        "web_risk": "clean",
+        "urlhaus": "not_listed",
+        "phishing_db": "not_listed",
+        "urlscan": "clean_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "none",
+        "max_solo": "SIGUR",
+        "reason_codes": []
+      },
+      "expected_final_verdict": "SIGUR",
+      "why": "False-positive guard: official/established context, clean providers, no sensitive request, no wrong-channel payment."
+    },
+    {
+      "id": "OPIMP-FP-060",
+      "family": "IMP-06",
+      "channel": "whatsapp",
+      "input_text": "Schimbare IBAN confirmată telefonic pe număr deja cunoscut, fără urgență.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "IBAN schimbat",
+          "invoice_payment",
+          "date_contabile"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [],
+      "mocked_provider_results": {
+        "web_risk": "clean",
+        "urlhaus": "not_listed",
+        "phishing_db": "not_listed",
+        "urlscan": "clean_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "none",
+        "max_solo": "SIGUR",
+        "reason_codes": []
+      },
+      "expected_final_verdict": "SIGUR",
+      "why": "False-positive guard: official/established context, clean providers, no sensitive request, no wrong-channel payment."
+    },
+    {
+      "id": "OPIMP-D-061",
+      "family": "IMP-07",
+      "channel": "social_dm",
+      "input_text": "Reclamă cu director Hidroelectrica: depuneți 950 lei pe https://hidro-profit-2026.test pentru venit lunar garantat.",
+      "urls": [
+        "https://hidro-profit-2026.test"
+      ],
+      "expected_extractions": {
+        "identity_claimed": [
+          "crypto",
+          "card",
+          "remote_access",
+          "login",
+          "bani"
+        ],
+        "sensitive_request": true,
+        "has_url": true
+      },
+      "expected_signals": [
+        "deepfake_public_investment",
+        "hidroelectrica_or_public_company_investment"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "deepfake_public_investment",
+          "hidroelectrica_or_public_company_investment"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-062",
+      "family": "IMP-07",
+      "channel": "link",
+      "input_text": "Video cu persoană publică recomandă platforma crypto. Brokerul cere AnyDesk pentru primul trade.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "crypto",
+          "card",
+          "remote_access",
+          "login",
+          "bani"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "hidroelectrica_or_public_company_investment",
+        "unlicensed_platform_asf_alert"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "hidroelectrica_or_public_company_investment",
+          "unlicensed_platform_asf_alert"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-063",
+      "family": "IMP-07",
+      "channel": "email",
+      "input_text": "ASF alert ignored: platforma zoreonxromania.test promite câștig zilnic și cere USDT.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "crypto",
+          "card",
+          "remote_access",
+          "login",
+          "bani"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "unlicensed_platform_asf_alert",
+        "investment_remote_access_crypto"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "unlicensed_platform_asf_alert",
+          "investment_remote_access_crypto"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-064",
+      "family": "IMP-07",
+      "channel": "ocr_image",
+      "input_text": "Presă clonată: „Românii câștigă din tokenuri eMAG”. Înscriere pe link neoficial.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "crypto",
+          "card",
+          "remote_access",
+          "login",
+          "bani"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "unlicensed_platform_asf_alert",
+        "investment_remote_access_crypto"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "unlicensed_platform_asf_alert",
+          "investment_remote_access_crypto"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-065",
+      "family": "IMP-07",
+      "channel": "social_dm",
+      "input_text": "Consilier investiții: scanați QR crypto pentru activarea contului premium.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "crypto",
+          "card",
+          "remote_access",
+          "login",
+          "bani"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "unlicensed_platform_asf_alert",
+        "investment_remote_access_crypto"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "unlicensed_platform_asf_alert",
+          "investment_remote_access_crypto"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-S-066",
+      "family": "IMP-07",
+      "channel": "link",
+      "input_text": "Reclamă investiții cu randament mare, fără plată încă; domeniu necunoscut.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "crypto",
+          "card",
+          "remote_access",
+          "login",
+          "bani"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [
+        "deepfake_public_investment"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "pending_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "impersonation_possible",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "deepfake_public_investment"
+        ]
+      },
+      "expected_final_verdict": "SUSPECT",
+      "why": "Pattern has context risk but lacks hard sensitive request/provider hit; atlas/corpus alone capped at SUSPECT."
+    },
+    {
+      "id": "OPIMP-S-067",
+      "family": "IMP-07",
+      "channel": "email",
+      "input_text": "Articol despre investiții cu persoană publică pe domeniu neverificat.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "crypto",
+          "card",
+          "remote_access",
+          "login",
+          "bani"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [
+        "deepfake_public_investment"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "pending_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "impersonation_possible",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "deepfake_public_investment"
+        ]
+      },
+      "expected_final_verdict": "SUSPECT",
+      "why": "Pattern has context risk but lacks hard sensitive request/provider hit; atlas/corpus alone capped at SUSPECT."
+    },
+    {
+      "id": "OPIMP-FP-068",
+      "family": "IMP-07",
+      "channel": "email",
+      "input_text": "Articol educațional ASF despre alerte investitori, fără ofertă de investiții.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "crypto",
+          "card",
+          "remote_access",
+          "login",
+          "bani"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [],
+      "mocked_provider_results": {
+        "web_risk": "clean",
+        "urlhaus": "not_listed",
+        "phishing_db": "not_listed",
+        "urlscan": "clean_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "none",
+        "max_solo": "SIGUR",
+        "reason_codes": []
+      },
+      "expected_final_verdict": "SIGUR",
+      "why": "False-positive guard: official/established context, clean providers, no sensitive request, no wrong-channel payment."
+    },
+    {
+      "id": "OPIMP-FP-069",
+      "family": "IMP-07",
+      "channel": "ocr_image",
+      "input_text": "Campanie reală pe hidroelectrica.ro despre fraude, fără cerere de depunere.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "crypto",
+          "card",
+          "remote_access",
+          "login",
+          "bani"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [],
+      "mocked_provider_results": {
+        "web_risk": "clean",
+        "urlhaus": "not_listed",
+        "phishing_db": "not_listed",
+        "urlscan": "clean_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "none",
+        "max_solo": "SIGUR",
+        "reason_codes": []
+      },
+      "expected_final_verdict": "SIGUR",
+      "why": "False-positive guard: official/established context, clean providers, no sensitive request, no wrong-channel payment."
+    },
+    {
+      "id": "OPIMP-FP-070",
+      "family": "IMP-07",
+      "channel": "social_dm",
+      "input_text": "Platformă autorizată verificată în ASF/BNR, fără profit garantat.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "crypto",
+          "card",
+          "remote_access",
+          "login",
+          "bani"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [],
+      "mocked_provider_results": {
+        "web_risk": "clean",
+        "urlhaus": "not_listed",
+        "phishing_db": "not_listed",
+        "urlscan": "clean_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "none",
+        "max_solo": "SIGUR",
+        "reason_codes": []
+      },
+      "expected_final_verdict": "SIGUR",
+      "why": "False-positive guard: official/established context, clean providers, no sensitive request, no wrong-channel payment."
+    },
+    {
+      "id": "OPIMP-D-071",
+      "family": "IMP-08",
+      "channel": "whatsapp",
+      "input_text": "Cumpărător OLX: am plătit produsul, intră aici să primești banii și cardul: https://olx-curier-plata.test",
+      "urls": [
+        "https://olx-curier-plata.test"
+      ],
+      "expected_extractions": {
+        "identity_claimed": [
+          "card",
+          "CVV",
+          "OTP",
+          "bani",
+          "date_personale"
+        ],
+        "sensitive_request": true,
+        "has_url": true
+      },
+      "expected_signals": [
+        "marketplace_receive_money_card",
+        "marketplace_fake_escrow_courier"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "marketplace_receive_money_card",
+          "marketplace_fake_escrow_courier"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-072",
+      "family": "IMP-08",
+      "channel": "social_dm",
+      "input_text": "Curier escrow: introdu codul SMS ca să confirmăm livrarea și virarea banilor.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "card",
+          "CVV",
+          "OTP",
+          "bani",
+          "date_personale"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "marketplace_fake_escrow_courier",
+        "marketplace_full_advance_personal"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "marketplace_fake_escrow_courier",
+          "marketplace_full_advance_personal"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-073",
+      "family": "IMP-08",
+      "channel": "sms",
+      "input_text": "Produs foarte ieftin, plata integrală prin Revolut înainte de curier, fără ramburs.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "card",
+          "CVV",
+          "OTP",
+          "bani",
+          "date_personale"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "marketplace_full_advance_personal",
+        "marketplace_otp_delivery_confirm"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "marketplace_full_advance_personal",
+          "marketplace_otp_delivery_confirm"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-074",
+      "family": "IMP-08",
+      "channel": "html_email",
+      "input_text": "Facebook Marketplace: plata se face prin linkul de livrare, cere CVV pentru confirmare.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "card",
+          "CVV",
+          "OTP",
+          "bani",
+          "date_personale"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "marketplace_full_advance_personal",
+        "marketplace_otp_delivery_confirm"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "marketplace_full_advance_personal",
+          "marketplace_otp_delivery_confirm"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-075",
+      "family": "IMP-08",
+      "channel": "whatsapp",
+      "input_text": "OLX/FAN livrare: linkul este https://fan-olx-escrow.invalid și cere card.",
+      "urls": [
+        "https://fan-olx-escrow.invalid"
+      ],
+      "expected_extractions": {
+        "identity_claimed": [
+          "card",
+          "CVV",
+          "OTP",
+          "bani",
+          "date_personale"
+        ],
+        "sensitive_request": true,
+        "has_url": true
+      },
+      "expected_signals": [
+        "marketplace_full_advance_personal",
+        "marketplace_otp_delivery_confirm"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "marketplace_full_advance_personal",
+          "marketplace_otp_delivery_confirm"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-S-076",
+      "family": "IMP-08",
+      "channel": "social_dm",
+      "input_text": "Cumpărător vrea să folosească curier, fără link și fără card; mută pe WhatsApp.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "card",
+          "CVV",
+          "OTP",
+          "bani",
+          "date_personale"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [
+        "marketplace_receive_money_card"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "pending_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "impersonation_possible",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "marketplace_receive_money_card"
+        ]
+      },
+      "expected_final_verdict": "SUSPECT",
+      "why": "Pattern has context risk but lacks hard sensitive request/provider hit; atlas/corpus alone capped at SUSPECT."
+    },
+    {
+      "id": "OPIMP-S-077",
+      "family": "IMP-08",
+      "channel": "sms",
+      "input_text": "Vânzător cere avans mic pentru rezervare, fără domeniu/provider.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "card",
+          "CVV",
+          "OTP",
+          "bani",
+          "date_personale"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [
+        "marketplace_receive_money_card"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "pending_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "impersonation_possible",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "marketplace_receive_money_card"
+        ]
+      },
+      "expected_final_verdict": "SUSPECT",
+      "why": "Pattern has context risk but lacks hard sensitive request/provider hit; atlas/corpus alone capped at SUSPECT."
+    },
+    {
+      "id": "OPIMP-FP-078",
+      "family": "IMP-08",
+      "channel": "sms",
+      "input_text": "OLX Help articol oficial despre linkuri false, fără cerere card.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "card",
+          "CVV",
+          "OTP",
+          "bani",
+          "date_personale"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [],
+      "mocked_provider_results": {
+        "web_risk": "clean",
+        "urlhaus": "not_listed",
+        "phishing_db": "not_listed",
+        "urlscan": "clean_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "none",
+        "max_solo": "SIGUR",
+        "reason_codes": []
+      },
+      "expected_final_verdict": "SIGUR",
+      "why": "False-positive guard: official/established context, clean providers, no sensitive request, no wrong-channel payment."
+    },
+    {
+      "id": "OPIMP-FP-079",
+      "family": "IMP-08",
+      "channel": "html_email",
+      "input_text": "Tranzacție marketplace cu predare personală și plată la livrare, fără link card.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "card",
+          "CVV",
+          "OTP",
+          "bani",
+          "date_personale"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [],
+      "mocked_provider_results": {
+        "web_risk": "clean",
+        "urlhaus": "not_listed",
+        "phishing_db": "not_listed",
+        "urlscan": "clean_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "none",
+        "max_solo": "SIGUR",
+        "reason_codes": []
+      },
+      "expected_final_verdict": "SIGUR",
+      "why": "False-positive guard: official/established context, clean providers, no sensitive request, no wrong-channel payment."
+    },
+    {
+      "id": "OPIMP-FP-080",
+      "family": "IMP-08",
+      "channel": "whatsapp",
+      "input_text": "Curier ramburs prin platformă oficială, fără card/CVV pentru primire bani.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "card",
+          "CVV",
+          "OTP",
+          "bani",
+          "date_personale"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [],
+      "mocked_provider_results": {
+        "web_risk": "clean",
+        "urlhaus": "not_listed",
+        "phishing_db": "not_listed",
+        "urlscan": "clean_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "none",
+        "max_solo": "SIGUR",
+        "reason_codes": []
+      },
+      "expected_final_verdict": "SIGUR",
+      "why": "False-positive guard: official/established context, clean providers, no sensitive request, no wrong-channel payment."
+    },
+    {
+      "id": "OPIMP-D-081",
+      "family": "IMP-09",
+      "channel": "sms",
+      "input_text": "eMAG aniversar: voucher 1000 lei. Plătește transport 9,99 lei și introdu cardul pe https://emag-voucher-ro.test",
+      "urls": [
+        "https://emag-voucher-ro.test"
+      ],
+      "expected_extractions": {
+        "identity_claimed": [
+          "card",
+          "date_personale",
+          "shipping_fee",
+          "subscription",
+          "OTP"
+        ],
+        "sensitive_request": true,
+        "has_url": true
+      },
+      "expected_signals": [
+        "retail_prize_fee_card",
+        "retail_lookalike_giveaway_domain"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "retail_prize_fee_card",
+          "retail_lookalike_giveaway_domain"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-082",
+      "family": "IMP-09",
+      "channel": "email",
+      "input_text": "Altex premii: ai câștigat telefon. Achită taxa de procesare prin card pe linkul neoficial.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "card",
+          "date_personale",
+          "shipping_fee",
+          "subscription",
+          "OTP"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "retail_lookalike_giveaway_domain",
+        "subscription_trap_prize"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "retail_lookalike_giveaway_domain",
+          "subscription_trap_prize"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-083",
+      "family": "IMP-09",
+      "channel": "html_email",
+      "input_text": "Brand giveaway: completează sondaj și primește voucher, dar formularul cere CNP și card.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "card",
+          "date_personale",
+          "shipping_fee",
+          "subscription",
+          "OTP"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "subscription_trap_prize",
+        "survey_reward_personal_data"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "subscription_trap_prize",
+          "survey_reward_personal_data"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-084",
+      "family": "IMP-09",
+      "channel": "social_dm",
+      "input_text": "Supermarket cadou: activează abonamentul trial pentru premiu, cost lunar ascuns după 3 zile.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "card",
+          "date_personale",
+          "shipping_fee",
+          "subscription",
+          "OTP"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "subscription_trap_prize",
+        "survey_reward_personal_data"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "subscription_trap_prize",
+          "survey_reward_personal_data"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-085",
+      "family": "IMP-09",
+      "channel": "sms",
+      "input_text": "Campanie retail: domeniu lookalike cu logo identic și countdown de 10 minute.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "card",
+          "date_personale",
+          "shipping_fee",
+          "subscription",
+          "OTP"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "subscription_trap_prize",
+        "survey_reward_personal_data"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "subscription_trap_prize",
+          "survey_reward_personal_data"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-S-086",
+      "family": "IMP-09",
+      "channel": "email",
+      "input_text": "Newsletter promoțional cu domeniu tracking încă neverificat.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "card",
+          "date_personale",
+          "shipping_fee",
+          "subscription",
+          "OTP"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [
+        "retail_prize_fee_card"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "pending_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "impersonation_possible",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "retail_prize_fee_card"
+        ]
+      },
+      "expected_final_verdict": "SUSPECT",
+      "why": "Pattern has context risk but lacks hard sensitive request/provider hit; atlas/corpus alone capped at SUSPECT."
+    },
+    {
+      "id": "OPIMP-S-087",
+      "family": "IMP-09",
+      "channel": "html_email",
+      "input_text": "Voucher retail pe link scurt, fără card/OTP până acum.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "card",
+          "date_personale",
+          "shipping_fee",
+          "subscription",
+          "OTP"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [
+        "retail_prize_fee_card"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "pending_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "impersonation_possible",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "retail_prize_fee_card"
+        ]
+      },
+      "expected_final_verdict": "SUSPECT",
+      "why": "Pattern has context risk but lacks hard sensitive request/provider hit; atlas/corpus alone capped at SUSPECT."
+    },
+    {
+      "id": "OPIMP-FP-088",
+      "family": "IMP-09",
+      "channel": "html_email",
+      "input_text": "eMAG newsletter promoțional care duce final la emag.ro, fără cerere card/CVV în link.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "card",
+          "date_personale",
+          "shipping_fee",
+          "subscription",
+          "OTP"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [],
+      "mocked_provider_results": {
+        "web_risk": "clean",
+        "urlhaus": "not_listed",
+        "phishing_db": "not_listed",
+        "urlscan": "clean_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "none",
+        "max_solo": "SIGUR",
+        "reason_codes": []
+      },
+      "expected_final_verdict": "SIGUR",
+      "why": "False-positive guard: official/established context, clean providers, no sensitive request, no wrong-channel payment."
+    },
+    {
+      "id": "OPIMP-FP-089",
+      "family": "IMP-09",
+      "channel": "social_dm",
+      "input_text": "Altex promo pe domeniu oficial altex.ro, fără taxă premiu.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "card",
+          "date_personale",
+          "shipping_fee",
+          "subscription",
+          "OTP"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [],
+      "mocked_provider_results": {
+        "web_risk": "clean",
+        "urlhaus": "not_listed",
+        "phishing_db": "not_listed",
+        "urlscan": "clean_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "none",
+        "max_solo": "SIGUR",
+        "reason_codes": []
+      },
+      "expected_final_verdict": "SIGUR",
+      "why": "False-positive guard: official/established context, clean providers, no sensitive request, no wrong-channel payment."
+    },
+    {
+      "id": "OPIMP-FP-090",
+      "family": "IMP-09",
+      "channel": "sms",
+      "input_text": "Campanie buyback telecom pe domeniu oficial, fără date bancare out-of-band.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "card",
+          "date_personale",
+          "shipping_fee",
+          "subscription",
+          "OTP"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [],
+      "mocked_provider_results": {
+        "web_risk": "clean",
+        "urlhaus": "not_listed",
+        "phishing_db": "not_listed",
+        "urlscan": "clean_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "none",
+        "max_solo": "SIGUR",
+        "reason_codes": []
+      },
+      "expected_final_verdict": "SIGUR",
+      "why": "False-positive guard: official/established context, clean providers, no sensitive request, no wrong-channel payment."
+    },
+    {
+      "id": "OPIMP-D-091",
+      "family": "IMP-10",
+      "channel": "social_dm",
+      "input_text": "Adăpost ONG: avem nevoie urgentă de hrană. Donați în contul personal al voluntarului, nu avem timp de firmă.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "card",
+          "crypto",
+          "date_personale"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "ngo_personal_iban",
+        "charity_crypto_giftcard"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "ngo_personal_iban",
+          "charity_crypto_giftcard"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-092",
+      "family": "IMP-10",
+      "channel": "email",
+      "input_text": "Cauză umanitară: donații doar prin USDT QR, fiecare minut contează.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "card",
+          "crypto",
+          "date_personale"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "charity_crypto_giftcard",
+        "urgent_emotional_no_entity"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "charity_crypto_giftcard",
+          "urgent_emotional_no_entity"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-093",
+      "family": "IMP-10",
+      "channel": "qr",
+      "input_text": "ONG fals trimite PDF cu logo, fără CUI, cere transfer pe Revolut personal.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "card",
+          "crypto",
+          "date_personale"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "urgent_emotional_no_entity",
+        "reused_images_charity"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "urgent_emotional_no_entity",
+          "reused_images_charity"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-094",
+      "family": "IMP-10",
+      "channel": "ocr_image",
+      "input_text": "Campanie pentru copil bolnav cere card/CVV pentru donație recurentă pe domeniu neoficial.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "card",
+          "crypto",
+          "date_personale"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "urgent_emotional_no_entity",
+        "reused_images_charity"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "urgent_emotional_no_entity",
+          "reused_images_charity"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-095",
+      "family": "IMP-10",
+      "channel": "social_dm",
+      "input_text": "Poze dramatice reutilizate în altă țară, link de donație pe charity-help.test",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "card",
+          "crypto",
+          "date_personale"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "urgent_emotional_no_entity",
+        "reused_images_charity"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "urgent_emotional_no_entity",
+          "reused_images_charity"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-S-096",
+      "family": "IMP-10",
+      "channel": "email",
+      "input_text": "Campanie donație cu cont organizație, dar CUI lipsă din text.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "card",
+          "crypto",
+          "date_personale"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [
+        "ngo_personal_iban"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "pending_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "impersonation_possible",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "ngo_personal_iban"
+        ]
+      },
+      "expected_final_verdict": "SUSPECT",
+      "why": "Pattern has context risk but lacks hard sensitive request/provider hit; atlas/corpus alone capped at SUSPECT."
+    },
+    {
+      "id": "OPIMP-S-097",
+      "family": "IMP-10",
+      "channel": "qr",
+      "input_text": "Postare emoțională cu link de donație necunoscut, fără card/crypto.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "card",
+          "crypto",
+          "date_personale"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [
+        "ngo_personal_iban"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "pending_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "impersonation_possible",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "ngo_personal_iban"
+        ]
+      },
+      "expected_final_verdict": "SUSPECT",
+      "why": "Pattern has context risk but lacks hard sensitive request/provider hit; atlas/corpus alone capped at SUSPECT."
+    },
+    {
+      "id": "OPIMP-FP-098",
+      "family": "IMP-10",
+      "channel": "qr",
+      "input_text": "ONG cunoscut pe domeniu oficial cu cont de organizație și CUI afișat.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "card",
+          "crypto",
+          "date_personale"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [],
+      "mocked_provider_results": {
+        "web_risk": "clean",
+        "urlhaus": "not_listed",
+        "phishing_db": "not_listed",
+        "urlscan": "clean_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "none",
+        "max_solo": "SIGUR",
+        "reason_codes": []
+      },
+      "expected_final_verdict": "SIGUR",
+      "why": "False-positive guard: official/established context, clean providers, no sensitive request, no wrong-channel payment."
+    },
+    {
+      "id": "OPIMP-FP-099",
+      "family": "IMP-10",
+      "channel": "ocr_image",
+      "input_text": "Platformă donație oficială cu procesator cunoscut și fără crypto/gift card.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "card",
+          "crypto",
+          "date_personale"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [],
+      "mocked_provider_results": {
+        "web_risk": "clean",
+        "urlhaus": "not_listed",
+        "phishing_db": "not_listed",
+        "urlscan": "clean_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "none",
+        "max_solo": "SIGUR",
+        "reason_codes": []
+      },
+      "expected_final_verdict": "SIGUR",
+      "why": "False-positive guard: official/established context, clean providers, no sensitive request, no wrong-channel payment."
+    },
+    {
+      "id": "OPIMP-FP-100",
+      "family": "IMP-10",
+      "channel": "social_dm",
+      "input_text": "Campanie umanitară în presă cu link către site oficial al organizației.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "card",
+          "crypto",
+          "date_personale"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [],
+      "mocked_provider_results": {
+        "web_risk": "clean",
+        "urlhaus": "not_listed",
+        "phishing_db": "not_listed",
+        "urlscan": "clean_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "none",
+        "max_solo": "SIGUR",
+        "reason_codes": []
+      },
+      "expected_final_verdict": "SIGUR",
+      "why": "False-positive guard: official/established context, clean providers, no sensitive request, no wrong-channel payment."
+    },
+    {
+      "id": "OPIMP-D-101",
+      "family": "IMP-11",
+      "channel": "social_dm",
+      "input_text": "Sunt medic militar în misiune și vreau să vin în România. Am nevoie de bani pentru bilet, trimite prin gift card.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "gift_card",
+          "crypto",
+          "date_personale"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "romance_money_emergency",
+        "romance_refuses_video_meet"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "romance_money_emergency",
+          "romance_refuses_video_meet"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-102",
+      "family": "IMP-11",
+      "channel": "whatsapp",
+      "input_text": "Te iubesc, dar mi-au blocat contul în vamă. Plătește taxa coletului pe linkul dhl-gift-package.test.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "gift_card",
+          "crypto",
+          "date_personale"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "romance_refuses_video_meet",
+        "romance_giftcard_crypto"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "romance_refuses_video_meet",
+          "romance_giftcard_crypto"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-103",
+      "family": "IMP-11",
+      "channel": "email",
+      "input_text": "Refuz video din motive de securitate militară; trimite crypto pentru spital.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "gift_card",
+          "crypto",
+          "date_personale"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "romance_giftcard_crypto",
+        "romance_package_customs_fee"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "romance_giftcard_crypto",
+          "romance_package_customs_fee"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-104",
+      "family": "IMP-11",
+      "channel": "social_dm",
+      "input_text": "Marinar străin cere taxă de eliberare a pachetului cu aur prin MoneyGram.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "gift_card",
+          "crypto",
+          "date_personale"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "romance_giftcard_crypto",
+        "romance_package_customs_fee"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "romance_giftcard_crypto",
+          "romance_package_customs_fee"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-105",
+      "family": "IMP-11",
+      "channel": "whatsapp",
+      "input_text": "Partener online cere coduri voucher pentru urgența familiei.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "gift_card",
+          "crypto",
+          "date_personale"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "romance_giftcard_crypto",
+        "romance_package_customs_fee"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "romance_giftcard_crypto",
+          "romance_package_customs_fee"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-S-106",
+      "family": "IMP-11",
+      "channel": "whatsapp",
+      "input_text": "Relație online cere ajutor emoțional, nu bani încă.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "gift_card",
+          "crypto",
+          "date_personale"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [
+        "romance_money_emergency"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "pending_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "impersonation_possible",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "romance_money_emergency"
+        ]
+      },
+      "expected_final_verdict": "SUSPECT",
+      "why": "Pattern has context risk but lacks hard sensitive request/provider hit; atlas/corpus alone capped at SUSPECT."
+    },
+    {
+      "id": "OPIMP-S-107",
+      "family": "IMP-11",
+      "channel": "email",
+      "input_text": "Persoană străină vorbește despre colet, fără plată încă.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "gift_card",
+          "crypto",
+          "date_personale"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [
+        "romance_money_emergency"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "pending_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "impersonation_possible",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "romance_money_emergency"
+        ]
+      },
+      "expected_final_verdict": "SUSPECT",
+      "why": "Pattern has context risk but lacks hard sensitive request/provider hit; atlas/corpus alone capped at SUSPECT."
+    },
+    {
+      "id": "OPIMP-FP-108",
+      "family": "IMP-11",
+      "channel": "email",
+      "input_text": "Mesaj romantic normal fără cerere de bani, card, crypto sau documente.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "gift_card",
+          "crypto",
+          "date_personale"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [],
+      "mocked_provider_results": {
+        "web_risk": "clean",
+        "urlhaus": "not_listed",
+        "phishing_db": "not_listed",
+        "urlscan": "clean_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "none",
+        "max_solo": "SIGUR",
+        "reason_codes": []
+      },
+      "expected_final_verdict": "SIGUR",
+      "why": "False-positive guard: official/established context, clean providers, no sensitive request, no wrong-channel payment."
+    },
+    {
+      "id": "OPIMP-FP-109",
+      "family": "IMP-11",
+      "channel": "social_dm",
+      "input_text": "Apel video verificat cu persoană cunoscută offline, fără transferuri.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "gift_card",
+          "crypto",
+          "date_personale"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [],
+      "mocked_provider_results": {
+        "web_risk": "clean",
+        "urlhaus": "not_listed",
+        "phishing_db": "not_listed",
+        "urlscan": "clean_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "none",
+        "max_solo": "SIGUR",
+        "reason_codes": []
+      },
+      "expected_final_verdict": "SIGUR",
+      "why": "False-positive guard: official/established context, clean providers, no sensitive request, no wrong-channel payment."
+    },
+    {
+      "id": "OPIMP-FP-110",
+      "family": "IMP-11",
+      "channel": "whatsapp",
+      "input_text": "Discuție socială fără urgență financiară sau pachet.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "bani",
+          "gift_card",
+          "crypto",
+          "date_personale"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [],
+      "mocked_provider_results": {
+        "web_risk": "clean",
+        "urlhaus": "not_listed",
+        "phishing_db": "not_listed",
+        "urlscan": "clean_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "none",
+        "max_solo": "SIGUR",
+        "reason_codes": []
+      },
+      "expected_final_verdict": "SIGUR",
+      "why": "False-positive guard: official/established context, clean providers, no sensitive request, no wrong-channel payment."
+    },
+    {
+      "id": "OPIMP-D-111",
+      "family": "IMP-12",
+      "channel": "email",
+      "input_text": "Interpol: sunteți acuzat în dosar internațional. Plătiți amenda în Bitcoin în 24h.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "crypto",
+          "gift_card",
+          "bani",
+          "date_personale"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "sextortion_crypto_wallet",
+        "fake_international_police_pdf"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "sextortion_crypto_wallet",
+          "fake_international_police_pdf"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-112",
+      "family": "IMP-12",
+      "channel": "pdf",
+      "input_text": "Avocat internațional: pentru oprirea publicării materialelor intime cumpărați carduri cadou.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "crypto",
+          "gift_card",
+          "bani",
+          "date_personale"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "fake_international_police_pdf",
+        "legal_threat_giftcard"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "fake_international_police_pdf",
+          "legal_threat_giftcard"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-113",
+      "family": "IMP-12",
+      "channel": "html_email",
+      "input_text": "PDF cu siglă Europol cere taxă procedurală prin crypto.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "crypto",
+          "gift_card",
+          "bani",
+          "date_personale"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "legal_threat_giftcard",
+        "fear_keep_secret_pressure"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "legal_threat_giftcard",
+          "fear_keep_secret_pressure"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-114",
+      "family": "IMP-12",
+      "channel": "ocr_image",
+      "input_text": "Hacker: avem filmări de pe cameră, trimite BTC la wallet sau trimitem contactelor.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "crypto",
+          "gift_card",
+          "bani",
+          "date_personale"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "legal_threat_giftcard",
+        "fear_keep_secret_pressure"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "legal_threat_giftcard",
+          "fear_keep_secret_pressure"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-D-115",
+      "family": "IMP-12",
+      "channel": "email",
+      "input_text": "Instanță străină: nu spune nimănui și plătește pe walletul din document.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "crypto",
+          "gift_card",
+          "bani",
+          "date_personale"
+        ],
+        "sensitive_request": true,
+        "has_url": false
+      },
+      "expected_signals": [
+        "legal_threat_giftcard",
+        "fear_keep_secret_pressure"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "not_run",
+        "note": "deterministic/local evidence enough unless provider mock overrides"
+      },
+      "expected_semantic_review": {
+        "risk_class": "known_scenario_match",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "legal_threat_giftcard",
+          "fear_keep_secret_pressure"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "High-risk impersonation with sensitive request/wrong channel/payment pressure; deterministic combo should escalate."
+    },
+    {
+      "id": "OPIMP-S-116",
+      "family": "IMP-12",
+      "channel": "pdf",
+      "input_text": "Email legal threat fără wallet/plată, dar cu atașament PDF.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "crypto",
+          "gift_card",
+          "bani",
+          "date_personale"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [
+        "sextortion_crypto_wallet"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "pending_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "impersonation_possible",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "sextortion_crypto_wallet"
+        ]
+      },
+      "expected_final_verdict": "SUSPECT",
+      "why": "Pattern has context risk but lacks hard sensitive request/provider hit; atlas/corpus alone capped at SUSPECT."
+    },
+    {
+      "id": "OPIMP-S-117",
+      "family": "IMP-12",
+      "channel": "html_email",
+      "input_text": "Mesaj de la avocat necunoscut, fără cerere bani încă.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "crypto",
+          "gift_card",
+          "bani",
+          "date_personale"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [
+        "sextortion_crypto_wallet"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "no_match",
+        "urlhaus": "no_match",
+        "phishing_db": "no_match",
+        "urlscan": "pending_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "impersonation_possible",
+        "max_solo": "SUSPECT",
+        "reason_codes": [
+          "sextortion_crypto_wallet"
+        ]
+      },
+      "expected_final_verdict": "SUSPECT",
+      "why": "Pattern has context risk but lacks hard sensitive request/provider hit; atlas/corpus alone capped at SUSPECT."
+    },
+    {
+      "id": "OPIMP-FP-118",
+      "family": "IMP-12",
+      "channel": "html_email",
+      "input_text": "Articol Microsoft despre sextortion/tech support scams, fără wallet sau plată.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "crypto",
+          "gift_card",
+          "bani",
+          "date_personale"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [],
+      "mocked_provider_results": {
+        "web_risk": "clean",
+        "urlhaus": "not_listed",
+        "phishing_db": "not_listed",
+        "urlscan": "clean_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "none",
+        "max_solo": "SIGUR",
+        "reason_codes": []
+      },
+      "expected_final_verdict": "SIGUR",
+      "why": "False-positive guard: official/established context, clean providers, no sensitive request, no wrong-channel payment."
+    },
+    {
+      "id": "OPIMP-FP-119",
+      "family": "IMP-12",
+      "channel": "ocr_image",
+      "input_text": "Document oficial verificat pe portal instituțional, fără gift card/crypto.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "crypto",
+          "gift_card",
+          "bani",
+          "date_personale"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [],
+      "mocked_provider_results": {
+        "web_risk": "clean",
+        "urlhaus": "not_listed",
+        "phishing_db": "not_listed",
+        "urlscan": "clean_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "none",
+        "max_solo": "SIGUR",
+        "reason_codes": []
+      },
+      "expected_final_verdict": "SIGUR",
+      "why": "False-positive guard: official/established context, clean providers, no sensitive request, no wrong-channel payment."
+    },
+    {
+      "id": "OPIMP-FP-120",
+      "family": "IMP-12",
+      "channel": "email",
+      "input_text": "Email legal real de la avocat cunoscut, verificat telefonic pe număr existent.",
+      "urls": [],
+      "expected_extractions": {
+        "identity_claimed": [
+          "crypto",
+          "gift_card",
+          "bani",
+          "date_personale"
+        ],
+        "sensitive_request": false,
+        "has_url": false
+      },
+      "expected_signals": [],
+      "mocked_provider_results": {
+        "web_risk": "clean",
+        "urlhaus": "not_listed",
+        "phishing_db": "not_listed",
+        "urlscan": "clean_or_skipped"
+      },
+      "expected_semantic_review": {
+        "risk_class": "none",
+        "max_solo": "SIGUR",
+        "reason_codes": []
+      },
+      "expected_final_verdict": "SIGUR",
+      "why": "False-positive guard: official/established context, clean providers, no sensitive request, no wrong-channel payment."
+    },
+    {
+      "id": "imp_d_001",
+      "family": "IMP-01",
+      "channel": "sms",
+      "input_text": "ANAF: Aveti o obligatie fiscala restanta. Pentru a evita suspendarea, achitati acum si confirmati datele cardului.",
+      "urls": [
+        "https://anaf-plata-secure.example"
+      ],
+      "expected_extractions": {
+        "brands": [
+          "ANAF"
+        ],
+        "requested": [
+          "card",
+          "cvv"
+        ],
+        "links": [
+          "https://anaf-plata-secure.example"
+        ]
+      },
+      "expected_signals": [
+        "state_brand_on_wrong_channel_asks_payment",
+        "lookalike_or_non_official_domain"
+      ],
+      "mocked_provider_results": {
+        "final_url": "https://anaf-plata-secure.example",
+        "web_risk": "MALICIOUS",
+        "urlhaus": "HIT",
+        "domain_age_days": 2
+      },
+      "expected_semantic_review": {
+        "risk_class": "dangerous",
+        "reason_codes": [
+          "STATE_BRAND",
+          "ASK_CARD",
+          "MALICIOUS_URL",
+          "BRAND_MISMATCH"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "Institutie de stat + cerere card + domeniu neoficial cu hit provider."
+    },
+    {
+      "id": "imp_d_002",
+      "family": "IMP-02",
+      "channel": "phone_transcript",
+      "input_text": "Buna ziua, sun de la banca impreuna cu Politia. Aveti un credit fraudulos in desfasurare, mutati urgent fondurile intr-un cont sigur pe care vi-l dictam.",
+      "urls": [],
+      "expected_extractions": {
+        "brands": [
+          "banca",
+          "Politia"
+        ],
+        "requested": [
+          "transfer"
+        ],
+        "phrases": [
+          "cont sigur"
+        ]
+      },
+      "expected_signals": [
+        "safe_account_request"
+      ],
+      "mocked_provider_results": {
+        "caller_id": "spoofed_local",
+        "web_risk": "N/A",
+        "urlhaus": "N/A"
+      },
+      "expected_semantic_review": {
+        "risk_class": "dangerous",
+        "reason_codes": [
+          "SAFE_ACCOUNT",
+          "PHONE_SPOOFING_PATTERN"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "Regula este hard: safe account in numele bancii/politiei."
+    },
+    {
+      "id": "imp_d_003",
+      "family": "IMP-03",
+      "channel": "sms",
+      "input_text": "FAN Courier: coletul tau nu poate fi livrat pana nu alegi lockerul si achiti taxa de 7,99 lei.",
+      "urls": [
+        "https://fan-locker-choice.example"
+      ],
+      "expected_extractions": {
+        "brands": [
+          "FAN Courier"
+        ],
+        "requested": [
+          "card"
+        ],
+        "links": [
+          "https://fan-locker-choice.example"
+        ]
+      },
+      "expected_signals": [
+        "courier_tiny_fee_card_request",
+        "lookalike_or_non_official_domain"
+      ],
+      "mocked_provider_results": {
+        "final_url": "https://fan-locker-choice.example",
+        "web_risk": "MALICIOUS",
+        "urlhaus": "HIT",
+        "domain_age_days": 1
+      },
+      "expected_semantic_review": {
+        "risk_class": "dangerous",
+        "reason_codes": [
+          "COURIER_FEE",
+          "ASK_CARD",
+          "MALICIOUS_URL"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "Tipar documentat oficial de FAN."
+    },
+    {
+      "id": "imp_d_004",
+      "family": "IMP-04",
+      "channel": "ocr_image",
+      "input_text": "Windows Defender Alert! Sunati imediat la numarul afisat. Dispozitivul este compromis.",
+      "urls": [
+        "https://microsoft-secure-assist.example"
+      ],
+      "expected_extractions": {
+        "brands": [
+          "Microsoft"
+        ],
+        "requested": [
+          "call",
+          "remote_access"
+        ],
+        "links": [
+          "https://microsoft-secure-assist.example"
+        ]
+      },
+      "expected_signals": [
+        "remote_access_requested"
+      ],
+      "mocked_provider_results": {
+        "final_url": "https://microsoft-secure-assist.example",
+        "web_risk": "MALICIOUS",
+        "urlhaus": "MISS",
+        "domain_age_days": 5
+      },
+      "expected_semantic_review": {
+        "risk_class": "dangerous",
+        "reason_codes": [
+          "TECH_SUPPORT_SCAM",
+          "REMOTE_ACCESS"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "Pop-up + numar de telefon + remote access = hard dangerous."
+    },
+    {
+      "id": "imp_d_005",
+      "family": "IMP-05",
+      "channel": "whatsapp",
+      "input_text": "Buna, sunt eu. Mi s-a stricat telefonul, salveaza numarul nou si trimite-mi acum 1280 lei, iti dau inapoi seara.",
+      "urls": [],
+      "expected_extractions": {
+        "brands": [],
+        "requested": [
+          "transfer"
+        ],
+        "social": [
+          "whatsapp"
+        ]
+      },
+      "expected_signals": [
+        "safe_account_request"
+      ],
+      "mocked_provider_results": {
+        "web_risk": "N/A"
+      },
+      "expected_semantic_review": {
+        "risk_class": "dangerous",
+        "reason_codes": [
+          "IMPERSONATED_RELATIVE",
+          "URGENT_TRANSFER"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "Urgenta emotionala + numar nou + cerere de bani."
+    },
+    {
+      "id": "imp_d_006",
+      "family": "IMP-06",
+      "channel": "email",
+      "input_text": "Salut, foloseste noul IBAN din factura atasata. E o plata sensibila, nu implica pe nimeni altcineva si trimite confirmarea azi.",
+      "urls": [],
+      "expected_extractions": {
+        "brands": [
+          "furnizor",
+          "CEO"
+        ],
+        "requested": [
+          "transfer"
+        ],
+        "attachments": [
+          "invoice.pdf"
+        ]
+      },
+      "expected_signals": [
+        "bec_supplier_iban_change"
+      ],
+      "mocked_provider_results": {
+        "sender_domain_reputation": "unknown",
+        "web_risk": "N/A"
+      },
+      "expected_semantic_review": {
+        "risk_class": "dangerous",
+        "reason_codes": [
+          "BEC",
+          "IBAN_CHANGE",
+          "PROCESS_BYPASS"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "Schimbare IBAN + confidentialitate + urgenta."
+    },
+    {
+      "id": "imp_d_007",
+      "family": "IMP-07",
+      "channel": "social_dm",
+      "input_text": "Guvernatorul BNR explica in video cum poti dubla investitia daca intri azi. Completeaza formularul si vei fi sunat de consultant.",
+      "urls": [
+        "https://bnr-profit-fast.example"
+      ],
+      "expected_extractions": {
+        "brands": [
+          "BNR"
+        ],
+        "requested": [
+          "lead_form"
+        ],
+        "links": [
+          "https://bnr-profit-fast.example"
+        ]
+      },
+      "expected_signals": [
+        "deepfake_investment_with_lead_form",
+        "lookalike_or_non_official_domain"
+      ],
+      "mocked_provider_results": {
+        "final_url": "https://bnr-profit-fast.example",
+        "web_risk": "MALICIOUS",
+        "urlhaus": "MISS",
+        "domain_age_days": 3
+      },
+      "expected_semantic_review": {
+        "risk_class": "dangerous",
+        "reason_codes": [
+          "DEEPFAKE_INVESTMENT",
+          "BRAND_MISMATCH"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "BNR a avertizat explicit asupra acestui tipar."
+    },
+    {
+      "id": "imp_d_008",
+      "family": "IMP-08",
+      "channel": "whatsapp",
+      "input_text": "Sunt cumparatorul de pe OLX. Ca sa primesti banii, intra pe linkul de livrare securizata si completeaza cardul.",
+      "urls": [
+        "https://olx-livrare-pay.example"
+      ],
+      "expected_extractions": {
+        "brands": [
+          "OLX"
+        ],
+        "requested": [
+          "card"
+        ],
+        "links": [
+          "https://olx-livrare-pay.example"
+        ]
+      },
+      "expected_signals": [
+        "marketplace_payment_link",
+        "lookalike_or_non_official_domain"
+      ],
+      "mocked_provider_results": {
+        "final_url": "https://olx-livrare-pay.example",
+        "web_risk": "MALICIOUS",
+        "urlhaus": "HIT",
+        "domain_age_days": 1
+      },
+      "expected_semantic_review": {
+        "risk_class": "dangerous",
+        "reason_codes": [
+          "OLX_PHISHING",
+          "ASK_CARD"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "OLX spune explicit ca nu furnizeaza asemenea linkuri."
+    },
+    {
+      "id": "imp_d_009",
+      "family": "IMP-09",
+      "channel": "sms",
+      "input_text": "Felicitari! Ai castigat voucher eMAG 1000 lei. Achita doar 9,99 lei taxa de procesare pentru activare.",
+      "urls": [
+        "https://voucher-emag-fast.example"
+      ],
+      "expected_extractions": {
+        "brands": [
+          "eMAG"
+        ],
+        "requested": [
+          "card"
+        ],
+        "links": [
+          "https://voucher-emag-fast.example"
+        ]
+      },
+      "expected_signals": [
+        "lookalike_or_non_official_domain"
+      ],
+      "mocked_provider_results": {
+        "final_url": "https://voucher-emag-fast.example",
+        "web_risk": "MALICIOUS",
+        "urlhaus": "MISS",
+        "domain_age_days": 6
+      },
+      "expected_semantic_review": {
+        "risk_class": "dangerous",
+        "reason_codes": [
+          "FAKE_GIVEAWAY",
+          "ASK_CARD",
+          "BRAND_MISMATCH"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "Premiu improbabil + taxa mica + domeniu neoficial."
+    },
+    {
+      "id": "imp_d_010",
+      "family": "IMP-10",
+      "channel": "qr",
+      "input_text": "Doneaza pentru copiii afectati de incendiu. Scaneaza QR-ul si trimite pe contul personal al coordonatorului.",
+      "urls": [
+        "https://donatie-urgenta-help.example"
+      ],
+      "expected_extractions": {
+        "brands": [
+          "ONG"
+        ],
+        "requested": [
+          "transfer"
+        ],
+        "links": [
+          "https://donatie-urgenta-help.example"
+        ]
+      },
+      "expected_signals": [
+        "lookalike_or_non_official_domain"
+      ],
+      "mocked_provider_results": {
+        "final_url": "https://donatie-urgenta-help.example",
+        "web_risk": "UNKNOWN",
+        "urlhaus": "MISS",
+        "domain_age_days": 2
+      },
+      "expected_semantic_review": {
+        "risk_class": "dangerous",
+        "reason_codes": [
+          "FAKE_DONATION",
+          "PERSONAL_ACCOUNT",
+          "EMOTIONAL_PRESSURE"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "Urgenta emotionala + canal neverificat + cont personal."
+    },
+    {
+      "id": "imp_d_011",
+      "family": "IMP-11",
+      "channel": "social_dm",
+      "input_text": "Sunt medic militar in misiune. Am nevoie sa platesti taxele pentru coletul meu si sa imi trimiti o copie dupa buletin pentru rezervare.",
+      "urls": [
+        "https://parcel-release-fee.example"
+      ],
+      "expected_extractions": {
+        "brands": [],
+        "requested": [
+          "transfer",
+          "copy_id"
+        ],
+        "links": [
+          "https://parcel-release-fee.example"
+        ]
+      },
+      "expected_signals": [
+        "lookalike_or_non_official_domain"
+      ],
+      "mocked_provider_results": {
+        "final_url": "https://parcel-release-fee.example",
+        "web_risk": "UNKNOWN",
+        "domain_age_days": 7
+      },
+      "expected_semantic_review": {
+        "risk_class": "dangerous",
+        "reason_codes": [
+          "ROMANCE_SCAM",
+          "COPY_ID_REQUEST",
+          "FAKE_PARCEL_FEE"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "Tipar romance scam + bani + identitate."
+    },
+    {
+      "id": "imp_d_012",
+      "family": "IMP-12",
+      "channel": "email",
+      "input_text": "Europol Office: aveti un dosar sensibil. Pentru inchiderea urgenta a procedurii, achitati in Bitcoin in urmatoarele 6 ore.",
+      "urls": [
+        "https://europol-case-close.example"
+      ],
+      "expected_extractions": {
+        "brands": [
+          "Europol"
+        ],
+        "requested": [
+          "crypto_payment"
+        ],
+        "links": [
+          "https://europol-case-close.example"
+        ]
+      },
+      "expected_signals": [
+        "gift_card_or_crypto_payment",
+        "state_brand_on_wrong_channel_asks_payment"
+      ],
+      "mocked_provider_results": {
+        "final_url": "https://europol-case-close.example",
+        "web_risk": "MALICIOUS",
+        "urlhaus": "MISS",
+        "domain_age_days": 4
+      },
+      "expected_semantic_review": {
+        "risk_class": "dangerous",
+        "reason_codes": [
+          "FAKE_AUTHORITY",
+          "BITCOIN_PAYMENT",
+          "LEGAL_THREAT"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "Autoritate + bitcoin + termen scurt."
+    },
+    {
+      "id": "imp_d_013",
+      "family": "IMP-13",
+      "channel": "sms",
+      "input_text": "Electrica Furnizare: serviciul va fi intrerupt astazi pentru neplata. Platiti soldul prin linkul de mai jos.",
+      "urls": [
+        "https://electrica-bill-settle.example"
+      ],
+      "expected_extractions": {
+        "brands": [
+          "Electrica Furnizare"
+        ],
+        "requested": [
+          "payment"
+        ],
+        "links": [
+          "https://electrica-bill-settle.example"
+        ]
+      },
+      "expected_signals": [
+        "utility_disconnect_link",
+        "lookalike_or_non_official_domain"
+      ],
+      "mocked_provider_results": {
+        "final_url": "https://electrica-bill-settle.example",
+        "web_risk": "MALICIOUS",
+        "urlhaus": "HIT",
+        "domain_age_days": 1
+      },
+      "expected_semantic_review": {
+        "risk_class": "dangerous",
+        "reason_codes": [
+          "UTILITY_DISCONNECT",
+          "BRAND_MISMATCH",
+          "MALICIOUS_URL"
+        ]
+      },
+      "expected_final_verdict": "PERICULOS",
+      "why": "Electrica a documentat explicit tiparul si canalul legitim 1874."
+    },
+    {
+      "id": "imp_s_001",
+      "family": "IMP-03",
+      "channel": "sms",
+      "input_text": "Coletul tau este in tranzit. Verifica statusul aici.",
+      "urls": [
+        "https://track-package-fast.example"
+      ],
+      "expected_extractions": {
+        "requested": [
+          "tracking"
+        ],
+        "links": [
+          "https://track-package-fast.example"
+        ]
+      },
+      "expected_signals": [
+        "lookalike_or_non_official_domain"
+      ],
+      "mocked_provider_results": {
+        "final_url": "https://track-package-fast.example",
+        "web_risk": "UNKNOWN",
+        "urlhaus": "MISS",
+        "domain_age_days": 12
+      },
+      "expected_semantic_review": {
+        "risk_class": "suspect",
+        "reason_codes": [
+          "TRACKING_LINK_UNKNOWN"
+        ]
+      },
+      "expected_final_verdict": "SUSPECT",
+      "why": "Doar tracking si domeniu neconfirmat, fara cerere sensibila."
+    },
+    {
+      "id": "imp_s_002",
+      "family": "IMP-09",
+      "channel": "html_email",
+      "input_text": "Super oferta valabila azi. Deschide pagina si vezi produsele favorite.",
+      "urls": [
+        "https://super-price-deals.example"
+      ],
+      "expected_extractions": {
+        "requested": [
+          "visit_page"
+        ],
+        "links": [
+          "https://super-price-deals.example"
+        ]
+      },
+      "expected_signals": [
+        "marketing_only_or_hidden_link_only"
+      ],
+      "mocked_provider_results": {
+        "final_url": "https://super-price-deals.example",
+        "web_risk": "UNKNOWN",
+        "urlhaus": "MISS",
+        "domain_age_days": 15
+      },
+      "expected_semantic_review": {
+        "risk_class": "suspect",
+        "reason_codes": [
+          "MARKETING_ONLY",
+          "UNKNOWN_DOMAIN"
+        ]
+      },
+      "expected_final_verdict": "SUSPECT",
+      "why": "Marketing heavy si domeniu neconfirmat, fara cerere sensibila."
+    },
+    {
+      "id": "imp_s_003",
+      "family": "IMP-06",
+      "channel": "pdf",
+      "input_text": "Factura actualizata pentru luna curenta. Va rugam sa verificati datele de plata.",
+      "urls": [],
+      "expected_extractions": {
+        "attachments": [
+          "factura.pdf"
+        ]
+      },
+      "expected_signals": [
+        "bec_supplier_iban_change"
+      ],
+      "mocked_provider_results": {
+        "sender_domain_reputation": "neutral"
+      },
+      "expected_semantic_review": {
+        "risk_class": "suspect",
+        "reason_codes": [
+          "POTENTIAL_IBAN_CHANGE"
+        ]
+      },
+      "expected_final_verdict": "SUSPECT",
+      "why": "Doar schimbare potentiala de coordonate, fara alte dovezi tehnice inline."
+    },
+    {
+      "id": "imp_safe_001",
+      "family": "IMP-02",
+      "channel": "sms",
+      "input_text": "BCR: Codul tau de autorizare este 593821. Nu il comunica nimanui.",
+      "urls": [],
+      "expected_extractions": {
+        "brands": [
+          "BCR"
+        ],
+        "requested": []
+      },
+      "expected_signals": [],
+      "mocked_provider_results": {
+        "sender_status": "official_sms_sender",
+        "web_risk": "N/A"
+      },
+      "expected_semantic_review": {
+        "risk_class": "safe",
+        "reason_codes": [
+          "LEGIT_SECURITY_MESSAGE"
+        ]
+      },
+      "expected_final_verdict": "SIGUR",
+      "why": "Mesaj de securitate legitim, fara cerere de a divulga codul."
+    },
+    {
+      "id": "imp_safe_002",
+      "family": "IMP-03",
+      "channel": "link",
+      "input_text": "Urmareste AWB-ul tau in contul OLX sau pe site-ul curierului.",
+      "urls": [
+        "https://livrare.olx.ro/intrebari-frecvente/"
+      ],
+      "expected_extractions": {
+        "brands": [
+          "OLX"
+        ],
+        "requested": [],
+        "links": [
+          "https://livrare.olx.ro/intrebari-frecvente/"
+        ]
+      },
+      "expected_signals": [],
+      "mocked_provider_results": {
+        "final_url": "https://livrare.olx.ro/intrebari-frecvente/",
+        "web_risk": "SAFE",
+        "urlhaus": "MISS"
+      },
+      "expected_semantic_review": {
+        "risk_class": "safe",
+        "reason_codes": [
+          "OFFICIAL_DOMAIN",
+          "NO_SENSITIVE_REQUEST"
+        ]
+      },
+      "expected_final_verdict": "SIGUR",
+      "why": "Domeniu oficial si mesaj fara cerere sensibila."
+    },
+    {
+      "id": "imp_safe_003",
+      "family": "IMP-13",
+      "channel": "sms",
+      "input_text": "Electrica Furnizare: verifica factura in contul tau MyElectrica.",
+      "urls": [
+        "https://www.electricafurnizare.ro/"
+      ],
+      "expected_extractions": {
+        "brands": [
+          "Electrica Furnizare"
+        ],
+        "requested": [],
+        "links": [
+          "https://www.electricafurnizare.ro/"
+        ]
+      },
+      "expected_signals": [],
+      "mocked_provider_results": {
+        "final_url": "https://www.electricafurnizare.ro/",
+        "web_risk": "SAFE",
+        "urlhaus": "MISS"
+      },
+      "expected_semantic_review": {
+        "risk_class": "safe",
+        "reason_codes": [
+          "OFFICIAL_DOMAIN",
+          "NO_SENSITIVE_REQUEST"
+        ]
+      },
+      "expected_final_verdict": "SIGUR",
+      "why": "Link oficial, fara card/OTP si compatibil cu canalele comunicate public."
+    }
+  ]
+}
