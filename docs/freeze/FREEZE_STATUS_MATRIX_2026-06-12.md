@@ -7,8 +7,8 @@ Status: proof-led, not marketing-led. Nothing is green unless there is a rerunna
 - Repo: `/Users/vaduvageorge/AndroidStudioProjects/SigurScan`
 - Branch: `main`
 - GitHub: `origin/main`
-- Current repo head before this proof update: `45b5663`
-- Deployed Cloud Run code image: `45b5663`
+- Current repo head before this proof update: `4918162`
+- Deployed Cloud Run code image: `4918162`
 - API domain: `https://api.sigurscan.com`
 - Cloud project id: `project-20f225c0-d756-4cba-864`
 - Cloud Run service: `sigurscan-api`, region `europe-west1`
@@ -33,12 +33,12 @@ Evidence:
 
 | Zone | Area | Status | Proof / Gap |
 | --- | --- | --- | --- |
-| 1 | Cloud Run runtime | Green for current release posture | Live service is healthy behind `api.sigurscan.com`, min instances is `1`, request-based CPU is preserved, budget + latency alert exist. Reproducible hash-locked container is deployed as revision `sigurscan-api-00024-46n` on code image `45b5663`, digest `sha256:fb1dc18409350b592e3c946928b500dd90832b61b4201e8d6ff7b4e765dd6506`, traffic `100%`. Five concurrent text-only scans pass through both official and direct Run paths. Rollback to `00022-wj8` and restore to `00023-58k` were executed successfully before the latest cache-stats patch; rollback remains mechanically proven. Optional: quota-bounded URL-provider concurrency; prior isolated client timeout remains a watch item. |
+| 1 | Cloud Run runtime | Green for current release posture | Live service is healthy behind `api.sigurscan.com`, min instances is `1`, request-based CPU is preserved, budget + latency alert exist. Reproducible hash-locked container is deployed as revision `sigurscan-api-00025-vg5` on code image `4918162`, digest `sha256:1951be05e620f71b74923f4d6460ab36f322767f98f14987e38ff20eea11d1c7`, traffic `100%`. Five concurrent text-only scans pass through both official and direct Run paths. Rollback to `00022-wj8` and restore to `00023-58k` were executed successfully before the latest cache-stats/PDF patches; rollback remains mechanically proven. Optional: quota-bounded URL-provider concurrency; prior isolated client timeout remains a watch item. |
 | 2 | Cloudflare/domain | Green for API edge posture | `https://api.sigurscan.com/health` is live through Cloudflare and Android UA is accepted. HTTP now redirects to HTTPS with `308`, TLS SAN covers `api.sigurscan.com`, `/v1/*` returns `no-store`, and unauthenticated API calls preserve backend `401`. Open: long-scan timeout proof and physical mobile-network proof. |
 | 3 | Supabase | Green for runtime DB path, Partial for full freeze | Remote migration list matches local migrations. Required tables exist, RLS is enabled, `anon`/`authenticated` have no direct grants on runtime tables, preview bucket `previews` is private PNG-only with 5MB limit, visual-only constraints exist, and a live scan wrote `orch_1781289050_c007425e` to `scan_jobs`. Open: backup/PITR dashboard proof and dedicated connection-pool pressure proof. |
-| 4 | Cache/providers | Green for single-scan provider/cache posture, Partial for load | Provider smoke, single live URL-provider smoke, cache stats, and preview cache paths have proof. Runtime `/health` confirms urlscan, Web Risk, Phishing.Database, URLhaus, Gemini/Mistral explanation, offer claim verifier, and Upstash rate limit are configured. `/v1/reputation/cache/stats` now reads the Supabase-backed cache on Cloud Run after `45b5663`. Open: full provider load/concurrency intentionally not run to avoid quota burn; legacy expired cache rows remain as non-blocking cache hygiene. |
+| 4 | Cache/providers | Green for single-scan provider/cache posture, Partial for load | Provider smoke, single live URL-provider smoke, cache stats, and preview cache paths have proof. Live flows prove urlscan, Google Web Risk consultation, Phishing.Database, URLhaus, and offer-claim verifier behavior; `/v1/reputation/cache/stats` reads the Supabase-backed cache on Cloud Run after `45b5663`; deployed runtime is now `4918162`. Open: full provider load/concurrency intentionally not run to avoid quota burn; legacy expired cache rows remain as non-blocking cache hygiene. |
 | 5 | Android direct infra | Green for build/config, Partial for device proof | Debug and release local config point to `https://api.sigurscan.com/`; app API keys are configured without logging their values; direct provider keys are empty in generated BuildConfig; API key interceptor sends `X-API-KEY` and stable Android UA; `testDebugUnitTest`, `assembleDebug`, and `assembleRelease` pass; release APK is signed with SigurScan cert. Open: physical-device proof, mobile-network proof, upload-size proof, poor-network behavior, and post-UI-merge regression. AVD exists but did not boot into ADB during this continuation. |
-| 6 | Live feature flows | Partial Green | Backend tests cover text/url/email/offer/invoice/security/registry/legal paths. Live URL/domain smoke exists. Android emulator URL scan reaches final `SIGUR` with preview. Android emulator text-only offer/job scan reaches final non-safe `SUSPECT`. Android invoice image scan now reaches verified invoice state with issuer/CUI/IBAN/dates/totals and live API top-level `SIGUR` after CUI + finalization fixes. Open: email HTML hidden-link scan, PDF/image/QR import, and a fuller offer-with-URL/payment proof if required. |
+| 6 | Live feature flows | Green for backend/API live flows, Partial for full device/import coverage | Backend tests cover text/url/email/offer/invoice/security/registry/legal paths. Live provider smoke is `3/3`; live YOXO and eMAG tracking are `SIGUR`, and hard-provider controls are `PERICULOS` through Phishing.Database/urlscan. Email HTML hidden-link extraction and scan are proven live. PDF annotation-link extraction was fixed in `4918162` and proven live on Cloud Run. Android emulator URL scan reaches final `SIGUR` with preview. Android emulator text-only offer/job scan reaches final non-safe `SUSPECT`. Android invoice image scan reaches verified invoice state with issuer/CUI/IBAN/dates/totals and live API top-level `SIGUR` after CUI + finalization fixes. Open: QR import/camera, physical-device release, mobile-network proof, and fuller offer-with-URL/payment proof if required. |
 | 7 | Code consolidation | Partial Green | `main` is clean and has current invoice + offer + Cloud Run fixes. Backend full suite passes. Android build/tests pass. Open: do not delete old branches until Sonet UI and any wanted handoff deltas are explicitly resolved. |
 | 8 | Hardening/regression | Partial Green | Latency alert, budget, structured error proof, API key requirement, Android UA hardening, and freeze docs exist. Open: full live regression pack, Play-ready privacy/legal store checklist, and physical-device proof. |
 
@@ -47,7 +47,7 @@ Evidence:
 - Backend full suite:
   - Command: `python3 -m pytest backend -q`
   - Location: `/Users/vaduvageorge/AndroidStudioProjects/SigurScan`
-  - Result after container hardening: `664 passed, 1 warning`
+  - Result after PDF annotation-link fix: `666 passed, 1 warning`
 - Reproducible container contract:
   - Command: `python3 -m pytest backend/test_container_contract.py -q`
   - Result: `1 passed`
@@ -61,6 +61,14 @@ Evidence:
   - Cloud Build: `00da774a-512f-41d8-b345-1bd6ee1c9736`, success.
   - Deployed revision: `sigurscan-api-00024-46n`, traffic `100%`.
   - Deployed digest: `sha256:fb1dc18409350b592e3c946928b500dd90832b61b4201e8d6ff7b4e765dd6506`.
+- PDF annotation-link hardening after `4918162`:
+  - Targeted command: `python3 -m pytest backend/test_backend.py -q -k "extract_pdf_returns_annotation_urls_when_ocr_is_empty or extract_pdf_annotation_links or scan_pdf_legacy_endpoint"`
+  - Targeted result: `5 passed`.
+  - Zone 6 regression command: `python3 -m pytest backend/test_email_link_extraction.py backend/test_invoice_endpoint.py backend/test_invoice_parser.py backend/test_invoice_orchestration.py backend/test_invoice_readiness_gate.py backend/test_comprehensive_invoices.py backend/test_offer_parser.py backend/test_offer_signals.py backend/test_offer_orchestration.py backend/test_offer_corpus_recall.py backend/test_offer_gate_combos.py backend/test_offer_web_confirm.py backend/test_legal_layer.py backend/test_registry_verification.py backend/test_verdict_gate.py backend/test_orchestrated_latency.py backend/test_backend.py -q`
+  - Zone 6 regression result: `515 passed, 1 warning`.
+  - Cloud Build: `c87c4cb2-c160-4abc-95a5-624a611eeb16`, success.
+  - Deployed revision: `sigurscan-api-00025-vg5`, traffic `100%`.
+  - Deployed digest: `sha256:1951be05e620f71b74923f4d6460ab36f322767f98f14987e38ff20eea11d1c7`.
 - Android unit + debug build:
   - Command: `JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease`
   - Location: `/Users/vaduvageorge/AndroidStudioProjects/SigurScan`
@@ -85,6 +93,12 @@ Evidence:
   - Result: `SIGUR`, `status=complete`, `is_final=true`, provider gate reason `official_clean`.
   - Timings: scan id `1.33s`, verdict `7.69s`, completion `9.03s`, preview report/screenshot `2.36s`.
   - Cache stats: `loaded=true`, `items=66`, `valid_items=6`, `expired_items=60`, `invalid_items=436`; provider sources include Google Web Risk, Phishing.Database, and URLhaus.
+- Zone 6 live API flow proof after `4918162`:
+  - Live provider smoke report: `build/reports/freeze_zone6_live_provider_smoke_2026-06-12.json`, result `3/3 passed`.
+  - Additional hard-provider control report: `build/reports/freeze_zone6_webrisk_control_2026-06-12.json`, result `PERICULOS` through urlscan malicious; Google Web Risk returned clean in that run.
+  - Email HTML extract report: `build/reports/freeze_zone6_email_html_extract_live_2026-06-12.json`, extracted one hidden/button CTA URL.
+  - Email HTML scan report: `build/reports/freeze_zone6_email_html_hidden_link_live_2026-06-12.json`, result `SIGUR`, final URL `https://auth.emag.ro/user/login`, preview report/screenshot present.
+  - PDF extraction report: `build/reports/freeze_zone6_pdf_extract_live_after_fix_2026-06-12.json`, result `HTTP 200`, extracted `https://dnsc.ro/`, `hidden_url_visibility=true`.
 - Android emulator URL E2E:
   - Device: `emulator-5554`.
   - App package: `ro.sigurscan.app`.

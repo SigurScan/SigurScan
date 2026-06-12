@@ -7,8 +7,8 @@ Status: in progress. This document is proof-led: an item is not green unless the
 - Repository: `vaduvel/SigurScan`
 - Local repo: `/Users/vaduvageorge/AndroidStudioProjects/SigurScan`
 - Current branch: `main`
-- Verified code commit: `45b5663`
-- Deployed code commit: `45b5663`
+- Verified code commit: `4918162`
+- Deployed code commit: `4918162`
 - Documentation may advance past the deployed code commit with proof-only updates.
 - Cloud Run project: `project-20f225c0-d756-4cba-864`
 - Cloud Run service: `sigurscan-api`
@@ -21,14 +21,14 @@ Status: in progress. This document is proof-led: an item is not green unless the
 
 - Cloud Run service exists in `europe-west1`.
   Evidence: `gcloud run services describe sigurscan-api --project project-20f225c0-d756-4cba-864 --region europe-west1`.
-- Latest ready revision is `sigurscan-api-00024-46n`.
-- Traffic is `100%` to `sigurscan-api-00024-46n`.
-- Deployed image is `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/sigurscan/sigurscan-api:45b5663`.
-- Deployed image digest is `sha256:fb1dc18409350b592e3c946928b500dd90832b61b4201e8d6ff7b4e765dd6506`.
+- Latest ready revision is `sigurscan-api-00025-vg5`.
+- Traffic is `100%` to `sigurscan-api-00025-vg5`.
+- Deployed image is `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/sigurscan/sigurscan-api:4918162`.
+- Deployed image digest is `sha256:1951be05e620f71b74923f4d6460ab36f322767f98f14987e38ff20eea11d1c7`.
 - Latest Cloud Build deployment proof:
-  - build id: `00da774a-512f-41d8-b345-1bd6ee1c9736`
+  - build id: `c87c4cb2-c160-4abc-95a5-624a611eeb16`
   - status: `SUCCESS`
-  - deployed revision: `sigurscan-api-00024-46n`
+  - deployed revision: `sigurscan-api-00025-vg5`
 - Cloud Build deployment proof:
   - build id: `8088b6e7-7662-43fb-936a-494baffbd5a2`
   - status: `SUCCESS`
@@ -55,6 +55,7 @@ Status: in progress. This document is proof-led: an item is not green unless the
   - Cloud Run injects `INVOICE_CACHE_HMAC_KEY=invoice-cache-hmac-key:latest`.
   - Test proof: `test_invoice_cache_key_requires_env_secret` fails without env and passes with the test fixture env.
 - Health check returns `HTTP 200` through Cloudflare on `https://api.sigurscan.com/health`.
+  - Post-deploy health after `4918162`: `HTTP 200`, `0.442909s`.
   - Post-deploy health after `45b5663`: `HTTP 200`, `1.168s`; runtime reports `rate_limit_backend=upstash`, `api_key_required=true`.
   - Post-deploy health after `21a6943`: `HTTP 200`, `0.361590s`.
   - Post-deploy health after `17dcfc7`: `HTTP 200`, `0.336330s`.
@@ -327,13 +328,12 @@ Status: in progress. This document is proof-led: an item is not green unless the
   - Targeted proof: `python3 -m pytest backend/test_backend.py -q -k "reputation_cache_stats_reads_remote_cache_without_local_file or supabase_reputation_cache_uses_single_batch_upsert or local_reputation_cache_is_lru_capped"` -> `3 passed`.
   - Combined hardening/default proof after patch: `python3 -m pytest backend/test_security_hardening.py backend/test_tooling_defaults.py -q` -> `20 passed, 1 warning`.
   - Full backend suite after patch: `665 passed, 1 warning`.
-- Cloud Run revision `sigurscan-api-00024-46n` exposes provider configuration correctly through `/health`:
-  - `urlscan`: configured, visibility `unlisted`.
-  - `google_web_risk`: configured.
-  - `phishing_database`: configured.
-  - `urlhaus`: configured.
-  - `ai_explanation`: configured with Gemini and Mistral.
-  - `offer_claim_verifier`: configured with timeout `5.0`.
+- Provider behavior is verified through live smoke on the official API domain:
+  - urlscan returned report/screenshot for benign YOXO and eMAG flows.
+  - Google Web Risk was consulted and returned clean in the recorded live flows.
+  - Phishing.Database produced a malicious hard-provider verdict for the `live_google_webrisk_phishing_test` fixture.
+  - URLhaus was consulted and returned clean in the recorded live flows.
+  - offer claim verifier ran in skipped/disabled mode where configured; it did not block the provider-gate result.
 - Live reputation-cache stats through `https://api.sigurscan.com/v1/reputation/cache/stats`:
   - HTTP `200`, `1.188s`.
   - `loaded=true`, `items=66`, `valid_items=6`, `expired_items=60`, `invalid_items=436`.
@@ -401,6 +401,60 @@ Status: in progress. This document is proof-led: an item is not green unless the
 - Upload near `MAX_UPLOAD_BYTES=25MB` has not been run yet.
 - Poor-network retry/timeout behavior has not been run yet.
 
+## Zone 6 - Live Feature Flows
+
+### Verified
+
+- Backend Zone 6 regression suite passed after the PDF annotation fix:
+  - Command: `python3 -m pytest backend/test_email_link_extraction.py backend/test_invoice_endpoint.py backend/test_invoice_parser.py backend/test_invoice_orchestration.py backend/test_invoice_readiness_gate.py backend/test_comprehensive_invoices.py backend/test_offer_parser.py backend/test_offer_signals.py backend/test_offer_orchestration.py backend/test_offer_corpus_recall.py backend/test_offer_gate_combos.py backend/test_offer_web_confirm.py backend/test_legal_layer.py backend/test_registry_verification.py backend/test_verdict_gate.py backend/test_orchestrated_latency.py backend/test_backend.py -q`
+  - Result: `515 passed, 1 warning`.
+- Full backend suite passed after the PDF annotation fix:
+  - Command: `python3 -m pytest backend -q`
+  - Result: `666 passed, 1 warning`.
+- Quota-bounded live provider smoke through `https://api.sigurscan.com` passed:
+  - report: `build/reports/freeze_zone6_live_provider_smoke_2026-06-12.json`
+  - command: `backend/eval/live_provider_smoke_runner.py --base-url https://api.sigurscan.com --case live_yoxo_buyback --case live_emag_tracking_official --case live_google_webrisk_phishing_test`
+  - result: `3/3 passed`.
+  - `live_yoxo_buyback`: `SIGUR`, final URL `https://buyback.yoxo.ro/?r=1`, provider gate reason `official_clean`, completion `11.41s`, urlscan report and screenshot present.
+  - `live_emag_tracking_official`: `SIGUR`, final URL `https://auth.emag.ro/user/login`, provider gate reason `official_clean`, completion `8.66s`, urlscan report and screenshot present.
+  - `live_google_webrisk_phishing_test`: `PERICULOS`, final URL `https://00000000000000000000000000000000000000000.xyz/`, provider gate reason `provider_malicious`, completion `10.87s`.
+  - Honesty note: this hard-provider proof was from Phishing.Database; Google Web Risk returned clean in this run, so this is not recorded as Web Risk-specific proof.
+- Additional hard-provider phishing control through `https://api.sigurscan.com`:
+  - report: `build/reports/freeze_zone6_webrisk_control_2026-06-12.json`
+  - input: `http://testsafebrowsing.appspot.com/s/phishing.html`
+  - result: `PERICULOS`, `risk=high`, `provider_gate_reason=provider_malicious`, completion `11.17s`.
+  - provider statuses: `urlscan=malicious`, `google_web_risk=clean`, `phishing_database=clean`, `urlhaus=clean`.
+  - Honesty note: despite the test URL name, this run proves the urlscan malicious path, not Google Web Risk.
+- Email HTML hidden-link extraction is live:
+  - extract report: `build/reports/freeze_zone6_email_html_extract_live_2026-06-12.json`
+  - extracted URL: `https://www.emag.ro/order/tracking`
+  - extracted button count: `1`
+  - extracted button: text `Urmareste coletul`, `source_tag=a`, `source_attr=href`, `is_sensitive_cta=true`.
+- Email HTML hidden-link scan is live:
+  - scan report: `build/reports/freeze_zone6_email_html_hidden_link_live_2026-06-12.json`
+  - result: `SIGUR`, `risk=low`, `status=complete`, `is_final=true`.
+  - final URL: `https://auth.emag.ro/user/login`.
+  - provider statuses: Google Web Risk clean, Phishing.Database clean, URLhaus clean, urlscan clean, domain age clean.
+  - urlscan report and screenshot are present.
+- PDF annotation links are extracted even when OCR has no useful text:
+  - defect found before fix: `/v1/extract/pdf` returned `503` when OCR was empty before annotation URLs were processed.
+  - fix commit: `4918162 fix: keep PDF annotation links when OCR is empty`.
+  - targeted proof: `python3 -m pytest backend/test_backend.py -q -k "extract_pdf_returns_annotation_urls_when_ocr_is_empty or extract_pdf_annotation_links or scan_pdf_legacy_endpoint"` -> `5 passed`.
+  - live report after deploy: `build/reports/freeze_zone6_pdf_extract_live_after_fix_2026-06-12.json`.
+  - live result: `HTTP 200`, `0.81s`, `input_type=pdf_ocr`, extracted URL `https://dnsc.ro/`, `hidden_url_visibility=true`.
+- Cloud Run deployment proof for the PDF fix:
+  - commit: `4918162`.
+  - build id: `c87c4cb2-c160-4abc-95a5-624a611eeb16`.
+  - revision: `sigurscan-api-00025-vg5`.
+  - image digest: `sha256:1951be05e620f71b74923f4d6460ab36f322767f98f14987e38ff20eea11d1c7`.
+  - `sigurscan-api-00025-vg5` receives `100%` traffic.
+
+### Not Yet Green
+
+- QR import and camera-driven QR scan were not rerun in this continuation.
+- Physical-device release proof and mobile-network proof remain open.
+- Full provider concurrency remains intentionally deferred to avoid burning live provider quota.
+
 ## Zone 7 - Main Consolidation Snapshot
 
 ### Verified
@@ -414,8 +468,9 @@ Status: in progress. This document is proof-led: an item is not green unless the
 - `e55bc7b fix: preserve invoice fast-lane verdict`
 - `d9d452c build: make Cloud Run container reproducible`
 - `45b5663 fix: include remote reputation cache in stats`
-- `origin/main` includes deployed code commit `45b5663`.
-- Cloud Run intentionally runs code image `45b5663`.
+- `4918162 fix: keep PDF annotation links when OCR is empty`
+- `origin/main` includes deployed code commit `4918162`.
+- Cloud Run intentionally runs code image `4918162`.
 
 ### Not Yet Green
 
@@ -426,4 +481,4 @@ Status: in progress. This document is proof-led: an item is not green unless the
 
 Freeze is not complete yet.
 
-The backend is live and healthy on Cloud Run behind `api.sigurscan.com`, with provider smoke green, API auth active, invoice HMAC secret fallback removed, Android UA hardening deployed, a reproducible hash-locked container, min instances enabled, request-based CPU billing preserved, a Cloud Billing budget guard created, build log audited, latency alerting configured, structured-error proof captured, rollback executed and restored successfully, lightweight concurrency proven, controlled five-scan text-only concurrency proven, remote reputation-cache stats fixed, Android emulator URL E2E proven, and Android emulator invoice E2E verified after the CUI/finalization fixes. The remaining Cloud Run freeze items are optional cold-start proof if scale-to-zero returns and a deliberately quota-bounded URL-provider concurrency probe.
+The backend is live and healthy on Cloud Run behind `api.sigurscan.com`, with provider smoke green, API auth active, invoice HMAC secret fallback removed, Android UA hardening deployed, a reproducible hash-locked container, min instances enabled, request-based CPU billing preserved, a Cloud Billing budget guard created, build log audited, latency alerting configured, structured-error proof captured, rollback executed and restored successfully, lightweight concurrency proven, controlled five-scan text-only concurrency proven, remote reputation-cache stats fixed, Android emulator URL E2E proven, Android emulator invoice E2E verified after the CUI/finalization fixes, email HTML hidden-link extraction/scan proven live, and PDF annotation-link extraction fixed and proven live on deployed commit `4918162`. The remaining Cloud Run freeze items are optional cold-start proof if scale-to-zero returns and a deliberately quota-bounded URL-provider concurrency probe.
