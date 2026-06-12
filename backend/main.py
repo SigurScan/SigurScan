@@ -7742,13 +7742,21 @@ async def extract_pdf_for_orchestration(
     if not pdf_bytes.startswith(b"%PDF-"):
         raise HTTPException(status_code=400, detail="Format PDF invalid.")
 
-    ocr_text, ocr_warning = await extract_text_for_scan(
-        filename=filename,
-        file_bytes=pdf_bytes,
-        extract_fn=extract_text_from_pdf_with_vision,
-    )
-    redacted_text = redact_pii(ocr_text)
     annotation_urls = _extract_pdf_annotation_links(pdf_bytes)
+    try:
+        ocr_text, ocr_warning = await extract_text_for_scan(
+            filename=filename,
+            file_bytes=pdf_bytes,
+            extract_fn=extract_text_from_pdf_with_vision,
+        )
+    except HTTPException as exc:
+        if exc.status_code != 503 or not annotation_urls:
+            raise
+        # PDF annotations are real scan evidence even when OCR cannot read text.
+        ocr_text = ""
+        ocr_warning = str(exc.detail)
+
+    redacted_text = redact_pii(ocr_text)
     extracted_urls = _dedupe_preserve_order(annotation_urls + extract_urls(ocr_text) + extract_urls(redacted_text))
     return {
         "input_type": "pdf_ocr",

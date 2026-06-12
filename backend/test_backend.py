@@ -729,6 +729,38 @@ def test_extract_pdf_annotation_links_from_percent_encoded_uri():
     assert _extract_pdf_annotation_links(pdf) == ["https://encoded.example.org/verify?ref=pdf"]
 
 
+def test_extract_pdf_returns_annotation_urls_when_ocr_is_empty(monkeypatch):
+    client = TestClient(app_main.app)
+    pdf = (
+        b"%PDF-1.7\n"
+        b"1 0 obj << /A << /S /URI /URI "
+        b"(https://dnsc.ro/) >> >> endobj\n%%EOF"
+    )
+
+    async def fake_empty_ocr_threadpool(*args, **kwargs):
+        return ""
+
+    with monkeypatch.context() as patched:
+        patched.setattr(app_main, "PRIVACY_SAFE_MODE", False)
+        patched.setattr(app_main, "ALLOWED_MOCK_OCR", False)
+        patched.setattr(app_main, "has_vision_key", lambda: True)
+        patched.setattr(app_main, "run_in_threadpool", fake_empty_ocr_threadpool)
+
+        response = client.post(
+            "/v1/extract/pdf",
+            files={"pdf_file": ("hidden-link.pdf", pdf, "application/pdf")},
+            data={"source_channel": "unit_test_pdf"},
+        )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["input_type"] == "pdf_ocr"
+    assert payload["redacted_text"] == ""
+    assert payload["extracted_urls"] == ["https://dnsc.ro/"]
+    assert payload["hidden_url_visibility"] is True
+    assert "OCR cloud nu a extras text" in payload["warning"]
+
+
 def test_detection_helpers():
     print("Testing URL and email helper utilities...")
 
