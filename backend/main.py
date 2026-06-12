@@ -6901,6 +6901,7 @@ async def _run_orchestrated_invoice_fast_lane(job: Dict[str, Any], request: Requ
     evidence["provider_gate"] = provider_gate
     evidence["decision_bundle"] = bundle
     evidence["verdict_gate"] = gate_result
+    evidence["semantic_review"] = semantic_section
 
     label = str(gate_result.get("label") or "PENDING").upper()
     reasons = {
