@@ -5391,7 +5391,7 @@ def _merge_orchestrated_conflict_job(reloaded: Dict[str, Any], local: Dict[str, 
     ):
         merged["pipeline_stage"] = local.get("pipeline_stage")
 
-    for key in ("resolved_urls", "primary_final_url", "threat_intel", "analysis", "result", "claim_verifier_required"):
+    for key in ("resolved_urls", "primary_final_url", "threat_intel", "analysis", "result", "claim_verifier_required", "offer_web_claim"):
         local_value = local.get(key)
         if local_value not in (None, "", [], {}) and merged.get(key) in (None, "", [], {}):
             merged[key] = _deep_copy_jsonable(local_value)
@@ -6150,12 +6150,26 @@ async def _finalize_orchestrated_job_if_ready(job: Dict[str, Any], request: Requ
 
     analysis = job.get("analysis") if isinstance(job.get("analysis"), dict) else {}
     resolved_urls = job.get("resolved_urls") if isinstance(job.get("resolved_urls"), list) else []
-    _apply_provider_gate_verdict(
-        analysis,
-        resolved_urls,
-        raw_text=str(job.get("redacted_text") or ""),
-        pillars=pillars,
+    # Ruta OFERTĂ are deja bundle v2 + verdict din reduce_verdict (gate-ul unic,
+    # construit de offer_evidence_gate_mapper). Re-derivarea pe logica rutei text
+    # ar suprascrie verdictul ofertei (inclusiv escaladarea web-claim PR6).
+    _existing_bundle = (
+        (analysis.get("evidence") or {}).get("decision_bundle")
+        if isinstance(analysis.get("evidence"), dict)
+        else None
     )
+    _is_offer_bundle = (
+        isinstance(_existing_bundle, dict)
+        and isinstance(_existing_bundle.get("input"), dict)
+        and _existing_bundle["input"].get("type") == "offer"
+    )
+    if not _is_offer_bundle:
+        _apply_provider_gate_verdict(
+            analysis,
+            resolved_urls,
+            raw_text=str(job.get("redacted_text") or ""),
+            pillars=pillars,
+        )
     evidence = analysis.get("evidence", {}) if isinstance(analysis.get("evidence"), dict) else {}
     gate = evidence.get("verdict_gate") if isinstance(evidence.get("verdict_gate"), dict) else {}
     if str(gate.get("label") or "").upper() == "PENDING":
@@ -7080,10 +7094,95 @@ async def _run_orchestrated_offer_fast_lane(job: Dict[str, Any], request: Reques
 
     job["analysis"] = analysis
     job["claim_verifier_required"] = False
+    # PR6: web-confirm async pentru oferte — rulează DUPĂ primul verdict (nu îl
+    # blochează). Marcat „pending" doar când are sens și providerul e configurat.
+    web_claim_warranted = (
+        family_id not in ("OP-00", "OP-08")
+        or (claimed_brand and claimed_brand != "Nespecificat")
+        or bool(fields and fields.platform_name)
+    )
+    if web_claim_warranted and _env_present("GEMINI_API_KEY") and not PRIVACY_SAFE_MODE:
+        job["offer_web_claim"] = {"status": "pending"}
+    else:
+        job["offer_web_claim"] = {"status": "skipped"}
     _set_orchestrated_stage(job, "analysis_ready")
     job = _persist_orchestrated_job(job)
     _emit_orchestrated_telemetry("orchestrated_stage_analysis_ready", job, offer_fast_lane=True)
     return job
+
+
+_VERDICT_SEVERITY_RANK = {"SIGUR": 0, "SUSPECT": 1, "PERICULOS": 2}
+
+
+async def _run_offer_web_claim_enrichment(job: Dict[str, Any]) -> Dict[str, Any]:
+    """PR6: enrichment web post-verdict pentru oferte. Atașează dovezi; verdictul
+    poate DOAR crește în severitate, exclusiv prin reduce_verdict (gate unic).
+    not_found/inconclusive = doar context (max SUSPECT solo, niciodată escaladare).
+    """
+    from services.brand_registry import BRAND_REGISTRY as OFFER_BRAND_REGISTRY
+    from services.offer_claim_verifier import verify_offer_web_claim
+    from services.verdict_gate import verdict as reduce_verdict
+
+    analysis = job.get("analysis") if isinstance(job.get("analysis"), dict) else {}
+    evidence = analysis.get("evidence") if isinstance(analysis.get("evidence"), dict) else {}
+    offer_evidence = evidence.get("offer") if isinstance(evidence.get("offer"), dict) else {}
+    offer_fields = offer_evidence.get("fields") if isinstance(offer_evidence.get("fields"), dict) else {}
+
+    # Ruta ofertă folosește DOAR brand_registry (regula #5), ca domenii oficiale.
+    offer_domains = {key: list(entry.domains) for key, entry in OFFER_BRAND_REGISTRY.items()}
+
+    try:
+        claim = await asyncio.wait_for(
+            run_in_threadpool(
+                verify_offer_web_claim,
+                str(job.get("redacted_text") or ""),
+                analysis,
+                job.get("resolved_urls") if isinstance(job.get("resolved_urls"), list) else [],
+                brand_registry=offer_domains,
+                family_code=str(analysis.get("detected_family_id") or "OP-00"),
+                issuer_name=offer_fields.get("issuer_name"),
+                platform_name=offer_fields.get("platform_name") or offer_fields.get("document_type"),
+            ),
+            timeout=AI_OFFER_CLAIM_TIMEOUT_SECONDS,
+        )
+    except Exception as exc:  # timeout/erori → inconcludent, nu blocăm nimic
+        claim = _skipped_offer_claim_payload(f"Offer web check unavailable: {type(exc).__name__}.")
+
+    _attach_offer_claim_verification(analysis, claim)
+    job["offer_web_claim"] = {"status": "done", "claim_status": claim.get("status")}
+
+    # Escaladare DOAR la severity=high (dovadă web decisivă), prin gate-ul unic.
+    bundle = evidence.get("decision_bundle") if isinstance(evidence.get("decision_bundle"), dict) else None
+    old_gate = evidence.get("verdict_gate") if isinstance(evidence.get("verdict_gate"), dict) else {}
+    old_label = str(old_gate.get("label") or "").upper()
+    if bundle and str(claim.get("severity") or "").lower() == "high":
+        enriched = json.loads(json.dumps(bundle, ensure_ascii=False))
+        enriched.setdefault("providers", {})["verdict"] = "malicious"
+        enriched.setdefault("context", {})["web_claim"] = {
+            "status": claim.get("status"),
+            "severity": claim.get("severity"),
+        }
+        new_gate = reduce_verdict(enriched)
+        new_label = str(new_gate.get("label") or "").upper()
+        if _VERDICT_SEVERITY_RANK.get(new_label, 0) > _VERDICT_SEVERITY_RANK.get(old_label, 0):
+            evidence["verdict_gate"] = new_gate
+            evidence["decision_bundle"] = enriched
+            analysis["risk_level"] = new_gate.get("risk_level")
+            analysis["risk_score"] = new_gate.get("risk_score")
+            # Republicare cu severitate crescută: golim rezultatul și lăsăm
+            # finalize-ul apelantului să-l reconstruiască din analysis-ul nou
+            # (același pattern ca stadiile rutei text: persist înainte de finalize).
+            job["result"] = None
+            job["result_fingerprint"] = None
+            job["analysis"] = analysis
+            _emit_orchestrated_telemetry(
+                "orchestrated_offer_web_claim", job, claim_status=claim.get("status"), escalated=True
+            )
+            return _persist_orchestrated_job(job)
+
+    job["analysis"] = analysis
+    _emit_orchestrated_telemetry("orchestrated_offer_web_claim", job, claim_status=claim.get("status"))
+    return _persist_orchestrated_job(job)
 
 
 async def _refresh_orchestrated_job(job: Dict[str, Any], request: Request) -> Dict[str, Any]:
@@ -7091,6 +7190,16 @@ async def _refresh_orchestrated_job(job: Dict[str, Any], request: Request) -> Di
     stage = str(job.get("pipeline_stage") or "queued").strip().lower()
     _emit_orchestrated_telemetry("orchestrated_poll", job, stage=stage)
     existing_result = job.get("result") if isinstance(job.get("result"), dict) else None
+    # PR6: oferta cu verdict deja publicat + web-claim în așteptare → enrichment
+    # acum (poll ulterior), fără să fi blocat vreodată primul verdict.
+    if (
+        existing_result is not None
+        and str(job.get("input_type") or "").strip().lower() == "offer"
+        and isinstance(job.get("offer_web_claim"), dict)
+        and job["offer_web_claim"].get("status") == "pending"
+    ):
+        job = await _run_offer_web_claim_enrichment(job)
+        return await _finalize_orchestrated_job_if_ready(job, request)
     if not existing_result and _orchestrated_required_pillars_timed_out(job):
         job = _mark_required_pillars_timeout(job)
         return await _finalize_orchestrated_job_if_ready(job, request)

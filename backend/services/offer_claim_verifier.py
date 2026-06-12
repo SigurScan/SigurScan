@@ -852,3 +852,63 @@ def _clamp_int(value: Any, minimum: int, maximum: int) -> int:
     except Exception:
         numeric = 0
     return max(minimum, min(maximum, numeric))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PR6 — extensii pentru ruta OFERTĂ. EXTEND, nu fișier nou (web_confirm.py interzis).
+# Nu blochează primul verdict (apelat async, post-verdict). not_found = max
+# SUSPECT solo; doar severity=high poate escalada, exclusiv prin reduce_verdict.
+# ─────────────────────────────────────────────────────────────────────────────
+_OFFER_FAMILY_QUERY_HINTS = {
+    "OP-01": "agentie de turism / pachet turistic",
+    "OP-02": "cazare / rezervare scurta durata",
+    "OP-03": "chirie apartament termen lung",
+    "OP-04": "vanzare auto / transport auto",
+    "OP-05": "bilete evenimente / concert",
+    "OP-06": "anunt marketplace / OLX",
+    "OP-07": "cerere date identitate / credit",
+    "OP-09": "investitie / crypto / profit",
+}
+
+
+def verify_offer_web_claim(
+    text: str,
+    analysis: Dict[str, Any],
+    resolved_urls: List[Dict[str, Any]],
+    *,
+    brand_registry: Dict[str, List[str]],
+    family_code: Optional[str] = None,
+    issuer_name: Optional[str] = None,
+    platform_name: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Web-check pentru oferte: îmbogățește contextul interogării cu familia OP +
+    emitent + platformă, apoi refolosește integral verify_offer_claim (grounding +
+    pagini oficiale). Zero logică nouă de verdict."""
+    hints: List[str] = []
+    family_hint = _OFFER_FAMILY_QUERY_HINTS.get(family_code or "")
+    if family_hint:
+        hints.append(f"Context oferta: {family_hint}.")
+    if issuer_name:
+        hints.append(f"Emitent declarat: {issuer_name}.")
+    if platform_name:
+        hints.append(f"Platforma invocata: {platform_name}.")
+    enriched_text = "\n".join([*hints, text]) if hints else text
+    return verify_offer_claim(
+        enriched_text, analysis, resolved_urls, brand_registry=brand_registry
+    )
+
+
+def verify_reverse_image() -> Dict[str, Any]:
+    """Reverse image search: nu există provider conform configurat → NOT_CONFIGURED
+    onest (fără date inventate). Nu participă la verdict."""
+    return {
+        "provider": "reverse_image",
+        "status": "not_configured",
+        "verdict": "not_configured",
+        "severity": "unknown",
+        "summary": "Reverse image search neconfigurat (niciun provider conform).",
+        "details": "Reverse image search neconfigurat (niciun provider conform).",
+        "confidence": 0,
+        "evidence_urls": [],
+        "method": "none",
+    }
