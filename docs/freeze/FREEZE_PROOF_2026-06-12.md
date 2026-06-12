@@ -356,6 +356,51 @@ Status: in progress. This document is proof-led: an item is not green unless the
 - Full live URL-provider concurrency was intentionally not run to avoid burning provider quota.
 - Legacy reputation-cache rows remain in Supabase but are ignored by current version/TTL logic. Cleanup can be done later as cache hygiene, not as a verdict blocker.
 
+## Zone 5 - Android Direct Infrastructure
+
+### Verified
+
+- Android local configuration targets the official Cloudflare API domain:
+  - `SIGURSCAN_BACKEND_BASE_URL=https://api.sigurscan.com/`
+  - `SIGURSCAN_RELEASE_BACKEND_BASE_URL=https://api.sigurscan.com/`
+  - `SIGURSCAN_PRIVACY_URL=https://api.sigurscan.com/privacy`
+  - `SIGURSCAN_RELEASE_PRIVACY_URL=https://api.sigurscan.com/privacy`
+- Android app API keys are configured for debug and release builds, but the proof intentionally records only `SET` and key length, never the secret value.
+- Direct provider keys are disabled in Android build config:
+  - `SIGURSCAN_ENABLE_DIRECT_PROVIDER_KEYS=false`
+  - generated debug/release `URLSCAN_API_KEY=EMPTY`
+  - generated debug/release `GOOGLE_WEB_RISK_API_KEY=EMPTY`
+- `ApiKeyInterceptor` attaches:
+  - `X-API-KEY` when a build key is present.
+  - stable `User-Agent: SigurScan/1.0 Android OkHttp`.
+- Android network timeouts match the current orchestration posture:
+  - Retrofit/OkHttp `callTimeout=75s`
+  - `readTimeout=75s`
+  - `writeTimeout=30s`
+  - `connectTimeout=20s`
+  - Backend Cloud Run request timeout remains `300s`, so the app is the stricter client-side bound.
+- Android build proof:
+  - Command: `JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease`
+  - Result: `BUILD SUCCESSFUL`.
+  - Release APK: `app/build/outputs/apk/release/app-release.apk`, size `16M`.
+  - Debug APK: `app/build/outputs/apk/debug/app-debug.apk`, size `25M`.
+  - Release lint vital completed as part of `assembleRelease`.
+- Release signing proof:
+  - Command: `apksigner verify --print-certs app/build/outputs/apk/release/app-release.apk` with Android Studio JBR.
+  - Certificate DN: `CN=SigurScan, OU=Mobile Security, O=SigurScan, L=Bucharest, ST=Bucharest, C=RO`.
+  - SHA-256 digest: `bfd7991c4a7d0c349ae41235f2c0b52d77962c5a9a6729aa3410c54840168b67`.
+
+### Not Yet Green
+
+- Physical-device release test has not been run yet.
+- Mobile-network 4G/5G test has not been recorded yet.
+- AVD `Medium_Phone_API_36.1` exists, but the emulator did not appear in ADB during this freeze continuation:
+  - `adb devices` showed no attached devices.
+  - `emulator -avd Medium_Phone_API_36.1 -no-snapshot-load` did not produce a booted ADB device within the wait window.
+  - This is an environment availability gap, not an app build failure.
+- Upload near `MAX_UPLOAD_BYTES=25MB` has not been run yet.
+- Poor-network retry/timeout behavior has not been run yet.
+
 ## Zone 7 - Main Consolidation Snapshot
 
 ### Verified
