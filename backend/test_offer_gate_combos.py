@@ -81,6 +81,17 @@ class TestPericulosCombos:
         out = await _run(text)
         assert out["gate"]["label"] == "PERICULOS"
 
+    @pytest.mark.asyncio
+    async def test_job_offer_with_upfront_activation_fee_periculos(self):
+        text = (
+            "Buna ziua! Avem o companie de energie mobila partajata. "
+            "Garanție de venit stabila de 35-500 USD pe zi. "
+            "Pentru activare trebuie sa platiti o taxa de 150 RON in avans "
+            "si sa trimiteti dovada pe Telegram @Frank24495."
+        )
+        out = await _run(text)
+        assert out["gate"]["label"] == "PERICULOS"
+
 
 class TestSuspectNotPericulos:
     @pytest.mark.asyncio

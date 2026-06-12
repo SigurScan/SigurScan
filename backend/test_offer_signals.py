@@ -59,6 +59,10 @@ class TestTextSignals:
         o = parse_offer("trimite in bitcoin wallet")
         assert sig.OFFER_HAS_CRYPTO_WALLET in derive_offer_signals(o)
 
+    def test_upfront_fee_request(self):
+        o = parse_offer("Pentru activare trebuie sa platiti o taxa de 150 RON in avans pe Telegram")
+        assert sig.OFFER_UPFRONT_FEE_REQUEST in derive_offer_signals(o)
+
 
 class TestStructuralSignals:
     def test_qr_payment(self):

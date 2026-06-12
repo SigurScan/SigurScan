@@ -38,6 +38,7 @@ OFFER_FAMILY_CLASSIFIED = "OFFER_FAMILY_CLASSIFIED"
 # Noi (cercetari 2026-06-12): OP-09 acces la distanta; OP-08/09 profit garantat.
 OFFER_REMOTE_ACCESS_REQUEST = "OFFER_REMOTE_ACCESS_REQUEST"
 OFFER_GUARANTEED_PROFIT = "OFFER_GUARANTEED_PROFIT"
+OFFER_UPFRONT_FEE_REQUEST = "OFFER_UPFRONT_FEE_REQUEST"
 
 # — Pattern-uri text deterministe —
 OFF_PLATFORM = re.compile(
@@ -81,6 +82,13 @@ GUARANTEED_PROFIT = re.compile(
     r"(?:profit|randament|c[âa][șs]tig)\s*(?:garantat|sigur|asigurat)"
     r"|(?:profit|randament|dob[âa]nd[ăa])\s*(?:de\s*)?\d{1,3}\s*%\s*(?:pe\s*zi|pe\s*lun[ăa]|zilnic|lunar)"
     r"|dubl[ăa]m?\s*(?:suma|banii)|f[ăa]r[ăa]\s*risc",
+    re.IGNORECASE,
+)
+UPFRONT_FEE = re.compile(
+    r"\b(?:tax[ăa]|avans|depozit|garan[țt]ie|comision)\b[^.\n]{0,80}"
+    r"\b(?:activare|validare|deblocare|[îi]nscriere|procesare|rezervare|confirmare|loc|job|cont)\b"
+    r"|\b(?:pl[ăa]te[șs]te|plati[țt]i|achit[ăa]|achita[țt]i|trimite|transfer[ăa])\b[^.\n]{0,80}"
+    r"\b(?:tax[ăa]|avans|depozit|garan[țt]ie|comision)\b",
     re.IGNORECASE,
 )
 
@@ -140,6 +148,8 @@ def derive_offer_signals(
         add(OFFER_REMOTE_ACCESS_REQUEST)
     if GUARANTEED_PROFIT.search(text):
         add(OFFER_GUARANTEED_PROFIT)
+    if UPFRONT_FEE.search(text):
+        add(OFFER_UPFRONT_FEE_REQUEST)
 
     # Coherence
     if coherence is not None:

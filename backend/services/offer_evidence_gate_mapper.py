@@ -137,6 +137,14 @@ def _semantic_risk(
         or (entity.has_cui and entity.cui_exists and not entity.cui_active)
         or (S.OFFER_IBAN_INVALID_STRUCTURE in signals and S.OFFER_PRICE_URGENCY in signals)
         or S.OFFER_PAYMENT_METHOD_CRITICAL in signals
+        or (
+            S.OFFER_UPFRONT_FEE_REQUEST in signals
+            and (
+                S.OFFER_OFF_PLATFORM_PAYMENT in signals
+                or S.OFFER_GUARANTEED_PROFIT in signals
+                or (family_code or "OP-00") in {"OP-08", "OP-09"}
+            )
+        )
         or registry_no_match
     )
     if high:
