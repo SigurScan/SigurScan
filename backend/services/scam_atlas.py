@@ -125,7 +125,7 @@ def _normalize_atlas_family(raw: Any) -> Optional[Dict[str, Any]]:
     )
     asks_for = _coerce_str_list(raw.get("asks_for") or raw.get("requested_asset"))
 
-    return {
+    normalized = {
         "id": family_id,
         "title": str(raw.get("title") or family_name).strip(),
         "family": family_name,
@@ -140,6 +140,24 @@ def _normalize_atlas_family(raw: Any) -> Optional[Dict[str, Any]]:
         "sources": _dedupe_preserve_order(_coerce_str_list(raw.get("sources") or raw.get("source_ids"))),
         "examples": _dedupe_preserve_order(examples),
     }
+
+    # Preserve auditable knowledge metadata in evidence without turning the
+    # atlas into a second verdict engine. verdict_gate does not consume these
+    # fields unless they are explicitly mapped through the evidence contract.
+    for field in ("structured_signals", "verification_sources", "source_refs"):
+        value = raw.get(field)
+        if isinstance(value, list):
+            normalized[field] = [item for item in value if isinstance(item, dict)]
+
+    payment_risk = raw.get("payment_risk")
+    if isinstance(payment_risk, dict):
+        normalized["payment_risk"] = dict(payment_risk)
+
+    scan_rule_ids = raw.get("scan_rule_ids")
+    if isinstance(scan_rule_ids, list):
+        normalized["scan_rule_ids"] = _dedupe_preserve_order(_coerce_str_list(scan_rule_ids))
+
+    return normalized
 
 
 def _merge_map_of_lists(*items: Dict[str, List[str]]) -> Dict[str, List[str]]:
@@ -589,6 +607,23 @@ SEED_PATH = _resolve_path(
     os.getenv("SCAM_ATLAS_SEED_PATH"),
     "data/scam_atlas_ro_2025_2026_seed.json",
 )
+DEFAULT_EXTRA_SEED_PATHS = ("data/scam_atlas_impersonation_seed.json",)
+
+
+def _extra_seed_paths() -> List[str]:
+    raw_paths = list(DEFAULT_EXTRA_SEED_PATHS)
+    env_value = os.getenv("SCAM_ATLAS_EXTRA_SEED_PATHS")
+    if env_value:
+        raw_paths.extend(item.strip() for item in env_value.split(os.pathsep) if item.strip())
+
+    resolved: List[str] = []
+    seen = set()
+    for raw_path in raw_paths:
+        path = _resolve_path(raw_path, raw_path)
+        if path not in seen:
+            seen.add(path)
+            resolved.append(path)
+    return resolved
 
 
 def _build_brand_mention_patterns(
@@ -624,22 +659,22 @@ class ScamAtlasEngine:
         self.load_seed_data()
 
     def load_seed_data(self):
-        if os.path.exists(SEED_PATH):
+        self.families = []
+        for path in [SEED_PATH, *_extra_seed_paths()]:
+            if not os.path.exists(path):
+                print(f"Scam Atlas seed not found at {path}")
+                continue
             try:
-                with open(SEED_PATH, "r", encoding="utf-8") as f:
+                with open(path, "r", encoding="utf-8") as f:
                     data = json.load(f)
                     raw_families = data.get("scam_families", []) if isinstance(data, dict) else data
-                    self.families = [
+                    self.families.extend(
                         normalized
                         for raw in (raw_families if isinstance(raw_families, list) else [])
                         if (normalized := _normalize_atlas_family(raw)) is not None
-                    ]
+                    )
             except Exception as e:
-                print(f"Error loading Scam Atlas seed: {e}")
-                self.families = []
-        else:
-            print(f"Scam Atlas seed not found at {SEED_PATH}")
-            self.families = []
+                print(f"Error loading Scam Atlas seed from {path}: {e}")
 
     def _is_whitelisted_domain(self, reg_domain: str, hostname: str | None = None) -> bool:
         if not reg_domain and not hostname:

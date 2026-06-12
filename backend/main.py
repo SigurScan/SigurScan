@@ -4104,6 +4104,9 @@ def _build_scan_response(
         "offer_analysis": ai_explanation.get("offer_analysis"),
         "key_dangers": ai_explanation.get("key_dangers"),
         "safe_actions": ai_explanation.get("safe_actions", analysis_results.get("safe_actions", [])),
+        # Strat educativ „Ce spune legea" (PR5): {label, cards[], disclaimer}.
+        # Prezent doar pe ruta ofertă; clientul îl randează verbatim, sub verdict.
+        "legal": analysis_results.get("legal"),
     }
     if extra_fields:
         payload.update(extra_fields)
@@ -5388,7 +5391,7 @@ def _merge_orchestrated_conflict_job(reloaded: Dict[str, Any], local: Dict[str, 
     ):
         merged["pipeline_stage"] = local.get("pipeline_stage")
 
-    for key in ("resolved_urls", "primary_final_url", "threat_intel", "analysis", "result", "claim_verifier_required"):
+    for key in ("resolved_urls", "primary_final_url", "threat_intel", "analysis", "result", "claim_verifier_required", "offer_web_claim"):
         local_value = local.get(key)
         if local_value not in (None, "", [], {}) and merged.get(key) in (None, "", [], {}):
             merged[key] = _deep_copy_jsonable(local_value)
@@ -6147,12 +6150,26 @@ async def _finalize_orchestrated_job_if_ready(job: Dict[str, Any], request: Requ
 
     analysis = job.get("analysis") if isinstance(job.get("analysis"), dict) else {}
     resolved_urls = job.get("resolved_urls") if isinstance(job.get("resolved_urls"), list) else []
-    _apply_provider_gate_verdict(
-        analysis,
-        resolved_urls,
-        raw_text=str(job.get("redacted_text") or ""),
-        pillars=pillars,
+    # Ruta OFERTĂ are deja bundle v2 + verdict din reduce_verdict (gate-ul unic,
+    # construit de offer_evidence_gate_mapper). Re-derivarea pe logica rutei text
+    # ar suprascrie verdictul ofertei (inclusiv escaladarea web-claim PR6).
+    _existing_bundle = (
+        (analysis.get("evidence") or {}).get("decision_bundle")
+        if isinstance(analysis.get("evidence"), dict)
+        else None
     )
+    _is_offer_bundle = (
+        isinstance(_existing_bundle, dict)
+        and isinstance(_existing_bundle.get("input"), dict)
+        and _existing_bundle["input"].get("type") == "offer"
+    )
+    if not _is_offer_bundle:
+        _apply_provider_gate_verdict(
+            analysis,
+            resolved_urls,
+            raw_text=str(job.get("redacted_text") or ""),
+            pillars=pillars,
+        )
     evidence = analysis.get("evidence", {}) if isinstance(analysis.get("evidence"), dict) else {}
     gate = evidence.get("verdict_gate") if isinstance(evidence.get("verdict_gate"), dict) else {}
     if str(gate.get("label") or "").upper() == "PENDING":
@@ -6432,6 +6449,17 @@ def _build_orchestrated_text_context(payload: OrchestratedScanRequest) -> Dict[s
             "raw_text": raw_text,
             "urls": extract_urls(raw_text),
             "extra_fields": {"invoice_scan": True},
+        }
+
+    if input_type == "offer":
+        raw_text = _normalise_obfuscated_text((payload.text or payload.url or "").strip())
+        _validate_text_input("Textul ofertei", raw_text, MAX_TEXT_CHARS)
+        return {
+            "input_type": "offer",
+            "source_channel": source_channel,
+            "raw_text": raw_text,
+            "urls": extract_urls(raw_text),
+            "extra_fields": {"offer_scan": True},
         }
 
     raw_text = _normalise_obfuscated_text((payload.text or payload.url or "").strip())
@@ -6930,18 +6958,258 @@ async def _run_orchestrated_invoice_fast_lane(job: Dict[str, Any], request: Requ
     return job
 
 
+async def _run_orchestrated_offer_fast_lane(job: Dict[str, Any], request: Request) -> Dict[str, Any]:
+    """Ruta ofertă: scan_offer (gate unic) → contract analysis. Ruta factură neatinsă."""
+    from services.invoice_orchestrator import scan_offer
+    from services.verdict_gate import verdict as reduce_verdict
+
+    redacted_text = str(job.get("redacted_text") or "")
+    urls = job.get("urls") if isinstance(job.get("urls"), list) else []
+    _set_orchestrated_stage(job, "offer_parse")
+    try:
+        result = await _timed_orchestrated_component(
+            job,
+            "offer_fast_lane.scan_offer",
+            lambda: scan_offer(redacted_text, links=urls),
+        )
+    except Exception as exc:
+        result = None
+        _emit_orchestrated_telemetry("orchestrated_offer_error", job, error=str(exc))
+
+    if result is not None:
+        gate_result = result.gate
+        bundle = result.bundle
+        fields = result.fields
+        entity = result.entity
+        coherence = result.coherence
+        claimed_brand = (entity.claimed_brand if entity else None) or "Nespecificat"
+        family_id = result.family_code
+        family_name = result.family_name
+        warnings = list(result.warnings)
+        offer_signals = list(result.signals)
+    else:
+        # Degradare grațioasă: niciun verdict hard, doar provizoriu.
+        bundle = {
+            "schema": "sigurscan_evidence_bundle_v2",
+            "input": {"type": "offer"},
+            "resolution": {"status": "failed", "completeness": False},
+            "providers": {"verdict": "pending", "completeness": False},
+            "identity": {"status": "unknown", "completeness": False},
+            "request": {"sensitive": "none", "channel": "unknown", "completeness": False},
+            "semantic_review": {"status": "pending", "completeness": False},
+        }
+        gate_result = reduce_verdict(bundle)
+        fields = None
+        entity = None
+        coherence = None
+        claimed_brand = "Nespecificat"
+        family_id = "OP-00"
+        family_name = "Necategorizat"
+        warnings = ["Nu am putut analiza oferta."]
+        offer_signals = []
+
+    label = str(gate_result.get("label") or "PENDING").upper()
+    reasons = {
+        "SIGUR": ["Nu am găsit semnale clare de fraudă."],
+        "SUSPECT": ["Verifică pe canalul oficial înainte să plătești."],
+        "PERICULOS": ["Nu plăti. Datele ofertei nu se aliniază sau metoda de plată e riscantă."],
+        "PENDING": ["Scanarea nu are încă toate dovezile necesare pentru un verdict final."],
+    }.get(label, ["Verifică pe canalul oficial înainte de plată."])
+    safe_actions = {
+        "SIGUR": ["Poți continua dacă recunoști vânzătorul și datele de plată."],
+        "SUSPECT": [
+            "Verifică emitentul pe canalul oficial, nu din linkul din ofertă.",
+            "Nu trimite avans înainte de a confirma.",
+        ],
+        "PERICULOS": [
+            "Nu plăti.",
+            "Nu trimite copie după buletin/CI sau date de card.",
+            "Raportează la DNSC (1911).",
+        ],
+        "PENDING": ["Așteaptă finalizarea verificărilor automate."],
+    }.get(label, ["Așteaptă finalizarea scanării."])
+
+    offer_fields_payload = {
+        "issuer_name": (fields.issuer_name or fields.emitent) if fields else None,
+        "issuer_cui": fields.cui if fields else None,
+        "iban": fields.iban if fields else None,
+        "payment_beneficiary": fields.payment_beneficiary if fields else None,
+        "total_amount": fields.total if fields else None,
+        "currency": fields.currency if fields else "RON",
+        "payment_method": fields.payment_method if fields else None,
+        "document_type": fields.document_type if fields else "offer",
+        "family": family_id,
+    }
+
+    analysis: Dict[str, Any] = {
+        "risk_score": gate_result.get("risk_score"),
+        "risk_level": gate_result.get("risk_level"),
+        "detected_family": family_name,
+        "detected_family_id": family_id,
+        "claimed_brand": claimed_brand,
+        "reasons": reasons,
+        "safe_actions": safe_actions,
+        "evidence": {
+            "source_channel": job.get("source_channel"),
+            "offer": {
+                "fields": offer_fields_payload,
+                "signals": offer_signals,
+                "entity": {
+                    "cui_checked": entity.cui_checked,
+                    "cui_exists": entity.cui_exists,
+                    "cui_active": entity.cui_active,
+                    "denumire": entity.denumire,
+                    "name_matches": entity.name_matches,
+                    "brand_impersonation": entity.brand_impersonation,
+                } if entity else None,
+                "coherence": {"all_ok": coherence.all_ok} if coherence else None,
+                "warnings": warnings,
+                "verdict_gate": gate_result,
+            },
+            "provider_gate": {
+                "version": "verdict_gate_v2",
+                "decision_contract": "sigurscan_evidence_bundle_v2",
+                "risk_level": gate_result.get("risk_level"),
+                "risk_score": gate_result.get("risk_score"),
+                "reason": ", ".join(gate_result.get("reason_codes") or []),
+                "label": gate_result.get("label"),
+                "detected_family_id": family_id,
+                "detected_family": family_name,
+            },
+            "decision_bundle": bundle,
+            "verdict_gate": gate_result,
+            "semantic_review": bundle.get("semantic_review", {"status": "done", "completeness": True}),
+        },
+    }
+
+    # Strat educativ „Ce spune legea" (PR5): rulează DUPĂ gate, doar informativ,
+    # nu modifică niciodată verdictul. Carduri verbatim din data/legal_kb.json.
+    from services.legal_layer import legal_cards_for
+
+    analysis["legal"] = legal_cards_for(
+        signals=offer_signals,
+        family_code=family_id,
+        document_type=(fields.document_type if fields else None),
+    )
+
+    job["analysis"] = analysis
+    job["claim_verifier_required"] = False
+    # PR6: web-confirm async pentru oferte — rulează DUPĂ primul verdict (nu îl
+    # blochează). Marcat „pending" doar când are sens și providerul e configurat.
+    web_claim_warranted = (
+        family_id != "OP-00"
+        or (claimed_brand and claimed_brand != "Nespecificat")
+        or bool(fields and fields.platform_name)
+    )
+    if web_claim_warranted and _env_present("GEMINI_API_KEY") and not PRIVACY_SAFE_MODE:
+        job["offer_web_claim"] = {"status": "pending"}
+    else:
+        job["offer_web_claim"] = {"status": "skipped"}
+    _set_orchestrated_stage(job, "analysis_ready")
+    job = _persist_orchestrated_job(job)
+    _emit_orchestrated_telemetry("orchestrated_stage_analysis_ready", job, offer_fast_lane=True)
+    return job
+
+
+_VERDICT_SEVERITY_RANK = {"SIGUR": 0, "SUSPECT": 1, "PERICULOS": 2}
+
+
+async def _run_offer_web_claim_enrichment(job: Dict[str, Any]) -> Dict[str, Any]:
+    """PR6: enrichment web post-verdict pentru oferte. Atașează dovezi; verdictul
+    poate DOAR crește în severitate, exclusiv prin reduce_verdict (gate unic).
+    not_found/inconclusive = doar context (max SUSPECT solo, niciodată escaladare).
+    """
+    from services.brand_registry import BRAND_REGISTRY as OFFER_BRAND_REGISTRY
+    from services.offer_claim_verifier import verify_offer_web_claim
+    from services.verdict_gate import verdict as reduce_verdict
+
+    analysis = job.get("analysis") if isinstance(job.get("analysis"), dict) else {}
+    evidence = analysis.get("evidence") if isinstance(analysis.get("evidence"), dict) else {}
+    offer_evidence = evidence.get("offer") if isinstance(evidence.get("offer"), dict) else {}
+    offer_fields = offer_evidence.get("fields") if isinstance(offer_evidence.get("fields"), dict) else {}
+
+    # Ruta ofertă folosește DOAR brand_registry (regula #5), ca domenii oficiale.
+    offer_domains = {key: list(entry.domains) for key, entry in OFFER_BRAND_REGISTRY.items()}
+
+    try:
+        claim = await asyncio.wait_for(
+            run_in_threadpool(
+                verify_offer_web_claim,
+                str(job.get("redacted_text") or ""),
+                analysis,
+                job.get("resolved_urls") if isinstance(job.get("resolved_urls"), list) else [],
+                brand_registry=offer_domains,
+                family_code=str(analysis.get("detected_family_id") or "OP-00"),
+                issuer_name=offer_fields.get("issuer_name"),
+                platform_name=offer_fields.get("platform_name") or offer_fields.get("document_type"),
+            ),
+            timeout=AI_OFFER_CLAIM_TIMEOUT_SECONDS,
+        )
+    except Exception as exc:  # timeout/erori → inconcludent, nu blocăm nimic
+        claim = _skipped_offer_claim_payload(f"Offer web check unavailable: {type(exc).__name__}.")
+
+    _attach_offer_claim_verification(analysis, claim)
+    job["offer_web_claim"] = {"status": "done", "claim_status": claim.get("status")}
+
+    # Escaladare DOAR la severity=high (dovadă web decisivă), prin gate-ul unic.
+    bundle = evidence.get("decision_bundle") if isinstance(evidence.get("decision_bundle"), dict) else None
+    old_gate = evidence.get("verdict_gate") if isinstance(evidence.get("verdict_gate"), dict) else {}
+    old_label = str(old_gate.get("label") or "").upper()
+    if bundle and str(claim.get("severity") or "").lower() == "high":
+        enriched = json.loads(json.dumps(bundle, ensure_ascii=False))
+        enriched.setdefault("providers", {})["verdict"] = "malicious"
+        enriched.setdefault("context", {})["web_claim"] = {
+            "status": claim.get("status"),
+            "severity": claim.get("severity"),
+        }
+        new_gate = reduce_verdict(enriched)
+        new_label = str(new_gate.get("label") or "").upper()
+        if _VERDICT_SEVERITY_RANK.get(new_label, 0) > _VERDICT_SEVERITY_RANK.get(old_label, 0):
+            evidence["verdict_gate"] = new_gate
+            evidence["decision_bundle"] = enriched
+            analysis["risk_level"] = new_gate.get("risk_level")
+            analysis["risk_score"] = new_gate.get("risk_score")
+            # Republicare cu severitate crescută: golim rezultatul și lăsăm
+            # finalize-ul apelantului să-l reconstruiască din analysis-ul nou
+            # (același pattern ca stadiile rutei text: persist înainte de finalize).
+            job["result"] = None
+            job["result_fingerprint"] = None
+            job["analysis"] = analysis
+            _emit_orchestrated_telemetry(
+                "orchestrated_offer_web_claim", job, claim_status=claim.get("status"), escalated=True
+            )
+            return _persist_orchestrated_job(job)
+
+    job["analysis"] = analysis
+    _emit_orchestrated_telemetry("orchestrated_offer_web_claim", job, claim_status=claim.get("status"))
+    return _persist_orchestrated_job(job)
+
+
 async def _refresh_orchestrated_job(job: Dict[str, Any], request: Request) -> Dict[str, Any]:
     _increment_orchestrated_metric(job, "poll_count")
     stage = str(job.get("pipeline_stage") or "queued").strip().lower()
     _emit_orchestrated_telemetry("orchestrated_poll", job, stage=stage)
     existing_result = job.get("result") if isinstance(job.get("result"), dict) else None
+    # PR6: oferta cu verdict deja publicat + web-claim în așteptare → enrichment
+    # acum (poll ulterior), fără să fi blocat vreodată primul verdict.
+    if (
+        existing_result is not None
+        and str(job.get("input_type") or "").strip().lower() == "offer"
+        and isinstance(job.get("offer_web_claim"), dict)
+        and job["offer_web_claim"].get("status") == "pending"
+    ):
+        job = await _run_offer_web_claim_enrichment(job)
+        return await _finalize_orchestrated_job_if_ready(job, request)
     if not existing_result and _orchestrated_required_pillars_timed_out(job):
         job = _mark_required_pillars_timeout(job)
         return await _finalize_orchestrated_job_if_ready(job, request)
 
     if stage == "queued":
-        if str(job.get("input_type") or "").strip().lower() == "invoice":
+        job_input_type = str(job.get("input_type") or "").strip().lower()
+        if job_input_type == "invoice":
             return await _run_orchestrated_invoice_fast_lane(job, request)
+        if job_input_type == "offer":
+            return await _run_orchestrated_offer_fast_lane(job, request)
         return await _run_orchestrated_fast_lane(job, request)
 
     if stage == "resolved":
