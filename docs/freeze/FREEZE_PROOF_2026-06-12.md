@@ -7,8 +7,9 @@ Status: in progress. This document is proof-led: an item is not green unless the
 - Repository: `vaduvel/SigurScan`
 - Local repo: `/Users/vaduvageorge/AndroidStudioProjects/SigurScan`
 - Current branch: `main`
-- Current repo commit: `9bae857`
-- Deployed code commit: `21a6943`
+- Verified code commit: `17dcfc7`
+- Deployed code commit: `17dcfc7`
+- Documentation may advance past the deployed code commit with proof-only updates.
 - Cloud Run project: `project-20f225c0-d756-4cba-864`
 - Cloud Run service: `sigurscan-api`
 - Cloud Run region: `europe-west1`
@@ -20,17 +21,19 @@ Status: in progress. This document is proof-led: an item is not green unless the
 
 - Cloud Run service exists in `europe-west1`.
   Evidence: `gcloud run services describe sigurscan-api --project project-20f225c0-d756-4cba-864 --region europe-west1`.
-- Latest ready revision is `sigurscan-api-00019-lxl`.
-- Traffic is `100%` to `sigurscan-api-00019-lxl`.
-- Deployed image is `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/sigurscan/sigurscan-api:21a6943`.
+- Latest ready revision is `sigurscan-api-00020-xvd`.
+- Traffic is `100%` to `sigurscan-api-00020-xvd`.
+- Deployed image is `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/sigurscan/sigurscan-api:17dcfc7`.
 - Cloud Build deployment proof:
-  - build id: `23a660e7-6983-4785-85a9-a435eed15fad`
+  - build id: `8d7baef8-3a79-482c-be3c-c7d4e0823ef8`
   - status: `SUCCESS`
   - service URL: `https://sigurscan-api-357849228072.europe-west1.run.app`
 - Request timeout is `300s`.
 - Container concurrency is `40`.
 - CPU/memory are `1 CPU` / `1Gi`.
-- Max instances is `5`.
+- Min instances is `1`; max instances is `5`.
+- CPU throttling is `true`, preserving request-based CPU billing rather than always-allocated CPU.
+- Startup CPU boost is enabled.
 - Provider secrets are injected through Secret Manager references, including Supabase, Gemini, Vision, Web Risk, Mistral, urlscan, URLhaus, Upstash, app API keys, admin API keys, and `invoice-cache-hmac-key`.
 - Invoice cache HMAC uses only `INVOICE_CACHE_HMAC_KEY` from Secret Manager/env.
   - Legacy fallback string `sigurscan-cache-key-v1` has been removed from runtime code.
@@ -40,9 +43,17 @@ Status: in progress. This document is proof-led: an item is not green unless the
   - Test proof: `test_invoice_cache_key_requires_env_secret` fails without env and passes with the test fixture env.
 - Health check returns `HTTP 200` through Cloudflare on `https://api.sigurscan.com/health`.
   - Post-deploy health after `21a6943`: `HTTP 200`, `0.361590s`.
+  - Post-deploy health after `17dcfc7`: `HTTP 200`, `0.336330s`.
 - API protection is active:
   - unauthenticated `POST /v1/scan/orchestrated` returns `401`.
   - authenticated `POST /v1/scan/orchestrated` returns `200` and creates a scan.
+- Cloud Billing budget guard exists for this project:
+  - billing account: `018B56-5DF133-D4A772`
+  - budget id: `95a50d26-6008-4a9b-84f7-22d36d786ff5`
+  - display name: `SigurScan Cloud Run Guard`
+  - amount: `20 USD` monthly
+  - project filter: `projects/357849228072`
+  - thresholds: `50% current`, `100% current`, `100% forecasted`
 - Authenticated smoke scan through official domain completed:
   - scan id: `orch_1781267052_627619ad`
   - poll 1: `SUSPECT`, `is_final=false`, `1.532s`
@@ -57,6 +68,17 @@ Status: in progress. This document is proof-led: an item is not green unless the
   - Final poll range: `3.341s` - `3.546s`.
   - No `29s` poll reproduced in this run.
   - Captured scan ids: `orch_1781268026_47cf2e9a`, `orch_1781268035_bd224992`, `orch_1781268043_411c19b7`, `orch_1781268051_94f80036`.
+- Warm Cloud Run smoke after `17dcfc7` through `https://api.sigurscan.com` with Android UA:
+  - input: benign DNSC official URL smoke.
+  - POST: `HTTP 200`, `1.434s`, scan created.
+  - poll 1: `HTTP 200`, `4.382s`, total `5.815s`, `SIGUR`, `risk=low`, `is_final=false`, preview `ready`.
+  - poll 2: `HTTP 200`, `4.307s`, total `11.131s`, `SIGUR`, `risk=low`, `is_final=true`, preview `ready`.
+- Cloud Build log audit for build `8d7baef8-3a79-482c-be3c-c7d4e0823ef8` found no build failures/errors; only two standard Docker `pip as root` warnings.
+- Authenticated lightweight concurrency probe through `https://api.sigurscan.com/health` with Android UA:
+  - 20 requests, 10 workers.
+  - result: `20/20 HTTP 200`, `0` errors.
+  - total wall time: `5.577s`.
+  - latency: min `0.150s`, p50 `0.224s`, p95 `0.300s`, max `5.343s`.
 - Post-deploy latency re-check after `21a6943`:
   - Existing scan `orch_1781268789_c6e92ca2` returned `HTTP 200` in `4.008s` and was already `complete`, `SUSPECT`, `is_final=true`.
   - New offer scan `orch_1781269113_5074e703`:
@@ -69,22 +91,17 @@ Status: in progress. This document is proof-led: an item is not green unless the
 
 ### Not Yet Green
 
-- Container build warnings have not been audited from Cloud Build logs yet.
-- `min-instances` is not set. Cold-start protection is therefore not proven.
 - Cold-start test after 15 minutes idle has not been run.
-- Concurrency/load test has not been run.
+- Full scan concurrency/load test has not been run; only lightweight health concurrency is proven.
 - Cloud Logging structured-error proof has not been captured.
 - Latency outlier root-cause is not fully closed: a prior live run had one `29s` poll. The latest 4-run probe and the post-`21a6943` probe did not reproduce it, and Cloud Run logs show sub-4s server-side poll latency for the latest scan, so this remains a watch item rather than a confirmed code defect.
 - Rollback has not been tested end-to-end.
 
 ### Immediate Fixes
 
-1. Decide and apply `min-instances=1` if we accept the small always-on Cloud Run cost.
-2. Add `MIN_INSTANCES` support to `tools/deploy_cloud_run_backend.sh` so deploys are reproducible.
-3. Run Cloud Build log audit for the `21a6943` image.
-4. Run a small authenticated concurrency test through `https://api.sigurscan.com`.
-5. Add/confirm Cloud Logging alerting for poll latency outliers, for example any `GET /v1/scan/orchestrated/{id}` over `8s` or any component duration over provider timeout.
-6. Document rollback command and test it against the previous ready revision, or run a non-destructive dry-run proof if we do not want to move production traffic.
+1. Add/confirm Cloud Logging alerting for poll latency outliers, for example any `GET /v1/scan/orchestrated/{id}` over `8s` or any component duration over provider timeout.
+2. Document rollback command and test it against the previous ready revision, or run a non-destructive dry-run proof if we do not want to move production traffic.
+3. Run a controlled scan concurrency test with provider-safe fixtures/mocks or a very small live sample.
 
 ## Zone 2 - Cloudflare Official Domain
 
@@ -129,8 +146,8 @@ Status: in progress. This document is proof-led: an item is not green unless the
   - `789d497 chore: wire invoice HMAC secret into Cloud Run deploy`
   - `cf842d2 fix: flag upfront fee offer scams`
   - `21a6943 fix: close freeze secret and edge UA gaps`
-- `origin/main` points to `9bae857`.
-- Cloud Run intentionally remains on code image `21a6943`; `9bae857` is documentation-only.
+- `origin/main` includes deployed code commit `17dcfc7`; later proof-only documentation commits do not require a backend redeploy.
+- Cloud Run intentionally remains on code image `17dcfc7` until the next code deploy.
 
 ### Not Yet Green
 
@@ -141,4 +158,4 @@ Status: in progress. This document is proof-led: an item is not green unless the
 
 Freeze is not complete yet.
 
-The backend is live and healthy on Cloud Run behind `api.sigurscan.com`, with provider smoke green, API auth active, invoice HMAC secret fallback removed, and Android UA hardening deployed. The next blocking item is Cloud Run hardening: reproducible min instances, build log audit, concurrency proof, latency alerting, and rollback proof.
+The backend is live and healthy on Cloud Run behind `api.sigurscan.com`, with provider smoke green, API auth active, invoice HMAC secret fallback removed, Android UA hardening deployed, reproducible min instances enabled, request-based CPU billing preserved, a Cloud Billing budget guard created, build log audited, and lightweight concurrency proven. The next blocking items are latency alerting, rollback proof, and a controlled scan-concurrency probe.
