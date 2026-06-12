@@ -250,6 +250,63 @@ Status: in progress. This document is proof-led: an item is not green unless the
 - Cloudflare timeout behavior for long scans not tested.
 - Android mobile-network test on 4G/5G not recorded.
 
+## Zone 3 - Supabase
+
+### Verified
+
+- Supabase CLI version used for this proof: `2.101.0`.
+- Remote migration list matches local migrations:
+  - `20260525091000`
+  - `20260525092000`
+  - `20260528001000`
+  - `20260528002000`
+  - `20260603031448`
+  - `20260603093000`
+  - `20260609120852`
+  - `20260609175707`
+  - `20260609181828`
+  - `20260609185251`
+  - `20260609212500`
+  - `20260609214000`
+- Required runtime tables exist in `public`:
+  - `scan_jobs`
+  - `urlscan_preview_cache`
+  - `fast_preview_cache`
+  - `fast_preview_alias_cache`
+  - `fast_preview_capture_runs`
+- RLS is enabled on all five runtime tables above.
+- `anon` and `authenticated` have no direct table privileges on those five runtime tables.
+- Storage bucket proof:
+  - bucket `previews` exists.
+  - bucket is private: `public=false`.
+  - file size limit: `5242880`.
+  - allowed MIME type: `image/png`.
+- Fast preview structural constraints exist:
+  - `fast_preview_cache_visual_only_chk`
+  - `fast_preview_cache_status_chk`
+  - `fast_preview_alias_cache_final_url_hash_fkey`
+- Live Cloud Run -> Supabase write proof through `https://api.sigurscan.com`:
+  - scan id: `orch_1781289050_c007425e`.
+  - request: authenticated `POST /v1/scan/orchestrated` with Android UA.
+  - POST latency: `1.439s`.
+  - poll latencies: `1.361s`, `4.732s`.
+  - final API status: `complete`.
+  - final label: `SUSPECT`.
+  - Supabase `scan_jobs` row exists with:
+    - `status=complete`.
+    - `input_type=text`.
+    - `source_channel=android_native`.
+    - `created_at` present.
+    - `updated_at` present.
+    - `expires_at > now()`.
+    - `payload.result` present.
+    - `payload.pipeline_stage=analysis_ready`.
+
+### Not Yet Green
+
+- Backup / point-in-time recovery was not confirmed from the CLI. Needs dashboard or management API proof before the whole Zone 3 can be signed as fully green.
+- Dedicated Supabase connection-pool pressure test was not run. Existing five-scan Cloud Run concurrency did not expose a DB failure, but it is not a standalone pool exhaustion proof.
+
 ## Zone 7 - Main Consolidation Snapshot
 
 ### Verified
