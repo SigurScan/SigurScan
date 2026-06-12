@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import hashlib
 import hmac
+import os
 import time
 from typing import Optional
 from dataclasses import dataclass, field
@@ -17,11 +17,16 @@ CACHE_TTL = 43200  # 12 hours
 _cui_cache: dict[str, tuple[float, dict]] = {}
 _verdict_cache: dict[str, tuple[float, "InvoiceScanResult"]] = {}
 
-_CACHE_HMAC_KEY = b"sigurscan-cache-key-v1"
+_CACHE_HMAC_KEY_FALLBACK = "sigurscan-cache-key-v1"
+
+
+def _cache_hmac_key() -> bytes:
+    # Production can override this from Secret Manager/env; fallback keeps local tests deterministic.
+    return os.getenv("INVOICE_CACHE_HMAC_KEY", _CACHE_HMAC_KEY_FALLBACK).encode()
 
 
 def _hmac_digest(data: str) -> str:
-    return hmac.new(_CACHE_HMAC_KEY, data.encode(), "sha256").hexdigest()
+    return hmac.new(_cache_hmac_key(), data.encode(), "sha256").hexdigest()
 
 
 def _cache_key(fields) -> str:

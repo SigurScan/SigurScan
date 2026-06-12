@@ -1,7 +1,8 @@
 import pytest
 from unittest.mock import patch, AsyncMock
 
-from services.invoice_orchestrator import scan_invoice
+from services.invoice_orchestrator import _cache_key, _cui_cache_key, scan_invoice
+from services.invoice_parser import InvoiceFields
 from services.invoice_readiness_gate import ReadinessState
 
 
@@ -128,3 +129,29 @@ async def test_scan_deterministic_repeatable():
     assert result1.brand == result2.brand == "enel"
     assert result1.brand_match.impersonation_risk == result2.brand_match.impersonation_risk
     assert result1.warnings == result2.warnings
+
+
+def test_invoice_cache_keys_are_hmac_and_do_not_leak_identifiers(monkeypatch):
+    fields = InvoiceFields(
+        cui="24387371",
+        iban="RO33RNCB1234567890123456",
+        total=245.50,
+        data_emitere="2026-06-01",
+        nr_factura="INV-123",
+    )
+
+    monkeypatch.setenv("INVOICE_CACHE_HMAC_KEY", "test-secret-a")
+    key_a = _cache_key(fields)
+    cui_key_a = _cui_cache_key("24387371")
+
+    monkeypatch.setenv("INVOICE_CACHE_HMAC_KEY", "test-secret-b")
+    key_b = _cache_key(fields)
+    cui_key_b = _cui_cache_key("24387371")
+
+    assert key_a != key_b
+    assert cui_key_a != cui_key_b
+    assert len(key_a) == 64
+    assert cui_key_a.startswith("cui:")
+    assert "24387371" not in key_a
+    assert "24387371" not in cui_key_a
+    assert "RO33RNCB1234567890123456" not in key_a
