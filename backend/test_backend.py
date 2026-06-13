@@ -8397,3 +8397,36 @@ class TestBug4AnafDownNotInexistent:
                          data_inactivare=None, platitor_tva=False, enrolled_efactura=False, raw=None)
         w = " ".join(self._scan(nope).warnings).lower()
         assert "inexistent" in w or "not found" in w
+
+
+class TestBug5InvoiceThroughGate:
+    """Bug#5 — ruta factură produce label coerent prin verdict_gate (Decizia A)."""
+
+    def _verdict(self, text, cui_result):
+        import asyncio
+        from unittest.mock import patch, AsyncMock
+        from services import invoice_orchestrator as io
+        io._cui_cache.clear(); io._verdict_cache.clear()
+        with patch("services.invoice_orchestrator.check_cui", new_callable=AsyncMock) as m:
+            m.return_value = cui_result
+            result = asyncio.run(io.scan_invoice(text))
+        out = io.evaluate_invoice_verdict(result, redacted_text=text)
+        return out["gate"]["label"], out
+
+    def test_clean_legit_invoice_is_sigur(self):
+        from services.anaf_cui import CuiResult
+        ok = CuiResult(exists=True, checked=True, denumire="ENEL ENERGIE SA", activ=True,
+                       data_inactivare=None, platitor_tva=True, enrolled_efactura=False, raw=None)
+        text = ("Furnizor: ENEL ENERGIE SA\nCUI: 24387371\nSubtotal: 1.260\nTVA: 240\n"
+                "Total: 1.500\nIBAN: RO33RNCB1234567890123456\nData: 01.06.2026\nScadenta: 15.06.2026")
+        label, out = self._verdict(text, ok)
+        assert label == "SIGUR"
+        assert "evidence_hash" in out["bundle"]
+
+    def test_cui_inexistent_is_not_sigur(self):
+        from services.anaf_cui import CuiResult
+        nope = CuiResult(exists=False, checked=True, denumire=None, activ=False,
+                         data_inactivare=None, platitor_tva=False, enrolled_efactura=False, raw=None)
+        text = "Furnizor: SC GHOST SRL\nCUI: 99999999\nTotal: 5.000\nIBAN: DE89370400440532013000"
+        label, _ = self._verdict(text, nope)
+        assert label != "SIGUR"

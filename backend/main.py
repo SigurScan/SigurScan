@@ -8085,6 +8085,17 @@ async def scan_invoice_endpoint(
     extracted_urls = _dedupe_preserve_order(pdf_annotation_urls + extract_urls(ocr_text))
     result = await scan_invoice(ocr_text, links=extracted_urls)
 
+    # Bug#5 (Decizia A): ruta factură nu producea niciun verdict — întorcea doar
+    # fapte. Trecem faptele printr-un Evidence Bundle v2 și prin gate-ul unic
+    # (reduce_verdict) ca să iasă un label coerent (SIGUR/SUSPECT/PERICULOS/PENDING).
+    verdict_block = None
+    if not result.error:
+        from services.invoice_orchestrator import evaluate_invoice_verdict
+        try:
+            verdict_block = evaluate_invoice_verdict(result, redacted_text=ocr_text)
+        except Exception:
+            verdict_block = None
+
     response = {
         "source_type": source_type,
         "fields": {
@@ -8128,6 +8139,8 @@ async def scan_invoice_endpoint(
         } if result.brand_match else None,
         "anaf": result.anaf_cui_check,
         "warnings": result.warnings,
+        "verdict": verdict_block["gate"] if verdict_block else None,
+        "evidence_bundle": verdict_block["bundle"] if verdict_block else None,
         "error": result.error,
         "ocr_warning": ocr_warning,
     }
