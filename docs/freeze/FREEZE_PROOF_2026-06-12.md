@@ -7,9 +7,12 @@ Status: in progress. This document is proof-led: an item is not green unless the
 - Repository: `vaduvel/SigurScan`
 - Local repo: `/Users/vaduvageorge/AndroidStudioProjects/SigurScan`
 - Current branch: `main`
-- Verified code commit: `fa1e75c`
-- Deployed code commit: `fa1e75c`
+- Verified code commit: `ed8f4a7`
+- Deployed code commit: `ed8f4a7`
 - Documentation may advance past the deployed code commit with proof-only updates.
+- 2026-06-13 MoatOS PR0-PR4 merge commit on `origin/main`: `ab5b464`.
+- 2026-06-13 Supabase public-grant hardening commit on `origin/main`: `ed8f4a7`.
+- 2026-06-13 deployed Cloud Run revision: `sigurscan-api-00030-lxb`, image tag `ed8f4a7`, traffic `100%`.
 - Pre-flight source HEAD before this proof-only documentation commit: `9c898b6`.
 - Freeze QA worktree used for the 2026-06-13 pre-flight: `/Users/vaduvageorge/.config/superpowers/worktrees/SigurScan/freeze-qa-2026-06-13`.
 - Delta from deployed code to the pre-flight source HEAD is non-runtime:
@@ -25,19 +28,33 @@ Status: in progress. This document is proof-led: an item is not green unless the
 
 ### Verified
 
+- 2026-06-13 MoatOS PR0-PR4 deployment proof:
+  - PR: `#11`, squash-merged into `main` as `ab5b464`.
+  - Public-grant hardening commit: `ed8f4a7`.
+  - Cloud Build id: `efbf876f-f32e-4639-b912-fcce892d4e32`.
+  - Deployed revision: `sigurscan-api-00030-lxb`.
+  - Deployed image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/sigurscan/sigurscan-api:ed8f4a7`.
+  - Deployed digest: `sha256:29b84edc521d05aa930f461f7ccca0fa3ad2020884f4ce9bd8f723f8ab9c9081`.
+  - Runtime truth after deploy: `containerConcurrency=2`, `minScale=1`, `maxScale=5`, `timeout=300`, traffic `100%` to `sigurscan-api-00030-lxb`.
+  - Official health: `https://api.sigurscan.com/health` returned `HTTP 200` in `0.293127s` and included `strict-transport-security: max-age=31536000; includeSubDomains`.
+  - Raw Run health: `HTTP 200` in `0.165501s`.
+  - Unauthenticated official orchestrated scan returned backend `401` in `0.206527s`.
+  - Authenticated raw text-only scan: POST `1.717s`; final status `complete` on poll 2; total `7.924s`; max poll `4.118s`.
+  - Authenticated official text-only scan with Android UA `SigurScan/1.0 Android OkHttp`: POST `0.657s`; final status `complete` on poll 2; total `6.276s`; max poll `4.125s`.
+  - Known edge behavior preserved: Python default `urllib` UA receives Cloudflare `403/1010`; Android/OkHttp UA is accepted and is the supported app path.
 - Cloud Run service exists in `europe-west1`.
   Evidence: `gcloud run services describe sigurscan-api --project project-20f225c0-d756-4cba-864 --region europe-west1`.
-- Latest ready revision is `sigurscan-api-00029-gjg`.
-- Traffic is `100%` to latest revision, currently `sigurscan-api-00029-gjg`.
-- Deployed image is `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/sigurscan/sigurscan-api:fa1e75c`.
-- Deployed image digest is `sha256:a6f9b7be332223e02e925ac4f0b3bafc3e4ca8d0b4534d667d92b3b2c1904b50`.
-- 2026-06-13 pre-flight runtime reconciliation:
+- Latest ready revision is `sigurscan-api-00030-lxb`.
+- Traffic is `100%` to latest revision, currently `sigurscan-api-00030-lxb`.
+- Deployed image is `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/sigurscan/sigurscan-api:ed8f4a7`.
+- Deployed image digest is `sha256:29b84edc521d05aa930f461f7ccca0fa3ad2020884f4ce9bd8f723f8ab9c9081`.
+- 2026-06-13 earlier pre-flight runtime reconciliation before MoatOS merge:
   - command: `gcloud run services describe sigurscan-api --project project-20f225c0-d756-4cba-864 --region europe-west1 --format=json(...)`
   - image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/sigurscan/sigurscan-api:fa1e75c`
   - latest ready revision: `sigurscan-api-00029-gjg`
   - traffic: `100%` to latest revision.
   - `containerConcurrency=2`, `minScale=1`, `maxScale=5`, `cpu-throttling=true`, `startup-cpu-boost=true`.
-- Current deploy-tooling hardening Cloud Build deployment proof:
+- Previous deploy-tooling hardening Cloud Build deployment proof:
   - build id: `2a7be3a5-9e12-45ae-aa49-4cc0f67beb41`
   - status: `SUCCESS`
   - deployed revision: `sigurscan-api-00029-gjg`
@@ -66,7 +83,7 @@ Status: in progress. This document is proof-led: an item is not green unless the
 - Request timeout is `300s`.
 - Container concurrency is `2`.
   - It was reduced during Zone 8 hardening from the earlier high-concurrency posture after live scan probes showed better request stability for the current monolith on Cloud Run.
-  - The current deployed image is `fa1e75c`; the earlier no-redeploy tuning note applied before the freeze reconciliation image was deployed.
+  - The current deployed image is `ed8f4a7`; the earlier no-redeploy tuning note applied before the freeze reconciliation image was deployed.
   - Deploy script hardening after reconciliation now preserves this value with `CONCURRENCY="${CONCURRENCY:-2}"` and `--concurrency "$CONCURRENCY"`, so a future redeploy does not silently reset the service to `40`.
   - Deploy script hardening after `fa1e75c` also runs `gcloud run services update-traffic "$SERVICE_NAME" --to-latest`, so a future deploy cannot silently build a healthy revision while live traffic remains pinned to an older revision.
 - CPU/memory are `1 CPU` / `1Gi`.
@@ -702,8 +719,8 @@ Status: in progress. This document is proof-led: an item is not green unless the
 - `4918162 fix: keep PDF annotation links when OCR is empty`
 - `f1701e5 chore: reconcile freeze hardening proof`
 - `fa1e75c chore: harden cloud run traffic routing proof`
-- `origin/main` includes deployed code commit `fa1e75c`.
-- Cloud Run intentionally runs code image `fa1e75c` as revision `sigurscan-api-00029-gjg`, with `100%` traffic routed to latest.
+- `origin/main` includes deployed code commit `ed8f4a7`.
+- Cloud Run intentionally runs code image `ed8f4a7` as revision `sigurscan-api-00030-lxb`, with `100%` traffic routed to latest.
 - Branch audit was run from isolated worktree `/Users/vaduvageorge/.config/superpowers/worktrees/SigurScan/freeze-main-2026-06-12` at `7cb7651`.
 - Integrated/ancestor branches:
   - `origin/feature/deepseek-invoice-freeze-handoff-2026-06-12`
@@ -735,6 +752,10 @@ Status: in progress. This document is proof-led: an item is not green unless the
   - Worktree: `/Users/vaduvageorge/.config/superpowers/worktrees/SigurScan/freeze-qa-2026-06-13`
   - Command: `python3 -m pytest backend -q`
   - Result: `674 passed, 1 warning in 18.19s`.
+- 2026-06-13 post-MoatOS verification from the freeze main worktree:
+  - Worktree: `/Users/vaduvageorge/.config/superpowers/worktrees/SigurScan/freeze-main-2026-06-12`
+  - Command: `python3 -m pytest backend -q`
+  - Result: `802 passed, 1 warning in 6.08s`.
 - Fresh Android verification from the clean worktree:
   - Command: `JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease`
   - Result: `BUILD SUCCESSFUL in 1m 2s`, `96 actionable tasks`.
@@ -745,6 +766,9 @@ Status: in progress. This document is proof-led: an item is not green unless the
     - APK: `app/build/outputs/apk/release/app-release.apk`, size `16M`.
     - signer DN: `CN=SigurScan, OU=Mobile Security, O=SigurScan, L=Bucharest, ST=Bucharest, C=RO`.
     - signer SHA-256 digest: `bfd7991c4a7d0c349ae41235f2c0b52d77962c5a9a6729aa3410c54840168b67`.
+- 2026-06-13 post-MoatOS Android verification from the freeze main worktree:
+  - Command: `ANDROID_HOME="$HOME/Library/Android/sdk" JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease -q`
+  - Result: exit code `0`.
 - Physical checkout guard:
   - 2026-06-13 check: `/Users/vaduvageorge/AndroidStudioProjects/SigurScan` is on `feature/osint-intel-pipeline`.
   - No local `gate/unverified-verdict` worktree/branch was visible in `git worktree list` or local branch listing during this pre-flight check.
@@ -759,4 +783,4 @@ Status: in progress. This document is proof-led: an item is not green unless the
 
 Freeze is not complete yet.
 
-The backend is live and healthy on Cloud Run behind `api.sigurscan.com`, with provider smoke green, API auth active, invoice HMAC secret fallback removed, Android UA hardening deployed, a reproducible hash-locked container, min instances enabled, request-based CPU billing preserved, a Cloud Billing budget guard created, build log audited, latency alerting configured, structured-error proof captured, rollback executed and restored successfully, lightweight concurrency proven, controlled five-scan text-only concurrency proven, remote reputation-cache stats fixed, Android emulator URL E2E proven, Android emulator invoice E2E verified after the CUI/finalization fixes, email HTML hidden-link extraction/scan proven live, PDF annotation-link extraction fixed and proven live, and deploy-tooling hardening deployed on code image `fa1e75c`. The remaining Cloud Run freeze items are optional cold-start proof if scale-to-zero returns and a deliberately quota-bounded URL-provider concurrency probe.
+The backend is live and healthy on Cloud Run behind `api.sigurscan.com`, with provider smoke green, API auth active, invoice HMAC secret fallback removed, Android UA hardening deployed, a reproducible hash-locked container, min instances enabled, request-based CPU billing preserved, a Cloud Billing budget guard created, build log audited, latency alerting configured, structured-error proof captured, rollback executed and restored successfully, lightweight concurrency proven, controlled text-only concurrency proven, remote reputation-cache stats fixed, Android emulator URL E2E proven, Android emulator invoice E2E verified after the CUI/finalization fixes, email HTML hidden-link extraction/scan proven live, PDF annotation-link extraction fixed and proven live, MoatOS PR0-PR4 merged through PR `#11`, Supabase MoatOS tables migrated and hardened, and Cloud Run deployed on code image `ed8f4a7` as revision `sigurscan-api-00030-lxb`. The remaining Cloud Run freeze items are optional cold-start proof if scale-to-zero returns and a deliberately quota-bounded URL-provider concurrency probe; product freeze still needs the explicitly listed physical-device/mobile-network/store-readiness proofs before a launch sign-off.
