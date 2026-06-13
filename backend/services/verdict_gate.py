@@ -6,7 +6,7 @@ from typing import Any, Dict, List
 INTERNAL_LABELS = {"DANGEROUS", "SUSPECT", "UNVERIFIED", "SAFE"}
 USER_LABELS = {"DANGEROUS", "SUSPECT", "UNVERIFIED", "SAFE"}
 
-HARD_SENSITIVE_REQUESTS = {"card", "otp", "password", "crypto", "remote", "id_document"}
+HARD_SENSITIVE_REQUESTS = {"card", "otp", "password", "pin", "crypto", "remote", "id_document"}
 MONEY_OR_VALUE_REQUESTS = {"transfer"}
 WRONG_CHANNELS = {"reply", "whatsapp", "unofficial_site", "phone", "sms"}
 BAD_IDENTITY = {"lookalike", "unrelated"}
@@ -200,6 +200,7 @@ def verdict(bundle: Dict[str, Any]) -> Dict[str, Any]:
     semantic = _section(bundle, "semantic_review")
     provenance = _section(bundle, "provenance")
     campaign = _section(bundle, "campaign_match")
+    community = _section(bundle, "community")
 
     provider_verdict = _providers_verdict(providers)
     identity_status = _norm(identity.get("status") or "unknown")
@@ -214,6 +215,10 @@ def verdict(bundle: Dict[str, Any]) -> Dict[str, Any]:
     wrong_channel = channel in WRONG_CHANNELS
     has_provenance = _has_positive_provenance(identity, provenance)
     campaign_high = _campaign_match_high_enough(campaign)
+    try:
+        community_reports = int(community.get("reports") or 0)
+    except (TypeError, ValueError):
+        community_reports = 0
     violated_never_asks = _has_violated_never_asks(identity)
     violated_never_does = _has_violated_never_does(identity)
     provider_is_error = provider_verdict in PROVIDER_ERROR
@@ -290,6 +295,11 @@ def verdict(bundle: Dict[str, Any]) -> Dict[str, Any]:
     # ─── Rule 7: Semantic high + sensitive combo ───────────────────────────
     if semantic_risk == "high" and (hard_sensitive or value_sensitive or identity_status in BAD_IDENTITY):
         return _result("DANGEROUS", ["semantic_high_risk_match"], confidence=86)
+
+    # ─── Rule 7b: Raport comunitar singular → max SUSPECT ──────────────────
+    # Doar dacă e singurul semnal (fără proveniență pozitivă). Niciodată DANGEROUS solo.
+    if community_reports >= 1 and not has_provenance:
+        return _result("SUSPECT", ["community_report_only"], confidence=64)
 
     # ─── Rule 8: SAFE via positive provenance ──────────────────────────────
     # SAFE requires BTR match + zero sensitive + provider clean + URL final

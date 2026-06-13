@@ -6,7 +6,7 @@ from services.verdict_gate import verdict
 
 ROOT = Path(__file__).resolve().parent
 TESTSET_PATH = ROOT / "data" / "verdict_testset_ro.jsonl"
-FIRE_CASES = {"FAN-01", "FAN-02", "YOXO-01"}
+FIRE_CASES = {"FAN-01", "FAN-02", "YOXO-01", "COM-01"}
 
 
 def _load_cases():
@@ -73,7 +73,8 @@ def _bundle_v2_from_case(case: dict) -> dict:
     sensitive = compact["sensitive"]
     if sensitive == "card" and "transfer" in str(case.get("input") or "").lower():
         sensitive = "transfer"
-    return {
+    community_reports = case.get("community_reports", 0)
+    bundle = {
         "schema": "sigurscan_evidence_bundle_v2",
         "input": {
             "type": case.get("channel") or "unknown",
@@ -107,6 +108,9 @@ def _bundle_v2_from_case(case: dict) -> dict:
         },
         "semantic_review": _semantic_review_from_case(case),
     }
+    if community_reports:
+        bundle["community"] = {"reports": community_reports}
+    return bundle
 
 
 def test_verdict_gate_matches_all_manual_romania_contract_cases():

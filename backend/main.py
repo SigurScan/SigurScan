@@ -8400,6 +8400,37 @@ async def campaign_families():
     return {"families": FAMILY_TAXONOMY}
 
 
+class IntelStatusData(BaseModel):
+    last_run_at: Optional[float] = None
+    entries_ingested: int = 0
+    sources_configured: int = 0
+    sources_with_rss: int = 0
+    sources_enabled: int = 0
+
+
+_INTEL_STATUS: IntelStatusData = IntelStatusData()
+
+
+def _update_intel_status(**kwargs) -> None:
+    for k, v in kwargs.items():
+        if hasattr(_INTEL_STATUS, k):
+            setattr(_INTEL_STATUS, k, v)
+
+
+@app.get("/v1/urechea/status")
+async def urechea_status():
+    sources = urechea_ingester.sources
+    return {
+        "last_run_at": _INTEL_STATUS.last_run_at,
+        "entries_ingested": _INTEL_STATUS.entries_ingested,
+        "sources_configured": len(sources),
+        "sources_with_rss": sum(1 for s in sources.values() if s.feed_url is not None),
+        "sources_enabled": sum(1 for s in sources.values() if s.enabled),
+        "moderation_queue_length": len(urechea_ingester.moderation_queue),
+        "campaign_count": len(campaign_store.all()),
+    }
+
+
 @app.post("/v1/campaign/match")
 async def match_campaign(payload: CampaignMatchRequest):
     fp = extract_fingerprint(
