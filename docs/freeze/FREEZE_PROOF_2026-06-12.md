@@ -7,12 +7,14 @@ Status: in progress. This document is proof-led: an item is not green unless the
 - Repository: `vaduvel/SigurScan`
 - Local repo: `/Users/vaduvageorge/AndroidStudioProjects/SigurScan`
 - Current branch: `main`
-- Verified code commit: `ed8f4a7`
-- Deployed code commit: `ed8f4a7`
+- Verified code commit: `e833a63`
+- Deployed code commit: `e833a63`
 - Documentation may advance past the deployed code commit with proof-only updates.
 - 2026-06-13 MoatOS PR0-PR4 merge commit on `origin/main`: `ab5b464`.
 - 2026-06-13 Supabase public-grant hardening commit on `origin/main`: `ed8f4a7`.
-- 2026-06-13 deployed Cloud Run revision: `sigurscan-api-00030-lxb`, image tag `ed8f4a7`, traffic `100%`.
+- 2026-06-13 scan pipeline hardening merge commit on `origin/main`: `e833a63`.
+- 2026-06-13 deployed Cloud Run revision after scan pipeline hardening: `sigurscan-api-00031-hxn`, image tag `e833a63`, traffic `100%`.
+- Previous MoatOS deployed Cloud Run revision: `sigurscan-api-00030-lxb`, image tag `ed8f4a7`, traffic `100%`.
 - Pre-flight source HEAD before this proof-only documentation commit: `9c898b6`.
 - Freeze QA worktree used for the 2026-06-13 pre-flight: `/Users/vaduvageorge/.config/superpowers/worktrees/SigurScan/freeze-qa-2026-06-13`.
 - Delta from deployed code to the pre-flight source HEAD is non-runtime:
@@ -28,6 +30,23 @@ Status: in progress. This document is proof-led: an item is not green unless the
 
 ### Verified
 
+- 2026-06-13 scan pipeline hardening deployment proof:
+  - Source branch reviewed/cherry-picked: `fix/scan-pipeline-hardening-2026-06-13` / draft PR `#10`.
+  - Integrated into `main` as squash commit `e833a63` (`fix: harden invoice and offer scan pipeline`).
+  - Scope: invoice parser amount/date/IBAN/CUI fixes, ANAF checked=false cache behavior, invoice endpoint routed through `verdict_gate.reduce_verdict`, price no longer treated as wrong-channel evidence for offers, dedicated executor for blocking ANAF calls, and regression tests.
+  - Integration patch: canonical verdict labels are `SAFE`, `SUSPECT`, `DANGEROUS`, `UNVERIFIED`, `PENDING`; invoice user-copy mapping was aligned before merge.
+  - Backend verification on `main`: `python3 -m pytest backend -q` -> `828 passed, 1 warning in 4.82s`.
+  - Android verification on `main`: `ANDROID_HOME="$HOME/Library/Android/sdk" JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease -q` -> exit code `0`.
+  - Hygiene: `git diff --check` -> clean; staged diff secret scan -> `SECRET_SCAN_OK`.
+  - Cloud Build id: `8e7a432b-b887-4153-bfe8-d54ea0c4b70a`.
+  - Deployed revision: `sigurscan-api-00031-hxn`.
+  - Deployed image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/sigurscan/sigurscan-api:e833a63`.
+  - Deployed digest: `sha256:9d412bb7719242563509ad94bfbc0eb826e9bd8e252767715b215d1814a6f5b6`.
+  - Runtime truth after deploy: `containerConcurrency=2`, `minScale=1`, `maxScale=5`, `cpu-throttling=true`, traffic `100%` to `sigurscan-api-00031-hxn`.
+  - Official health: `https://api.sigurscan.com/health` returned `HTTP 200` in `0.292984s` and included `strict-transport-security: max-age=31536000; includeSubDomains` plus `x-sigurscan-edge: cloudflare`.
+  - Raw Run health: `HTTP 200` in `0.161002s`.
+  - Unauthenticated orchestrated route parity: official and raw Run both returned backend `401` with body `{"detail":"Missing or invalid API key."}`.
+  - Authenticated invoice smoke through official domain with Android UA: POST `HTTP 200` in `1.454s`; verdict visible on poll 2; final on poll 3; max poll `3.357s`; label `DANGEROUS` for a deliberately incomplete/fail-safe invoice-control text.
 - 2026-06-13 MoatOS PR0-PR4 deployment proof:
   - PR: `#11`, squash-merged into `main` as `ab5b464`.
   - Public-grant hardening commit: `ed8f4a7`.
