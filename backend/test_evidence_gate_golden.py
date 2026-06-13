@@ -16,6 +16,7 @@ def _bundle(
     provenance_phone_match: bool = False,
     campaign_status: str = "no_match",
     campaign_confidence: float = 0.0,
+    community_reports: int = 0,
     violated_never_asks: list | None = None,
     violated_never_does: list | None = None,
     tld_suspicious: bool = False,
@@ -65,6 +66,9 @@ def _bundle(
             "confidence": campaign_confidence,
             "devices_seen_bucket": "0",
             "family": None,
+        },
+        "community": {
+            "reports": community_reports,
         },
         "semantic_review": {
             "status": semantic_status,
@@ -267,6 +271,33 @@ def test_campaign_match_high_confidence_without_provenance_is_suspect():
     assert r["is_final"] is True
 
 
+def test_single_community_report_without_provenance_is_suspect():
+    b = _bundle(
+        identity_status="unknown",
+        providers_verdict="clean",
+        sensitive="none",
+        channel="sms",
+        community_reports=1,
+    )
+    r = verdict(b)
+    assert r["label"] == "SUSPECT"
+    assert "community_report_only" in r["reason_codes"]
+    assert r["is_final"] is True
+
+
+def test_single_community_report_does_not_override_positive_provenance_safe():
+    b = _bundle(
+        identity_status="official",
+        providers_verdict="clean",
+        sensitive="none",
+        channel="official",
+        community_reports=4,
+    )
+    r = verdict(b)
+    assert r["label"] == "SAFE"
+    assert r["reason_codes"] == ["positive_provenance_clean"]
+
+
 # ─── Rule 8: Semantic high + sensitive → DANGEROUS ────────────────────────
 
 def test_semantic_high_with_sensitive_is_dangerous():
@@ -334,6 +365,62 @@ def test_value_transfer_without_provenance_is_suspect():
     r = verdict(b)
     assert r["label"] == "SUSPECT"
     assert "value_request_needs_verification" in r["reason_codes"]
+
+
+# ─── Brand golden cases §10 ───────────────────────────────────────────────
+
+def test_orange_official_invoice_notice_is_safe():
+    b = _bundle(
+        identity_status="official",
+        providers_verdict="clean",
+        sensitive="none",
+        channel="official",
+        semantic_risk="benign",
+        provenance_domain_match=True,
+    )
+    b["identity"]["claimed_brand"] = "Orange România"
+    r = verdict(b)
+    assert r["label"] == "SAFE"
+
+
+def test_orange_asks_pin_by_sms_is_dangerous():
+    b = _bundle(
+        identity_status="official",
+        providers_verdict="clean",
+        sensitive="pin",
+        channel="sms",
+        violated_never_asks=["pin"],
+    )
+    b["identity"]["claimed_brand"] = "Orange România"
+    r = verdict(b)
+    assert r["label"] == "DANGEROUS"
+    assert any(code.startswith("never_asks_violated") for code in r["reason_codes"])
+
+
+def test_olx_card_to_receive_money_is_dangerous():
+    b = _bundle(
+        identity_status="official",
+        providers_verdict="clean",
+        sensitive="card",
+        channel="unofficial_site",
+        violated_never_asks=["card"],
+    )
+    b["identity"]["claimed_brand"] = "OLX România"
+    r = verdict(b)
+    assert r["label"] == "DANGEROUS"
+
+
+def test_sameday_unofficial_payment_request_is_dangerous():
+    b = _bundle(
+        identity_status="unrelated",
+        providers_verdict="clean",
+        sensitive="transfer",
+        channel="unofficial_site",
+        semantic_risk="high",
+    )
+    b["identity"]["claimed_brand"] = "Sameday"
+    r = verdict(b)
+    assert r["label"] == "DANGEROUS"
 
 
 # ─── Rule 11: Residual → UNVERIFIED ──────────────────────────────────────

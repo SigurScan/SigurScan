@@ -82,6 +82,20 @@ create table if not exists public.guardian_dangerous_approval (
   expires_at timestamptz
 );
 
+create table if not exists public.call_radar_hot_cache (
+  id uuid primary key default gen_random_uuid(),
+  target_hash text not null,
+  target_type text not null check (target_type in ('phone','domain','url','iban','email')),
+  risk_level text not null default 'unknown'
+    check (risk_level in ('low','info','medium','high','unknown')),
+  report_count integer not null default 0 check (report_count >= 0),
+  family text,
+  last_reported_at timestamptz,
+  expires_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create index if not exists brand_truth_manifest_confidence_idx
   on public.brand_truth_manifest (confidence);
 create index if not exists brand_truth_manifest_review_status_idx
@@ -108,6 +122,12 @@ create index if not exists guardian_audit_log_target_idx
   on public.guardian_audit_log (target_type, target_id);
 create index if not exists guardian_dangerous_approval_intel_id_idx
   on public.guardian_dangerous_approval (intel_id);
+create index if not exists call_radar_hot_cache_target_hash_idx
+  on public.call_radar_hot_cache (target_hash);
+create index if not exists call_radar_hot_cache_expires_at_idx
+  on public.call_radar_hot_cache (expires_at);
+create index if not exists call_radar_hot_cache_risk_level_idx
+  on public.call_radar_hot_cache (risk_level);
 
 alter table public.brand_truth_manifest enable row level security;
 alter table public.campaign_intel enable row level security;
@@ -115,6 +135,7 @@ alter table public.campaign_fingerprint enable row level security;
 alter table public.circle_link enable row level security;
 alter table public.guardian_audit_log enable row level security;
 alter table public.guardian_dangerous_approval enable row level security;
+alter table public.call_radar_hot_cache enable row level security;
 
 drop trigger if exists set_brand_truth_manifest_updated_at on public.brand_truth_manifest;
 create trigger set_brand_truth_manifest_updated_at
@@ -124,4 +145,9 @@ create trigger set_brand_truth_manifest_updated_at
 drop trigger if exists set_campaign_intel_updated_at on public.campaign_intel;
 create trigger set_campaign_intel_updated_at
   before update on public.campaign_intel
+  for each row execute function public.set_updated_at();
+
+drop trigger if exists set_call_radar_hot_cache_updated_at on public.call_radar_hot_cache;
+create trigger set_call_radar_hot_cache_updated_at
+  before update on public.call_radar_hot_cache
   for each row execute function public.set_updated_at();

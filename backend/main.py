@@ -9202,6 +9202,52 @@ class PushRegisterRequest(BaseModel):
     locale: str = "ro-RO"
 
 
+class OneTapReportRequest(BaseModel):
+    target_type: str = "url"
+    target_redacted: str = "[redactat]"
+    family: Optional[str] = None
+    verdict: str = "SUSPECT"
+    redacted_summary: Optional[str] = None
+
+
+@app.get("/v1/radar/hot-iocs")
+def radar_hot_iocs(since: Optional[float] = None):
+    """Return privacy-preserving hot-cache data for Radar surfaces.
+
+    This endpoint emits data only. It does not calculate or override verdicts.
+    """
+    from services.radar_hot_cache import build_hot_cache
+
+    reports: List[Dict[str, Any]] = []
+    if supabase_store.is_supabase_enabled():
+        try:
+            rows = supabase_store._get_json(
+                "community_reports",
+                {
+                    "select": "hash,report_count,family,risk_level",
+                    "order": "report_count.desc",
+                    "limit": "500",
+                },
+            )
+            reports = rows if isinstance(rows, list) else []
+        except Exception as exc:
+            logger.warning("radar_hot_iocs: community reports unavailable: %s", exc)
+    return build_hot_cache(campaign_store, reports=reports, since=since)
+
+
+@app.post("/v1/report")
+def one_tap_report(payload: OneTapReportRequest):
+    """Prepare a user-confirmed report package. SigurScan does not submit it."""
+    from services.report_builder import build_report_package
+
+    return build_report_package(
+        target={"type": payload.target_type, "value_redacted": payload.target_redacted},
+        family=payload.family or "UNKNOWN",
+        verdict=payload.verdict or "SUSPECT",
+        redacted_summary=payload.redacted_summary,
+    )
+
+
 @app.post("/v1/community/report")
 def community_report(payload: CommunityReportRequest):
     has_supabase = supabase_store.is_supabase_enabled()

@@ -28,7 +28,10 @@ logger = logging.getLogger("urechea_rss_worker")
 
 def _source_names(ingester: UrecheaIngester, requested: Optional[Iterable[str]]) -> List[str]:
     if requested:
-        return [name for name in requested if name in ingester.sources]
+        names: List[str] = []
+        for raw_name in requested:
+            names.extend(name.strip() for name in str(raw_name).split(",") if name.strip())
+        return [name for name in names if name in ingester.sources]
     return [
         name
         for name, source in ingester.sources.items()

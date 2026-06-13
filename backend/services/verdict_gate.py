@@ -177,6 +177,17 @@ def _campaign_match_high_enough(campaign: Dict[str, Any]) -> bool:
     return confidence >= CAMPAIGN_MATCH_HIGH_CONFIDENCE_THRESHOLD
 
 
+def _community_report_count(community: Dict[str, Any]) -> int:
+    """Community reports are soft evidence: solo max SUSPECT, never SAFE/DANGEROUS."""
+    for key in ("reports", "report_count", "count"):
+        try:
+            value = community.get(key)
+            return max(0, int(value)) if value is not None else 0
+        except (TypeError, ValueError):
+            continue
+    return 0
+
+
 def _has_violated_never_asks(identity: Dict[str, Any]) -> List[str]:
     return identity.get("violated_never_asks") or []
 
@@ -201,6 +212,7 @@ def verdict(bundle: Dict[str, Any]) -> Dict[str, Any]:
     semantic = _section(bundle, "semantic_review")
     provenance = _section(bundle, "provenance")
     campaign = _section(bundle, "campaign_match")
+    community = _section(bundle, "community")
 
     provider_verdict = _providers_verdict(providers)
     identity_status = _norm(identity.get("status") or "unknown")
@@ -215,6 +227,7 @@ def verdict(bundle: Dict[str, Any]) -> Dict[str, Any]:
     wrong_channel = channel in WRONG_CHANNELS
     has_provenance = _has_positive_provenance(identity, provenance)
     campaign_high = _campaign_match_high_enough(campaign)
+    community_reports = _community_report_count(community)
     violated_never_asks = _has_violated_never_asks(identity)
     violated_never_does = _has_violated_never_does(identity)
     provider_is_error = provider_verdict in PROVIDER_ERROR
@@ -287,6 +300,10 @@ def verdict(bundle: Dict[str, Any]) -> Dict[str, Any]:
     # ─── Rule 6: Campaign fingerprint match solo → max SUSPECT ────────────
     if campaign_high and not has_provenance:
         return _result("SUSPECT", ["campaign_match_only"], confidence=68)
+
+    # ─── Rule 6b: Community report solo → max SUSPECT ─────────────────────
+    if community_reports > 0 and not has_provenance:
+        return _result("SUSPECT", ["community_report_only"], confidence=64)
 
     # ─── Rule 7: Semantic high + sensitive combo ───────────────────────────
     if semantic_risk == "high" and (hard_sensitive or value_sensitive or identity_status in BAD_IDENTITY):
