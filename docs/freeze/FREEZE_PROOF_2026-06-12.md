@@ -448,6 +448,14 @@ Status: in progress. This document is proof-led: an item is not green unless the
   - command: `supabase backups list --project-ref hslqboubacrdhatmqcky --output json`.
   - result: `pitr_enabled=false`, `walg_enabled=true`, `backups=[]`, region `eu-west-1`.
   - conclusion: PITR is not enabled, so Zone 3 remains Partial until a paid Supabase PITR/backup posture or an automated backup job is accepted.
+- Automated logical backup tooling was added as the no-PITR backup posture:
+  - workflow: `.github/workflows/supabase-logical-backup.yml`.
+  - script: `tools/supabase_logical_backup.sh`.
+  - runbook: `docs/operations/SUPABASE_LOGICAL_BACKUPS.md`.
+  - cadence: daily at `02:23 UTC` plus manual `workflow_dispatch`.
+  - storage: private GitHub Actions artifact, `30` days retention.
+  - verification: workflow runs `pg_restore --list` and uploads dump, schema, restore list, and checksum manifest.
+  - current status: tooling exists, but Zone 3 remains Partial until GitHub secret `SUPABASE_DB_URL` is configured and the first workflow run succeeds.
 - Current database size is small:
   - total database size: `26 MB`.
   - largest tables: `scan_jobs` `11 MB`, `scan_events` `1872 kB`, `url_reputation_cache` `1680 kB`.
@@ -459,7 +467,7 @@ Status: in progress. This document is proof-led: an item is not green unless the
 ### Not Yet Green
 
 - Supabase PITR is explicitly not enabled (`pitr_enabled=false`).
-- Local dumps exist as a manual fallback, but there is no automated daily backup job yet.
+- Local dumps exist as a manual fallback, and automated daily logical backup tooling now exists. First successful GitHub Actions artifact is still required before this becomes accepted backup proof.
 
 ## Zone 4 - Cache And Providers
 
