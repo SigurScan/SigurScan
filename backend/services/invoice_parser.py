@@ -111,11 +111,29 @@ def _parse_ro_amount(raw: str) -> float | None:
     has_comma = "," in cleaned
     has_dot = "." in cleaned
     if has_comma and has_dot:
-        cleaned = cleaned.replace(".", "").replace(",", ".")
+        # Ultimul separator întâlnit este zecimalul; celălalt = separator de mii.
+        if cleaned.rfind(",") > cleaned.rfind("."):
+            # RO: punct=mii, virgulă=zecimal (1.260,50)
+            cleaned = cleaned.replace(".", "").replace(",", ".")
+        else:
+            # EN: virgulă=mii, punct=zecimal (1,500.00)
+            cleaned = cleaned.replace(",", "")
     elif has_comma:
-        cleaned = cleaned.replace(",", ".")
+        # O singură virgulă cu exact 3 cifre după = separator de mii (1,500);
+        # altfel virgula e zecimalul RO (12,50 / 19,00).
+        parts = cleaned.split(",")
+        if len(parts) == 2 and len(parts[1]) == 3 and parts[0].lstrip("-").isdigit():
+            cleaned = cleaned.replace(",", "")
+        else:
+            cleaned = cleaned.replace(",", ".")
     elif has_dot:
-        cleaned = cleaned.replace(" ", "")
+        # Toate grupele de după prima au exact 3 cifre = separator de mii RO
+        # (1.500 / 2.000 / 1.234.567); altfel punctul rămâne zecimal (119.99).
+        parts = cleaned.split(".")
+        if len(parts) >= 2 and parts[0].lstrip("-").isdigit() and all(
+            len(p) == 3 and p.isdigit() for p in parts[1:]
+        ):
+            cleaned = cleaned.replace(".", "")
     try:
         return round(float(cleaned), 2)
     except (ValueError, TypeError):

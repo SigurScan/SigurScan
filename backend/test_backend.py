@@ -8268,3 +8268,44 @@ if __name__ == "__main__":
     test_scam_atlas_engine()
     test_advanced_scam_detection_modules()
     print("=== All tests completed successfully! ===")
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# fix/scan-pipeline-hardening-2026-06-13 — teste pentru bug-urile de audit
+# ════════════════════════════════════════════════════════════════════════════
+
+class TestBug1RoAmountThousands:
+    """Bug#1 — separator de mii RO (punct) vs zecimal EN."""
+
+    def test_ro_thousands_dot(self):
+        from services.invoice_parser import _parse_ro_amount
+        assert _parse_ro_amount("1.500") == 1500.0
+        assert _parse_ro_amount("2.000") == 2000.0
+        assert _parse_ro_amount("12.500") == 12500.0
+
+    def test_ro_thousands_and_decimal(self):
+        from services.invoice_parser import _parse_ro_amount
+        assert _parse_ro_amount("1.260,50") == 1260.50
+        assert _parse_ro_amount("2.000,00") == 2000.00
+
+    def test_en_format(self):
+        from services.invoice_parser import _parse_ro_amount
+        assert _parse_ro_amount("1,500.00") == 1500.00
+
+    def test_plain_and_decimal(self):
+        from services.invoice_parser import _parse_ro_amount
+        assert _parse_ro_amount("240") == 240.0
+        assert _parse_ro_amount("12,50") == 12.50
+        assert _parse_ro_amount("119.99") == 119.99
+        assert _parse_ro_amount("1.5") == 1.5
+
+    def test_legit_ro_invoice_totals_match(self):
+        from services.invoice_parser import _parse_ro_amount
+        from services.invoice_coherence import check_coherence
+        sub = _parse_ro_amount("1.260")
+        tva = _parse_ro_amount("240")
+        total = _parse_ro_amount("1.500")
+        assert (sub, tva, total) == (1260.0, 240.0, 1500.0)
+        res = check_coherence(subtotal=sub, tva=tva, total=total,
+                              data_emitere=None, scadenta=None)
+        assert res.totals_match is True
