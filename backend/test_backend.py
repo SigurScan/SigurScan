@@ -8553,3 +8553,35 @@ class TestBug13PendingVerdictMessage:
         reasons, safe_actions = app_main._invoice_verdict_messages(verdict_block)
         assert reasons == ["Datele facturii sunt coerente și corespund unui emitent cunoscut."]
         assert safe_actions == ["Poți efectua plata dacă recunoști emitentul și suma."]
+
+
+class TestBug14AnafDedicatedExecutor:
+    """Bug#14 — apelurile blocante ANAF/lista-firme.info rulau pe executorul
+    implicit al loop-ului (run_in_executor(None, ...)), shared cu restul
+    aplicației. Un ANAF lent/picat putea ocupa toate thread-urile executorului
+    implicit. Trebuie să folosească un ThreadPoolExecutor dedicat, mărginit."""
+
+    def test_dedicated_executor_exists_and_is_bounded(self):
+        from concurrent.futures import ThreadPoolExecutor
+        from services import anaf_cui
+        assert isinstance(anaf_cui._ANAF_EXECUTOR, ThreadPoolExecutor)
+        assert anaf_cui._ANAF_EXECUTOR._max_workers <= 8
+
+    def test_call_anaf_api_uses_dedicated_executor(self):
+        import asyncio
+        from unittest.mock import AsyncMock, MagicMock, patch
+        from services import anaf_cui
+
+        fake_response = MagicMock(status_code=404)
+        fake_loop = MagicMock()
+        fake_loop.run_in_executor = AsyncMock(return_value=fake_response)
+
+        async def _run():
+            with patch.object(anaf_cui.asyncio, "get_running_loop", return_value=fake_loop):
+                return await anaf_cui._call_anaf_api(12345678, "2026-06-13")
+
+        result = asyncio.run(_run())
+        assert result is None
+        used_executor = fake_loop.run_in_executor.call_args[0][0]
+        assert used_executor is anaf_cui._ANAF_EXECUTOR
+        assert used_executor is not None
