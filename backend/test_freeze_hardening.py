@@ -83,7 +83,6 @@ def test_redirect_resolver_freeze_contract(monkeypatch):
 def test_provider_errors_never_become_safe_with_established_domain():
     provider_cases = [
         {"verdict": "error", "completeness": True},
-        {"verdict": "unknown", "completeness": True},
         {"google_web_risk": {"status": "error", "consulted": True}, "completeness": True},
         {"urlhaus": {"status": "error", "consulted": True}, "completeness": True},
     ]
@@ -91,13 +90,22 @@ def test_provider_errors_never_become_safe_with_established_domain():
     for provider_payload in provider_cases:
         result = verdict(_base_bundle(provider_payload))
         assert result["label"] == "SUSPECT"
-        assert result["reason_codes"] == ["residual"]
+        assert result["reason_codes"] == ["provider_error"]
+
+
+def test_provider_unknown_never_becomes_safe_with_established_domain():
+    result = verdict(_base_bundle({"verdict": "unknown", "completeness": True}))
+
+    assert result["label"] == "UNVERIFIED"
+    assert result["is_final"] is True
+    assert result["reason_codes"] == ["residual"]
 
 
 def test_provider_pending_stays_internal_pending_not_safe():
     result = verdict(_base_bundle({"verdict": "pending", "completeness": True}))
 
-    assert result["label"] == "PENDING"
+    assert result["label"] == "UNVERIFIED"
+    assert result["is_final"] is False
     assert result["reason_codes"] == ["insufficient_evidence"]
 
 
