@@ -211,6 +211,21 @@ class TestProvenanceCheck:
         assert result.official_match is True
         assert result.max_effect == "can_raise_safe"
 
+    def test_yoxo_web_channel_alias_matches_official_website(self, btr):
+        result = btr.provenance_check(
+            claimed_brand="YOXO",
+            observed_channel="web",
+            observed_domain="yoxo.ro",
+            observed_phone_e164=None,
+            sensitive_asks=[],
+            payment_method=None,
+            final_url="https://www.yoxo.ro/",
+        )
+        assert result.manifest_id == "yoxo"
+        assert result.provenance == "match"
+        assert result.official_match is True
+        assert result.max_effect == "can_raise_safe"
+
     def test_isarescu_deepfake_investment(self, btr):
         result = btr.provenance_check(
             claimed_brand=None,

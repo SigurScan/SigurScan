@@ -195,6 +195,9 @@ class BrandTruthRegistry:
         violated_never_does = []
         safe_requires_failed = []
         reason_codes = []
+        normalized_channel = (observed_channel or "").strip().lower()
+        if normalized_channel in {"web", "website", "site"}:
+            normalized_channel = "official_website"
 
         domain_match = True
         if observed_domain:
@@ -203,11 +206,11 @@ class BrandTruthRegistry:
                 safe_requires_failed.append("official_domain_match")
                 reason_codes.append("BTR_DOMAIN_MISMATCH")
 
-        channel_match = observed_channel in manifest.official_channels if manifest.official_channels else False
+        channel_match = normalized_channel in manifest.official_channels if manifest.official_channels else False
         if not channel_match and manifest.official_channels:
             safe_requires_failed.append("official_channel_match")
 
-        if observed_channel not in ("official", "official_website", "official_app"):
+        if normalized_channel not in ("official", "official_website", "official_app"):
             for ask in sensitive_asks:
                 if ask in manifest.never_asks:
                     violated_never_asks.append(ask)
