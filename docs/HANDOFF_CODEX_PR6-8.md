@@ -159,20 +159,15 @@ Apoi verifică în Supabase că `circle_links` / `verification_pings` au primit 
 
 ## 8. Provideri URL — chei expirate + pilon DNS nou (verificat live)
 
-### 8.1 Chei expirate (de reînnoit) — verificat 2026-06-14
-Testate direct cu cheile din `backend/.env.vercel`:
-- **Google Web Risk** → `API_KEY_INVALID` (cheia nu mai e validă).
-- **URLhaus** → `unknown_auth_key` (Auth-Key invalid).
+### 8.1 Chei provider — OK în prod (verificat de Codex live)
+Cheile **Google Web Risk** și **URLhaus** funcționează în producție (testate live de Codex).
+⚠️ Atenție: copia locală `backend/.env.vercel` a întors `API_KEY_INVALID` /
+`unknown_auth_key` la un test local — deci **fișierul local e stale/diferit de prod**;
+nu vă bazați pe el pentru cheile providerilor, sursa de adevăr e env-ul din Vercel/Cloud Run.
 
-Impact: în prod, doi piloni de reputație URL **nu primesc semnal acum** (degradează
-spre „unknown", nu coboară fals la SAFE — gate-ul e safe-by-design, dar pierdem detecție).
-**De făcut Codex:** reînnoiește cheile și pune-le în env:
-- `GOOGLE_WEB_RISK_API_KEY` (Google Cloud Console → Web Risk API).
-- `URLHAUS_AUTH_KEY` (cont gratuit abuse.ch → Auth-Key).
-
-**Recomandare free-first (gol #3 §12):** pentru Web Risk, treci de la **Lookup API**
-(costă per-scan la scară) la **Update API** (liste hash descărcate local, match offline)
-— rezolvă și costul la 100k useri, și privacy-ul.
+**Recomandare free-first (gol #3 §12), rămâne valabilă:** pentru Web Risk, treci de la
+**Lookup API** (costă per-scan la scară, ~100k useri) la **Update API** (liste hash
+descărcate local, match offline) — rezolvă costul și privacy-ul. Nu blochează nimic acum.
 
 ### 8.2 Pilon nou DNS reputation — `services/dns_reputation.py` (GRATIS, fără cheie)
 Adăugat în pipeline, **opt-in** prin `ENABLE_DNS_REPUTATION` (implicit **OFF** → fără
