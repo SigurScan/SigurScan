@@ -2485,6 +2485,10 @@ fun ResultCard(
 
             ResultSection(title = "Ce să faci acum", items = nextActions, icon = Icons.Default.CheckCircle)
 
+            assessment.actionPlan?.let { plan ->
+                ActionPlanSection(plan)
+            }
+
             assessment.legal?.let { legal ->
                 LegalEducationSection(legal)
             }
@@ -2843,6 +2847,102 @@ fun LegalEducationSection(legal: LegalSection) {
             Text(disclaimer, color = SigurColors.TextMuted, fontSize = 10.sp, lineHeight = 14.sp, fontStyle = FontStyle.Italic)
         }
     }
+}
+
+@Composable
+fun ActionPlanSection(plan: ActionPlan) {
+    val steps = plan.steps.orEmpty()
+        .filter { !it.title.isNullOrBlank() || !it.detail.isNullOrBlank() }
+        .sortedWith(compareBy<ActionPlanStep> { it.order ?: Int.MAX_VALUE })
+    if (steps.isEmpty()) return
+
+    Spacer(modifier = Modifier.height(12.dp))
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 8.dp)) {
+        Icon(Icons.Default.AssignmentTurnedIn, contentDescription = null, tint = SigurColors.Brand, modifier = Modifier.size(16.dp))
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = plan.label?.takeIf { it.isNotBlank() } ?: "Plan de acțiune",
+            color = SigurColors.TextPrimary,
+            fontWeight = FontWeight.Bold,
+            fontSize = 14.sp
+        )
+    }
+
+    Card(
+        colors = CardDefaults.cardColors(containerColor = SigurColors.BackgroundCard),
+        shape = DSCardShape,
+        border = DSCardBorder,
+        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            steps.take(6).forEachIndexed { index, step ->
+                if (index > 0) {
+                    HorizontalDivider(color = SigurColors.GlassBorder, modifier = Modifier.padding(vertical = 10.dp))
+                }
+                Row(verticalAlignment = Alignment.Top) {
+                    Surface(
+                        color = actionPlanUrgencyColor(step.urgency).copy(alpha = 0.12f),
+                        border = BorderStroke(1.dp, actionPlanUrgencyColor(step.urgency).copy(alpha = 0.35f)),
+                        shape = RoundedCornerShape(999.dp)
+                    ) {
+                        Text(
+                            text = actionPlanUrgencyLabel(step.urgency),
+                            color = actionPlanUrgencyColor(step.urgency),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        step.title?.takeIf { it.isNotBlank() }?.let {
+                            Text(it, color = SigurColors.TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        }
+                        step.detail?.takeIf { it.isNotBlank() }?.let {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(it, color = SigurColors.TextSecondary, fontSize = 12.sp, lineHeight = 18.sp)
+                        }
+                        step.channel?.takeIf { it.isNotBlank() }?.let {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(it, color = SigurColors.TextMuted, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                }
+            }
+
+            val channels = plan.reportPackage?.channels.orEmpty()
+                .mapNotNull { it.name?.takeIf(String::isNotBlank) }
+                .distinct()
+                .take(3)
+            if (channels.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "Raportare: ${channels.joinToString(", ")}",
+                    color = SigurColors.TextMuted,
+                    fontSize = 11.sp,
+                    lineHeight = 16.sp
+                )
+            }
+            plan.disclaimer?.takeIf { it.isNotBlank() }?.let {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(it, color = SigurColors.TextMuted, fontSize = 10.sp, lineHeight = 14.sp, fontStyle = FontStyle.Italic)
+            }
+        }
+    }
+}
+
+private fun actionPlanUrgencyLabel(urgency: String?): String = when (urgency?.lowercase(Locale.US)) {
+    "now" -> "Acum"
+    "today" -> "Azi"
+    "soon" -> "Curând"
+    else -> "Pas"
+}
+
+private fun actionPlanUrgencyColor(urgency: String?): Color = when (urgency?.lowercase(Locale.US)) {
+    "now" -> SigurColors.Dangerous
+    "today" -> SigurColors.Suspect
+    "soon" -> SigurColors.Brand
+    else -> SigurColors.TextMuted
 }
 
 @Composable

@@ -12,6 +12,7 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
 - DNS reputation este activ live (`ENABLE_DNS_REPUTATION=true`) si apare in scanari reale ca `infra_dns`.
 - PR-6 Cercul are acum write-through plus read-fallback din Supabase; testat live cu link creat inainte de deploy.
 - Android PR-5/PR-7/PR-9/PR-10 nu este feature-complete. Build-ul trece, dar lipsesc integrari reale on-device.
+- Android PR-8 afiseaza acum `action_plan` cand vine in scan response, dar nu are inca flow separat prin care userul completeaza impacts reale post-incident.
 - `origin/main` nu este sursa exacta a productiei; productia ruleaza branch-ul `feature/osint-intel-pipeline`.
 
 ## Verificari Rulate
@@ -46,8 +47,8 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
 | PR-6 persist | Supabase durable state | Da | N/A | `circle_links`, `verification_pings`, `guardian_second_opinion` live OK; read-fallback adaugat in `4ba2b9b` |
 | PR-6 | Guardian second opinion | Da | Nu are UI Android dedicat | `/v1/guardian/second-opinion` live OK; full fara consimtamant downgrade la metadata_only |
 | PR-7 | Inbox provenance contract / BTR sync | Da ca endpoint | Nu ca procesare SMS on-device | `/v1/btr/sync` live OK; Android nu consuma endpointul si nu are service SMS/inbox dedicat |
-| PR-8 | Plan de actiune post-incident | Da | Nu este conectat in UI | `/v1/legal/action-plan` live OK; app afiseaza doar `legal` din scan response |
-| PR-8/9 integ | `action_plan` in orchestrator + audio reference | Partial backend | Nu | Endpoint action-plan exista; nu am confirmat integrare user-facing in orchestrated Android |
+| PR-8 | Plan de actiune post-incident | Da | Partial | `/v1/legal/action-plan` live OK; Android parseaza/randeaza `action_plan` din scan response |
+| PR-8/9 integ | `action_plan` in orchestrator + audio reference | Partial backend | Partial pentru action_plan, nu audio | Orchestratorul trimite `action_plan`; Android il afiseaza. Nu exista audio reference/on-device audio |
 | Extra | DNS reputation | Da | Da indirect prin scan response | `infra_dns` live OK; flag Cloud Run activ |
 | PR-9/PR-10 | Android on-device: ASR/Vosk, banda inline, captura difuzor | Nu ca feature complet | Nu | Nu exista `Vosk`, `AudioRecord`, `SpeechRecognizer`, call/audio service in `app/src/main` |
 
@@ -62,9 +63,10 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
    - Backend-ul ofera `/v1/btr/sync`.
    - App-ul nu are client Retrofit pentru acest endpoint si nu are pipeline SMS/inbox on-device.
 
-3. Android PR-8 Action Plan lipseste ca flow dedicat.
+3. Android PR-8 Action Plan este doar partial.
    - Backend-ul ofera `/v1/legal/action-plan`.
-   - App-ul nu are model/API/UI pentru action plan post-incident.
+   - App-ul afiseaza `action_plan` primit in scan response.
+   - Lipseste flow-ul dedicat in care userul declara impacts reale (`shared_card`, `paid_transfer` etc.) si app-ul cere planul personalizat.
 
 4. PR-9/PR-10 Android audio nu este implementat.
    - Nu exista Vosk/ASR/captura difuzor in codul Android.
@@ -81,4 +83,4 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
 - DNS reputation este activ si verificat live.
 - Supabase PR-6 tables exista live.
 - Cercul PR-6 nu mai depinde strict de memoria unei singure instante Cloud Run.
-
+- Android afiseaza planul de actiune preventiv PR-8 cand backend-ul il include in scan response.

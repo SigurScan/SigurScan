@@ -54,6 +54,7 @@ data class ScanResponse(
     @SerializedName("key_dangers") val keyDangers: List<String>? = null,
     @SerializedName("safe_actions") val safeActions: List<String>? = null,
     @SerializedName("legal") val legal: LegalSection? = null,
+    @SerializedName("action_plan") val actionPlan: ActionPlan? = null,
     val evidence: Map<String, Any>? = null,
     @SerializedName("extracted_urls") val extractedUrls: List<Map<String, Any>>? = null,
     @SerializedName("resolved_urls") val resolvedUrls: List<Map<String, Any>>? = null,
@@ -74,6 +75,38 @@ data class LegalCard(
 data class LegalSection(
     val label: String? = null,
     val cards: List<LegalCard>? = null,
+    val disclaimer: String? = null
+)
+
+data class ActionPlanStep(
+    val order: Int? = null,
+    val urgency: String? = null,
+    val title: String? = null,
+    val detail: String? = null,
+    val channel: String? = null,
+    @SerializedName("legal_card_id") val legalCardId: String? = null
+)
+
+data class ActionPlanReportChannel(
+    val name: String? = null,
+    val contact: String? = null,
+    @SerializedName("for") val purpose: String? = null,
+    @SerializedName("prefilled_subject") val prefilledSubject: String? = null,
+    @SerializedName("prefilled_body") val prefilledBody: String? = null
+)
+
+data class ActionPlanReportPackage(
+    val channels: List<ActionPlanReportChannel>? = null,
+    val disclaimer: String? = null
+)
+
+data class ActionPlan(
+    val label: String? = null,
+    val verdict: String? = null,
+    val family: String? = null,
+    val impacts: List<String>? = null,
+    val steps: List<ActionPlanStep>? = null,
+    @SerializedName("report_package") val reportPackage: ActionPlanReportPackage? = null,
     val disclaimer: String? = null
 )
 
