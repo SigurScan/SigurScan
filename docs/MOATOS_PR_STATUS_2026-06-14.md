@@ -3,8 +3,8 @@
 Repo: `vaduvel/SigurScan`
 Branch verificat: `feature/osint-intel-pipeline`
 Main remote: `origin/main` este aliniat cu branch-ul verificat; commit-urile ulterioare deployului pot fi doar documentatie/status.
-Production Cloud Run: `sigurscan-api-00052-l97`
-Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/sigurscan/sigurscan-api:4645422`
+Production Cloud Run: `sigurscan-api-00053-d9d`
+Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/sigurscan/sigurscan-api:893832e`
 
 ## Rezumat Brutal
 
@@ -15,9 +15,9 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
 - Android PR-5 are acum hot-cache client, cache offline, CallScreeningService, UI pentru sync/rol OS, audit local fara numar brut si flow de raport oficial 1-tap (`/v1/report`). Flow-ul scan + raport oficial a fost validat pe emulator API 36; CallScreening a fost validat pe emulator cu rol OS activ si apel GSM simulat.
 - Android PR-7 are acum BTR sync local, motor on-device de provenienta pe semnale locale si actiune UI pentru verificarea locala a ultimului scan impotriva BTR. Nu citeste automat SMS-uri.
 - Android PR-8 afiseaza `action_plan` si are flow post-incident pentru impacts reale (`shared_card`, `paid_transfer` etc.).
-- Android PR-9/PR-10 audio are engine local de verdict si flow real de analiza a transcrierii curente: transcriptul este redus local la semnale, rezultatul nu retine textul brut, iar captura/ASR ramane blocata explicit pana exista model ASR on-device si QA real-device.
+- Android PR-9/PR-10 audio are engine local de verdict, Whisper.cpp on-device si Speaker Guard cu captura microfon user-started testata pe release APK pe Nokia C22. Transcriptul este redus local la semnale, rezultatul nu retine text brut, iar flow-ul ramane best-effort pentru apel pe difuzor, nu interceptare audio de apel si nu real-time strict.
 - Play Integrity are wiring testat cap-coada pana la limita credențialelor: backend poate minta access token din service account JSON, emite nonce distribuit Upstash si il consuma atomic single-use, iar Android cere nonce-ul, foloseste Play Integrity SDK si ataseaza `X-Play-Integrity-Token` numai pe POST-urile protejate. Live ramane `off` pana la secret + build Play semnat + monitor pass rate.
-- Productia ruleaza imaginea backend taguita `4645422`.
+- Productia ruleaza imaginea backend taguita `893832e`.
 
 ## Verificari Rulate
 
@@ -113,12 +113,20 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
   - rezultat: `BUILD SUCCESSFUL`
   - `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew lintDebug`
   - rezultat: `BUILD SUCCESSFUL`, report: `app/build/reports/lint-results-debug.html`
-  - APK: `app/build/outputs/apk/release/app-release.apk` (`17,067,679` bytes)
-  - AAB: `app/build/outputs/bundle/release/app-release.aab` (`16,399,395` bytes)
+  - APK: `app/build/outputs/apk/release/app-release.apk` (`63 MB`, include Whisper.cpp model/runtime)
+  - AAB: `app/build/outputs/bundle/release/app-release.aab` (`61 MB`, include Whisper.cpp model/runtime)
   - `apksigner verify --verbose --print-certs`: `Verifies`, v2 signing `true`, signer `CN=SigurScan`
   - `strings app-release.apk | rg "SUPABASE|URLSCAN_API_KEY|VIRUSTOTAL_API_KEY|GOOGLE_SAFE|GOOGLE_WEB_RISK_API_KEY|ro.nudaclick|com.example.myapplication|BEGIN PRIVATE KEY|AIza|eyJhbGci"`: no matches
   - `python3 tools/audit_android_release_secrets.py app/build/outputs/apk/release/app-release.apk`: provider/admin/service secrets `embedded=false`; client API key warning prezent
   - `python3 tools/audit_android_release_secrets.py app/build/outputs/bundle/release/app-release.aab`: provider/admin/service secrets `embedded=false`; client API key warning prezent
+- Android Speaker Guard release QA pe Nokia C22:
+  - evidence doc: `docs/SPEAKER_GUARD_RELEASE_QA_2026-06-14.md`
+  - release APK instalat curat; `versionName=1.0`, `versionCode=1`, target SDK 36, fara debug flag
+  - deep link `sigurscan://speaker-guard` deschide Radar/Speaker Guard fara sa incarce Whisper/native la startup
+  - dupa consimtamant explicit si Start: UI `ascultă`, `AudioFlinger` confirma microfon activ `AUDIO_DEVICE_IN_BUILTIN_MIC`, sample rate `16000`, client `ro.sigurscan.app`
+  - sesiunea a procesat chunk-uri reale: observat `Fragmente analizate: 6`, `pierdute: 0`, `audio brut salvat: nu`
+  - dupa Stop: UI `oprit`, `AudioFlinger` revine la standby si input device `AUDIO_DEVICE_NONE`; logcat arata `AudioRecord stop/destructor/Release`
+  - logul `CALL_AUDIO_INTERCEPTION denied` este asteptat: Speaker Guard nu intercepteaza audio de apel, ci asculta microfonul numai dupa ce userul pune apelul pe difuzor si apasa Start
 - Android full dupa hardening Radar/community reports:
   - `./gradlew testDebugUnitTest lintDebug assembleDebug assembleRelease bundleRelease`
   - rezultat: `BUILD SUCCESSFUL`
@@ -137,9 +145,9 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
   - Backend targeted BTR/Radar/PR-8: `73 passed, 1 warning`
   - Backend targeted BTR channel fix: `48 passed, 1 warning`
 - Cloud Run live:
-  - revision: `sigurscan-api-00052-l97`
+  - revision: `sigurscan-api-00053-d9d`
   - traffic: `100%`
-  - image: `:4645422`
+  - image: `:893832e`
   - concurrency: `2`
   - env check: `ENABLE_DNS_REPUTATION` prezent pe revizia live
   - health dupa Play Integrity wiring deploy: `HTTP 200`, `api_key_required=true`, `rate_limit_backend=upstash`, `admin_api_configured=true`, `play_integrity_mode=off`
@@ -147,10 +155,20 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
   - `/health`: OK
   - `/v1/radar/hot-iocs`: OK
   - `/v1/btr/sync`: OK, `17` manifeste; `yoxo` prezent
-  - `/v1/verify/provenance` YOXO: OK, `provenance=match`, `official_match=true`
+  - `/v1/verify/provenance` YOXO: OK, `provenance=match`, `official_match=true`; canalul alias `web` este normalizat la `official_website` dupa deploy `893832e`
   - `/v1/report`: OK, `2` canale (`DNSC`, `PNRISC / Poliția Română`)
   - `/v1/legal/action-plan`: OK, plan cu `4` pasi si `3` canale raportare pentru impacts reale
   - POST `/v1/scan/orchestrated` cu YOXO: `SAFE`, score `10`, preview `ready`
+- Post-deploy live contract smoke dupa `893832e`:
+  - report: `build/reports/live_contract_smoke_2026-06-14_after_provenance_alias_deploy.json`
+  - rezultat: `12/12 passed`, `0 failed`
+  - acopera: `/health`, `/v1/radar/hot-iocs`, `/v1/btr/sync` full/no-op, `/v1/verify/provenance`, `/v1/circle/pair`, `/v1/circle/ping`, `/v1/circle/respond`, `/v1/circle/revoke`, `/v1/guardian/second-opinion`, `/v1/legal/action-plan`, `/v1/report`
+- Post-deploy live provider smoke dupa `893832e`:
+  - report: `build/reports/live_provider_smoke_2026-06-14_after_provenance_alias_deploy.json`
+  - rezultat: `3/3 passed`, `0 failed`
+  - YOXO buyback: `SAFE`, final `https://buyback.yoxo.ro/?r=1`, preview screenshot/report prezente, provideri: `google_web_risk`, `urlhaus`, `phishing_database`, `urlscan`, `infra_dns`, `infra_domain_age`, `infra_ssl`, `ai_offer_web_check`
+  - Google Web Risk phishing test: `DANGEROUS`, final, provideri: `google_web_risk`, `urlhaus`, `phishing_database`, `infra_dns`, `ai_offer_web_check`
+  - iDroid status: `SAFE`, final `https://idroid.ro/verifica-status/`, preview screenshot/report prezente, provideri: `google_web_risk`, `urlhaus`, `phishing_database`, `urlscan`, `infra_dns`, `infra_domain_age`, `ai_offer_web_check`
 - Android emulator QA API 36 (`Medium_Phone_API_36.1`):
   - APK debug instalat cu succes pe `emulator-5554`.
   - Launch `ro.sigurscan.app/.MainActivity`: OK, fara crash `AndroidRuntime` pentru app.
@@ -197,7 +215,7 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
 | PR-8 | Plan de actiune post-incident | Da | Da pentru flow de rezultat | `/v1/legal/action-plan` live OK; Android trimite impacts reale selectate si randeaza planul; planul apare in smoke emulator FAN fake |
 | PR-8/9 integ | `action_plan` in orchestrator + audio reference | Partial backend | Action plan functional; analiza locala a transcrierii functionala | Orchestratorul trimite `action_plan`; Android il afiseaza. Android reduce local transcrierea curenta la semnale si verdict, fara text brut in rezultat. Nu exista captura/ASR audio |
 | Extra | DNS reputation | Da | Da indirect prin scan response | `infra_dns` live OK; flag Cloud Run activ si pastrat in scriptul de deploy |
-| PR-9/PR-10 | Android on-device: Whisper.cpp ASR, banda inline, captura difuzor | Partial: batch + Speaker Guard best-effort | Analiza transcript local + engine verdict + UI readiness + Start/Stop Speaker Guard + Whisper native/model gated sigur | `AudioTranscriptEvidenceTest` acopera 34/34 fixture-uri realiste + zgomot ASR real; `WhisperCppAsrEngineTest` acopera contractul adapterului fara audio raw retinut; `AudioSafetyPolicyTest` acopera manifestul Whisper si permisiunea microfon; instrumented test pe Nokia C22 confirma runtime native, model checksum/load si transcriere fixture RO. `SpeakerGuardSession` captureaza microfon 16 kHz in chunk-uri pentru apel pe difuzor, dar modelul curent `tiny-q8_0` are ~12.9s pe fixture scurt, deci alerta inline ramane best-effort, nu real-time strict |
+| PR-9/PR-10 | Android on-device: Whisper.cpp ASR, banda inline, captura difuzor | Partial: engine local + release Speaker Guard best-effort | Analiza transcript local + engine verdict + UI readiness + Start/Stop Speaker Guard + Whisper native/model gated sigur | `AudioTranscriptEvidenceTest` acopera 34/34 fixture-uri realiste + zgomot ASR real; `WhisperCppAsrEngineTest` acopera contractul adapterului fara audio raw retinut; `AudioSafetyPolicyTest` acopera manifestul Whisper si permisiunea microfon; instrumented test pe Nokia C22 confirma runtime native, model checksum/load si transcriere fixture RO. Release APK pe Nokia C22 confirma deep link, Start/Stop, microfon activ 16 kHz, chunk-uri analizate si eliberare microfon dupa Stop. Ramane best-effort pentru apel pe difuzor, nu interceptare call audio si nu real-time strict |
 
 ## Gap-uri Care Nu Trebuie Numite Complete
 
@@ -227,6 +245,7 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
    - Pe Nokia C22, testul instrumentat confirma load runtime, load model si transcriere fixture romana, dar timpul optimizat este ~12.9s pentru un WAV scurt. Asta este acceptabil pentru batch scurt, dar prea lent pentru banda live/call real-time.
    - `tiny-q5_1` a fost mai lent (~16.4s), iar `tiny` full a fost mai mare/lent si nu este selectat.
    - Exista `SpeakerGuardSession` pentru user-started microphone capture cand apelul este pus pe difuzor: PCM mono 16 kHz, chunk-uri de 6s, queue de 1 chunk, drop la backpressure, Whisper local, evidence local, fara audio brut retinut in state.
+   - Release APK pe Nokia C22 confirma ca Start porneste microfonul, chunk-urile sunt analizate, Stop elibereaza imediat `AudioRecord`, iar input device revine la `AUDIO_DEVICE_NONE`.
    - Vosk nu mai este calea aleasa pentru Android; inlocuitorul selectat este Whisper.cpp.
    - Exista `AudioEvidenceEngine` + `AudioTranscriptEvidence` pentru reducerea locala a transcrierii la semnale audio/vishing; rezultatul nu stocheaza transcript brut si nu foloseste server audio.
    - Exista `WhisperCppAsrEngine` cu runtime native injectabil, contract PCM mono 16 kHz romana si fallback explicit `whisper_native_unavailable` cand JNI-ul lipseste.
@@ -253,9 +272,10 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
    - Backend-ul stocheaza doar hash nonce + hash binding client in Upstash, foloseste TTL/NX si consuma atomic cu `GETDEL`; verifica si timestamp-ul Google.
    - `/health` live arata in continuare `play_integrity_mode=off`; pentru release public larg nu trebuie numita autentificare reala pana la secret + build Play semnat + monitor pass rate.
 
-7. BTR backend production are manifest YOXO dupa deploy `e4a0f82`.
+7. BTR backend production are manifest YOXO dupa deploy `e4a0f82`, iar aliasul API `web` este acceptat dupa deploy `893832e`.
    - Manifest `yoxo`: `yoxo.ro`, `buyback.yoxo.ro`, `reconditionate.yoxo.ro`, `newsroom.orange.ro`.
    - Flow-ul live YOXO cu `input_type=text` da `SAFE`, preview prezent, `provenance=match`, `official_domain_match=true`.
+   - `/v1/verify/provenance` cu `observed_channel=web`, `claimed_brand=YOXO`, `observed_domain=yoxo.ro` intoarce live `provenance=match`, `official_match=true`.
 
 ## Play Integrity Nonce Anti-Replay Live Proof
 
@@ -269,13 +289,14 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
 - Regresie live `urlz.fr/rZrw`: `SUSPECT/medium`, scor 55, preview `unavailable`, reason `final_url_unresolved`, rezultat final.
 - Nu exista inca dovada token Google real: lipsesc service-account-ul autorizat Play Console, build-ul instalat din Google Play cu flag activ si perioada de monitorizare. Din acest motiv live ramane corect `off`.
 
-## Fresh Live Matrix After Revision 00051
+## Fresh Live Matrix After Revision 00053
 
-- Provider smoke report: `backend/eval/live_provider_smoke_2026_06_14_post_nonce.json` -> 5/5 passed.
-- YOXO buyback, SMYK catalog, eMAG tracking si iDroid status: `SAFE`, finale, toate cu screenshot preview.
+- Provider smoke report: `build/reports/live_provider_smoke_2026-06-14_after_provenance_alias_deploy.json` -> 3/3 passed.
+- YOXO buyback si iDroid status: `SAFE`, finale, ambele cu screenshot preview si urlscan report.
 - Google Web Risk phishing test: `DANGEROUS`, final.
-- Endpoint contract matrix PR-0..PR-8: 9/9 passed pe domeniul oficial.
+- Endpoint contract matrix PR-0..PR-8: `build/reports/live_contract_smoke_2026-06-14_after_provenance_alias_deploy.json` -> 12/12 passed pe domeniul oficial.
 - PR-0..PR-4: provenance YOXO cu canal contractual `official_website` -> `match`; Urechea are surse active; CFX produce fingerprint si match-uri.
+- PR-0..PR-4: provenance YOXO cu alias live `web` -> `match` dupa normalizarea din `893832e`.
 - PR-5: Radar hot-cache are schema valida; raportul 1-tap produce canale DNSC + PNRISC precompletate.
 - PR-6: pair -> ping -> respond -> revoke functioneaza; Guardian downgradeaza `full_with_consent` la `metadata_only` fara consimtamant.
 - PR-7: BTR sync are versiune si 17/17 manifeste.
@@ -291,7 +312,7 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
 - Supabase migration `20260614194000_harden_community_report_targets.sql` este aplicata live: datele invalide au fost sterse, `target_type` exista, iar constrangerile hash/target sunt active.
 - Live pe `api.sigurscan.com`: hash invalid respins cu HTTP 400; raport URL acceptat dar absent din Radar; raport phone sintetic prezent temporar in Radar.
 - MobAI/emulator: dupa sync, apelul GSM sintetic a produs `WARN`, `SCREENING_COMPLETED` si `SKIP_RINGING`; UI a afisat auditul local. Datele QA au fost apoi sterse, iar live + Android au revenit la `0 numere raportate`.
-- Live provider smoke dupa deploy `4645422`: `5/5 passed`, `0 failed`.
+- Live provider smoke dupa deploy `893832e`: `3/3 passed`, `0 failed`.
 - Evidence: `docs/evidence/android_radar_phone_contract_warn_2026-06-14.png`.
 
 ## Ce E Production-Grade Acum
@@ -310,3 +331,5 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
 - Android are UI Cercul/Guardian in Radar: pair, ping, raspuns, revocare si second opinion metadata/redacted.
 - Android poate cere plan post-incident personalizat pe impacts reale.
 - Android are engine local PR-9/PR-10 pentru verdict din semnale audio/vishing redactate, iar audio capture este blocat by default prin policy testat si readiness UI.
+- Android Speaker Guard release APK este testat pe Nokia C22 pentru deep link, consimtamant, Start/Stop, chunk-uri analizate si eliberare microfon dupa Stop; ramane explicit best-effort pentru apel pe difuzor, nu interceptare call audio.
+- Backend BTR/provenance accepta aliasul `web` pentru website oficial, iar live `/v1/verify/provenance` YOXO intoarce `match/official_match=true` pe `api.sigurscan.com`.
