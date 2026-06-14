@@ -1278,6 +1278,34 @@ def test_provider_gate_marks_yoxo_official_clean_pillars_as_low_risk():
     assert result["detected_family_id"] == "provider-gate-official-clean"
 
 
+def test_btr_enrichment_marks_yoxo_official_destination_as_match():
+    analysis = {"evidence": {}}
+    resolved_urls = [
+        {
+            "url": "https://www.yoxo.ro/",
+            "final_url": "https://www.yoxo.ro/",
+            "hostname": "www.yoxo.ro",
+            "final_hostname": "www.yoxo.ro",
+            "registered_domain": "yoxo.ro",
+            "final_registered_domain": "yoxo.ro",
+            "success": True,
+        }
+    ]
+
+    app_main._enrich_with_btr_provenance(
+        analysis,
+        claimed_brand="YOXO",
+        raw_text="Vezi oferta YOXO pe https://www.yoxo.ro/",
+        resolved_urls=resolved_urls,
+    )
+
+    provenance = analysis["evidence"]["provenance"]
+    assert provenance["manifest_id"] == "yoxo"
+    assert provenance["provenance"] == "match"
+    assert provenance["official_domain_match"] is True
+    assert provenance["identity_status"] == "official_match"
+
+
 def test_provider_gate_marks_clean_first_party_domain_claim_as_low_risk():
     analysis = {
         "claimed_brand": "Nespecificat",

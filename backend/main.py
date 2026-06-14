@@ -3280,7 +3280,7 @@ def _enrich_with_btr_provenance(
         official_destination=official_destination,
         resolved_urls=resolved_urls,
     )
-    effective_channel = "official" if official_destination else str(evidence.get("source_channel") or "unknown")
+    effective_channel = "official_website" if official_destination else str(evidence.get("source_channel") or "unknown")
     sensitive_asks = []
     if sensitive and sensitive != "none":
         sensitive_asks.append(sensitive)
