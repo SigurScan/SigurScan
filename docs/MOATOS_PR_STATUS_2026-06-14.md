@@ -2,6 +2,7 @@
 
 Repo: `vaduvel/SigurScan`
 Branch verificat: `feature/osint-intel-pipeline`
+Main remote: `origin/main` este aliniat cu branch-ul verificat la `e719441`
 Production Cloud Run: `sigurscan-api-00046-n7q`
 Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/sigurscan/sigurscan-api:0609a98`
 
@@ -11,11 +12,11 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
 - Supabase PR-6 tables sunt aplicate live si citibile prin REST.
 - DNS reputation este activ live (`ENABLE_DNS_REPUTATION=true`) si apare in scanari reale ca `infra_dns`.
 - PR-6 Cercul are acum write-through plus read-fallback din Supabase; testat live cu link creat inainte de deploy.
-- Android PR-5 are acum hot-cache client, cache offline, CallScreeningService, UI pentru sync/rol OS si flow de raport oficial 1-tap (`/v1/report`). CallScreening nu a fost inca validat pe device real cu rolul activat.
+- Android PR-5 are acum hot-cache client, cache offline, CallScreeningService, UI pentru sync/rol OS si flow de raport oficial 1-tap (`/v1/report`). Flow-ul scan + raport oficial a fost validat pe emulator API 36; CallScreening nu a fost inca validat cu rolul OS activat.
 - Android PR-7 are acum BTR sync local si motor on-device de provenienta pe semnale locale. Nu citeste automat SMS-uri.
 - Android PR-8 afiseaza `action_plan` si are flow post-incident pentru impacts reale (`shared_card`, `paid_transfer` etc.).
 - Android PR-9/PR-10 audio este blocat explicit prin policy pana exista model ASR on-device, consimtamant, disclosure si QA real-device.
-- `origin/main` nu este sursa exacta a productiei; productia ruleaza branch-ul `feature/osint-intel-pipeline`.
+- Productia ruleaza codul backend din merge commit `0609a98`; `origin/main`/feature sunt la `e719441`, care adauga doar documentarea deployului peste acel cod.
 
 ## Verificari Rulate
 
@@ -32,7 +33,7 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
   - `/v1/scan/orchestrated` cu `input_type=text` pentru `https://www.yoxo.ro/`: `SAFE`, score `10`, preview prezent.
   - `/v1/scan/orchestrated` cu `input_type=text` pentru FAN fake `fan-livrare.xyz`: `DANGEROUS`, score `90`, final URL nerezolvabil explicat.
 - Backend full test: `INVOICE_CACHE_HMAC_KEY=testkey PRIVACY_SAFE_MODE=false pytest -q`
-  - rezultat: `898 passed, 1 warning`
+  - rezultat final dupa merge cu `origin/main`: `914 passed, 1 warning`
 - Android JVM + build: `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew testDebugUnitTest assembleDebug`
   - rezultat: `BUILD SUCCESSFUL`
 - Android feature tests adaugate:
@@ -61,6 +62,13 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
   - `/v1/report`: OK, `2` canale (`DNSC`, `PNRISC / Poliția Română`)
   - `/v1/legal/action-plan`: OK, plan cu `4` pasi si `3` canale raportare pentru impacts reale
   - POST `/v1/scan/orchestrated` cu YOXO: `SAFE`, score `10`, preview `ready`
+- Android emulator QA API 36 (`Medium_Phone_API_36.1`):
+  - APK debug instalat cu succes pe `emulator-5554`.
+  - Launch `ro.sigurscan.app/.MainActivity`: OK, fara crash `AndroidRuntime` pentru app.
+  - Scan Android `https://www.yoxo.ro/`: UI `SIGUR`, verdict final, verificari complete, preview securizat cu imagine izolata, destinatie `yoxo.ro`.
+  - Scan Android `https://fan-livrare.xyz/`: UI `PERICULOS`, verdict final, mesaj `Nu apasa linkul`, preview indisponibil cu motiv clar `Destinatia finala nu poate fi incarcata/verificata`.
+  - Android PR-8: plan de actiune vizibil in rezultat, inclusiv `Raportare: DNSC, PNRISC / Poliția Română` si impacts reale selectabile.
+  - Android PR-5 raport 1-tap: buton `Pregătește raport oficial` a populat cardul `Raport oficial pregătit` cu `DNSC`, `PNRISC / Poliția Română`, subiecte si mesaje precompletate.
 - Live scan YOXO:
   - verdict: `SAFE`
   - score: `10`
@@ -82,14 +90,14 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
 
 | PR | Moat / functie | Backend live | Android live | Evidence |
 | --- | --- | --- | --- | --- |
-| PR-0..PR-4 | verdict gate, BTR, provenance, Urechea, CFX | Da, verificat targetat | Partial, prin flow-ul existent de scanare | `114 passed` backend targetat; Android targetat `BUILD SUCCESSFUL`; `/v1/verify/provenance`, `/v1/urechea/status`, `/v1/campaign/match` live OK; scan live eMAG/YOXO SAFE si FAN fake DANGEROUS |
-| PR-5 | Radar hot-cache | Da | Partial real | `/v1/radar/hot-iocs` live OK; Android are cache offline, CallScreeningService si UI sync/rol. Lipseste QA device cu rol activ |
-| PR-5 | Raport 1-tap | Da | Da local, asteapta deploy/app install | `/v1/report` live OK; Android are endpoint typed, buton in rezultat de risc si card cu canale DNSC/PNRISC/Banca |
+| PR-0..PR-4 | verdict gate, BTR, provenance, Urechea, CFX | Da, verificat targetat | Da pentru flow-ul principal de scanare | `114 passed` backend targetat; Android targetat `BUILD SUCCESSFUL`; `/v1/verify/provenance`, `/v1/urechea/status`, `/v1/campaign/match` live OK; scan live eMAG/YOXO SAFE si FAN fake DANGEROUS; emulator YOXO `SIGUR` si FAN fake `PERICULOS` |
+| PR-5 | Radar hot-cache | Da | Partial real | `/v1/radar/hot-iocs` live OK; Android are cache offline, CallScreeningService si UI sync/rol. Lipseste QA device cu rol CallScreening activ |
+| PR-5 | Raport 1-tap | Da | Da pe emulator | `/v1/report` live OK; Android are endpoint typed, buton in rezultat de risc si card cu canale DNSC/PNRISC; validat pe emulator prin FAN fake |
 | PR-6 | Cercul out-of-band | Da | Da, UI Android dedicat in Radar | `/v1/circle/pair`, `/ping`, `/respond`, `/revoke` live OK; Android are pair/ping/respond/revoke fara continut brut |
 | PR-6 persist | Supabase durable state | Da | N/A | `circle_links`, `verification_pings`, `guardian_second_opinion` live OK; read-fallback adaugat in `4ba2b9b` |
 | PR-6 | Guardian second opinion | Da | Da, UI Android dedicat in Radar | `/v1/guardian/second-opinion` live OK; Android trimite rezumat redactat, full fara consimtamant downgrade la metadata_only |
 | PR-7 | Inbox provenance contract / BTR sync | Da ca endpoint | Foundation real | `/v1/btr/sync` live OK; Android consuma endpointul, stocheaza local si are engine on-device pe semnale locale. Nu citeste automat SMS-uri |
-| PR-8 | Plan de actiune post-incident | Da | Da pentru flow de rezultat | `/v1/legal/action-plan` live OK; Android trimite impacts reale selectate si randeaza planul |
+| PR-8 | Plan de actiune post-incident | Da | Da pentru flow de rezultat | `/v1/legal/action-plan` live OK; Android trimite impacts reale selectate si randeaza planul; planul apare in smoke emulator FAN fake |
 | PR-8/9 integ | `action_plan` in orchestrator + audio reference | Partial backend | Partial pentru action_plan, nu audio | Orchestratorul trimite `action_plan`; Android il afiseaza. Nu exista audio reference/on-device audio |
 | Extra | DNS reputation | Da | Da indirect prin scan response | `infra_dns` live OK; flag Cloud Run activ |
 | PR-9/PR-10 | Android on-device: ASR/Vosk, banda inline, captura difuzor | Nu ca ASR complet | UI readiness + gated sigur | `AudioSafetyPolicy` + UI readiness blocheaza capture by default. Nu exista inca model ASR local si QA real-device |
