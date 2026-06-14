@@ -115,10 +115,16 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
   - rezultat: `BUILD SUCCESSFUL`, report: `app/build/reports/lint-results-debug.html`
   - APK: `app/build/outputs/apk/release/app-release.apk` (`63 MB`, include Whisper.cpp model/runtime)
   - AAB: `app/build/outputs/bundle/release/app-release.aab` (`61 MB`, include Whisper.cpp model/runtime)
+  - APK SHA-256: `ccc15aeb3c6577a99259ded33cbb86f86668a8472aa16c8a6af9e92613b42e55`
+  - AAB SHA-256: `e5b771bdea3a909d5640f63ccfcca6e1ba887f1f745a3ffe6aa7dfb37a8db7b2`
+  - `aapt dump badging`: package `ro.sigurscan.app`, `versionCode=1`, `versionName=1.0`, `sdkVersion=24`, `targetSdkVersion=36`, label `SigurScan`
+  - permisiuni release observate: `INTERNET`, `CAMERA`, `READ_PHONE_STATE`, `RECORD_AUDIO`, `ACCESS_NETWORK_STATE`; fara `READ_SMS`, `RECEIVE_SMS`, `SEND_SMS`, `READ_CALL_LOG`, `READ_CONTACTS`
   - `apksigner verify --verbose --print-certs`: `Verifies`, v2 signing `true`, signer `CN=SigurScan`
+  - signer certificate SHA-256: `bfd7991c4a7d0c349ae41235f2c0b52d77962c5a9a6729aa3410c54840168b67`
   - `strings app-release.apk | rg "SUPABASE|URLSCAN_API_KEY|VIRUSTOTAL_API_KEY|GOOGLE_SAFE|GOOGLE_WEB_RISK_API_KEY|ro.nudaclick|com.example.myapplication|BEGIN PRIVATE KEY|AIza|eyJhbGci"`: no matches
   - `python3 tools/audit_android_release_secrets.py app/build/outputs/apk/release/app-release.apk`: provider/admin/service secrets `embedded=false`; client API key warning prezent
   - `python3 tools/audit_android_release_secrets.py app/build/outputs/bundle/release/app-release.aab`: provider/admin/service secrets `embedded=false`; client API key warning prezent
+  - APK contine `libsigurscan_whisper.so` pentru `arm64-v8a`, `armeabi-v7a`, `x86`, `x86_64` si `assets/asr/whispercpp/ggml-model.bin`; model manifest: `engine=whisper.cpp`, `model_id=ggml-tiny-q8_0`, `language=ro`, `sample_rate_hz=16000`
 - Android Speaker Guard release QA pe Nokia C22:
   - evidence doc: `docs/SPEAKER_GUARD_RELEASE_QA_2026-06-14.md`
   - release APK instalat curat; `versionName=1.0`, `versionCode=1`, target SDK 36, fara debug flag
