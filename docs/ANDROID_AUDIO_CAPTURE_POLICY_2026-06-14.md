@@ -12,6 +12,7 @@ SigurScan must not claim production audio/call ASR until all of these are true:
 Current state:
 
 - Audio capture is blocked by `AudioSafetyPolicy` by default.
+- Android has an on-device `AudioEvidenceEngine` for already-redacted audio/vishing signals; it stores no raw transcript/audio and does not call a server.
 - No Vosk/ASR production model is bundled.
 - No hidden call recording is implemented.
 - The Android manifest does not request `android.permission.RECORD_AUDIO`.
