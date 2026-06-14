@@ -3,8 +3,8 @@
 Repo: `vaduvel/SigurScan`
 Branch verificat: `feature/osint-intel-pipeline`
 Main remote: `origin/main` este aliniat cu branch-ul verificat la `e719441`
-Production Cloud Run: `sigurscan-api-00046-n7q`
-Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/sigurscan/sigurscan-api:0609a98`
+Production Cloud Run: `sigurscan-api-00047-q5m`
+Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/sigurscan/sigurscan-api:3183000`
 
 ## Rezumat Brutal
 
@@ -16,7 +16,7 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
 - Android PR-7 are acum BTR sync local si motor on-device de provenienta pe semnale locale. Nu citeste automat SMS-uri.
 - Android PR-8 afiseaza `action_plan` si are flow post-incident pentru impacts reale (`shared_card`, `paid_transfer` etc.).
 - Android PR-9/PR-10 audio este blocat explicit prin policy pana exista model ASR on-device, consimtamant, disclosure si QA real-device.
-- Productia ruleaza codul backend din merge commit `0609a98`; `origin/main`/feature sunt la `e719441`, care adauga doar documentarea deployului peste acel cod.
+- Productia ruleaza imaginea backend taguita cu commitul curent `3183000`; `origin/main` si `origin/feature/osint-intel-pipeline` sunt aliniate la acelasi commit.
 
 ## Verificari Rulate
 
@@ -50,9 +50,9 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
   - Backend targeted BTR/Radar/PR-8: `73 passed, 1 warning`
   - Backend targeted BTR channel fix: `48 passed, 1 warning`
 - Cloud Run live:
-  - revision: `sigurscan-api-00046-n7q`
+  - revision: `sigurscan-api-00047-q5m`
   - traffic: `100%`
-  - image: `:0609a98`
+  - image: `:3183000`
   - concurrency: `2`
 - Domeniu oficial `https://api.sigurscan.com`:
   - `/health`: OK
