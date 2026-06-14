@@ -6215,6 +6215,14 @@ _FINAL_URL_UNRESOLVED_ERROR_MARKERS = (
 )
 
 
+_FINAL_URL_UNRESOLVED_SUSPICIOUS_DNS_VERDICTS = {
+    "nxdomain",
+    "registrar_suspended",
+    "suspended_nameserver",
+    "domain_suspended",
+}
+
+
 def _final_url_unresolved_entry(job: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     resolved_urls = job.get("resolved_urls") if isinstance(job.get("resolved_urls"), list) else []
     analysis = job.get("analysis") if isinstance(job.get("analysis"), dict) else {}
@@ -6248,6 +6256,103 @@ def _final_url_unresolved_entry(job: Dict[str, Any]) -> Optional[Dict[str, Any]]
         if dns_infra_unresolved or any(marker in error_text for marker in _FINAL_URL_UNRESOLVED_ERROR_MARKERS):
             return entry
     return None
+
+
+def _entry_or_job_uses_shortener(job: Dict[str, Any], entry: Dict[str, Any]) -> bool:
+    if entry.get("uses_shortener") or entry.get("shortener_count"):
+        return True
+
+    candidate_urls: List[str] = []
+    for key in ("original_url", "url"):
+        value = entry.get(key)
+        if isinstance(value, str) and value.strip():
+            candidate_urls.append(value.strip())
+    for value in job.get("urls") if isinstance(job.get("urls"), list) else []:
+        if isinstance(value, str) and value.strip():
+            candidate_urls.append(value.strip())
+    redirect_chain = entry.get("redirect_chain") if isinstance(entry.get("redirect_chain"), list) else []
+    for hop in redirect_chain:
+        if not isinstance(hop, dict):
+            continue
+        value = hop.get("url")
+        if isinstance(value, str) and value.strip():
+            candidate_urls.append(value.strip())
+
+    return any(is_known_shortener(url) for url in candidate_urls)
+
+
+def _final_url_unresolved_shortener_dns_suspicious(job: Dict[str, Any]) -> bool:
+    entry = _final_url_unresolved_entry(job)
+    if not entry or not _entry_or_job_uses_shortener(job, entry):
+        return False
+    analysis = job.get("analysis") if isinstance(job.get("analysis"), dict) else {}
+    evidence = analysis.get("evidence") if isinstance(analysis.get("evidence"), dict) else {}
+    summary = evidence.get("external_intel_summary") if isinstance(evidence.get("external_intel_summary"), dict) else {}
+    infra_dns = summary.get("infra_dns") if isinstance(summary.get("infra_dns"), dict) else {}
+    verdict = str(infra_dns.get("verdict") or "").strip().lower()
+    status = str(infra_dns.get("status") or "").strip().lower()
+    return status == "suspicious" and verdict in _FINAL_URL_UNRESOLVED_SUSPICIOUS_DNS_VERDICTS
+
+
+def _apply_final_url_unresolved_shortener_fail_safe(job: Dict[str, Any], analysis: Dict[str, Any]) -> None:
+    if not _final_url_unresolved_shortener_dns_suspicious(job):
+        return
+    evidence = analysis.setdefault("evidence", {})
+    gate = evidence.get("verdict_gate") if isinstance(evidence.get("verdict_gate"), dict) else {}
+    if str(gate.get("label") or "").upper() != "UNVERIFIED":
+        return
+
+    reason_code = "final_url_unresolved_dns_suspicious_shortener"
+    reason_codes = _dedupe_preserve_order(list(gate.get("reason_codes") or []) + [reason_code])
+    updated_gate = dict(gate)
+    updated_gate.update(
+        {
+            "label": "SUSPECT",
+            "risk_level": "medium",
+            "risk_score": max(int(gate.get("risk_score") or 0), 55),
+            "reason_codes": reason_codes,
+            "confidence": max(int(gate.get("confidence") or 0), 70),
+            "is_final": True,
+        }
+    )
+    evidence["verdict_gate"] = updated_gate
+
+    provider_gate = evidence.get("provider_gate") if isinstance(evidence.get("provider_gate"), dict) else {}
+    provider_gate = dict(provider_gate)
+    provider_reasons = [
+        item.strip()
+        for item in str(provider_gate.get("reason") or "").split(",")
+        if item.strip()
+    ]
+    provider_gate.update(
+        {
+            "label": "SUSPECT",
+            "risk_level": "medium",
+            "risk_score": updated_gate["risk_score"],
+            "reason": ", ".join(_dedupe_preserve_order(provider_reasons + [reason_code])),
+            "detected_family_id": "provider-gate-final-url-unresolved",
+            "detected_family": "Destinație finală neverificabilă",
+            "final_url_unresolved_fail_safe": True,
+        }
+    )
+    evidence["provider_gate"] = provider_gate
+    evidence["final_url_unresolved_fail_safe"] = {
+        "applied": True,
+        "reason": reason_code,
+    }
+
+    analysis["risk_level"] = "medium"
+    analysis["risk_score"] = updated_gate["risk_score"]
+    analysis["detected_family"] = "Destinație finală neverificabilă"
+    analysis["detected_family_id"] = "provider-gate-final-url-unresolved"
+    analysis["reasons"] = [
+        "Linkul scurtat redirecționează către o destinație finală care nu poate fi încărcată/verificată.",
+        "DNS-ul destinației finale indică un domeniu nerezolvabil sau suspendat.",
+    ]
+    analysis["safe_actions"] = [
+        "Nu continua din linkul primit.",
+        "Verifică oferta sau pagina direct în aplicația/site-ul oficial.",
+    ]
 
 
 def _preview_for_final_url_unresolved(job: Dict[str, Any], preview: Dict[str, Any]) -> Dict[str, Any]:
@@ -6564,6 +6669,7 @@ async def _finalize_orchestrated_job_if_ready(job: Dict[str, Any], request: Requ
             raw_text=str(job.get("redacted_text") or ""),
             pillars=pillars,
         )
+        _apply_final_url_unresolved_shortener_fail_safe(job, analysis)
     evidence = analysis.get("evidence", {}) if isinstance(analysis.get("evidence"), dict) else {}
     gate = evidence.get("verdict_gate") if isinstance(evidence.get("verdict_gate"), dict) else {}
     if str(gate.get("label") or "").upper() == "UNVERIFIED" and not _orchestrated_result_is_final(job, analysis):

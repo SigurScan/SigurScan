@@ -3533,7 +3533,7 @@ def test_orchestrated_text_only_required_timeout_returns_no_final_when_unverifie
     assert refreshed["pipeline_stage"] == "done"
 
 
-def test_orchestrated_final_url_unresolved_publishes_final_unverified(monkeypatch):
+def test_orchestrated_shortener_to_suspended_unresolved_final_url_publishes_final_suspect(monkeypatch):
     job = {
         "scan_id": "orch_final_url_unresolved_finalize",
         "created_at": int(time.time()),
@@ -3611,7 +3611,96 @@ def test_orchestrated_final_url_unresolved_publishes_final_unverified(monkeypatc
         patched.setattr(app_main, "_emit_scan_event", lambda *args, **kwargs: None)
         refreshed = asyncio.run(app_main._finalize_orchestrated_job_if_ready(job, None))
 
+    assert refreshed["result"]["user_risk_label"] == "SUSPECT"
+    assert refreshed["result"]["risk_level"] == "medium"
+    assert refreshed["result"]["is_final"] is True
+    assert "final_url_unresolved_dns_suspicious_shortener" in (
+        refreshed["result"]["evidence"]["verdict_gate"].get("reason_codes") or []
+    )
+    payload = app_main._orchestrated_status_payload(refreshed)
+    assert payload["status"] == "complete"
+    assert payload["preview"]["reason"] == "final_url_unresolved"
+
+
+def test_orchestrated_plain_unresolved_final_url_remains_final_unverified(monkeypatch):
+    job = {
+        "scan_id": "orch_plain_final_url_unresolved_finalize",
+        "created_at": int(time.time()),
+        "pipeline_stage": "done",
+        "status": "scanning",
+        "input_type": "url",
+        "source_channel": "android_native",
+        "urls": ["https://temporary-outage.example/oferta"],
+        "redacted_text": "https://temporary-outage.example/oferta",
+        "resolved_urls": [
+            {
+                "success": False,
+                "original_url": "https://temporary-outage.example/oferta",
+                "url": "https://temporary-outage.example/oferta",
+                "final_url": "https://temporary-outage.example/oferta",
+                "hostname": "temporary-outage.example",
+                "final_hostname": "temporary-outage.example",
+                "registered_domain": "temporary-outage.example",
+                "final_registered_domain": "temporary-outage.example",
+                "error_message": "NameResolutionError: Failed to resolve 'temporary-outage.example'",
+                "redirect_chain": [
+                    {"url": "https://temporary-outage.example/oferta", "status_code": "ERROR"},
+                ],
+            }
+        ],
+        "primary_final_url": "https://temporary-outage.example/oferta",
+        "analysis": {
+            "risk_score": 25,
+            "risk_level": "info",
+            "detected_family": "Fara dovada de provenienta",
+            "detected_family_id": "provider-gate-unofficial-inconclusive",
+            "claimed_brand": "Nespecificat",
+            "reasons": ["Scanarea nu a gasit semnale de risc dar nici provenienta pozitiva."],
+            "safe_actions": ["Fii atent: lipsa semnalelor de risc nu inseamna ca e sigur."],
+            "evidence": {
+                "semantic_review": {
+                    "status": "done",
+                    "risk_class": "low",
+                    "completeness": True,
+                },
+                "offer_claim_verification": {"status": "skipped"},
+                "external_intel_summary": {
+                    "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
+                    "phishing_database": {"status": "clean", "verdict": "clean", "consulted": True},
+                    "urlhaus": {"status": "clean", "verdict": "clean", "consulted": True},
+                    "infra_dns": {
+                        "status": "suspicious",
+                        "verdict": "nxdomain",
+                        "severity": "medium",
+                        "consulted": True,
+                    },
+                },
+            },
+        },
+        "urlscan": {
+            "status": "error",
+            "details": "urlscan.io submission failed: HTTP 400: DNS Error - Could not resolve domain",
+        },
+        "preview": {
+            "status": "pending",
+            "source": "urlscan",
+            "reason": "urlscan_pending",
+            "final_url": "https://temporary-outage.example/oferta",
+        },
+        "claim_verifier_required": False,
+        "skip_cloud_ai_explanation": True,
+        "extra_fields": {},
+        "orchestration_metrics": {"poll_count": 0, "stage_sequence": [], "stage_durations_ms": {}},
+    }
+
+    with monkeypatch.context() as patched:
+        patched.setattr(app_main, "_persist_orchestrated_job", lambda candidate: candidate)
+        patched.setattr(app_main, "_emit_orchestrated_telemetry", lambda *args, **kwargs: None)
+        patched.setattr(app_main, "_emit_scan_event", lambda *args, **kwargs: None)
+        refreshed = asyncio.run(app_main._finalize_orchestrated_job_if_ready(job, None))
+
     assert refreshed["result"]["user_risk_label"] == "UNVERIFIED"
+    assert refreshed["result"]["risk_level"] == "info"
     assert refreshed["result"]["is_final"] is True
     payload = app_main._orchestrated_status_payload(refreshed)
     assert payload["status"] == "complete"
@@ -8048,6 +8137,7 @@ def test_known_shortener_detection():
     assert is_known_shortener("https://cutt.ly/short") is True
     assert is_known_shortener("https://rb.gy/abc") is True
     assert is_known_shortener("https://clck.ru/foo") is True
+    assert is_known_shortener("https://urlz.fr/rZrw") is True
     print("  - Known shorteners detected: PASS")
 
     # Official domains should NOT be flagged as shorteners

@@ -33,7 +33,7 @@ KNOWN_SHORTENERS = {
     "tiny.cc", "lnkd.in", "buff.ly", "clck.ru", "rb.gy", "v.gd",
     "qr.ae", "adf.ly", "bc.vc", "j.mp", "surl.li", "s.id", "postis.io", "t.postis.io",
     "rotf.lol", "1url.com", "hyperurl.co", "urlzs.com", "u.to",
-    "shrtco.de", "lmy.de", "shorturl.asia", "link.ac"
+    "shrtco.de", "lmy.de", "shorturl.asia", "link.ac", "urlz.fr"
 }
 
 # Regex to extract meta-refresh redirect URLs from HTML
