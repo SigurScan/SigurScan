@@ -3,8 +3,8 @@
 Repo: `vaduvel/SigurScan`
 Branch verificat: `feature/osint-intel-pipeline`
 Main remote: `origin/main` este aliniat cu branch-ul verificat; commit-urile ulterioare deployului pot fi doar documentatie/status.
-Production Cloud Run: `sigurscan-api-00049-hq8`
-Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/sigurscan/sigurscan-api:b7a0f68`
+Production Cloud Run: `sigurscan-api-00050-lkc`
+Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/sigurscan/sigurscan-api:92c65de`
 
 ## Rezumat Brutal
 
@@ -17,7 +17,7 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
 - Android PR-8 afiseaza `action_plan` si are flow post-incident pentru impacts reale (`shared_card`, `paid_transfer` etc.).
 - Android PR-9/PR-10 audio are acum engine local de verdict din semnale audio/vishing redactate, dar captura/ASR ramane blocata explicit prin policy pana exista model ASR on-device, consimtamant, disclosure si QA real-device.
 - Play Integrity a avansat de la schelet la wiring testat: backend poate minta access token din service account JSON, iar Android poate atasa `X-Play-Integrity-Token`. Live ramane `off` pana la secret + Play SDK + nonce anti-replay.
-- Productia ruleaza imaginea backend taguita `b7a0f68`.
+- Productia ruleaza imaginea backend taguita `92c65de`.
 
 ## Verificari Rulate
 
@@ -125,11 +125,12 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
   - Backend targeted BTR/Radar/PR-8: `73 passed, 1 warning`
   - Backend targeted BTR channel fix: `48 passed, 1 warning`
 - Cloud Run live:
-  - revision: `sigurscan-api-00049-hq8`
+  - revision: `sigurscan-api-00050-lkc`
   - traffic: `100%`
-  - image: `:b7a0f68`
+  - image: `:92c65de`
   - concurrency: `2`
   - env check: `ENABLE_DNS_REPUTATION` prezent pe revizia live
+  - health dupa Play Integrity wiring deploy: `HTTP 200`, `api_key_required=true`, `rate_limit_backend=upstash`, `admin_api_configured=true`, `play_integrity_mode=off`
 - Domeniu oficial `https://api.sigurscan.com`:
   - `/health`: OK
   - `/v1/radar/hot-iocs`: OK
