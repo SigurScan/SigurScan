@@ -2909,6 +2909,68 @@ def test_orchestrated_status_stays_complete_when_final_verdict_exists_and_previe
     assert terminal["status"] == "complete"
 
 
+def test_gather_external_intel_safe_degrades_provider_exceptions(monkeypatch):
+    final_url = "https://example.com/login"
+
+    def fail_external_intel(*args, **kwargs):
+        raise ValueError("provider exploded")
+
+    with monkeypatch.context() as patched:
+        patched.setattr(app_main, "_gather_external_intel", fail_external_intel)
+        threat_intel = app_main._gather_external_intel_safe(
+            [{"final_url": final_url}],
+            include_phishing_database=True,
+            include_urlhaus=True,
+            persist_partial=False,
+        )
+
+    key = url_reputation._url_hash(final_url)
+    assert key in threat_intel
+    assert threat_intel[key]["verdict"] == "unknown"
+    assert threat_intel[key]["sources"]["google_web_risk"]["status"] == "error"
+    assert threat_intel[key]["sources"]["phishing_database"]["status"] == "error"
+    assert threat_intel[key]["sources"]["urlhaus"]["status"] == "error"
+    assert threat_intel[key]["sources"]["google_web_risk"]["details"]["error_type"] == "ValueError"
+
+
+def test_orchestrated_refresh_finalizes_on_unhandled_stage_exception(monkeypatch):
+    job = {
+        "scan_id": "orch_unhandled_stage_exception",
+        "created_at": int(time.time()),
+        "status": "scanning",
+        "pipeline_stage": "queued",
+        "input_type": "text",
+        "source_channel": "android_native",
+        "urls": ["https://example.com/login"],
+        "redacted_text": "Verifica aici https://example.com/login",
+        "resolved_urls": [],
+        "analysis": {},
+        "claim_verifier_required": False,
+        "urlscan": {"status": "queued"},
+        "preview": {"status": "pending", "source": None, "screenshot_url": None, "report_url": None},
+        "extra_fields": {},
+        "orchestration_metrics": {"poll_count": 0, "stage_sequence": [], "stage_durations_ms": {}},
+    }
+
+    async def fail_fast_lane(*args, **kwargs):
+        raise RuntimeError("stage exploded")
+
+    with monkeypatch.context() as patched:
+        patched.setattr(app_main, "_run_orchestrated_fast_lane", fail_fast_lane)
+        patched.setattr(app_main, "_persist_orchestrated_job", lambda candidate: candidate)
+        patched.setattr(app_main, "_emit_orchestrated_telemetry", lambda *args, **kwargs: None)
+        patched.setattr(app_main, "_emit_scan_event", lambda *args, **kwargs: None)
+        refreshed = asyncio.run(app_main._refresh_orchestrated_job(job, None))
+
+    payload = app_main._orchestrated_status_payload(refreshed)
+    assert refreshed["pipeline_stage"] == "done"
+    assert payload["status"] == "complete"
+    assert payload["result"]["is_final"] is True
+    assert payload["result"]["user_risk_label"] == "UNVERIFIED"
+    assert payload["result"]["evidence"]["orchestration_error"]["error_type"] == "RuntimeError"
+    assert payload["preview"]["status"] == "unavailable"
+
+
 def test_orchestrated_status_marks_preview_unavailable_when_final_url_unresolved():
     job = {
         "scan_id": "orch_final_url_unresolved",

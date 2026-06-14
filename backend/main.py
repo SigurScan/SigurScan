@@ -1878,6 +1878,78 @@ def _gather_external_intel(
     )
 
 
+def _external_intel_provider_error(
+    resolved_urls: List[Dict[str, Any]],
+    exc: Exception,
+    *,
+    include_phishing_database: bool,
+    include_urlhaus: bool,
+) -> Dict[str, Dict[str, Any]]:
+    safe_resolved_urls = sanitize_resolved_url_entries(resolved_urls)
+    final_urls = [
+        str(entry.get("final_url") or "").strip()
+        for entry in safe_resolved_urls
+        if isinstance(entry, dict) and str(entry.get("final_url") or "").strip()
+    ]
+    error_type = type(exc).__name__
+    error_message = str(exc)[:300]
+    output: Dict[str, Dict[str, Any]] = {}
+    for final_url in list(dict.fromkeys(final_urls)):
+        key = hashlib.sha256(final_url.encode("utf-8")).hexdigest()
+        sources: Dict[str, Dict[str, Any]] = {
+            "google_web_risk": {
+                "status": "error",
+                "consulted": True,
+                "threat_type": "error",
+                "score": 0,
+                "details": {
+                    "provider": "google_web_risk",
+                    "error_type": error_type,
+                    "error": error_message,
+                },
+            }
+        }
+        if include_phishing_database:
+            sources["phishing_database"] = {
+                "status": "error",
+                "consulted": True,
+                "threat_type": "error",
+                "score": 0,
+                "details": {
+                    "provider": "phishing_database",
+                    "error_type": error_type,
+                    "error": error_message,
+                },
+            }
+        if include_urlhaus:
+            sources["urlhaus"] = {
+                "status": "error",
+                "consulted": True,
+                "threat_type": "error",
+                "score": 0,
+                "details": {
+                    "provider": "urlhaus",
+                    "error_type": error_type,
+                    "error": error_message,
+                },
+            }
+        output[key] = {
+            "url": final_url,
+            "verdict": "unknown",
+            "risk_score": 0,
+            "confidence": 0.0,
+            "signals": ["provider_error"],
+            "signal_count": 1,
+            "active_sources": [],
+            "sources": sources,
+            "source_count": len(sources),
+            "consulted_sources": sorted(sources.keys()),
+            "consulted_source_count": len(sources),
+            "provider_error": True,
+        }
+    return output
+
+
 def _gather_external_intel_safe(
     resolved_urls: List[Dict[str, Any]],
     *,
@@ -1895,7 +1967,22 @@ def _gather_external_intel_safe(
     except TypeError:
         # Compatibility for tests that monkeypatch the helper with the older
         # single-argument signature.
-        return _gather_external_intel(resolved_urls)  # type: ignore[call-arg]
+        try:
+            return _gather_external_intel(resolved_urls)  # type: ignore[call-arg]
+        except Exception as exc:
+            return _external_intel_provider_error(
+                resolved_urls,
+                exc,
+                include_phishing_database=include_phishing_database,
+                include_urlhaus=include_urlhaus,
+            )
+    except Exception as exc:
+        return _external_intel_provider_error(
+            resolved_urls,
+            exc,
+            include_phishing_database=include_phishing_database,
+            include_urlhaus=include_urlhaus,
+        )
 
 
 def _analysis_needs_deep_reputation_fallback(analysis: Dict[str, Any]) -> bool:
@@ -7489,7 +7576,116 @@ async def _run_offer_web_claim_enrichment(job: Dict[str, Any]) -> Dict[str, Any]
     return _persist_orchestrated_job(job)
 
 
+def _mark_orchestrated_job_exception(job: Dict[str, Any], exc: Exception) -> Dict[str, Any]:
+    error_type = type(exc).__name__
+    error_message = str(exc)[:300]
+    redacted_text = str(job.get("redacted_text") or "")
+    input_type = str(job.get("input_type") or "text").strip().lower() or "text"
+    bundle = {
+        "schema": "sigurscan_evidence_bundle_v2",
+        "input": {"type": input_type},
+        "resolution": {"status": "failed", "completeness": False},
+        "providers": {"verdict": "error", "completeness": False},
+        "identity": {"status": "unknown", "completeness": False},
+        "request": {"sensitive": "unknown", "channel": job.get("source_channel") or "unknown", "completeness": False},
+        "semantic_review": {"status": "error", "completeness": False},
+    }
+    gate_result = reduce_verdict(bundle)
+    analysis: Dict[str, Any] = {
+        "risk_score": gate_result.get("risk_score", 25),
+        "risk_level": gate_result.get("risk_level", "info"),
+        "detected_family": "Verificare incompletă",
+        "detected_family_id": "provider-gate-pending",
+        "claimed_brand": "Nespecificat",
+        "reasons": ["Scanarea nu a putut verifica complet mesajul; verifică pe canalul oficial înainte de acțiune."],
+        "safe_actions": ["Nu introduce date sensibile până nu confirmi în aplicația sau site-ul oficial."],
+        "evidence": {
+            "decision_bundle": bundle,
+            "verdict_gate": gate_result,
+            "orchestration_error": {
+                "error_type": error_type,
+                "error": error_message,
+                "stage": str(job.get("pipeline_stage") or "unknown"),
+            },
+        },
+    }
+    _apply_decision_contract_result(analysis, bundle, gate_result, {})
+    analysis["reasons"] = ["Scanarea nu a putut verifica complet mesajul; verifică pe canalul oficial înainte de acțiune."]
+    analysis["safe_actions"] = ["Nu introduce date sensibile până nu confirmi în aplicația sau site-ul oficial."]
+    analysis.setdefault("evidence", {})["orchestration_error"] = {
+        "error_type": error_type,
+        "error": error_message,
+        "stage": str(job.get("pipeline_stage") or "unknown"),
+    }
+    job["analysis"] = analysis
+    job["claim_verifier_required"] = False
+    job["ai_explanation_pending"] = False
+    urlscan_state = job.get("urlscan") if isinstance(job.get("urlscan"), dict) else {}
+    if str(urlscan_state.get("status") or "").lower() not in {"finished", "clean", "malicious", "error", "skipped"}:
+        job["urlscan"] = {
+            **urlscan_state,
+            "status": "error",
+            "details": "Scanarea sandbox a fost oprită după o eroare internă controlată.",
+        }
+    preview = job.setdefault("preview", {})
+    if not (preview.get("image_url") or preview.get("screenshot_url")):
+        preview.update(
+            {
+                "status": "unavailable",
+                "source": None,
+                "image_url": None,
+                "screenshot_url": None,
+                "report_url": preview.get("report_url"),
+                "reason": "orchestrator_error",
+                "details": "Preview-ul nu este disponibil pentru această scanare.",
+            }
+        )
+    _set_orchestrated_stage(job, "done")
+    ai_explanation = generate_fallback_explanation(redacted_text, analysis)
+    response_payload = _build_scan_response(
+        "scan",
+        analysis,
+        redacted_text,
+        ai_explanation,
+        scan_id=job.get("scan_id"),
+        extra_fields=job.get("extra_fields") if isinstance(job.get("extra_fields"), dict) else {},
+    )
+    response_payload.setdefault("evidence", {}).setdefault("orchestration", {})
+    response_payload["evidence"]["orchestration"] = {
+        "pillars": _build_orchestrated_pillars(job),
+        "preview": job.get("preview", {}),
+    }
+    response_payload["is_final"] = True
+    job["result"] = response_payload
+    job["result_fingerprint"] = _orchestrated_result_fingerprint(
+        job,
+        analysis,
+        _build_orchestrated_pillars(job),
+        job.get("resolved_urls") if isinstance(job.get("resolved_urls"), list) else [],
+    )
+    job["status"] = "complete"
+    _emit_orchestrated_telemetry("orchestrated_unhandled_exception_finalized", job, error_type=error_type)
+    if response_payload.get("is_final"):
+        try:
+            _emit_scan_event(
+                scan_id=str(job.get("scan_id") or ""),
+                scan_payload=response_payload,
+                input_channel=job.get("input_type", "text"),
+                source_channel=job.get("source_channel"),
+            )
+        except Exception:
+            pass
+    return _persist_orchestrated_job(job)
+
+
 async def _refresh_orchestrated_job(job: Dict[str, Any], request: Request) -> Dict[str, Any]:
+    try:
+        return await _refresh_orchestrated_job_impl(job, request)
+    except Exception as exc:
+        return _mark_orchestrated_job_exception(job, exc)
+
+
+async def _refresh_orchestrated_job_impl(job: Dict[str, Any], request: Request) -> Dict[str, Any]:
     _increment_orchestrated_metric(job, "poll_count")
     stage = str(job.get("pipeline_stage") or "queued").strip().lower()
     _emit_orchestrated_telemetry("orchestrated_poll", job, stage=stage)
