@@ -133,3 +133,43 @@ class TestEndpoint:
         assert body["label"] == "Plan de acțiune"
         assert body["steps"] and body["steps"][0]["urgency"] == "now"
         assert "DNSC" in {c["name"] for c in body["report_package"]["channels"]}
+
+
+class TestOrchestratorIntegration:
+    """PR-8 integrare: o ofertă DANGEROUS prin /v1/scan/orchestrated capătă
+    action_plan preventiv (impacts=none) atașat în result, lângă legal."""
+
+    def test_dangerous_offer_gets_preventive_action_plan(self, monkeypatch):
+        from unittest.mock import AsyncMock, patch
+        from fastapi.testclient import TestClient
+        from services.anaf_cui import CuiResult
+        import main as app_main
+        from test_backend import _poll_orchestrated
+
+        client = TestClient(app_main.app)
+
+        async def _fake_explain(*a, **k):
+            return {"summary": "stub"}
+
+        cui = CuiResult(exists=False, checked=False, denumire=None, activ=False,
+                        data_inactivare=None, platitor_tva=False, enrolled_efactura=False, raw=None)
+        with monkeypatch.context() as p:
+            p.setattr(app_main, "_build_ai_explanation_async", _fake_explain)
+            p.setattr(app_main, "ORCHESTRATED_DEFER_AI_EXPLANATION", False)
+            with patch("services.offer_entity_verifier.check_cui", new_callable=AsyncMock) as m:
+                m.return_value = cui
+                post = client.post("/v1/scan/orchestrated", json={
+                    "input_type": "offer",
+                    "text": "Plateste avansul in crypto wallet pentru rezervare"})
+                scan_id = post.json()["scan_id"]
+                _, payload = _poll_orchestrated(client, scan_id, count=3)
+
+        result = payload["result"]
+        assert result["risk_level"] == "high"
+        plan = result.get("action_plan")
+        assert plan is not None
+        assert plan["label"] == "Plan de acțiune"
+        assert plan["impacts"] == ["none"]   # preventiv: scanarea nu știe ce a făcut userul
+        assert plan["steps"]                  # are pași
+        # verdictul nu e schimbat de plan
+        assert plan["verdict"] in {"DANGEROUS", "SUSPECT"}

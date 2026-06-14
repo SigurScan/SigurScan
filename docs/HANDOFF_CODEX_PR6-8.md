@@ -137,5 +137,10 @@ Apoi verifică în Supabase că `circle_links` / `verification_pings` au primit 
 - PR-7 UI: rol SMS pe profilul protejat, citire on-device, bandă inline,
   portarea `build_inbox_verdict` în Kotlin, cache BTR local din `/v1/btr/sync`.
 - PR-9/PR-10: stack audio on-device (Vosk RO + VAD), captură difuzor, consimțământ
-  per-apel, zero upload audio.
-- TriageScreen care consumă `/v1/legal/action-plan`.
+  per-apel, zero upload audio. Logica de verdict e gata ca referință în
+  `services/audio_evidence.py` (`build_audio_case_verdict`, reuse verdict_gate,
+  STT-solo→max SUSPECT) — Android o portează on-device. INTENȚIONAT fără endpoint
+  audio pe server (§14.5).
+- TriageScreen care consumă `/v1/legal/action-plan`. Pe ruta ofertă, `result.action_plan`
+  vine deja preventiv (impacts=["none"]); ecranul re-cere cu impacts reale după ce
+  userul spune ce a făcut.

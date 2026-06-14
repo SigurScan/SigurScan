@@ -4222,6 +4222,8 @@ def _build_scan_response(
         # Strat educativ „Ce spune legea" (PR5): {label, cards[], disclaimer}.
         # Prezent doar pe ruta ofertă; clientul îl randează verbatim, sub verdict.
         "legal": analysis_results.get("legal"),
+        # PR-8: plan de acțiune preventiv (TriageScreen), prezent pe verdicte de risc.
+        "action_plan": analysis_results.get("action_plan"),
     }
     if extra_fields:
         payload.update(extra_fields)
@@ -7206,6 +7208,24 @@ async def _run_orchestrated_offer_fast_lane(job: Dict[str, Any], request: Reques
         family_code=family_id,
         document_type=(fields.document_type if fields else None),
     )
+
+    # PR-8: plan de acțiune (TriageScreen) — atașat post-gate DOAR pentru verdicte
+    # de risc, preventiv (impacts=["none"], scanarea nu știe ce a făcut userul).
+    # Clientul poate re-cere /v1/legal/action-plan cu impacts reale. NU schimbă verdictul.
+    gate_label = str(gate_result.get("label") or "").upper()
+    if gate_label in {"DANGEROUS", "SUSPECT"}:
+        from services.legal_action_plan import build_action_plan
+
+        plan_target = None
+        if fields and fields.iban:
+            plan_target = {"type": "iban", "value_redacted": "[redactat]"}
+        analysis["action_plan"] = build_action_plan(
+            verdict=gate_label,
+            family=family_id,
+            impacts=["none"],
+            target=plan_target,
+            document_type=(fields.document_type if fields else None),
+        )
 
     job["analysis"] = analysis
     job["claim_verifier_required"] = False
