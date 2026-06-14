@@ -31,8 +31,18 @@ Fișier: `supabase/migrations/20260614000000_create_circle_verification_tables.s
 Creează: `circle_links`, `verification_pings`, `guardian_second_opinion`
 (id-uri `text`, prefixate `cl_/vp_/go_` de backend; RLS enabled).
 
+> **Stare verificată live (2026-06-14), proiect `hslqboubacrdhatmqcky`:**
+> conexiunea REST cu service role key răspunde (`scan_events` → 200), DAR cele 3
+> tabele ale Cercului încă **NU există** (`circle_links`/`verification_pings`/
+> `guardian_second_opinion` → 404). Deci persistența write-through e gata în cod,
+> dar așteaptă aplicarea migrării. Service role key NU poate face DDL (PostgREST);
+> e nevoie de DB password / dashboard / CLI linkat.
+
 ```bash
-supabase db push        # sau supabase migration up pe proiectul prod
+# Varianta A (recomandat) — doar tabelele Cercului, fără să atingi alte migrări:
+#   Supabase Dashboard → SQL Editor → paste conținutul fișierului de mai sus → Run
+# Varianta B — CLI (ATENȚIE: aplică TOATE migrările nepuse din folder):
+supabase db push --project-ref hslqboubacrdhatmqcky
 ```
 
 Verifică după aplicare:
