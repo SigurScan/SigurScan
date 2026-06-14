@@ -86,7 +86,73 @@ class InvoiceScanResult:
     anaf_cui_check: Optional[dict] = None
     error: Optional[str] = None
     warnings: list = field(default_factory=list)
+    fraud_flags: list = field(default_factory=list)
     from_cache: bool = False
+
+
+# ─── Detectori de semnale de fraudă (titular/IBAN/limbaj) ────────────────────
+# Pur detectori de SEMNAL (bool/listă) — NU dau verdict. Verdictul rămâne la
+# verdict_gate (un singur judecător); semnalele intră în bundle ca toate celelalte.
+import re as _re
+
+_DIACRITICS = str.maketrans("ăâîșşțţ", "aaisstt")
+_COMPANY_MARKERS = _re.compile(
+    r"\b(s\.?\s?r\.?\s?l|s\.?\s?a|s\.?\s?c|p\.?\s?f\.?\s?a|i\.?\s?i|s\.?\s?n\.?\s?c|"
+    r"societate|societatea|asociat|fundat|regia|intreprindere|cooperativa|cabinet|"
+    r"sucursala|gmbh|ltd|llc|inc|s\.?p\.?a)\b",
+    _re.IGNORECASE,
+)
+_ACCOUNT_CHANGE_RE = _re.compile(
+    r"(am\s+schimbat\s+(contul|banca|iban)|cont(ul)?\s+(nou|s-?a\s+schimbat|modificat|actualizat)|"
+    r"noul\s+(nostru\s+)?(cont|iban)|iban[-\s]*(ul)?\s*(nou|s-?a\s+(schimbat|modificat))|"
+    r"schimbare\s+(de\s+)?cont\s+bancar|date(le)?\s+bancare\s+(au\s+fost\s+)?(modificat|actualizat|schimbat)|"
+    r"changed\s+(our\s+)?(bank\s+account|account\s+details|iban)|new\s+(bank\s+)?account)",
+    _re.IGNORECASE,
+)
+_PRESSURE_RE = _re.compile(
+    r"(astazi|imediat|in\s*24\s*(de\s*)?ore|ultima\s+zi|chiar\s+acum|de\s+urgenta|"
+    r"altfel\s+(se\s+)?(suspend|debrans|deconect|pierde|anuleaz|sista)|debransare|"
+    r"deconectare|executare\s+silita|poprire|pierdeti\s+comanda|risc(ati)?\s+(suspendare|debransare))",
+    _re.IGNORECASE,
+)
+_NAME_STOPWORDS = {"sc", "srl", "sa", "pfa", "ii", "snc", "de", "si"}
+
+
+def _txt_norm(text: str) -> str:
+    return (text or "").lower().translate(_DIACRITICS)
+
+
+def _foreign_ibans(all_ibans: list[str]) -> list[str]:
+    """IBAN-uri valide dar non-RO (red flag pe factură RO). Folosește validatorul."""
+    out: list[str] = []
+    for raw in all_ibans or []:
+        norm = "".join(ch for ch in str(raw).upper() if ch.isalnum())
+        if len(norm) >= 4 and norm[:2] != "RO" and validate_iban(raw).valid_structure:
+            out.append(norm)
+    return out
+
+
+def _name_tokens(name: str) -> set:
+    cleaned = _COMPANY_MARKERS.sub(" ", _txt_norm(name))
+    return {t for t in _re.findall(r"[a-z]{2,}", cleaned) if t not in _NAME_STOPWORDS}
+
+
+def _beneficiary_is_person(name: Optional[str]) -> bool:
+    if not name or _COMPANY_MARKERS.search(name):
+        return False
+    tokens = _re.findall(r"[A-Za-zĂÂÎȘŞȚŢăâîșşțţ]{2,}", name.strip())
+    return 2 <= len(tokens) <= 4
+
+
+def _beneficiary_mismatch(beneficiary: Optional[str], issuer: Optional[str]) -> bool:
+    """Beneficiar persoană fizică ce NU se suprapune cu emitentul-firmă.
+    Tratează corect PFA (nume comun emitent↔beneficiar → fără mismatch)."""
+    if not _beneficiary_is_person(beneficiary):
+        return False
+    ta, tb = _name_tokens(beneficiary or ""), _name_tokens(issuer or "")
+    if ta and tb and len(ta & tb) >= min(2, len(ta), len(tb)):
+        return False
+    return True
 
 
 def _fields_to_coherence(fields: InvoiceFields) -> CoherenceResult:
@@ -172,6 +238,35 @@ async def scan_invoice(ocr_text: str, links: Optional[list[str]] = None) -> Invo
         elif not cui_check["activ"]:
             warnings.append(f"Company {cui_check['denumire']} is inactive")
 
+    # ─── Semnale de fraudă „firmă reală + IBAN fals/complice" (prevenție) ─────
+    # Doar SEMNALE — verdictul îl dă verdict_gate. Țintă: titular persoană fizică ≠
+    # firmă, IBAN străin pe factură RO, limbaj „cont schimbat" (BEC), multi-IBAN.
+    fraud_flags: list[str] = []
+    issuer_name = fields.emitent
+    if _beneficiary_mismatch(fields.payment_beneficiary, issuer_name):
+        fraud_flags.append("BENEFICIARY_PERSON_MISMATCH")
+        warnings.append(
+            "Beneficiarul plății pare o persoană fizică, nu firma emitentă — "
+            "semn de cont de complice. Confirmă direct cu firma înainte să plătești."
+        )
+    foreign = _foreign_ibans(fields.all_ibans)
+    if foreign:
+        fraud_flags.append("FOREIGN_IBAN")
+        warnings.append(
+            "IBAN-ul de plată nu este românesc pe o factură RO — verifică pe un "
+            "canal oficial al furnizorului înainte de plată."
+        )
+    if _ACCOUNT_CHANGE_RE.search(_txt_norm(ocr_text)):
+        fraud_flags.append("ACCOUNT_CHANGE_LANGUAGE")
+        warnings.append(
+            "Mesajul anunță «cont nou / cont schimbat» — tactica #1 de fraudă (BEC). "
+            "Sună furnizorul pe un număr cunoscut și confirmă noul cont."
+        )
+    if _PRESSURE_RE.search(_txt_norm(ocr_text)):
+        fraud_flags.append("PAYMENT_PRESSURE")
+    if len(fields.all_ibans or []) >= 2:
+        fraud_flags.append("MULTIPLE_IBANS")
+
     result = InvoiceScanResult(
         raw_text=ocr_text,
         fields=fields,
@@ -182,6 +277,7 @@ async def scan_invoice(ocr_text: str, links: Optional[list[str]] = None) -> Invo
         brand_match=brand_match_result,
         anaf_cui_check=anaf_check,
         warnings=warnings,
+        fraud_flags=fraud_flags,
     )
     _set_cached_verdict(fields, result)
     return result

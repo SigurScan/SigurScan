@@ -7148,6 +7148,14 @@ async def _run_orchestrated_invoice_fast_lane(job: Dict[str, Any], request: Requ
     iban_matches = (brand_match and brand_match.iban_matches) or False
     claimed_brand = (result.brand if result else None) or "Nespecificat"
 
+    # Semnale de fraudă (titular/IBAN/limbaj) emise de scan_invoice — intră în
+    # bundle ca SEMNALE; verdict_gate rămâne singurul judecător.
+    fraud_flags = list(result.fraud_flags) if result else []
+    beneficiary_mismatch_flag = "BENEFICIARY_PERSON_MISMATCH" in fraud_flags
+    weak_fraud_flag = any(f in fraud_flags for f in ("FOREIGN_IBAN", "ACCOUNT_CHANGE_LANGUAGE"))
+    # Combo BEC clasic: IBAN străin + „am schimbat contul" → tratează ca high.
+    strong_fraud_combo = ("FOREIGN_IBAN" in fraud_flags) and ("ACCOUNT_CHANGE_LANGUAGE" in fraud_flags)
+
     # Provider section: ANAF + IBAN + coherence as evidence sources.
     anaf_status = "clean"
     anaf_reasons = []
@@ -7189,7 +7197,11 @@ async def _run_orchestrated_invoice_fast_lane(job: Dict[str, Any], request: Requ
         provider_section.setdefault("reasons", []).extend(anaf_reasons)
 
     # Identity section: brand match status.
-    if impersonation_risk:
+    if beneficiary_mismatch_flag:
+        # Beneficiar persoană fizică ≠ firmă emitentă = destinație nealiniată.
+        identity_status = "lookalike"
+        identity_reason = "Beneficiarul plății nu corespunde firmei emitente"
+    elif impersonation_risk:
         identity_status = "lookalike"
         identity_reason = "CUI/IBAN nealiniat cu brandul declarat"
     elif cui_matches and iban_matches:
@@ -7221,12 +7233,17 @@ async def _run_orchestrated_invoice_fast_lane(job: Dict[str, Any], request: Requ
     # Semantic review: coherence + readiness.
     semantic_risk = "low"
     semantic_reasons = []
-    if impersonation_risk:
+    if impersonation_risk or beneficiary_mismatch_flag or strong_fraud_combo:
         semantic_risk = "high"
         semantic_reasons.append("Impersonation risk detected")
     if readiness_blocks_safe:
         semantic_risk = "medium"
         semantic_reasons.append("Date insuficiente")
+    # IBAN străin / „cont schimbat" fără mismatch de beneficiar → semnal mediu
+    # (gate-ul → SUSPECT prin cererea de transfer fără proveniență), nu high.
+    if weak_fraud_flag and semantic_risk == "low":
+        semantic_risk = "medium"
+        semantic_reasons.append("Semnal de fraudă pe destinația plății")
     if coherence and not coherence.all_ok:
         semantic_reasons.append("Document incoherent")
 

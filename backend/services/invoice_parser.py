@@ -6,6 +6,16 @@ from typing import List
 
 CUI_PATTERN = re.compile(r"(?:CUI|CIF|RO)\s*[:\s]*(\d{2,10})\b", re.IGNORECASE)
 IBAN_PATTERN = re.compile(r"RO\d{2}[A-Z0-9]{20,24}", re.IGNORECASE)
+# IBAN general (orice țară) — folosit DOAR pentru a colecta toate conturile din
+# document (inclusiv străine), ca să le putem semnala. Validarea structurală reală
+# o face iban_validator; aici doar capturăm candidați.
+ANY_IBAN_PATTERN = re.compile(r"\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b", re.IGNORECASE)
+# Beneficiar / titular cont scris în document (semn de cont de complice când e
+# persoană fizică ≠ firma emitentă). Același tipar ca pe ruta ofertă.
+BENEFICIAR_PATTERN = re.compile(
+    r"(?:beneficiar|titular(?:\s*cont)?|c[ăa]tre|[iî]n\s*contul(?:\s*lui)?)\s*[:\-]?\s*(.+?)(?:\n|$|,|;)",
+    re.IGNORECASE,
+)
 MONTHS = {
     "january": "01",
     "jan": "01",
@@ -91,6 +101,8 @@ class InvoiceFields:
     currency: str | None = None
     invoice_profile: str = "ro"
     iban: str | None = None
+    all_ibans: List[str] = field(default_factory=list)
+    payment_beneficiary: str | None = None
     links: List[str] = field(default_factory=list)
     qr_payloads: List[str] = field(default_factory=list)
     lines: List[dict] = field(default_factory=list)
@@ -99,6 +111,40 @@ class InvoiceFields:
 
 def _normalize_cui(raw: str) -> str:
     return re.sub(r"\D", "", raw)
+
+
+def _extract_all_ibans(text: str) -> List[str]:
+    """Toate IBAN-urile valide structural din document (RO + străine), în ordine,
+    deduplicate. Validarea o face iban_validator (import local, fără circular)."""
+    from services.iban_validator import normalize_iban, validate_iban
+
+    seen: set[str] = set()
+    out: List[str] = []
+    for raw in ANY_IBAN_PATTERN.findall(text or ""):
+        normalized = normalize_iban(raw)
+        if not normalized or normalized in seen:
+            continue
+        if validate_iban(raw).valid_structure:
+            seen.add(normalized)
+            out.append(normalized)
+    return out
+
+
+def _extract_beneficiary(text: str) -> str | None:
+    """Numele titularului/beneficiarului scris în document. Evită liniile de
+    CUI/IBAN/etichete ca să nu captureze gunoi."""
+    match = BENEFICIAR_PATTERN.search(text or "")
+    if not match:
+        return None
+    candidate = match.group(1).strip(" .:-")
+    low = candidate.lower()
+    if not candidate or len(candidate) < 3:
+        return None
+    if any(tok in low for tok in ("iban", "cui", "cif", "ro", "factura", "cont ")) and len(candidate) < 6:
+        return None
+    if IBAN_PATTERN.search(candidate) or re.fullmatch(r"[\d\s.\-]+", candidate):
+        return None
+    return candidate
 
 
 def _parse_ro_amount(raw: str) -> float | None:
@@ -397,9 +443,12 @@ def parse_invoice(
     cui_match = CUI_PATTERN.search(text)
     cui = _normalize_cui(cui_match.group(0)) if cui_match else None
 
-    # IBAN
+    # IBAN — primarul (RO, compat retro) + TOATE conturile (inclusiv străine).
     iban_match = IBAN_PATTERN.search(text)
     iban = iban_match.group(0).upper().replace(" ", "") if iban_match else None
+    all_ibans = _extract_all_ibans(text)
+    # Beneficiar/titular scris în document (pentru flag persoană fizică ≠ firmă).
+    payment_beneficiary = _extract_beneficiary(text)
 
     # Emitent
     emit_match = EMITENT_LABEL.search(text)
@@ -438,6 +487,8 @@ def parse_invoice(
         currency=currency,
         invoice_profile=invoice_profile,
         iban=iban,
+        all_ibans=all_ibans,
+        payment_beneficiary=payment_beneficiary,
         links=pdf_links or [],
         qr_payloads=qr_payloads or [],
         raw_text=text,
