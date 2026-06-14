@@ -2,8 +2,8 @@
 
 Repo: `vaduvel/SigurScan`
 Branch verificat: `feature/osint-intel-pipeline`
-Production Cloud Run: `sigurscan-api-00043-qq7`
-Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/sigurscan/sigurscan-api:3231eeb`
+Production Cloud Run: `sigurscan-api-00045-s5b`
+Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/sigurscan/sigurscan-api:e4a0f82`
 
 ## Rezumat Brutal
 
@@ -43,23 +43,27 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
   - `ActionPlanRequestTest`
   - `AudioSafetyPolicyTest`
 - Verificari locale dupa conectarea raportului oficial si BTR YOXO:
-  - Backend full: `901 passed, 1 warning`
+  - Backend full final: `902 passed, 1 warning`
   - Android full JVM: `BUILD SUCCESSFUL`
   - Android `assembleDebug`: `BUILD SUCCESSFUL`
   - Backend targeted BTR/Radar/PR-8: `73 passed, 1 warning`
+  - Backend targeted BTR channel fix: `48 passed, 1 warning`
 - Cloud Run live:
-  - revision: `sigurscan-api-00043-qq7`
+  - revision: `sigurscan-api-00045-s5b`
   - traffic: `100%`
-  - image: `:3231eeb`
+  - image: `:e4a0f82`
 - Domeniu oficial `https://api.sigurscan.com`:
   - `/health`: OK
   - `/v1/radar/hot-iocs`: OK
-  - `/v1/btr/sync`: OK, `16` manifeste in productia curenta; local dev are `17` dupa adaugarea manifestului YOXO
+  - `/v1/btr/sync`: OK, `17` manifeste; `yoxo` prezent
+  - `/v1/verify/provenance` YOXO: OK, `provenance=match`, `official_match=true`
+  - `/v1/report`: OK, `2` canale (`DNSC`, `PNRISC / Poliția Română`)
   - `/v1/legal/action-plan`: OK, plan cu `4` pasi si `3` canale raportare pentru impacts reale
   - POST `/v1/scan/orchestrated` cu YOXO: `SAFE`, score `10`, preview `ready`
 - Live scan YOXO:
   - verdict: `SAFE`
   - score: `10`
+  - BTR: `manifest_id=yoxo`, `provenance=match`, `official_domain_match=true`
   - `infra_dns`: `clean / resolves`
   - preview: `ready`
 - Live scan mesaj bancar periculos:
@@ -116,9 +120,9 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
    - Tehnic scanarea se inchide corect, preview explica `final_url_unresolved`, DNS detecteaza `registrar_suspended`.
    - User-facing label este `UNVERIFIED/info`; daca produsul vrea fail-safe mai vizibil, regula trebuie ajustata la `SUSPECT` pentru shortener + final unresolved + DNS suspended.
 
-6. BTR backend production nu are inca manifest YOXO separat pana la urmatorul deploy.
-   - Local dev are manifest `yoxo` cu `yoxo.ro`, `buyback.yoxo.ro`, `reconditionate.yoxo.ro`, `newsroom.orange.ro` si teste BTR verzi.
-   - Flow-ul live YOXO cu `input_type=text` da `SAFE` si preview prezent pentru `https://www.yoxo.ro/`, dar productia curenta inca trebuie redeploy pentru ca `/v1/verify/provenance` cu `claimed_brand=YOXO` sa nu mai dea `BTR_NO_MANIFEST_MATCH`.
+6. BTR backend production are manifest YOXO dupa deploy `e4a0f82`.
+   - Manifest `yoxo`: `yoxo.ro`, `buyback.yoxo.ro`, `reconditionate.yoxo.ro`, `newsroom.orange.ro`.
+   - Flow-ul live YOXO cu `input_type=text` da `SAFE`, preview prezent, `provenance=match`, `official_domain_match=true`.
 
 ## Ce E Production-Grade Acum
 
