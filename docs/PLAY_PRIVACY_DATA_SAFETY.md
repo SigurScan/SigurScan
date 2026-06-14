@@ -60,10 +60,12 @@ Permisiuni Android declarate in v1:
 - `INTERNET` pentru scanare prin backend.
 - `ACCESS_NETWORK_STATE`, adaugata de dependinte Android, pentru verificarea starii conexiunii.
 - `CAMERA` pentru QR/OCR doar la actiunea utilizatorului.
+- `READ_PHONE_STATE` pentru integrarea optionala Radar/CallScreening activata de utilizator prin rolul OS.
 
 Permisiuni evitate explicit:
 
-- `READ_SMS`, `RECEIVE_SMS`, `READ_CALL_LOG`, `READ_PHONE_STATE`, `READ_CONTACTS`.
+- `READ_SMS`, `RECEIVE_SMS`, `SEND_SMS`, `READ_CALL_LOG`, `READ_CONTACTS`.
+- `RECORD_AUDIO` pana cand PR-9/PR-10 are model ASR local, consimtamant, disclosure si QA real-device.
 - `READ_EXTERNAL_STORAGE`, `READ_MEDIA_IMAGES`, `READ_MEDIA_VIDEO` pentru flow-ul curent, deoarece fisierele sunt alese prin picker/share intent.
 - `POST_NOTIFICATIONS`, deoarece nu facem monitorizare automata sau alerte push in v1.
 
@@ -78,6 +80,7 @@ Nu se face:
 - citire clipboard in background;
 - acces permanent la Gmail/Outlook;
 - upload automat al tuturor mesajelor;
+- captura audio sau call recording ascuns;
 - inregistrare automata a device-ului;
 - acces direct din APK la Supabase cu anon key;
 - distributie de date brute catre terti fara actiune de scanare.

@@ -60,6 +60,20 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
   - rezultat: `BUILD SUCCESSFUL`
   - live BTR smoke cu `User-Agent: SigurScan/1.0 Android OkHttp` si cheia locala: `/v1/btr/sync` `200`, `count=17`, `version=btr-ro-2026.06.13`, `yoxo=true`
   - observatie: acelasi endpoint poate intoarce Cloudflare `1010` pentru clienti de terminal fara User-Agent-ul app-ului; nu este un 403 backend de API key.
+- Android manifest/privacy guard dupa alinierea Data Safety:
+  - `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew testDebugUnitTest --tests 'ro.sigurscan.app.ShareIntentManifestTest'`
+  - rezultat: `BUILD SUCCESSFUL`
+  - testul blocheaza `READ_SMS`, `RECEIVE_SMS`, `SEND_SMS`, `READ_CALL_LOG`, `READ_CONTACTS`, `RECORD_AUDIO`, `POST_NOTIFICATIONS`
+  - testul confirma `READ_PHONE_STATE` si `BIND_SCREENING_SERVICE` pentru CallScreening/Radar
+- Android release artifacts:
+  - `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew testDebugUnitTest assembleDebug assembleRelease bundleRelease`
+  - rezultat: `BUILD SUCCESSFUL`
+  - `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew lintDebug`
+  - rezultat: `BUILD SUCCESSFUL`, report: `app/build/reports/lint-results-debug.html`
+  - APK: `app/build/outputs/apk/release/app-release.apk` (`17,067,679` bytes)
+  - AAB: `app/build/outputs/bundle/release/app-release.aab` (`16,399,395` bytes)
+  - `apksigner verify --verbose --print-certs`: `Verifies`, v2 signing `true`, signer `CN=SigurScan`
+  - `strings app-release.apk | rg "SUPABASE|URLSCAN_API_KEY|VIRUSTOTAL_API_KEY|GOOGLE_SAFE|GOOGLE_WEB_RISK_API_KEY|ro.nudaclick|com.example.myapplication|BEGIN PRIVATE KEY|AIza|eyJhbGci"`: no matches
 - Android emulator QA PR-7 local check (`Medium_Phone_API_36.1`):
   - APK debug curent instalat cu `./gradlew installDebug`
   - scan Android `YOXO Shop oferte pe https://www.yoxo.ro/`: UI `SIGUR`, `Verificări complete`, preview securizat, final domain `yoxo.ro`
@@ -148,6 +162,7 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
    - Backend-ul ofera `/v1/btr/sync`.
    - App-ul are client Retrofit, store local, engine on-device si buton UI pentru verificarea locala a ultimului scan pe semnale redactate/local extrase.
    - Manifestul Android nu cere `READ_SMS`; nu exista citire automata inbox/SMS.
+   - Manifestul este acoperit de `ShareIntentManifestTest`, inclusiv interdictia `READ_SMS`/`RECEIVE_SMS`/`SEND_SMS`.
    - Lipseste integrarea cu un flux real de inbox/SMS dupa decizia de produs si permisiuni.
 
 3. Android PR-8 Action Plan este functional in ecranul de rezultat.
@@ -159,6 +174,7 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
    - Nu exista Vosk/ASR/captura difuzor in productie.
    - `AudioSafetyPolicy` blocheaza capture fara feature flag, consimtamant, disclosure si model.
    - Manifestul Android nu cere `RECORD_AUDIO`; nu exista captura audio ascunsa.
+   - Manifestul este acoperit de `ShareIntentManifestTest`, inclusiv interdictia `RECORD_AUDIO`.
    - Android are card readiness pentru consimtamant/disclosure/model/feature flag; nu cere permisiune microfon si nu porneste captura falsa.
 
 5. Gate/UX pentru `urlz.fr/rZrw` merita decis explicit.
