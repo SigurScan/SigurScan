@@ -152,6 +152,7 @@ ADMIN_ONLY_PATHS = {
     "/v1/feedback/summary",
     "/v1/adjudication/shadow",
     "/v1/adjudication/dashboard",
+    "/v1/internal/negative-iban",
 }
 
 PUBLIC_PATHS = {"/", "/health", "/healthz", "/privacy", "/privacy-policy", "/docs", "/openapi.json", "/redoc"}
@@ -8668,6 +8669,24 @@ async def radar_hot_iocs(since: Optional[float] = None):
         except Exception:
             reports = []
     return build_hot_cache(campaign_store, reports=reports, since=since)
+
+
+class NegativeIbanReportRequest(BaseModel):
+    iban: str
+    source: str = "manual"            # dnsc_alert | community_report | press | manual
+    family: Optional[str] = None
+
+
+@app.post("/v1/internal/negative-iban")
+async def report_negative_iban(payload: NegativeIbanReportRequest):
+    """Ingest moderator/DNSC: adaugă un IBAN în registrul negativ (admin-key gated).
+    Alimentează pilonul care prinde „firmă reală + IBAN complice" determinist."""
+    from services.negative_iban_registry import report_fraud_iban
+
+    ok = report_fraud_iban(payload.iban, source=payload.source, family=payload.family)
+    if not ok:
+        raise HTTPException(status_code=400, detail="IBAN invalid.")
+    return {"status": "ok", "reported": True}
 
 
 @app.post("/v1/report")

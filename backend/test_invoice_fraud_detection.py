@@ -187,3 +187,47 @@ class TestNegativeIbanRegistry:
         r = await scan_invoice("Furnizor SC BETA SRL\nIBAN RO49AAAA1B31007593840000\nTotal 250 lei plata")
         _, gate = evaluate_invoice_verdict(r, r.raw_text)
         assert gate["label"] == "DANGEROUS"
+
+
+class TestNegativeIbanRuntimeFeed:
+    """Pilon A — alimentarea registrului la runtime (ingest moderator/DNSC/comunitate).
+    report_fraud_iban() → is_reported_fraud True, fără seed în fișier."""
+
+    @pytest.fixture(autouse=True)
+    def _clean(self):
+        from services import negative_iban_registry as nir
+        from services import invoice_orchestrator as io
+        nir.reload_registry(); io._verdict_cache.clear()
+        yield
+        nir.reload_registry()
+
+    def test_report_then_detected(self):
+        from services import negative_iban_registry as nir
+        assert nir.is_reported_fraud("RO49AAAA1B31007593840000") is False
+        assert nir.report_fraud_iban("RO49 AAAA 1B31 0075 9384 0000", source="dnsc_alert") is True
+        assert nir.is_reported_fraud("RO49AAAA1B31007593840000") is True  # normalizat
+
+    def test_invalid_iban_not_reported(self):
+        from services import negative_iban_registry as nir
+        assert nir.report_fraud_iban("NU-E-IBAN") is False
+
+    def test_reload_clears_runtime(self):
+        from services import negative_iban_registry as nir
+        nir.report_fraud_iban("RO49AAAA1B31007593840000")
+        nir.reload_registry()
+        assert nir.is_reported_fraud("RO49AAAA1B31007593840000") is False
+
+    @pytest.mark.asyncio
+    async def test_runtime_reported_iban_flags_scan(self):
+        from services import negative_iban_registry as nir
+        nir.report_fraud_iban("RO49AAAA1B31007593840000", source="community_report")
+        r = await scan_invoice("Furnizor SC GAMA SRL\nIBAN RO49AAAA1B31007593840000\nTotal 999 plata factura")
+        assert "REPORTED_FRAUD_IBAN" in r.fraud_flags
+
+    def test_endpoint_admin_gated(self):
+        from fastapi.testclient import TestClient
+        import main as app_main
+        client = TestClient(app_main.app)
+        # fără admin key → 401/403 (fail closed)
+        r = client.post("/v1/internal/negative-iban", json={"iban": "RO49AAAA1B31007593840000"})
+        assert r.status_code in (401, 403)

@@ -548,3 +548,23 @@ def save_guardian_second_opinion(opinion: Dict[str, Any]) -> None:
         "status": opinion.get("status") or "pending",
     }
     _post_json("guardian_second_opinion", row, "resolution=merge-duplicates,return=minimal")
+
+
+# ─── Registru negativ IBAN (raportări fraudă) — write-through best-effort ─────
+def save_negative_iban(iban_normalized: str, *, source: str = "manual",
+                       family: Optional[str] = None) -> None:
+    """Persistă un IBAN raportat ca fraudă. No-op fără Supabase. (IBAN normalizat;
+    în prod se poate stoca hash-uit — vezi negative_iban_registry.)"""
+    if not iban_normalized:
+        return
+    _post_json(
+        "negative_iban_registry",
+        {"iban": iban_normalized, "source": source or "manual", "family": family},
+        "resolution=merge-duplicates,return=minimal",
+    )
+
+
+def load_negative_ibans() -> List[str]:
+    """IBAN-urile raportate din Supabase (gol fără chei)."""
+    rows = _get_json("negative_iban_registry", {"select": "iban", "limit": "5000"})
+    return [r.get("iban") for r in rows if isinstance(r, dict) and r.get("iban")]

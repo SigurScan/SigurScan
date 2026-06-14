@@ -15,7 +15,7 @@ import os
 from functools import lru_cache
 from typing import List, Set
 
-from services.iban_validator import normalize_iban
+from services.iban_validator import normalize_iban, validate_iban
 
 _BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _DEFAULT_PATH = os.path.join(_BACKEND_DIR, "data", "negative_iban_registry_v1.json")
@@ -25,9 +25,14 @@ def _path() -> str:
     return os.getenv("NEGATIVE_IBAN_REGISTRY_PATH") or _DEFAULT_PATH
 
 
+# Set in-memory de IBAN-uri raportate la runtime (din ingest moderator/DNSC sau
+# rapoarte comunitare). Persistă best-effort în Supabase; rămâne valid și fără el.
+_runtime_reported: Set[str] = set()
+
+
 @lru_cache(maxsize=1)
-def _registry() -> Set[str]:
-    """IBAN-uri raportate, normalizate (uppercase, fără spații). Lipsă/corupt → gol."""
+def _seed_registry() -> Set[str]:
+    """IBAN-uri din seed-ul JSON (DNSC), normalizate. Lipsă/corupt → gol."""
     path = _path()
     if not os.path.isfile(path):
         return set()
@@ -45,22 +50,56 @@ def _registry() -> Set[str]:
 
 
 def reload_registry() -> None:
-    """Reîncarcă registrul (după update de feed sau în teste)."""
-    _registry.cache_clear()
+    """Reîncarcă seed-ul + golește runtime-ul (după update de feed sau în teste)."""
+    _seed_registry.cache_clear()
+    _runtime_reported.clear()
 
 
 def is_reported_fraud(iban: str) -> bool:
     norm = normalize_iban(iban or "")
-    return bool(norm) and norm in _registry()
+    return bool(norm) and (norm in _seed_registry() or norm in _runtime_reported)
+
+
+def report_fraud_iban(iban: str, *, source: str = "manual", family: Optional[str] = None) -> bool:
+    """Raportează un IBAN ca fraudă (ingest moderator/DNSC/comunitate). Adaugă în
+    memorie + persistă best-effort în Supabase (no-op fără chei). Întoarce True dacă
+    IBAN-ul e valid și a fost adăugat."""
+    norm = normalize_iban(iban or "")
+    if not norm or not validate_iban(iban).valid_structure:
+        return False
+    _runtime_reported.add(norm)
+    try:
+        from services import supabase_store
+        supabase_store.save_negative_iban(norm, source=source, family=family)
+    except Exception:
+        pass
+    return True
+
+
+def load_supabase_reports() -> int:
+    """Încarcă best-effort IBAN-urile raportate din Supabase în memoria runtime.
+    Întoarce câte au fost adăugate (0 fără Supabase). De apelat la pornire/refresh."""
+    try:
+        from services import supabase_store
+        ibans = supabase_store.load_negative_ibans()
+    except Exception:
+        return 0
+    added = 0
+    for raw in ibans or []:
+        norm = normalize_iban(str(raw))
+        if norm and norm not in _runtime_reported:
+            _runtime_reported.add(norm)
+            added += 1
+    return added
 
 
 def reported_fraud_ibans(ibans: List[str]) -> List[str]:
-    """Subsetul de IBAN-uri din listă care apar în registrul negativ."""
+    """Subsetul de IBAN-uri din listă care apar în registrul negativ (seed ∪ runtime)."""
     seen: Set[str] = set()
     out: List[str] = []
     for raw in ibans or []:
         norm = normalize_iban(raw or "")
-        if norm and norm not in seen and norm in _registry():
+        if norm and norm not in seen and is_reported_fraud(norm):
             seen.add(norm)
             out.append(norm)
     return out
