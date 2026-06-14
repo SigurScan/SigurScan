@@ -65,6 +65,12 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
   - rezultat: `BUILD SUCCESSFUL`
   - testul blocheaza `READ_SMS`, `RECEIVE_SMS`, `SEND_SMS`, `READ_CALL_LOG`, `READ_CONTACTS`, `RECORD_AUDIO`, `POST_NOTIFICATIONS`
   - testul confirma `READ_PHONE_STATE` si `BIND_SCREENING_SERVICE` pentru CallScreening/Radar
+- Android BuildConfig privacy/provider guard:
+  - `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew testDebugUnitTest --tests 'ro.sigurscan.app.AndroidBuildConfigPolicyTest'`
+  - rezultat: `BUILD SUCCESSFUL`
+  - testul confirma `SIGURSCAN_ENABLE_DIRECT_PROVIDER_KEYS=false` default, `URLSCAN_API_KEY=""`, `GOOGLE_WEB_RISK_API_KEY=""` in debug si release
+  - testul confirma `SIGURSCAN_ENABLE_AUDIO_ASR=false` default si acelasi gate pentru debug/release
+  - Android unit suite dupa guard: `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew testDebugUnitTest` -> `BUILD SUCCESSFUL`
 - Android release artifacts:
   - `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew testDebugUnitTest assembleDebug assembleRelease bundleRelease`
   - rezultat: `BUILD SUCCESSFUL`
@@ -173,6 +179,7 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
 4. PR-9/PR-10 Android audio nu este implementat ca ASR, dar este blocat matur si vizibil in UI.
    - Nu exista Vosk/ASR/captura difuzor in productie.
    - `AudioSafetyPolicy` blocheaza capture fara feature flag, consimtamant, disclosure si model.
+   - `AndroidBuildConfigPolicyTest` confirma ca `SIGURSCAN_ENABLE_AUDIO_ASR` ramane false-by-default pentru debug/release.
    - Manifestul Android nu cere `RECORD_AUDIO`; nu exista captura audio ascunsa.
    - Manifestul este acoperit de `ShareIntentManifestTest`, inclusiv interdictia `RECORD_AUDIO`.
    - Android are card readiness pentru consimtamant/disclosure/model/feature flag; nu cere permisiune microfon si nu porneste captura falsa.
