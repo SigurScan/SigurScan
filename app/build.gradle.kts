@@ -30,6 +30,12 @@ val allowDirectProviderKeys = (
         ?: "false"
     ).trim().lowercase() in setOf("1", "true", "yes", "on")
 
+val enableAudioAsr = (
+    localProperties.getProperty("SIGURSCAN_ENABLE_AUDIO_ASR")
+        ?: System.getenv("SIGURSCAN_ENABLE_AUDIO_ASR")
+        ?: "false"
+    ).trim().lowercase() in setOf("1", "true", "yes", "on")
+
 fun buildConfigSafeString(key: String, envFallback: String): String {
     val value = (localProperties.getProperty(key) ?: System.getenv(envFallback) ?: "").trim()
     return "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
@@ -83,6 +89,7 @@ android {
             "GOOGLE_WEB_RISK_API_KEY",
             "\"\""
         )
+        buildConfigField("Boolean", "SIGURSCAN_ENABLE_AUDIO_ASR", enableAudioAsr.toString())
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -104,6 +111,7 @@ android {
             buildConfigField("String", "SIGURSCAN_API_KEY", buildConfigSafeString("SIGURSCAN_RELEASE_API_KEY", "SIGURSCAN_RELEASE_API_KEY"))
             buildConfigField("String", "URLSCAN_API_KEY", "\"\"")
             buildConfigField("String", "GOOGLE_WEB_RISK_API_KEY", "\"\"")
+            buildConfigField("Boolean", "SIGURSCAN_ENABLE_AUDIO_ASR", enableAudioAsr.toString())
             if (hasReleaseKeystore) {
                 signingConfig = signingConfigs.getByName("release")
             }

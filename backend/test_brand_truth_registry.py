@@ -14,7 +14,7 @@ def btr():
 
 class TestLoadAndVersion:
     def test_loads_all_manifests(self, btr):
-        assert len(btr.all()) == 16
+        assert len(btr.all()) == 17
 
     def test_version_format(self, btr):
         assert btr.version.startswith("btr-ro-")
@@ -47,8 +47,8 @@ class TestLoadAndVersion:
 
 
 class TestBrandCount:
-    def test_15_brands_plus_1_person(self, btr):
-        assert len(btr.brands()) == 15
+    def test_16_brands_plus_1_person(self, btr):
+        assert len(btr.brands()) == 16
         assert len(btr.persons()) == 1
 
     def test_person_is_isarescu(self, btr):
@@ -60,7 +60,8 @@ class TestBrandCount:
     def test_key_brands_present(self, btr):
         expected = {"bnr", "anaf", "dnsc", "politia_mai", "olx", "emag",
                     "fan_courier", "sameday", "cargus", "posta_romana",
-                    "bt", "bcr", "ing", "electrica_ppc", "orange_vodafone_digi"}
+                    "bt", "bcr", "ing", "electrica_ppc", "orange_vodafone_digi",
+                    "yoxo"}
         found = {m.manifest_id for m in btr.brands()}
         assert found == expected
 
@@ -100,6 +101,10 @@ class TestMatchByDomain:
         m = btr.match_brand_by_domain("scam-site-123.xyz")
         assert m is None
 
+    def test_match_yoxo_domains(self, btr):
+        assert btr.match_brand_by_domain("www.yoxo.ro").manifest_id == "yoxo"
+        assert btr.match_brand_by_domain("reconditionate.yoxo.ro").manifest_id == "yoxo"
+
 
 class TestMatchByName:
     def test_match_bnr_by_name(self, btr):
@@ -120,6 +125,11 @@ class TestMatchByName:
     def test_no_match_for_random_name(self, btr):
         m = btr.match_brand_by_name("Companie Inventata SRL")
         assert m is None
+
+    def test_match_yoxo_by_name(self, btr):
+        m = btr.match_brand_by_name("YOXO")
+        assert m is not None
+        assert m.manifest_id == "yoxo"
 
 
 class TestProvenanceCheck:
@@ -185,6 +195,21 @@ class TestProvenanceCheck:
         assert result.provenance == "mismatch"
         assert "card_number" in result.violated_never_asks
         assert result.max_effect == "can_raise_dangerous_with_combo"
+
+    def test_yoxo_official_website_match(self, btr):
+        result = btr.provenance_check(
+            claimed_brand="YOXO",
+            observed_channel="official_website",
+            observed_domain="yoxo.ro",
+            observed_phone_e164=None,
+            sensitive_asks=[],
+            payment_method=None,
+            final_url="https://www.yoxo.ro/",
+        )
+        assert result.manifest_id == "yoxo"
+        assert result.provenance == "match"
+        assert result.official_match is True
+        assert result.max_effect == "can_raise_safe"
 
     def test_isarescu_deepfake_investment(self, btr):
         result = btr.provenance_check(

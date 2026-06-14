@@ -442,6 +442,10 @@ fun ScanTab(
                     onBack = { viewModel.reset() },
                     onRescan = { viewModel.onScanClick(forceRefresh = true) },
                     onReport = { viewModel.onCommunityReport() },
+                    officialReportPackage = viewModel.officialReportPackage,
+                    officialReportLoading = viewModel.officialReportLoading,
+                    officialReportStatus = viewModel.officialReportStatus,
+                    onOfficialReport = { viewModel.requestOfficialReportPackage() },
                     onFeedback = { viewModel.submitFeedback(it) },
                     onFamilyAlert = { viewModel.notifyFamilyForCurrentScan() },
                     actionPlanLoading = viewModel.actionPlanLoading,
@@ -807,6 +811,12 @@ fun RadarTab(viewModel: ScannerViewModel) {
     val campaignPins = remember(viewModel.campaigns) {
         viewModel.campaigns.filter { it.lat != null && it.lon != null }
     }
+    var selectedCircleMemberId by remember { mutableStateOf<String?>(null) }
+    val selectedCircleMember = remember(viewModel.familyMembers.toList(), selectedCircleMemberId) {
+        viewModel.familyMembers.firstOrNull { it.id == selectedCircleMemberId }
+            ?: viewModel.familyMembers.firstOrNull { it.isProtected }
+            ?: viewModel.familyMembers.firstOrNull()
+    }
 
     Column(modifier = Modifier.fillMaxSize().padding(20.dp).verticalScroll(rememberScrollState())) {
         Text("Radar Scam", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = SigurColors.TextPrimary)
@@ -826,6 +836,35 @@ fun RadarTab(viewModel: ScannerViewModel) {
             loading = viewModel.btrSyncLoading,
             status = viewModel.btrSyncStatus,
             onSync = { viewModel.syncBtrManifests() }
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+
+        CircleGuardianCard(
+            members = viewModel.familyMembers,
+            selectedMember = selectedCircleMember,
+            onSelectedMember = { selectedCircleMemberId = it.id },
+            snapshot = viewModel.circleSnapshot,
+            circleLoading = viewModel.circleLoading,
+            circleStatus = viewModel.circleStatus,
+            guardianLoading = viewModel.guardianLoading,
+            guardianStatus = viewModel.guardianStatus,
+            hasAssessment = viewModel.assessment != null,
+            onPair = { viewModel.createCirclePair(selectedCircleMember) },
+            onPing = { viewModel.createCirclePing() },
+            onResolve = { viewModel.resolveCirclePing(it) },
+            onRevoke = { viewModel.revokeCirclePair() },
+            onGuardian = { shareLevel, consent ->
+                viewModel.requestGuardianSecondOpinion(selectedCircleMember, shareLevel, consent)
+            }
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+
+        AudioAsrReadinessCard(
+            snapshot = viewModel.audioReadiness,
+            status = viewModel.audioReadinessStatus,
+            onConsentChanged = { viewModel.setAudioConsent(it) },
+            onDisclosureChanged = { viewModel.setAudioPrivacyDisclosureAccepted(it) },
+            onRefresh = { viewModel.refreshAudioReadiness() }
         )
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -953,6 +992,355 @@ private fun BtrOnDeviceCard(
                 Text(if (loading) "Sync..." else "Sincronizează BTR", color = SigurColors.Safe, fontSize = 11.sp)
             }
         }
+    }
+}
+
+@Composable
+private fun CircleGuardianCard(
+    members: List<FamilyMember>,
+    selectedMember: FamilyMember?,
+    onSelectedMember: (FamilyMember) -> Unit,
+    snapshot: CircleProtectionSnapshot,
+    circleLoading: Boolean,
+    circleStatus: String?,
+    guardianLoading: Boolean,
+    guardianStatus: String?,
+    hasAssessment: Boolean,
+    onPair: () -> Unit,
+    onPing: () -> Unit,
+    onResolve: (String) -> Unit,
+    onRevoke: () -> Unit,
+    onGuardian: (String, Boolean) -> Unit
+) {
+    var memberMenuExpanded by remember { mutableStateOf(false) }
+    var guardianShareLevel by remember { mutableStateOf("metadata_only") }
+    var fullConsent by remember { mutableStateOf(false) }
+    val link = snapshot.link
+    val ping = snapshot.ping
+    val outcome = snapshot.outcome
+    val guardian = snapshot.guardianOpinion
+    val activeLink = link?.active == true
+
+    Card(
+        colors = CardDefaults.cardColors(containerColor = SigurColors.BackgroundCard),
+        border = DSCardBorder,
+        shape = DSCardShape,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Group, contentDescription = null, tint = SigurColors.Brand, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Cercul + Guardian", color = SigurColors.TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text(
+                        "Verificare out-of-band; fără acces la conținut brut.",
+                        color = SigurColors.TextMuted,
+                        fontSize = 11.sp,
+                        lineHeight = 15.sp
+                    )
+                }
+                DSChip(
+                    text = if (activeLink) "activ" else "neconfigurat",
+                    tone = if (activeLink) DSChipTone.Safe else DSChipTone.Pending
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            if (members.isEmpty()) {
+                Text(
+                    "Adaugă întâi o persoană de încredere în Mai mult > Securitate și Familie.",
+                    color = SigurColors.TextSecondary,
+                    fontSize = 11.sp,
+                    lineHeight = 15.sp
+                )
+            } else {
+                Box {
+                    Button(
+                        onClick = { memberMenuExpanded = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = SigurColors.BackgroundSurface),
+                        border = BorderStroke(1.dp, SigurColors.GlassBorder),
+                        shape = DSPillShape
+                    ) {
+                        Icon(Icons.Default.Person, contentDescription = null, tint = SigurColors.TextPrimary, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            selectedMember?.name ?: "Alege persoana",
+                            color = SigurColors.TextPrimary,
+                            fontSize = 12.sp
+                        )
+                    }
+                    DropdownMenu(expanded = memberMenuExpanded, onDismissRequest = { memberMenuExpanded = false }) {
+                        members.forEach { member ->
+                            DropdownMenuItem(
+                                text = {
+                                    Column {
+                                        Text(member.name)
+                                        Text(member.contact, fontSize = 11.sp, color = SigurColors.TextMuted)
+                                    }
+                                },
+                                onClick = {
+                                    onSelectedMember(member)
+                                    memberMenuExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+
+            circleStatus?.takeIf { it.isNotBlank() }?.let {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(it, color = SigurColors.TextSecondary, fontSize = 11.sp, lineHeight = 15.sp)
+            }
+
+            link?.let {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "Link: ${it.linkId} • citire conținut: ${if (it.verifierCanReadContent) "da" else "nu"} • supraveghere: ${if (it.verifierCanSurveil) "da" else "nu"}",
+                    color = SigurColors.TextMuted,
+                    fontSize = 10.sp,
+                    lineHeight = 14.sp
+                )
+            }
+
+            ping?.let {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "Ping: ${it.pingId} • ${it.payloadClass ?: "metadata_only"} • timeout=${it.defaultOnTimeout ?: "PRECAUTIE"}",
+                    color = SigurColors.TextMuted,
+                    fontSize = 10.sp,
+                    lineHeight = 14.sp
+                )
+            }
+
+            outcome?.let {
+                Spacer(modifier = Modifier.height(8.dp))
+                val tone = when (it.status) {
+                    "CONFIRMED" -> DSChipTone.Safe
+                    "REJECTED" -> DSChipTone.Danger
+                    else -> DSChipTone.Suspect
+                }
+                DSChip(text = (it.status ?: "PRECAUTIE"), tone = tone)
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = onPair,
+                    enabled = !circleLoading && selectedMember != null,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(containerColor = SigurColors.BrandTint),
+                    border = BorderStroke(1.dp, SigurColors.Brand),
+                    shape = DSPillShape
+                ) {
+                    Icon(Icons.Default.Link, contentDescription = null, tint = SigurColors.Brand, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(if (circleLoading) "..." else "Leagă", color = SigurColors.Brand, fontSize = 11.sp)
+                }
+                Button(
+                    onClick = onPing,
+                    enabled = !circleLoading && activeLink,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(containerColor = SigurColors.SafeLight),
+                    border = BorderStroke(1.dp, SigurColors.SafeBorder),
+                    shape = DSPillShape
+                ) {
+                    Icon(Icons.Default.Send, contentDescription = null, tint = SigurColors.Safe, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Ping", color = SigurColors.Safe, fontSize = 11.sp)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = { onResolve("its_me") },
+                    enabled = !circleLoading && ping != null,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(containerColor = SigurColors.SafeLight),
+                    border = BorderStroke(1.dp, SigurColors.SafeBorder),
+                    shape = DSPillShape
+                ) {
+                    Text("Confirmă", color = SigurColors.Safe, fontSize = 11.sp)
+                }
+                Button(
+                    onClick = { onResolve("not_me") },
+                    enabled = !circleLoading && ping != null,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(containerColor = SigurColors.DangerousLight),
+                    border = BorderStroke(1.dp, SigurColors.DangerousBorder),
+                    shape = DSPillShape
+                ) {
+                    Text("Respinge", color = SigurColors.Dangerous, fontSize = 11.sp)
+                }
+                Button(
+                    onClick = { onResolve("timeout") },
+                    enabled = !circleLoading && ping != null,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(containerColor = SigurColors.SuspectLight),
+                    border = BorderStroke(1.dp, SigurColors.SuspectBorder),
+                    shape = DSPillShape
+                ) {
+                    Text("Timeout", color = SigurColors.Suspect, fontSize = 11.sp)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+            HorizontalDivider(color = SigurColors.GlassBorder)
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = SigurColors.Safe, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Guardian second opinion", color = SigurColors.TextPrimary, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+            }
+            Text(
+                if (hasAssessment) "Trimite doar rezumat redactat al scanării curente." else "Poți cere o opinie metadata-only chiar fără scanare curentă.",
+                color = SigurColors.TextSecondary,
+                fontSize = 11.sp,
+                lineHeight = 15.sp,
+                modifier = Modifier.padding(top = 6.dp)
+            )
+
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
+                Checkbox(
+                    checked = guardianShareLevel == "redacted_excerpt",
+                    onCheckedChange = { checked ->
+                        guardianShareLevel = if (checked) "redacted_excerpt" else "metadata_only"
+                    }
+                )
+                Text("Include extras redactat", color = SigurColors.TextSecondary, fontSize = 11.sp)
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(
+                    checked = fullConsent,
+                    onCheckedChange = { fullConsent = it }
+                )
+                Text("Consimțământ explicit pentru full_with_consent", color = SigurColors.TextSecondary, fontSize = 11.sp)
+            }
+
+            guardianStatus?.takeIf { it.isNotBlank() }?.let {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(it, color = SigurColors.TextSecondary, fontSize = 11.sp, lineHeight = 15.sp)
+            }
+            guardian?.let {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "Request: ${it.requestId} • share=${it.shareLevel ?: "metadata_only"} • downgraded=${it.shareDowngraded}",
+                    color = SigurColors.TextMuted,
+                    fontSize = 10.sp,
+                    lineHeight = 14.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = {
+                        val level = if (fullConsent) "full_with_consent" else guardianShareLevel
+                        onGuardian(level, fullConsent)
+                    },
+                    enabled = !guardianLoading && selectedMember != null,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(containerColor = SigurColors.SafeLight),
+                    border = BorderStroke(1.dp, SigurColors.SafeBorder),
+                    shape = DSPillShape
+                ) {
+                    Icon(Icons.Default.PrivacyTip, contentDescription = null, tint = SigurColors.Safe, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(if (guardianLoading) "..." else "Cere opinie", color = SigurColors.Safe, fontSize = 11.sp)
+                }
+                Button(
+                    onClick = onRevoke,
+                    enabled = !circleLoading && link != null && activeLink,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(containerColor = SigurColors.BackgroundSurface),
+                    border = BorderStroke(1.dp, SigurColors.GlassBorder),
+                    shape = DSPillShape
+                ) {
+                    Icon(Icons.Default.Delete, contentDescription = null, tint = SigurColors.TextMuted, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Revocă", color = SigurColors.TextPrimary, fontSize = 11.sp)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AudioAsrReadinessCard(
+    snapshot: AudioReadinessSnapshot,
+    status: String?,
+    onConsentChanged: (Boolean) -> Unit,
+    onDisclosureChanged: (Boolean) -> Unit,
+    onRefresh: () -> Unit
+) {
+    val blocked = !snapshot.decision.allowed
+    Card(
+        colors = CardDefaults.cardColors(containerColor = SigurColors.BackgroundCard),
+        border = DSCardBorder,
+        shape = DSCardShape,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.MicOff, contentDescription = null, tint = if (blocked) SigurColors.Suspect else SigurColors.Safe, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Audio ASR local", color = SigurColors.TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text("Nu se trimite audio la server. Captura pornește doar cu model local și consimțământ.", color = SigurColors.TextMuted, fontSize = 11.sp, lineHeight = 15.sp)
+                }
+                DSChip(if (blocked) "blocat" else "pregătit", tone = if (blocked) DSChipTone.Suspect else DSChipTone.Safe)
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+            ReadinessRow("Feature flag", snapshot.featureFlagEnabled)
+            ReadinessRow("Model ASR local", snapshot.modelAvailable)
+            ReadinessRow("Consimțământ explicit", snapshot.explicitConsent)
+            ReadinessRow("Disclosure privacy acceptat", snapshot.privacyDisclosureAccepted)
+
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
+                Checkbox(checked = snapshot.explicitConsent, onCheckedChange = onConsentChanged)
+                Text("Accept pornirea capturii audio locale", color = SigurColors.TextSecondary, fontSize = 11.sp)
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = snapshot.privacyDisclosureAccepted, onCheckedChange = onDisclosureChanged)
+                Text("Am citit că audio-ul nu părăsește telefonul", color = SigurColors.TextSecondary, fontSize = 11.sp)
+            }
+
+            status?.takeIf { it.isNotBlank() }?.let {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(it, color = SigurColors.TextSecondary, fontSize = 11.sp, lineHeight = 15.sp)
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+            Button(
+                onClick = onRefresh,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = SigurColors.BackgroundSurface),
+                border = BorderStroke(1.dp, SigurColors.GlassBorder),
+                shape = DSPillShape
+            ) {
+                Icon(Icons.Default.Security, contentDescription = null, tint = SigurColors.TextPrimary, modifier = Modifier.size(14.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Verifică readiness", color = SigurColors.TextPrimary, fontSize = 11.sp)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReadinessRow(label: String, ok: Boolean) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(label, color = SigurColors.TextSecondary, fontSize = 11.sp)
+        DSChip(if (ok) "OK" else "LIPSĂ", tone = if (ok) DSChipTone.Safe else DSChipTone.Pending)
     }
 }
 
@@ -2484,6 +2872,10 @@ fun ResultCard(
     onBack: () -> Unit,
     onRescan: () -> Unit,
     onReport: () -> Unit,
+    officialReportPackage: OneTapReportPackage? = null,
+    officialReportLoading: Boolean = false,
+    officialReportStatus: String? = null,
+    onOfficialReport: () -> Unit = {},
     onFeedback: (String) -> Unit,
     onFamilyAlert: () -> Unit = {},
     actionPlanLoading: Boolean = false,
@@ -2658,6 +3050,10 @@ fun ResultCard(
                 )
             }
 
+            officialReportPackage?.let { report ->
+                OfficialReportPackageSection(report)
+            }
+
             assessment.legal?.let { legal ->
                 LegalEducationSection(legal)
             }
@@ -2754,6 +3150,25 @@ fun ResultCard(
                 Text("Trimite alertă Familie", color = SigurColors.Brand, fontSize = 12.sp)
             }
             Spacer(modifier = Modifier.height(12.dp))
+
+            if (riskUi.level != "Sigur") {
+                Button(
+                    onClick = onOfficialReport,
+                    enabled = !officialReportLoading,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = SigurColors.SuspectLight),
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, SigurColors.SuspectBorder)
+                ) {
+                    Icon(Icons.Default.AssignmentTurnedIn, contentDescription = null, tint = SigurColors.Suspect, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(if (officialReportLoading) "Se pregătește..." else "Pregătește raport oficial", color = SigurColors.Suspect, fontSize = 12.sp)
+                }
+                officialReportStatus?.takeIf { it.isNotBlank() }?.let {
+                    Text(it, color = SigurColors.TextMuted, fontSize = 11.sp, modifier = Modifier.padding(top = 6.dp, bottom = 8.dp))
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+            }
 
             if (riskUi.level == "Periculos") {
                 Button(
@@ -3014,6 +3429,53 @@ fun LegalEducationSection(legal: LegalSection) {
             Icon(Icons.Default.Info, contentDescription = null, tint = SigurColors.TextMuted, modifier = Modifier.size(12.dp))
             Spacer(modifier = Modifier.width(6.dp))
             Text(disclaimer, color = SigurColors.TextMuted, fontSize = 10.sp, lineHeight = 14.sp, fontStyle = FontStyle.Italic)
+        }
+    }
+}
+
+@Composable
+fun OfficialReportPackageSection(report: OneTapReportPackage) {
+    val channels = report.channels.orEmpty()
+        .filter { !it.name.isNullOrBlank() || !it.contact.isNullOrBlank() }
+    if (channels.isEmpty()) return
+
+    Spacer(modifier = Modifier.height(12.dp))
+    Card(
+        colors = CardDefaults.cardColors(containerColor = SigurColors.BackgroundCard),
+        shape = DSCardShape,
+        border = DSCardBorder,
+        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.AssignmentTurnedIn, contentDescription = null, tint = SigurColors.Suspect, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Raport oficial pregătit", color = SigurColors.TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+            channels.take(4).forEachIndexed { index, channel ->
+                if (index > 0) {
+                    HorizontalDivider(color = SigurColors.GlassBorder, modifier = Modifier.padding(vertical = 10.dp))
+                }
+                channel.name?.takeIf { it.isNotBlank() }?.let {
+                    Text(it, color = SigurColors.TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                }
+                channel.contact?.takeIf { it.isNotBlank() }?.let {
+                    Text(it, color = SigurColors.TextSecondary, fontSize = 12.sp, lineHeight = 17.sp)
+                }
+                channel.prefilledSubject?.takeIf { it.isNotBlank() }?.let {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(it, color = SigurColors.TextMuted, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                }
+                channel.prefilledBody?.takeIf { it.isNotBlank() }?.let {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(it.take(220), color = SigurColors.TextMuted, fontSize = 10.sp, lineHeight = 14.sp)
+                }
+            }
+            report.disclaimer?.takeIf { it.isNotBlank() }?.let {
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(it, color = SigurColors.TextMuted, fontSize = 10.sp, lineHeight = 14.sp, fontStyle = FontStyle.Italic)
+            }
         }
     }
 }

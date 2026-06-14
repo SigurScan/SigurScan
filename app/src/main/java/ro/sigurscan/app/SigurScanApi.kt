@@ -100,6 +100,26 @@ data class ActionPlanReportPackage(
     val disclaimer: String? = null
 )
 
+data class OneTapReportRequest(
+    @SerializedName("target_type") val targetType: String = "url",
+    @SerializedName("target_redacted") val targetRedacted: String = "[redactat]",
+    val family: String? = null,
+    val verdict: String = "SUSPECT",
+    @SerializedName("redacted_summary") val redactedSummary: String? = null
+)
+
+data class OneTapReportTarget(
+    val type: String? = null,
+    @SerializedName("value_redacted") val valueRedacted: String? = null
+)
+
+data class OneTapReportPackage(
+    @SerializedName("generated_for") val generatedFor: Map<String, Any>? = null,
+    @SerializedName("redacted_summary") val redactedSummary: String? = null,
+    val channels: List<ActionPlanReportChannel>? = null,
+    val disclaimer: String? = null
+)
+
 data class ActionPlan(
     val label: String? = null,
     val verdict: String? = null,
@@ -301,6 +321,82 @@ data class BtrSyncResponse(
     val count: Int = 0
 )
 
+data class CirclePairRequest(
+    @SerializedName("protected_id") val protectedId: String,
+    @SerializedName("verifier_id") val verifierId: String,
+    val consent: String = "explicit"
+)
+
+data class CircleLinkResponse(
+    @SerializedName("link_id") val linkId: String,
+    @SerializedName("protected_user_id") val protectedUserId: String,
+    @SerializedName("verifier_user_id") val verifierUserId: String,
+    val consent: String? = null,
+    val active: Boolean = true,
+    val revocable: Boolean = true,
+    @SerializedName("created_at") val createdAt: Double? = null,
+    @SerializedName("revoked_at") val revokedAt: Double? = null,
+    @SerializedName("verifier_can_read_content") val verifierCanReadContent: Boolean = false,
+    @SerializedName("verifier_can_surveil") val verifierCanSurveil: Boolean = false
+)
+
+data class CirclePingRequest(
+    @SerializedName("link_id") val linkId: String,
+    val claim: String = "caller_claims_to_be_verifier"
+)
+
+data class VerificationPingResponse(
+    @SerializedName("ping_id") val pingId: String,
+    @SerializedName("link_id") val linkId: String,
+    val claim: String? = null,
+    @SerializedName("payload_class") val payloadClass: String? = null,
+    @SerializedName("default_on_timeout") val defaultOnTimeout: String? = null,
+    @SerializedName("latency_target_s") val latencyTargetSeconds: Int? = null,
+    val status: String? = null,
+    @SerializedName("verifier_response") val verifierResponse: String? = null,
+    @SerializedName("created_at") val createdAt: Double? = null,
+    @SerializedName("resolved_at") val resolvedAt: Double? = null,
+    @SerializedName("raw_stored") val rawStored: Boolean = false
+)
+
+data class CircleRespondRequest(
+    @SerializedName("ping_id") val pingId: String,
+    val response: String
+)
+
+data class CirclePingOutcome(
+    val status: String? = null,
+    val verified: Boolean = false,
+    @SerializedName("recommended_action") val recommendedAction: Map<String, Any>? = null
+)
+
+data class CircleRevokeRequest(
+    @SerializedName("link_id") val linkId: String,
+    @SerializedName("by_user") val byUser: String
+)
+
+data class GuardianSecondOpinionRequest(
+    @SerializedName("case_id") val caseId: String,
+    @SerializedName("protected_id") val protectedId: String,
+    @SerializedName("guardian_id") val guardianId: String,
+    @SerializedName("redacted_summary") val redactedSummary: Map<String, Any>? = null,
+    @SerializedName("share_level") val shareLevel: String? = "metadata_only",
+    val consent: Boolean = false
+)
+
+data class GuardianSecondOpinionResponse(
+    @SerializedName("request_id") val requestId: String,
+    @SerializedName("case_id") val caseId: String,
+    @SerializedName("protected_user_id") val protectedUserId: String,
+    @SerializedName("guardian_user_id") val guardianUserId: String,
+    @SerializedName("share_level") val shareLevel: String? = null,
+    @SerializedName("redacted_summary") val redactedSummary: Map<String, Any>? = null,
+    @SerializedName("share_downgraded") val shareDowngraded: Boolean = false,
+    val status: String? = null,
+    @SerializedName("created_at") val createdAt: Double? = null,
+    @SerializedName("resolved_at") val resolvedAt: Double? = null
+)
+
 @Serializable
 data class CommunityReport(
     val hash: String,
@@ -416,6 +512,9 @@ interface SigurScanApi {
     @POST("v1/community/report")
     suspend fun sendCommunityReport(@Body request: CommunityReport): Map<String, Any>
 
+    @POST("v1/report")
+    suspend fun buildOneTapReport(@Body request: OneTapReportRequest): OneTapReportPackage
+
     @GET("v1/community/campaigns")
     suspend fun getCampaigns(
         @Query("status") status: String = "active",
@@ -427,6 +526,21 @@ interface SigurScanApi {
 
     @GET("v1/btr/sync")
     suspend fun getBtrSync(@Query("client_version") clientVersion: String? = null): BtrSyncResponse
+
+    @POST("v1/circle/pair")
+    suspend fun createCirclePair(@Body request: CirclePairRequest): CircleLinkResponse
+
+    @POST("v1/circle/ping")
+    suspend fun createCirclePing(@Body request: CirclePingRequest): VerificationPingResponse
+
+    @POST("v1/circle/respond")
+    suspend fun respondCirclePing(@Body request: CircleRespondRequest): CirclePingOutcome
+
+    @POST("v1/circle/revoke")
+    suspend fun revokeCirclePair(@Body request: CircleRevokeRequest): CircleLinkResponse
+
+    @POST("v1/guardian/second-opinion")
+    suspend fun requestGuardianSecondOpinion(@Body request: GuardianSecondOpinionRequest): GuardianSecondOpinionResponse
 
     @POST("v1/legal/action-plan")
     suspend fun getActionPlan(@Body request: ActionPlanRequest): ActionPlan

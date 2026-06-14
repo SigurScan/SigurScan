@@ -45,6 +45,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.io.File
 import java.io.FileOutputStream
+import java.net.URI
 import java.net.URLDecoder
 import java.security.MessageDigest
 import java.nio.charset.StandardCharsets
@@ -280,6 +281,53 @@ data class FamilyAlert(
     val timestamp: Long = System.currentTimeMillis()
 )
 
+data class CircleProtectionSnapshot(
+    val link: CircleLinkResponse? = null,
+    val ping: VerificationPingResponse? = null,
+    val outcome: CirclePingOutcome? = null,
+    val guardianOpinion: GuardianSecondOpinionResponse? = null
+)
+
+data class AudioReadinessSnapshot(
+    val explicitConsent: Boolean = false,
+    val privacyDisclosureAccepted: Boolean = false,
+    val featureFlagEnabled: Boolean = false,
+    val modelAvailable: Boolean = false,
+    val decision: AudioCaptureDecision = AudioSafetyPolicy.canStartCapture(
+        explicitConsent = false,
+        modelAvailable = false,
+        privacyDisclosureAccepted = false,
+        featureFlagEnabled = false
+    )
+)
+
+internal fun guardianRedactedSummaryFromAssessment(assessment: OfflineAssessment?): Map<String, Any> {
+    if (assessment == null) {
+        return mapOf(
+            "source" to "android_guardian_request",
+            "has_scan" to false,
+            "raw_text_shared" to false
+        )
+    }
+
+    val finalHost = assessment.finalUrl
+        ?.let { runCatching { URI(it).host }.getOrNull() }
+        ?.takeIf { it.isNotBlank() }
+
+    return buildMap {
+        put("source", "android_guardian_request")
+        put("has_scan", true)
+        put("scan_id", assessment.scanId)
+        put("risk_level", assessment.riskLevel)
+        put("risk_score", assessment.riskScore)
+        put("family", assessment.family)
+        finalHost?.let { put("final_host", it) }
+        put("reason_count", assessment.reasons.size)
+        put("key_danger_count", assessment.keyDangers.size)
+        put("raw_text_shared", false)
+    }
+}
+
 class ScannerViewModel(application: Application) : AndroidViewModel(application) {
     private data class PdfFallbackExtraction(
         val extractedText: String,
@@ -358,6 +406,21 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
     var btrSyncStatus by mutableStateOf<String?>(null)
     var actionPlanLoading by mutableStateOf(false)
     var actionPlanStatus by mutableStateOf<String?>(null)
+    var officialReportLoading by mutableStateOf(false)
+    var officialReportStatus by mutableStateOf<String?>(null)
+    var officialReportPackage by mutableStateOf<OneTapReportPackage?>(null)
+    var circleSnapshot by mutableStateOf(CircleProtectionSnapshot())
+    var circleLoading by mutableStateOf(false)
+    var circleStatus by mutableStateOf<String?>(null)
+    var guardianLoading by mutableStateOf(false)
+    var guardianStatus by mutableStateOf<String?>(null)
+    var audioReadiness by mutableStateOf(
+        AudioReadinessSnapshot(
+            featureFlagEnabled = BuildConfig.SIGURSCAN_ENABLE_AUDIO_ASR,
+            modelAvailable = false
+        )
+    )
+    var audioReadinessStatus by mutableStateOf<String?>(null)
 
     // Family protection
     var familyMembers = mutableStateListOf<FamilyMember>()
@@ -460,6 +523,8 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                 applyPersistedStartupState(persisted)
                 radarHotCache = radarHotCacheStore.load()
                 btrSyncSnapshot = btrSyncStore.load()
+                circleSnapshot = loadCircleProtectionSnapshot()
+                refreshAudioReadiness()
             }
         }
     }
@@ -580,6 +645,192 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    private fun localProtectedUserId(): String {
+        val existing = prefs.getString("circle_protected_user_id", null)
+        if (!existing.isNullOrBlank()) return existing
+        val generated = "local_protected_${UUID.randomUUID().toString().replace("-", "").take(12)}"
+        prefs.edit().putString("circle_protected_user_id", generated).apply()
+        return generated
+    }
+
+    private fun verifierUserId(member: FamilyMember): String {
+        return "local_verifier_${sha256Hex("${member.id}:${member.contact}").take(16)}"
+    }
+
+    private fun loadCircleProtectionSnapshot(): CircleProtectionSnapshot {
+        return runCatching {
+            val raw = prefs.getString("circle_protection_snapshot", null) ?: return@runCatching CircleProtectionSnapshot()
+            gson.fromJson(raw, CircleProtectionSnapshot::class.java) ?: CircleProtectionSnapshot()
+        }.getOrDefault(CircleProtectionSnapshot())
+    }
+
+    private fun saveCircleProtectionSnapshot(snapshot: CircleProtectionSnapshot = circleSnapshot) {
+        prefs.edit().putString("circle_protection_snapshot", gson.toJson(snapshot)).apply()
+    }
+
+    fun createCirclePair(member: FamilyMember?) {
+        if (circleLoading || member == null) return
+        circleLoading = true
+        circleStatus = "Creăm legătura de încredere cu ${member.name}."
+        viewModelScope.launch {
+            try {
+                val link = api.createCirclePair(
+                    CirclePairRequest(
+                        protectedId = localProtectedUserId(),
+                        verifierId = verifierUserId(member),
+                        consent = "explicit"
+                    )
+                )
+                val snapshot = circleSnapshot.copy(link = link, ping = null, outcome = null)
+                circleSnapshot = snapshot
+                saveCircleProtectionSnapshot(snapshot)
+                circleStatus = "Cercul este activ cu ${member.name}. Verificatorul nu poate citi conținut și nu poate supraveghea."
+            } catch (_: Exception) {
+                circleStatus = "Nu am putut crea legătura Cercul. Verifică conexiunea și reîncearcă."
+            } finally {
+                circleLoading = false
+            }
+        }
+    }
+
+    fun createCirclePing() {
+        val link = circleSnapshot.link?.takeIf { it.active } ?: return
+        if (circleLoading) return
+        circleLoading = true
+        circleStatus = "Trimitem ping metadata-only către Cercul tău."
+        viewModelScope.launch {
+            try {
+                val ping = api.createCirclePing(CirclePingRequest(linkId = link.linkId))
+                val snapshot = circleSnapshot.copy(ping = ping, outcome = null)
+                circleSnapshot = snapshot
+                saveCircleProtectionSnapshot(snapshot)
+                circleStatus = "Ping creat. Confirmă rezultatul doar după verificarea out-of-band."
+            } catch (_: Exception) {
+                circleStatus = "Nu am putut crea ping-ul Cercul. Reîncearcă."
+            } finally {
+                circleLoading = false
+            }
+        }
+    }
+
+    fun resolveCirclePing(response: String) {
+        val ping = circleSnapshot.ping ?: return
+        if (circleLoading) return
+        circleLoading = true
+        circleStatus = "Înregistrăm răspunsul verificării."
+        viewModelScope.launch {
+            try {
+                val outcome = api.respondCirclePing(
+                    CircleRespondRequest(
+                        pingId = ping.pingId,
+                        response = response
+                    )
+                )
+                val snapshot = circleSnapshot.copy(outcome = outcome)
+                circleSnapshot = snapshot
+                saveCircleProtectionSnapshot(snapshot)
+                circleStatus = when (outcome.status) {
+                    "CONFIRMED" -> "Cercul a confirmat identitatea prin canal separat."
+                    "REJECTED" -> "Cercul a respins identitatea. Sună persoana pe numărul salvat de tine."
+                    else -> "Cercul nu a confirmat. Nu continua fără verificare oficială."
+                }
+            } catch (_: Exception) {
+                circleStatus = "Nu am putut înregistra răspunsul. Reîncearcă."
+            } finally {
+                circleLoading = false
+            }
+        }
+    }
+
+    fun revokeCirclePair() {
+        val link = circleSnapshot.link ?: return
+        if (circleLoading) return
+        circleLoading = true
+        circleStatus = "Revocăm legătura Cercul."
+        viewModelScope.launch {
+            try {
+                val revoked = api.revokeCirclePair(
+                    CircleRevokeRequest(
+                        linkId = link.linkId,
+                        byUser = link.protectedUserId
+                    )
+                )
+                val snapshot = circleSnapshot.copy(link = revoked, ping = null, outcome = null)
+                circleSnapshot = snapshot
+                saveCircleProtectionSnapshot(snapshot)
+                circleStatus = "Legătura Cercul a fost revocată."
+            } catch (_: Exception) {
+                circleStatus = "Nu am putut revoca legătura. Reîncearcă."
+            } finally {
+                circleLoading = false
+            }
+        }
+    }
+
+    fun requestGuardianSecondOpinion(member: FamilyMember?, shareLevel: String = "metadata_only", consent: Boolean = false) {
+        if (guardianLoading || member == null) return
+        guardianLoading = true
+        guardianStatus = "Trimitem rezumatul redactat către Guardian."
+        viewModelScope.launch {
+            try {
+                val opinion = api.requestGuardianSecondOpinion(
+                    GuardianSecondOpinionRequest(
+                        caseId = assessment?.scanId ?: "manual_${System.currentTimeMillis()}",
+                        protectedId = localProtectedUserId(),
+                        guardianId = verifierUserId(member),
+                        redactedSummary = guardianRedactedSummaryFromAssessment(assessment),
+                        shareLevel = shareLevel,
+                        consent = consent
+                    )
+                )
+                val snapshot = circleSnapshot.copy(guardianOpinion = opinion)
+                circleSnapshot = snapshot
+                saveCircleProtectionSnapshot(snapshot)
+                guardianStatus = if (opinion.shareDowngraded) {
+                    "Guardian a primit doar metadata. Conținutul complet a fost blocat fără consimțământ."
+                } else {
+                    "Guardian a primit cererea: ${opinion.shareLevel ?: "metadata_only"}."
+                }
+            } catch (_: Exception) {
+                guardianStatus = "Nu am putut cere a doua opinie. Reîncearcă."
+            } finally {
+                guardianLoading = false
+            }
+        }
+    }
+
+    fun setAudioConsent(value: Boolean) {
+        audioReadiness = audioReadiness.copy(explicitConsent = value)
+        refreshAudioReadiness()
+    }
+
+    fun setAudioPrivacyDisclosureAccepted(value: Boolean) {
+        audioReadiness = audioReadiness.copy(privacyDisclosureAccepted = value)
+        refreshAudioReadiness()
+    }
+
+    fun refreshAudioReadiness() {
+        val modelAvailable = runCatching {
+            getApplication<Application>().assets.list("vosk-model-ro").orEmpty().isNotEmpty()
+        }.getOrDefault(false)
+        val updated = audioReadiness.copy(
+            featureFlagEnabled = BuildConfig.SIGURSCAN_ENABLE_AUDIO_ASR,
+            modelAvailable = modelAvailable
+        )
+        val decision = AudioSafetyPolicy.canStartCapture(
+            explicitConsent = updated.explicitConsent,
+            modelAvailable = updated.modelAvailable,
+            privacyDisclosureAccepted = updated.privacyDisclosureAccepted,
+            featureFlagEnabled = updated.featureFlagEnabled
+        )
+        audioReadiness = updated.copy(decision = decision)
+        audioReadinessStatus = if (decision.allowed) {
+            "ASR local este pregătit. Captura rămâne on-device."
+        } else {
+            "ASR audio rămâne blocat: ${decision.reasonCodes.joinToString(", ")}."
+        }
+    }
+
     fun requestPostIncidentActionPlan(impacts: List<String>) {
         val current = assessment ?: return
         if (actionPlanLoading || impacts.isEmpty()) return
@@ -608,6 +859,41 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                 actionPlanStatus = "Nu am putut actualiza planul. Reîncearcă."
             } finally {
                 actionPlanLoading = false
+            }
+        }
+    }
+
+    fun requestOfficialReportPackage() {
+        val current = assessment ?: return
+        if (officialReportLoading) return
+        officialReportLoading = true
+        officialReportStatus = "Pregătim raportul oficial precompletat."
+        viewModelScope.launch {
+            try {
+                val targetRedacted = current.finalUrl
+                    ?.substringBefore("?")
+                    ?.takeIf { it.isNotBlank() }
+                    ?: "[redactat]"
+                val report = api.buildOneTapReport(
+                    OneTapReportRequest(
+                        targetType = if (current.finalUrl != null) "url" else "unknown",
+                        targetRedacted = targetRedacted,
+                        family = current.offerEvidence?.fields?.familyCode ?: current.family,
+                        verdict = when (current.riskLevel.lowercase(Locale.US)) {
+                            "high", "critical" -> "DANGEROUS"
+                            "medium" -> "SUSPECT"
+                            else -> current.gateResult?.action?.userLabel ?: "SUSPECT"
+                        },
+                        redactedSummary = current.reasons.take(3).joinToString(" ")
+                            .takeIf { it.isNotBlank() }
+                    )
+                )
+                officialReportPackage = report
+                officialReportStatus = "Raport pregătit: ${report.channels.orEmpty().size} canale."
+            } catch (_: Exception) {
+                officialReportStatus = "Nu am putut pregăti raportul oficial. Reîncearcă."
+            } finally {
+                officialReportLoading = false
             }
         }
     }
@@ -3716,6 +4002,8 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
         assessment = null
         invoiceResult = null
         pendingOfferConfirmation = null
+        officialReportPackage = null
+        officialReportStatus = null
         text = ""
         clearAllPendingShared()
     }

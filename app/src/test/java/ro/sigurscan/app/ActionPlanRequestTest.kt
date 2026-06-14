@@ -22,4 +22,23 @@ class ActionPlanRequestTest {
         assertTrue(json.contains("\"target_type\":\"url\""))
         assertTrue(json.contains("\"target_redacted\":\"https://example.test\""))
     }
+
+    @Test
+    fun oneTapReportRequestSerializesOfficialReportContract() {
+        val json = Gson().toJson(
+            OneTapReportRequest(
+                targetType = "url",
+                targetRedacted = "fan-livrare[.]xyz",
+                family = "CONV_COURIER_TAX_CARD",
+                verdict = "DANGEROUS",
+                redactedSummary = "Domeniu neoficial si cerere de card."
+            )
+        )
+
+        assertTrue(json.contains("\"target_type\":\"url\""))
+        assertTrue(json.contains("\"target_redacted\":\"fan-livrare[.]xyz\""))
+        assertTrue(json.contains("\"family\":\"CONV_COURIER_TAX_CARD\""))
+        assertTrue(json.contains("\"verdict\":\"DANGEROUS\""))
+        assertTrue(json.contains("\"redacted_summary\":\"Domeniu neoficial si cerere de card.\""))
+    }
 }

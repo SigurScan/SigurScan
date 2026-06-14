@@ -323,6 +323,31 @@
       "review_status": "active"
     },
     {
+      "manifest_id": "yoxo",
+      "type": "brand",
+      "display_name": "YOXO",
+      "category": "telecom",
+      "country": "RO",
+      "official_domains": ["yoxo.ro", "buyback.yoxo.ro", "reconditionate.yoxo.ro", "newsroom.orange.ro", "orange.ro"],
+      "official_email_domains": ["yoxo.ro", "orange.ro"],
+      "official_shortcodes": [],
+      "official_phones_e164": [],
+      "official_apps": [{"platform": "android", "package_name": "ro.orange.yoxo", "source": "play_store"}],
+      "official_channels": ["official_website", "official_app"],
+      "never_asks": ["card_number", "cvv", "banking_pin", "password", "otp", "whatsapp_code", "remote_access", "crypto", "gift_card"],
+      "never_does": [],
+      "safe_payment_channels": ["official_website", "official_app", "card_payment_in_app"],
+      "source_kind": "public_self_asserted",
+      "source_refs": [
+        {"url": "https://www.yoxo.ro/", "publisher": "brand_official", "accessed_at": "2026-06-14", "confidence": "high"},
+        {"url": "https://reconditionate.yoxo.ro/", "publisher": "brand_official", "accessed_at": "2026-06-14", "confidence": "high"},
+        {"url": "https://newsroom.orange.ro/", "publisher": "brand_official", "accessed_at": "2026-06-14", "confidence": "medium"}
+      ],
+      "last_verified_at": "2026-06-14T00:00:00Z",
+      "confidence": "high",
+      "review_status": "active"
+    },
+    {
       "manifest_id": "isarescu",
       "type": "person",
       "display_name": "Mugur Isărescu (Guvernator BNR)",

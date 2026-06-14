@@ -42,4 +42,17 @@ class AudioSafetyPolicyTest {
         assertFalse(decision.allowed)
         assertTrue(decision.reasonCodes.contains("asr_model_missing"))
     }
+
+    @Test
+    fun offlineModelWithoutDisclosureStillBlocksCapture() {
+        val decision = AudioSafetyPolicy.canStartCapture(
+            explicitConsent = true,
+            modelAvailable = true,
+            privacyDisclosureAccepted = false,
+            featureFlagEnabled = true
+        )
+
+        assertFalse(decision.allowed)
+        assertTrue(decision.reasonCodes.contains("privacy_disclosure_missing"))
+    }
 }
