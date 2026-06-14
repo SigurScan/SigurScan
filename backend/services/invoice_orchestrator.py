@@ -33,7 +33,10 @@ def _hmac_digest(data: str) -> str:
 
 
 def _cache_key(fields) -> str:
-    raw = f"{fields.cui}|{fields.iban}|{fields.total}|{fields.data_emitere}|{fields.nr_factura}"
+    # Cheie pe textul documentului: același document → cache hit; text diferit
+    # (ex. „cont schimbat", alt beneficiar/IBAN) → recalculează. Evită coliziuni
+    # între facturi diferite care întâmplător au aceleași câmpuri extrase.
+    raw = fields.raw_text or f"{fields.cui}|{fields.iban}|{fields.total}|{fields.data_emitere}|{fields.nr_factura}"
     return _hmac_digest(raw)
 
 

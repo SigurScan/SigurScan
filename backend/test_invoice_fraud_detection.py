@@ -94,3 +94,51 @@ class TestScanInvoiceSemnale:
             "IBAN RO49AAAA1B31007593840000\nTotal 200"
         )
         assert "BENEFICIARY_PERSON_MISMATCH" not in r.fraud_flags
+
+
+class TestMapperFusion:
+    """Pilon → invoice_evidence_gate_mapper → ACELAȘI verdict_gate (un singur
+    judecător). Verdictul iese din gate, nu dintr-un creier paralel."""
+
+    @pytest.mark.asyncio
+    async def test_beneficiar_persoana_da_periculos(self):
+        from services.invoice_evidence_gate_mapper import evaluate_invoice_verdict
+        r = await scan_invoice(
+            "Furnizor SC REAL SRL\nBeneficiar: Popescu Ion Marian\n"
+            "IBAN RO49AAAA1B31007593840000\nTotal 8500 RON"
+        )
+        _, gate = evaluate_invoice_verdict(r, r.raw_text)
+        assert gate["label"] == "DANGEROUS"
+
+    @pytest.mark.asyncio
+    async def test_bec_combo_da_periculos(self):
+        from services.invoice_evidence_gate_mapper import evaluate_invoice_verdict
+        r = await scan_invoice(
+            "Furnizor SC REAL SRL\nAm schimbat contul bancar, noul cont:\n"
+            "IBAN DE89370400440532013000\nPlătiți azi altfel se suspendă\nTotal 5000"
+        )
+        _, gate = evaluate_invoice_verdict(r, r.raw_text)
+        assert gate["label"] == "DANGEROUS"
+
+    @pytest.mark.asyncio
+    async def test_iban_strain_singur_da_suspect(self):
+        from services.invoice_evidence_gate_mapper import evaluate_invoice_verdict
+        r = await scan_invoice("Furnizor SC REAL SRL\nIBAN DE89370400440532013000\nTotal 5000")
+        _, gate = evaluate_invoice_verdict(r, r.raw_text)
+        assert gate["label"] in {"SUSPECT", "DANGEROUS"}
+
+    @pytest.mark.asyncio
+    async def test_factura_curata_nu_e_periculos(self):
+        from services.invoice_evidence_gate_mapper import evaluate_invoice_verdict
+        r = await scan_invoice(
+            "Furnizor SC REAL SRL\nIBAN RO49AAAA1B31007593840000\n"
+            "Total 119 RON TVA 19% Scadenta 30.06.2026"
+        )
+        _, gate = evaluate_invoice_verdict(r, r.raw_text)
+        assert gate["label"] != "DANGEROUS"
+
+    def test_mapper_pur_fara_result(self):
+        # Robust la result=None (scan_invoice a eșuat) — nu crapă, dă verdict.
+        from services.invoice_evidence_gate_mapper import build_invoice_bundle
+        bundle = build_invoice_bundle(None, "")
+        assert bundle["schema"] == "sigurscan_evidence_bundle_v2"
