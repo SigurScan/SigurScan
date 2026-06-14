@@ -443,7 +443,10 @@ fun ScanTab(
                     onRescan = { viewModel.onScanClick(forceRefresh = true) },
                     onReport = { viewModel.onCommunityReport() },
                     onFeedback = { viewModel.submitFeedback(it) },
-                    onFamilyAlert = { viewModel.notifyFamilyForCurrentScan() }
+                    onFamilyAlert = { viewModel.notifyFamilyForCurrentScan() },
+                    actionPlanLoading = viewModel.actionPlanLoading,
+                    actionPlanStatus = viewModel.actionPlanStatus,
+                    onActionPlanImpacts = { viewModel.requestPostIncidentActionPlan(it) }
                 )
                 else -> ScanInputCard(viewModel, onPickImage, onPickFile, onScanQr, onScanInvoice, onScanOffer)
             }
@@ -2482,7 +2485,10 @@ fun ResultCard(
     onRescan: () -> Unit,
     onReport: () -> Unit,
     onFeedback: (String) -> Unit,
-    onFamilyAlert: () -> Unit = {}
+    onFamilyAlert: () -> Unit = {},
+    actionPlanLoading: Boolean = false,
+    actionPlanStatus: String? = null,
+    onActionPlanImpacts: (List<String>) -> Unit = {}
 ) {
     val riskUi = mapRiskDisplayState(assessment)
     val decision = mapUserActionDecision(assessment, riskUi)
@@ -2642,6 +2648,14 @@ fun ResultCard(
 
             assessment.actionPlan?.let { plan ->
                 ActionPlanSection(plan)
+            }
+
+            if (riskUi.level != "Sigur") {
+                PostIncidentImpactControls(
+                    loading = actionPlanLoading,
+                    status = actionPlanStatus,
+                    onSubmit = onActionPlanImpacts
+                )
             }
 
             assessment.legal?.let { legal ->
@@ -3081,6 +3095,74 @@ fun ActionPlanSection(plan: ActionPlan) {
             plan.disclaimer?.takeIf { it.isNotBlank() }?.let {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(it, color = SigurColors.TextMuted, fontSize = 10.sp, lineHeight = 14.sp, fontStyle = FontStyle.Italic)
+            }
+        }
+    }
+}
+
+@Composable
+fun PostIncidentImpactControls(
+    loading: Boolean,
+    status: String?,
+    onSubmit: (List<String>) -> Unit
+) {
+    var selected by remember { mutableStateOf<Set<String>>(emptySet()) }
+    val options = listOf(
+        "shared_card" to "Am introdus cardul",
+        "shared_otp" to "Am dat cod OTP",
+        "shared_credentials" to "Am dat parola",
+        "paid_transfer" to "Am trimis bani",
+        "installed_remote_access" to "Am instalat remote"
+    )
+
+    Card(
+        colors = CardDefaults.cardColors(containerColor = SigurColors.BackgroundCard),
+        shape = DSCardShape,
+        border = DSCardBorder,
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 8.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.HealthAndSafety, contentDescription = null, tint = SigurColors.Suspect, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Ce s-a întâmplat deja?", color = SigurColors.TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                "Selectează doar ce ai făcut, ca planul să fie ordonat corect.",
+                color = SigurColors.TextMuted,
+                fontSize = 11.sp,
+                lineHeight = 15.sp
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                options.forEach { (impact, label) ->
+                    FilterChip(
+                        selected = selected.contains(impact),
+                        onClick = {
+                            selected = if (selected.contains(impact)) selected - impact else selected + impact
+                        },
+                        label = { Text(label, fontSize = 11.sp) },
+                        enabled = !loading
+                    )
+                }
+            }
+            status?.takeIf { it.isNotBlank() }?.let {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(it, color = SigurColors.TextSecondary, fontSize = 11.sp, lineHeight = 15.sp)
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+            Button(
+                onClick = { onSubmit(selected.toList()) },
+                enabled = selected.isNotEmpty() && !loading,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = SigurColors.SuspectLight),
+                border = BorderStroke(1.dp, SigurColors.SuspectBorder),
+                shape = DSPillShape
+            ) {
+                Icon(Icons.Default.AssignmentTurnedIn, contentDescription = null, tint = SigurColors.Suspect, modifier = Modifier.size(14.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(if (loading) "Se actualizează..." else "Actualizează planul", color = SigurColors.Suspect, fontSize = 11.sp)
             }
         }
     }

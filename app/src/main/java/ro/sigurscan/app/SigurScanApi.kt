@@ -110,6 +110,15 @@ data class ActionPlan(
     val disclaimer: String? = null
 )
 
+data class ActionPlanRequest(
+    val verdict: String = "SUSPECT",
+    val family: String? = null,
+    val impacts: List<String>? = null,
+    @SerializedName("target_type") val targetType: String? = null,
+    @SerializedName("target_redacted") val targetRedacted: String? = null,
+    @SerializedName("document_type") val documentType: String? = null
+)
+
 data class ExtractionResponse(
     @SerializedName("input_type") val inputType: String? = null,
     @SerializedName("source_channel") val sourceChannel: String? = null,
@@ -418,6 +427,9 @@ interface SigurScanApi {
 
     @GET("v1/btr/sync")
     suspend fun getBtrSync(@Query("client_version") clientVersion: String? = null): BtrSyncResponse
+
+    @POST("v1/legal/action-plan")
+    suspend fun getActionPlan(@Body request: ActionPlanRequest): ActionPlan
 
     @GET("v1/evaluation/readiness")
     suspend fun getReadiness(

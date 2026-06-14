@@ -356,6 +356,8 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
     var btrSyncSnapshot by mutableStateOf<BtrSyncSnapshot?>(null)
     var btrSyncLoading by mutableStateOf(false)
     var btrSyncStatus by mutableStateOf<String?>(null)
+    var actionPlanLoading by mutableStateOf(false)
+    var actionPlanStatus by mutableStateOf<String?>(null)
 
     // Family protection
     var familyMembers = mutableStateListOf<FamilyMember>()
@@ -574,6 +576,38 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                 btrSyncStatus = "Nu am putut sincroniza BTR. Reîncearcă din aplicație."
             } finally {
                 btrSyncLoading = false
+            }
+        }
+    }
+
+    fun requestPostIncidentActionPlan(impacts: List<String>) {
+        val current = assessment ?: return
+        if (actionPlanLoading || impacts.isEmpty()) return
+        actionPlanLoading = true
+        actionPlanStatus = "Construim planul pentru ce s-a întâmplat."
+        viewModelScope.launch {
+            try {
+                val plan = api.getActionPlan(
+                    ActionPlanRequest(
+                        verdict = when (current.riskLevel.lowercase(Locale.US)) {
+                            "high", "critical" -> "DANGEROUS"
+                            "medium" -> "SUSPECT"
+                            else -> current.gateResult?.action?.userLabel ?: "SUSPECT"
+                        },
+                        family = current.offerEvidence?.fields?.familyCode ?: current.family,
+                        impacts = impacts,
+                        targetType = if (current.finalUrl != null) "url" else null,
+                        targetRedacted = current.finalUrl
+                    )
+                )
+                val updated = current.copy(actionPlan = plan)
+                assessment = updated
+                replaceAssessment(current.scanId, updated)
+                actionPlanStatus = "Plan actualizat pentru impacturile selectate."
+            } catch (_: Exception) {
+                actionPlanStatus = "Nu am putut actualiza planul. Reîncearcă."
+            } finally {
+                actionPlanLoading = false
             }
         }
     }
