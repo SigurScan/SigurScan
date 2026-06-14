@@ -4,6 +4,7 @@ import okhttp3.Interceptor
 import okhttp3.Response
 
 internal const val SIGURSCAN_API_KEY_HEADER = "X-API-KEY"
+internal const val SIGURSCAN_PLAY_INTEGRITY_HEADER = "X-Play-Integrity-Token"
 internal const val SIGURSCAN_USER_AGENT = "SigurScan/1.0 Android OkHttp"
 
 internal fun normalizedApiKey(raw: String?): String? =
@@ -14,7 +15,10 @@ internal fun normalizedApiKey(raw: String?): String? =
  * BuildConfig (local.properties / env la build), deci e doar o barieră
  * anti-abuz, nu autentificare reală — vezi docs/API_SECURITY.md.
  */
-class ApiKeyInterceptor(rawApiKey: String?) : Interceptor {
+class ApiKeyInterceptor(
+    rawApiKey: String?,
+    private val integrityTokenProvider: () -> String? = { null }
+) : Interceptor {
     private val apiKey: String? = normalizedApiKey(rawApiKey)
 
     override fun intercept(chain: Interceptor.Chain): Response {
@@ -23,6 +27,10 @@ class ApiKeyInterceptor(rawApiKey: String?) : Interceptor {
         val key = apiKey
         if (key != null) {
             requestBuilder.header(SIGURSCAN_API_KEY_HEADER, key)
+        }
+        val integrityToken = normalizedApiKey(integrityTokenProvider())
+        if (integrityToken != null) {
+            requestBuilder.header(SIGURSCAN_PLAY_INTEGRITY_HEADER, integrityToken)
         }
         val request = requestBuilder.build()
         return chain.proceed(request)

@@ -71,6 +71,30 @@ class ApiKeyInterceptorTest {
     }
 
     @Test
+    fun `adds play integrity header when token provider returns token`() {
+        val forwarded = requestThrough(
+            ApiKeyInterceptor(
+                rawApiKey = "secret-key",
+                integrityTokenProvider = { "  integrity-token \n" }
+            )
+        )
+
+        assertEquals("integrity-token", forwarded.header(SIGURSCAN_PLAY_INTEGRITY_HEADER))
+    }
+
+    @Test
+    fun `does not add play integrity header when token provider is blank`() {
+        val forwarded = requestThrough(
+            ApiKeyInterceptor(
+                rawApiKey = "secret-key",
+                integrityTokenProvider = { "   " }
+            )
+        )
+
+        assertNull(forwarded.header(SIGURSCAN_PLAY_INTEGRITY_HEADER))
+    }
+
+    @Test
     fun `normalizedApiKey rejects blank and keeps trimmed value`() {
         assertNull(normalizedApiKey(null))
         assertNull(normalizedApiKey(""))

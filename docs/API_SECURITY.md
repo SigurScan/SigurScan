@@ -2,7 +2,7 @@
 
 Data: 2026-06-10
 
-Cum este protejat backend-ul public (Vercel) împotriva abuzului de quota
+Cum este protejat backend-ul public (Cloud Run) împotriva abuzului de quota
 (urlscan, Google Web Risk, Gemini, Mistral) și a expunerii telemetriei.
 
 ## Straturi
@@ -12,7 +12,7 @@ Cum este protejat backend-ul public (Vercel) împotriva abuzului de quota
 | Cheie de client | `X-API-KEY` (sau `Authorization: Bearer`) pe toate rutele non-publice | activabil prin env |
 | Cheie de admin | chei separate pentru telemetrie/dashboards, fail-closed | activabil prin env |
 | Rate limiting | sliding window 60s per cheie + per IP, Upstash Redis partajat între instanțe | activ; fallback documentat mai jos |
-| Play Integrity | leagă request-urile de aplicația reală din Play | schelet, mod `off` |
+| Play Integrity | leagă request-urile de aplicația reală din Play | backend OAuth/decode wiring + Android header plumbing; live încă `off` |
 
 ## Variabile de mediu
 
@@ -71,8 +71,14 @@ blocheze scanări legitime. Concluzie: în producție, configurează Upstash.
 
 ## Play Integrity (schelet)
 
-`services/play_integrity.py` conține fluxul `decodeIntegrityToken` cu TODO-uri
-explicite: service account + OAuth2, nonce anti-replay, client Android.
+`services/play_integrity.py` conține fluxul `decodeIntegrityToken` și mapează
+`PLAY_INTEGRITY_CREDENTIALS_JSON` prin service-account OAuth2 către Google Play
+Integrity API. Android `ApiKeyInterceptor` poate atașa tokenul în
+`X-Play-Integrity-Token` când un provider local îl furnizează.
+
+Ce NU este gata încă pentru enforce public: secretul de service account trebuie
+configurat în Cloud Run/Secret Manager, clientul Android trebuie conectat la Play
+Integrity SDK, iar tokenurile trebuie legate de nonce single-use cu TTL scurt.
 Rollout recomandat: `off` → `monitor` (măsoară pass rate) → `enforce`.
 În `enforce`, rutele de scan (`/v1/scan/*`, `/v1/extract/*`,
 `/v1/sandbox/urlscan`) cer un token valid în `X-Play-Integrity-Token`.

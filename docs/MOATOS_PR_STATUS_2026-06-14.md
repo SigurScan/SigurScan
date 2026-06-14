@@ -16,6 +16,7 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
 - Android PR-7 are acum BTR sync local, motor on-device de provenienta pe semnale locale si actiune UI pentru verificarea locala a ultimului scan impotriva BTR. Nu citeste automat SMS-uri.
 - Android PR-8 afiseaza `action_plan` si are flow post-incident pentru impacts reale (`shared_card`, `paid_transfer` etc.).
 - Android PR-9/PR-10 audio are acum engine local de verdict din semnale audio/vishing redactate, dar captura/ASR ramane blocata explicit prin policy pana exista model ASR on-device, consimtamant, disclosure si QA real-device.
+- Play Integrity a avansat de la schelet la wiring testat: backend poate minta access token din service account JSON, iar Android poate atasa `X-Play-Integrity-Token`. Live ramane `off` pana la secret + Play SDK + nonce anti-replay.
 - Productia ruleaza imaginea backend taguita `b7a0f68`.
 
 ## Verificari Rulate
@@ -36,6 +37,8 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
   - rezultat final dupa merge cu `origin/main`: `914 passed, 1 warning`
 - Backend full test dupa fail-safe `urlz.fr`: `INVOICE_CACHE_HMAC_KEY=testkey PRIVACY_SAFE_MODE=false /opt/homebrew/bin/python3 -m pytest backend -q`
   - rezultat: `915 passed, 1 warning`
+- Backend full test dupa Play Integrity OAuth wiring: `INVOICE_CACHE_HMAC_KEY=testkey PRIVACY_SAFE_MODE=false /opt/homebrew/bin/python3 -m pytest backend -q`
+  - rezultat: `916 passed, 1 warning`
 - Android JVM + build: `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew testDebugUnitTest assembleDebug`
   - rezultat: `BUILD SUCCESSFUL`
 - Android feature tests adaugate:
@@ -84,6 +87,17 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
   - Android full dupa engine audio: `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew testDebugUnitTest assembleDebug`
   - rezultat: `BUILD SUCCESSFUL`
   - Android release dupa engine audio: `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew assembleRelease bundleRelease`
+  - rezultat: `BUILD SUCCESSFUL`
+- Play Integrity / public auth hardening:
+  - TDD red backend: `test_play_integrity_mints_access_token_from_service_account_json` a picat initial pentru `_mint_access_token` TODO.
+  - Backend green: `INVOICE_CACHE_HMAC_KEY=testkey PRIVACY_SAFE_MODE=false /opt/homebrew/bin/python3 -m pytest backend/test_security_hardening.py -q`
+  - rezultat: `19 passed, 1 warning`
+  - TDD red Android: `ApiKeyInterceptorTest` a picat initial pentru lipsa parametrului `integrityTokenProvider` si a headerului `SIGURSCAN_PLAY_INTEGRITY_HEADER`.
+  - Android green: `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew testDebugUnitTest --tests 'ro.sigurscan.app.ApiKeyInterceptorTest' --tests 'ro.sigurscan.app.AndroidBuildConfigPolicyTest' --tests 'ro.sigurscan.app.ShareIntentManifestTest'`
+  - rezultat: `BUILD SUCCESSFUL`
+  - Android full dupa Play Integrity header plumbing: `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew testDebugUnitTest assembleDebug`
+  - rezultat: `BUILD SUCCESSFUL`
+  - Android release dupa Play Integrity header plumbing: `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew assembleRelease bundleRelease`
   - rezultat: `BUILD SUCCESSFUL`
 - Android release artifacts:
   - `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew testDebugUnitTest assembleDebug assembleRelease bundleRelease`
@@ -211,7 +225,9 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
 6. Release public auth ramane limitat pana la Play Integrity/backend-issued token.
    - APK/AAB nu contin provider/admin/service secrets dupa auditul `tools/audit_android_release_secrets.py`.
    - APK/AAB contin cheia de client `SIGURSCAN_API_KEY`/`SIGURSCAN_RELEASE_API_KEY`, tratata doar ca bariera anti-abuz extractabila.
-   - `/health` arata `play_integrity_mode=off`; pentru release public larg nu trebuie numita autentificare reala.
+   - Backend-ul poate valida Play Integrity cand `PLAY_INTEGRITY_CREDENTIALS_JSON` si `PLAY_INTEGRITY_MODE=monitor/enforce` sunt configurate.
+   - Android poate trimite `X-Play-Integrity-Token` prin `ApiKeyInterceptor` cand Play Integrity SDK furnizeaza tokenul.
+   - `/health` live arata in continuare `play_integrity_mode=off`; pentru release public larg nu trebuie numita autentificare reala pana la secret + SDK + nonce anti-replay + monitor pass rate.
 
 7. BTR backend production are manifest YOXO dupa deploy `e4a0f82`.
    - Manifest `yoxo`: `yoxo.ro`, `buyback.yoxo.ro`, `reconditionate.yoxo.ro`, `newsroom.orange.ro`.

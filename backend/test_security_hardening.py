@@ -243,3 +243,40 @@ def test_play_integrity_verify_token_unconfigured_status():
 def test_play_integrity_verify_token_missing():
     result = play_integrity.verify_token("")
     assert result["status"] == "missing"
+
+
+def test_play_integrity_mints_access_token_from_service_account_json(monkeypatch):
+    captured = {}
+
+    class FakeCredentials:
+        token = None
+
+        def with_scopes(self, scopes):
+            captured["scopes"] = scopes
+            return self
+
+        def refresh(self, request):
+            captured["request"] = request
+            self.token = "ya29.fake-access-token"
+
+    class FakeCredentialsFactory:
+        @staticmethod
+        def from_service_account_info(info):
+            captured["service_account_info"] = info
+            return FakeCredentials()
+
+    class FakeServiceAccountModule:
+        Credentials = FakeCredentialsFactory
+
+    monkeypatch.setattr(
+        play_integrity,
+        "PLAY_INTEGRITY_CREDENTIALS_JSON",
+        '{"client_email":"sigurscan@example.iam.gserviceaccount.com","private_key":"fake"}',
+    )
+    monkeypatch.setattr(play_integrity, "service_account", FakeServiceAccountModule, raising=False)
+    monkeypatch.setattr(play_integrity, "GoogleAuthRequest", lambda: "google-auth-request", raising=False)
+
+    assert play_integrity._mint_access_token() == "ya29.fake-access-token"
+    assert captured["service_account_info"]["client_email"] == "sigurscan@example.iam.gserviceaccount.com"
+    assert "https://www.googleapis.com/auth/playintegrity" in captured["scopes"]
+    assert captured["request"] == "google-auth-request"

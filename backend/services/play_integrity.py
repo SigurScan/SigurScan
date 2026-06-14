@@ -11,18 +11,15 @@ Rollout modes (PLAY_INTEGRITY_MODE):
              Use this first to measure pass rates before enforcing.
 - "enforce": scan routes without a valid token are rejected with 401.
 
-TODO(security, full implementation):
+TODO(security, rollout hardening):
 1. Create a Google Cloud service account with the Play Integrity API enabled
    and grant it to the Play Console app (ro.sigurscan.app).
-2. Mint OAuth2 access tokens server-side (google-auth or manual JWT flow) and
-   set PLAY_INTEGRITY_CREDENTIALS_JSON; _decode_integrity_token below already
-   shapes the decodeIntegrityToken call.
-3. Bind tokens to requests with a nonce: client requests a nonce from the
+2. Bind tokens to requests with a nonce: client requests a nonce from the
    backend, embeds it via IntegrityTokenRequest, backend checks it here
    (single use, short TTL) to stop replay.
-4. Android side: add the Play Integrity client library and send the token in
-   the X-Play-Integrity-Token header on scan requests.
-5. Move from "monitor" to "enforce" only after the monitor pass rate is known.
+3. Android side: add the Play Integrity client library and feed the token into
+   the X-Play-Integrity-Token interceptor provider on scan requests.
+4. Move from "monitor" to "enforce" only after the monitor pass rate is known.
 """
 
 import json
@@ -31,6 +28,8 @@ import os
 from typing import Any, Dict
 
 import requests
+from google.auth.transport.requests import Request as GoogleAuthRequest
+from google.oauth2 import service_account
 
 logger = logging.getLogger("sigurscan.play_integrity")
 
@@ -40,6 +39,7 @@ PLAY_INTEGRITY_CREDENTIALS_JSON = os.getenv("PLAY_INTEGRITY_CREDENTIALS_JSON", "
 PLAY_INTEGRITY_TIMEOUT_SECONDS = float(os.getenv("PLAY_INTEGRITY_TIMEOUT_SECONDS", "3.0"))
 
 INTEGRITY_TOKEN_HEADER = "X-Play-Integrity-Token"
+PLAY_INTEGRITY_SCOPE = "https://www.googleapis.com/auth/playintegrity"
 
 _VALID_MODES = {"off", "monitor", "enforce"}
 
@@ -79,13 +79,7 @@ def verify_token(token: str) -> Dict[str, Any]:
 
 
 def _decode_integrity_token(token: str) -> Dict[str, Any]:
-    """Calls playintegrity.googleapis.com decodeIntegrityToken.
-
-    TODO(security): replace the placeholder bearer token with a real OAuth2
-    access token minted from PLAY_INTEGRITY_CREDENTIALS_JSON (google-auth's
-    service_account.Credentials, scope
-    https://www.googleapis.com/auth/playintegrity).
-    """
+    """Calls playintegrity.googleapis.com decodeIntegrityToken."""
     access_token = _mint_access_token()
     response = requests.post(
         "https://playintegrity.googleapis.com/v1/"
@@ -99,12 +93,17 @@ def _decode_integrity_token(token: str) -> Dict[str, Any]:
 
 
 def _mint_access_token() -> str:
-    # TODO(security): implement the service-account OAuth2 flow. Raising keeps
-    # this path fail-closed if someone enables enforce mode without finishing
-    # the credential wiring.
-    raise requests.RequestException(
-        "Play Integrity access-token minting is not implemented yet (see module TODOs)."
-    )
+    try:
+        service_account_info = json.loads(PLAY_INTEGRITY_CREDENTIALS_JSON)
+        credentials = service_account.Credentials.from_service_account_info(service_account_info)
+        credentials = credentials.with_scopes([PLAY_INTEGRITY_SCOPE])
+        credentials.refresh(GoogleAuthRequest())
+    except Exception as exc:
+        raise requests.RequestException(f"Play Integrity access-token minting failed: {exc}") from exc
+    token = getattr(credentials, "token", None)
+    if not token:
+        raise requests.RequestException("Play Integrity access-token minting returned an empty token.")
+    return token
 
 
 def _evaluate_verdict(decoded: Dict[str, Any]) -> Dict[str, Any]:
