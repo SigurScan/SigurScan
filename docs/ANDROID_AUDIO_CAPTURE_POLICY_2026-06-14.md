@@ -16,7 +16,9 @@ Current state:
 - A user-selected/current transcript can be analyzed locally from the Radar UI even while capture remains blocked.
 - The realistic call-transcript fixture pack is covered: `34/34` scam transcripts produce actionable local evidence and none retain raw audio.
 - Model readiness now targets the Whisper.cpp package layout under `assets/asr/whispercpp/` and requires `model-manifest.json` plus `ggml-model.bin`; a random/non-empty assets directory cannot mark ASR as ready.
+- `model-manifest.json` must declare `engine=whisper.cpp`, Romanian language, 16 kHz audio, and a valid SHA-256 checksum before Android treats the model as available.
 - `WhisperCppAsrEngine` is wired as the Android replacement path and feeds transcripts into the local audio evidence engine without retaining raw audio bytes.
+- Capture readiness also requires the `sigurscan_whisper` native runtime to load; a model file alone cannot mark audio capture as ready.
 - No Whisper.cpp native library or production Romanian model binary is bundled yet.
 - Vosk is no longer the selected Android ASR path because the official Vosk model list checked on 2026-06-14 does not provide a Romanian model: `https://alphacephei.com/vosk/models`.
 - No hidden call recording is implemented.

@@ -1,5 +1,6 @@
 package ro.sigurscan.app
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -23,11 +24,26 @@ class AudioSafetyPolicyTest {
         val decision = AudioSafetyPolicy.canStartCapture(
             explicitConsent = true,
             modelAvailable = true,
+            nativeRuntimeAvailable = true,
             privacyDisclosureAccepted = true,
             featureFlagEnabled = true
         )
 
         assertTrue(decision.allowed)
+    }
+
+    @Test
+    fun modelWithoutWhisperNativeRuntimeStillBlocksCapture() {
+        val decision = AudioSafetyPolicy.canStartCapture(
+            explicitConsent = true,
+            modelAvailable = true,
+            nativeRuntimeAvailable = false,
+            privacyDisclosureAccepted = true,
+            featureFlagEnabled = true
+        )
+
+        assertFalse(decision.allowed)
+        assertTrue(decision.reasonCodes.contains("asr_native_runtime_missing"))
     }
 
     @Test
@@ -91,5 +107,41 @@ class AudioSafetyPolicyTest {
         )
 
         assertFalse(modelReady)
+    }
+
+    @Test
+    fun whisperManifestMustDeclareRomanianWhisperCppRuntime() {
+        val manifest = AudioModelPackagePolicy.parseManifest(
+            """
+            {
+              "engine": "whisper.cpp",
+              "model_id": "ggml-base-q5_0",
+              "language": "ro",
+              "sample_rate_hz": 16000,
+              "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+            """.trimIndent()
+        )
+
+        assertTrue(manifest.valid)
+        assertEquals("ggml-base-q5_0", manifest.modelId)
+    }
+
+    @Test
+    fun whisperManifestRejectsWrongLanguageOrMissingChecksum() {
+        val manifest = AudioModelPackagePolicy.parseManifest(
+            """
+            {
+              "engine": "whisper.cpp",
+              "model_id": "ggml-tiny-en",
+              "language": "en",
+              "sample_rate_hz": 16000
+            }
+            """.trimIndent()
+        )
+
+        assertFalse(manifest.valid)
+        assertTrue(manifest.reasonCodes.contains("language_not_romanian"))
+        assertTrue(manifest.reasonCodes.contains("sha256_missing_or_invalid"))
     }
 }

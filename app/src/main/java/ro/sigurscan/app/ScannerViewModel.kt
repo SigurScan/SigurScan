@@ -293,9 +293,11 @@ data class AudioReadinessSnapshot(
     val privacyDisclosureAccepted: Boolean = false,
     val featureFlagEnabled: Boolean = false,
     val modelAvailable: Boolean = false,
+    val nativeRuntimeAvailable: Boolean = false,
     val decision: AudioCaptureDecision = AudioSafetyPolicy.canStartCapture(
         explicitConsent = false,
         modelAvailable = false,
+        nativeRuntimeAvailable = false,
         privacyDisclosureAccepted = false,
         featureFlagEnabled = false
     )
@@ -867,7 +869,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun refreshAudioReadiness() {
-        val modelAvailable = runCatching {
+        val modelReadiness = runCatching {
             val assets = getApplication<Application>().assets
             val existingFiles = AudioModelPackagePolicy.requiredFiles.filterTo(mutableSetOf()) { path ->
                 runCatching {
@@ -875,15 +877,24 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                     true
                 }.getOrDefault(false)
             }
-            AudioModelPackagePolicy.isComplete(existingFiles)
-        }.getOrDefault(false)
+            if (!AudioModelPackagePolicy.isComplete(existingFiles)) {
+                false to listOf("asr_model_missing")
+            } else {
+                val manifest = assets.open("${AudioModelPackagePolicy.assetRoot}/model-manifest.json").use { input ->
+                    AudioModelPackagePolicy.parseManifest(input.bufferedReader().readText())
+                }
+                manifest.valid to manifest.reasonCodes
+            }
+        }.getOrDefault(false to listOf("asr_model_missing"))
         val updated = audioReadiness.copy(
             featureFlagEnabled = BuildConfig.SIGURSCAN_ENABLE_AUDIO_ASR,
-            modelAvailable = modelAvailable
+            modelAvailable = modelReadiness.first,
+            nativeRuntimeAvailable = WhisperCppNativeBridge.available
         )
         val decision = AudioSafetyPolicy.canStartCapture(
             explicitConsent = updated.explicitConsent,
             modelAvailable = updated.modelAvailable,
+            nativeRuntimeAvailable = updated.nativeRuntimeAvailable,
             privacyDisclosureAccepted = updated.privacyDisclosureAccepted,
             featureFlagEnabled = updated.featureFlagEnabled
         )
@@ -891,7 +902,8 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
         audioReadinessStatus = if (decision.allowed) {
             "Whisper local este pregătit. Captura rămâne on-device."
         } else {
-            "ASR audio rămâne blocat: ${decision.reasonCodes.joinToString(", ")}."
+            val reasons = (decision.reasonCodes + modelReadiness.second).distinct()
+            "ASR audio rămâne blocat: ${reasons.joinToString(", ")}."
         }
     }
 

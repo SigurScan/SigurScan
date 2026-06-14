@@ -1340,6 +1340,7 @@ private fun AudioAsrReadinessCard(
             Spacer(modifier = Modifier.height(10.dp))
             ReadinessRow("Feature flag", snapshot.featureFlagEnabled)
             ReadinessRow("Model Whisper local", snapshot.modelAvailable)
+            ReadinessRow("Runtime Whisper native", snapshot.nativeRuntimeAvailable)
             ReadinessRow("Consimțământ explicit", snapshot.explicitConsent)
             ReadinessRow("Disclosure privacy acceptat", snapshot.privacyDisclosureAccepted)
 
