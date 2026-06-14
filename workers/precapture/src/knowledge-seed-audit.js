@@ -2,7 +2,11 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 const RESERVED_SUFFIXES = ['.test', '.invalid', '.example', '.localhost'];
-const DEFAULT_ALLOWED_MISSING_HOSTS = ['bancatransilvania.ro'];
+const DEFAULT_ALLOWED_MISSING_HOSTS = [
+  'bancatransilvania.ro',
+  'dnsc.ro',
+  'help.revolut.com',
+];
 
 function isReservedHost(hostname) {
   const host = String(hostname || '').toLowerCase();
