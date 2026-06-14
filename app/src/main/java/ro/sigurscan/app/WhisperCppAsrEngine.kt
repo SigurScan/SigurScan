@@ -3,7 +3,8 @@ package ro.sigurscan.app
 data class LocalAsrRequest(
     val pcm16Mono: ShortArray,
     val sampleRateHz: Int,
-    val language: String
+    val language: String,
+    val modelPath: String? = null
 )
 
 data class LocalAsrResult(
@@ -82,15 +83,23 @@ object WhisperCppNativeBridge : WhisperCppNativeRuntime {
         return nativeTranscribe(
             request.pcm16Mono,
             request.sampleRateHz,
-            request.language.trim().lowercase()
+            request.language.trim().lowercase(),
+            request.modelPath.orEmpty()
         )
+    }
+
+    fun canLoadModel(modelPath: String): Boolean {
+        return available && modelPath.isNotBlank() && nativeCanLoadModel(modelPath)
     }
 
     private external fun nativeIsReady(): Boolean
 
+    private external fun nativeCanLoadModel(modelPath: String): Boolean
+
     private external fun nativeTranscribe(
         pcm16Mono: ShortArray,
         sampleRateHz: Int,
-        language: String
+        language: String,
+        modelPath: String
     ): String
 }

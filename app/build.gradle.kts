@@ -57,6 +57,7 @@ fun providerBuildConfigSafeString(key: String, envFallback: String): String {
 
 android {
     namespace = "ro.sigurscan.app"
+    ndkVersion = "29.0.14206865"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -138,6 +139,12 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.31.6"
+        }
     }
     sourceSets {
         getByName("androidTest") {
