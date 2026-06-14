@@ -77,7 +77,7 @@ from services.telemetry import (
     run_feedback_threshold_sweep,
     summarize_feedback_records,
 )
-from services import play_integrity, rate_limiter, supabase_store
+from services import play_integrity, play_integrity_nonce, rate_limiter, supabase_store
 from services.google_vision_ocr import (
     has_vision_key,
     extract_text_with_vision,
@@ -261,6 +261,7 @@ def _provider_config_status() -> Dict[str, Any]:
         "api_key_required": REQUIRE_API_KEY,
         "admin_api_configured": bool(ADMIN_API_KEYS),
         "play_integrity_mode": play_integrity.mode(),
+        "play_integrity_nonce_backend": play_integrity_nonce.backend_mode(),
         "providers": {
             "urlscan": {
                 "configured": bool(URLSCAN_API_KEY) and not PRIVACY_SAFE_MODE,
@@ -359,7 +360,8 @@ async def security_guard(request: Request, call_next):
 
     if play_integrity.mode() != "off" and request.method == "POST" and _is_integrity_guarded_path(path):
         verdict = play_integrity.evaluate_request_token(
-            request.headers.get(play_integrity.INTEGRITY_TOKEN_HEADER, "")
+            request.headers.get(play_integrity.INTEGRITY_TOKEN_HEADER, ""),
+            api_key,
         )
         if verdict["block"]:
             return JSONResponse(
@@ -4951,6 +4953,20 @@ def read_health():
         "version": "1.0",
         "timestamp": int(time.time()),
         "config": _provider_config_status(),
+    }
+
+
+@app.post("/v1/security/play-integrity/nonce")
+def issue_play_integrity_nonce(request: Request):
+    result = play_integrity_nonce.issue_nonce(_extract_api_key(request))
+    if result.get("status") != "issued":
+        raise HTTPException(
+            status_code=503,
+            detail="Play Integrity nonce service is unavailable.",
+        )
+    return {
+        "nonce": result["nonce"],
+        "expires_in_seconds": result["expires_in_seconds"],
     }
 
 

@@ -6,9 +6,15 @@ import okhttp3.Response
 internal const val SIGURSCAN_API_KEY_HEADER = "X-API-KEY"
 internal const val SIGURSCAN_PLAY_INTEGRITY_HEADER = "X-Play-Integrity-Token"
 internal const val SIGURSCAN_USER_AGENT = "SigurScan/1.0 Android OkHttp"
+private val SIGURSCAN_INTEGRITY_GUARDED_PREFIXES =
+    listOf("/v1/scan/", "/v1/extract/", "/v1/sandbox/urlscan")
 
 internal fun normalizedApiKey(raw: String?): String? =
     raw?.trim()?.takeIf { it.isNotEmpty() }
+
+internal fun shouldAttachPlayIntegrityToken(request: okhttp3.Request): Boolean =
+    request.method == "POST" &&
+        SIGURSCAN_INTEGRITY_GUARDED_PREFIXES.any { request.url.encodedPath.startsWith(it) }
 
 /**
  * Atașează cheia de client pe fiecare request către backend. Cheia vine din
@@ -28,9 +34,11 @@ class ApiKeyInterceptor(
         if (key != null) {
             requestBuilder.header(SIGURSCAN_API_KEY_HEADER, key)
         }
-        val integrityToken = normalizedApiKey(integrityTokenProvider())
-        if (integrityToken != null) {
-            requestBuilder.header(SIGURSCAN_PLAY_INTEGRITY_HEADER, integrityToken)
+        if (shouldAttachPlayIntegrityToken(chain.request())) {
+            val integrityToken = normalizedApiKey(integrityTokenProvider())
+            if (integrityToken != null) {
+                requestBuilder.header(SIGURSCAN_PLAY_INTEGRITY_HEADER, integrityToken)
+            }
         }
         val request = requestBuilder.build()
         return chain.proceed(request)

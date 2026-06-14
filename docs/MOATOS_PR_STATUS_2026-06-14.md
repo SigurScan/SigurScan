@@ -16,7 +16,7 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
 - Android PR-7 are acum BTR sync local, motor on-device de provenienta pe semnale locale si actiune UI pentru verificarea locala a ultimului scan impotriva BTR. Nu citeste automat SMS-uri.
 - Android PR-8 afiseaza `action_plan` si are flow post-incident pentru impacts reale (`shared_card`, `paid_transfer` etc.).
 - Android PR-9/PR-10 audio are acum engine local de verdict din semnale audio/vishing redactate, dar captura/ASR ramane blocata explicit prin policy pana exista model ASR on-device, consimtamant, disclosure si QA real-device.
-- Play Integrity a avansat de la schelet la wiring testat: backend poate minta access token din service account JSON, iar Android include Play Integrity SDK si poate atasa `X-Play-Integrity-Token`. Live ramane `off` pana la secret + monitor + nonce anti-replay.
+- Play Integrity are wiring testat cap-coada pana la limita credențialelor: backend poate minta access token din service account JSON, emite nonce distribuit Upstash si il consuma atomic single-use, iar Android cere nonce-ul, foloseste Play Integrity SDK si ataseaza `X-Play-Integrity-Token` numai pe POST-urile protejate. Live ramane `off` pana la secret + build Play semnat + monitor pass rate.
 - Productia ruleaza imaginea backend taguita `92c65de`.
 
 ## Verificari Rulate
@@ -230,8 +230,9 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
    - APK/AAB nu contin provider/admin/service secrets dupa auditul `tools/audit_android_release_secrets.py`.
    - APK/AAB contin cheia de client `SIGURSCAN_API_KEY`/`SIGURSCAN_RELEASE_API_KEY`, tratata doar ca bariera anti-abuz extractabila.
    - Backend-ul poate valida Play Integrity cand `PLAY_INTEGRITY_CREDENTIALS_JSON` si `PLAY_INTEGRITY_MODE=monitor/enforce` sunt configurate.
-   - Android include `com.google.android.play:integrity` si poate trimite `X-Play-Integrity-Token` prin `ApiKeyInterceptor`, dar token request ramane off-by-default prin `SIGURSCAN_ENABLE_PLAY_INTEGRITY=false`.
-   - `/health` live arata in continuare `play_integrity_mode=off`; pentru release public larg nu trebuie numita autentificare reala pana la secret + nonce anti-replay + monitor pass rate.
+   - Android include `com.google.android.play:integrity`, cere nonce backend single-use si poate trimite `X-Play-Integrity-Token` prin `ApiKeyInterceptor`, dar token request ramane off-by-default prin `SIGURSCAN_ENABLE_PLAY_INTEGRITY=false`.
+   - Backend-ul stocheaza doar hash nonce + hash binding client in Upstash, foloseste TTL/NX si consuma atomic cu `GETDEL`; verifica si timestamp-ul Google.
+   - `/health` live arata in continuare `play_integrity_mode=off`; pentru release public larg nu trebuie numita autentificare reala pana la secret + build Play semnat + monitor pass rate.
 
 7. BTR backend production are manifest YOXO dupa deploy `e4a0f82`.
    - Manifest `yoxo`: `yoxo.ro`, `buyback.yoxo.ro`, `reconditionate.yoxo.ro`, `newsroom.orange.ro`.

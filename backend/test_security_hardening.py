@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 import main as app_main
-from services import play_integrity, rate_limiter
+from services import play_integrity, play_integrity_nonce, rate_limiter
 
 
 CLIENT_KEY = "client-key-test-1"
@@ -212,7 +212,9 @@ def test_play_integrity_enforce_allows_valid_token(monkeypatch):
     _enable_client_auth(monkeypatch)
     monkeypatch.setattr(play_integrity, "PLAY_INTEGRITY_MODE", "enforce")
     monkeypatch.setattr(
-        play_integrity, "verify_token", lambda token: {"status": "valid", "verdict": "MEETS_DEVICE_INTEGRITY"}
+        play_integrity,
+        "verify_token",
+        lambda token, api_key="": {"status": "valid", "verdict": "MEETS_DEVICE_INTEGRITY"},
     )
     client = TestClient(app_main.app)
 
@@ -280,3 +282,137 @@ def test_play_integrity_mints_access_token_from_service_account_json(monkeypatch
     assert captured["service_account_info"]["client_email"] == "sigurscan@example.iam.gserviceaccount.com"
     assert "https://www.googleapis.com/auth/playintegrity" in captured["scopes"]
     assert captured["request"] == "google-auth-request"
+
+
+def test_play_integrity_nonce_issue_stores_only_hash_and_client_binding(monkeypatch):
+    monkeypatch.setattr(play_integrity_nonce, "UPSTASH_REDIS_REST_URL", "https://fake-upstash.example")
+    monkeypatch.setattr(play_integrity_nonce, "UPSTASH_REDIS_REST_TOKEN", "fake-token")
+    monkeypatch.setattr(play_integrity_nonce.secrets, "token_urlsafe", lambda _: "issued-nonce-value")
+    captured = {}
+
+    def fake_command(command):
+        captured["command"] = command
+        return {"result": "OK"}
+
+    monkeypatch.setattr(play_integrity_nonce, "_run_upstash_command", fake_command)
+    issued = play_integrity_nonce.issue_nonce(CLIENT_KEY)
+
+    assert issued["status"] == "issued"
+    assert issued["nonce"] == "issued-nonce-value"
+    command_text = " ".join(captured["command"])
+    assert "issued-nonce-value" not in command_text
+    assert CLIENT_KEY not in command_text
+    assert captured["command"][0] == "SET"
+    assert captured["command"][-1] == "NX"
+
+
+def test_play_integrity_nonce_consume_is_atomic_and_single_use(monkeypatch):
+    monkeypatch.setattr(play_integrity_nonce, "UPSTASH_REDIS_REST_URL", "https://fake-upstash.example")
+    monkeypatch.setattr(play_integrity_nonce, "UPSTASH_REDIS_REST_TOKEN", "fake-token")
+    stored_binding = play_integrity_nonce._client_binding(CLIENT_KEY)
+    replies = iter(({"result": stored_binding}, {"result": None}))
+    commands = []
+
+    def fake_command(command):
+        commands.append(command)
+        return next(replies)
+
+    monkeypatch.setattr(play_integrity_nonce, "_run_upstash_command", fake_command)
+
+    assert play_integrity_nonce.consume_nonce("nonce-1", CLIENT_KEY)["status"] == "consumed"
+    assert play_integrity_nonce.consume_nonce("nonce-1", CLIENT_KEY)["status"] == "missing_or_replayed"
+    assert all(command[0] == "GETDEL" for command in commands)
+
+
+def test_play_integrity_nonce_store_errors_fail_closed_without_crashing(monkeypatch):
+    monkeypatch.setattr(play_integrity_nonce, "UPSTASH_REDIS_REST_URL", "https://fake-upstash.example")
+    monkeypatch.setattr(play_integrity_nonce, "UPSTASH_REDIS_REST_TOKEN", "fake-token")
+    monkeypatch.setattr(
+        play_integrity_nonce,
+        "_run_upstash_command",
+        lambda command: (_ for _ in ()).throw(ValueError("invalid redis response")),
+    )
+
+    assert play_integrity_nonce.issue_nonce(CLIENT_KEY)["status"] == "store_unavailable"
+    assert play_integrity_nonce.consume_nonce("nonce-1", CLIENT_KEY)["status"] == "store_unavailable"
+
+
+def test_play_integrity_nonce_client_mismatch_is_rejected(monkeypatch):
+    monkeypatch.setattr(play_integrity_nonce, "UPSTASH_REDIS_REST_URL", "https://fake-upstash.example")
+    monkeypatch.setattr(play_integrity_nonce, "UPSTASH_REDIS_REST_TOKEN", "fake-token")
+    monkeypatch.setattr(
+        play_integrity_nonce,
+        "_run_upstash_command",
+        lambda command: {"result": play_integrity_nonce._client_binding(CLIENT_KEY_SECOND)},
+    )
+
+    assert play_integrity_nonce.consume_nonce("nonce-1", CLIENT_KEY)["status"] == "client_mismatch"
+
+
+def test_play_integrity_valid_verdict_requires_fresh_consumed_nonce(monkeypatch):
+    now_ms = int(time.time() * 1000)
+    monkeypatch.setattr(
+        play_integrity_nonce,
+        "consume_nonce",
+        lambda nonce, api_key: {"status": "consumed"},
+    )
+    decoded = {
+        "tokenPayloadExternal": {
+            "requestDetails": {"nonce": "nonce-1", "timestampMillis": str(now_ms)},
+            "appIntegrity": {
+                "appRecognitionVerdict": "PLAY_RECOGNIZED",
+                "packageName": "ro.sigurscan.app",
+            },
+            "deviceIntegrity": {"deviceRecognitionVerdict": ["MEETS_DEVICE_INTEGRITY"]},
+        }
+    }
+
+    result = play_integrity._evaluate_verdict(decoded, CLIENT_KEY)
+
+    assert result["status"] == "valid"
+    assert result["nonce_status"] == "consumed"
+    assert result["timestamp_fresh"] is True
+
+
+def test_play_integrity_rejects_stale_or_replayed_nonce(monkeypatch):
+    old_ms = int((time.time() - play_integrity.PLAY_INTEGRITY_MAX_TOKEN_AGE_SECONDS - 5) * 1000)
+    monkeypatch.setattr(
+        play_integrity_nonce,
+        "consume_nonce",
+        lambda nonce, api_key: {"status": "missing_or_replayed"},
+    )
+    decoded = {
+        "tokenPayloadExternal": {
+            "requestDetails": {"nonce": "nonce-1", "timestampMillis": str(old_ms)},
+            "appIntegrity": {
+                "appRecognitionVerdict": "PLAY_RECOGNIZED",
+                "packageName": "ro.sigurscan.app",
+            },
+            "deviceIntegrity": {"deviceRecognitionVerdict": ["MEETS_DEVICE_INTEGRITY"]},
+        }
+    }
+
+    result = play_integrity._evaluate_verdict(decoded, CLIENT_KEY)
+
+    assert result["status"] == "invalid"
+    assert result["nonce_status"] == "missing_or_replayed"
+    assert result["timestamp_fresh"] is False
+
+
+def test_play_integrity_nonce_endpoint_requires_client_key_and_issues_nonce(monkeypatch):
+    _enable_client_auth(monkeypatch)
+    monkeypatch.setattr(
+        play_integrity_nonce,
+        "issue_nonce",
+        lambda api_key: {"status": "issued", "nonce": "nonce-1", "expires_in_seconds": 120},
+    )
+    client = TestClient(app_main.app)
+
+    assert client.post("/v1/security/play-integrity/nonce").status_code == 401
+    response = client.post(
+        "/v1/security/play-integrity/nonce",
+        headers={"X-API-KEY": CLIENT_KEY},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"nonce": "nonce-1", "expires_in_seconds": 120}

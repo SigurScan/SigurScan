@@ -37,8 +37,16 @@ class ApiKeyInterceptorTest {
         override fun withWriteTimeout(timeout: Int, unit: java.util.concurrent.TimeUnit): Interceptor.Chain = this
     }
 
-    private fun requestThrough(interceptor: ApiKeyInterceptor): Request {
-        val chain = RecordingChain(Request.Builder().url("https://backend.example/v1/scan/url").build())
+    private fun requestThrough(
+        interceptor: ApiKeyInterceptor,
+        path: String = "/v1/scan/url",
+        method: String = "POST"
+    ): Request {
+        val builder = Request.Builder().url("https://backend.example$path")
+        if (method == "POST") {
+            builder.post(okhttp3.RequestBody.create(null, ByteArray(0)))
+        }
+        val chain = RecordingChain(builder.build())
         interceptor.intercept(chain)
         return requireNotNull(chain.forwarded)
     }
@@ -92,6 +100,25 @@ class ApiKeyInterceptorTest {
         )
 
         assertNull(forwarded.header(SIGURSCAN_PLAY_INTEGRITY_HEADER))
+    }
+
+    @Test
+    fun `does not request play integrity token for nonce endpoint or get requests`() {
+        var tokenRequests = 0
+        val interceptor = ApiKeyInterceptor(
+            rawApiKey = "secret-key",
+            integrityTokenProvider = {
+                tokenRequests += 1
+                "integrity-token"
+            }
+        )
+
+        val nonceRequest = requestThrough(interceptor, "/v1/security/play-integrity/nonce")
+        val getRequest = requestThrough(interceptor, "/v1/reputation/cache/stats", method = "GET")
+
+        assertNull(nonceRequest.header(SIGURSCAN_PLAY_INTEGRITY_HEADER))
+        assertNull(getRequest.header(SIGURSCAN_PLAY_INTEGRITY_HEADER))
+        assertEquals(0, tokenRequests)
     }
 
     @Test

@@ -12,7 +12,7 @@ Cum este protejat backend-ul public (Cloud Run) împotriva abuzului de quota
 | Cheie de client | `X-API-KEY` (sau `Authorization: Bearer`) pe toate rutele non-publice | activabil prin env |
 | Cheie de admin | chei separate pentru telemetrie/dashboards, fail-closed | activabil prin env |
 | Rate limiting | sliding window 60s per cheie + per IP, Upstash Redis partajat între instanțe | activ; fallback documentat mai jos |
-| Play Integrity | leagă request-urile de aplicația reală din Play | backend OAuth/decode wiring + Android SDK/header plumbing; live încă `off` |
+| Play Integrity | leagă request-urile de aplicația reală din Play | OAuth/decode + nonce distribuit single-use + Android SDK; live încă `off` |
 
 ## Variabile de mediu
 
@@ -24,10 +24,13 @@ Cum este protejat backend-ul public (Cloud Run) împotriva abuzului de quota
 | `ENABLE_RATE_LIMIT` / `RATE_LIMIT_PER_MINUTE` | activare / prag pe minut (default 60) |
 | `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` | backend-ul real de rate limiting (REST, partajat) |
 | `PLAY_INTEGRITY_MODE` | `off` (default) / `monitor` / `enforce` |
+| `PLAY_INTEGRITY_CREDENTIALS_JSON` | service account autorizat în Play Console pentru `decodeIntegrityToken` |
+| `PLAY_INTEGRITY_NONCE_TTL_SECONDS` | TTL pentru provocarea single-use distribuită (default 120s) |
 
 `/health` raportează postura curentă fără să expună secrete:
 `api_key_required`, `admin_api_configured`, `rate_limit_backend`
-(`upstash` sau `memory_best_effort`), `play_integrity_mode`.
+(`upstash` sau `memory_best_effort`), `play_integrity_mode`,
+`play_integrity_nonce_backend`.
 
 ## Reguli de rutare
 
@@ -77,9 +80,16 @@ Integrity API. Android include Play Integrity SDK (`com.google.android.play:inte
 și `ApiKeyInterceptor` poate atașa tokenul în `X-Play-Integrity-Token` când
 `SIGURSCAN_ENABLE_PLAY_INTEGRITY=true`.
 
+`POST /v1/security/play-integrity/nonce` emite o provocare autentificată cu
+cheia client. Backend-ul stochează doar hash-ul nonce-ului și binding-ul hash-uit
+al clientului în Upstash, cu TTL scurt și `NX`. După `decodeIntegrityToken`,
+backend-ul verifică timestamp-ul Google și consumă provocarea atomic cu
+`GETDEL`; replay-ul, expirarea, client mismatch și indisponibilitatea store-ului
+nu pot produce status `valid`.
+
 Ce NU este gata încă pentru enforce public: secretul de service account trebuie
-configurat în Cloud Run/Secret Manager, iar tokenurile trebuie legate de nonce
-single-use cu TTL scurt și măsurate întâi în `monitor`.
+configurat în Cloud Run/Secret Manager, build-ul Play semnat trebuie să activeze
+flagul Android, iar pass rate-ul trebuie măsurat întâi în `monitor`.
 Rollout recomandat: `off` → `monitor` (măsoară pass rate) → `enforce`.
 În `enforce`, rutele de scan (`/v1/scan/*`, `/v1/extract/*`,
 `/v1/sandbox/urlscan`) cer un token valid în `X-Play-Integrity-Token`.

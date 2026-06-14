@@ -485,7 +485,11 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
     private val btrSyncStore by lazy { BtrSyncStore.fromContext(application) }
     private val playIntegrityTokenProvider by lazy {
         if (BuildConfig.SIGURSCAN_ENABLE_PLAY_INTEGRITY) {
-            PlayIntegrityTokenProvider.fromContext(application)
+            PlayIntegrityTokenProvider.fromContext(
+                application,
+                configuredBackendBaseUrl(),
+                BuildConfig.SIGURSCAN_API_KEY
+            )
         } else {
             PlayIntegrityTokenProvider.disabled()
         }

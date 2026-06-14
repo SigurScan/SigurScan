@@ -1,11 +1,22 @@
 package ro.sigurscan.app
 
+import okhttp3.mockwebserver.MockResponse
+import okhttp3.mockwebserver.MockWebServer
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PlayIntegrityTokenProviderTest {
+    private class FakeNonceSource(private val nonce: String?) : IntegrityNonceSource {
+        var requests = 0
+
+        override fun issueNonce(): String? {
+            requests += 1
+            return nonce
+        }
+    }
+
     private class FakeSource(private val token: String?) : IntegrityTokenSource {
         val nonces = mutableListOf<String>()
 
@@ -18,23 +29,26 @@ class PlayIntegrityTokenProviderTest {
     @Test
     fun disabledProviderDoesNotRequestToken() {
         val source = FakeSource("token")
+        val nonceSource = FakeNonceSource("nonce-1")
         val provider = PlayIntegrityTokenProvider(
             enabled = false,
             source = source,
-            nonceFactory = { "nonce-1" }
+            nonceSource = nonceSource
         )
 
         assertNull(provider.currentToken())
         assertTrue(source.nonces.isEmpty())
+        assertEquals(0, nonceSource.requests)
     }
 
     @Test
     fun enabledProviderReturnsTrimmedToken() {
         val source = FakeSource("  integrity-token \n")
+        val nonceSource = FakeNonceSource(" nonce-1 ")
         val provider = PlayIntegrityTokenProvider(
             enabled = true,
             source = source,
-            nonceFactory = { "nonce-1" }
+            nonceSource = nonceSource
         )
 
         assertEquals("integrity-token", provider.currentToken())
@@ -47,9 +61,45 @@ class PlayIntegrityTokenProviderTest {
         val provider = PlayIntegrityTokenProvider(
             enabled = true,
             source = source,
-            nonceFactory = { "nonce-1" }
+            nonceSource = FakeNonceSource("nonce-1")
         )
 
         assertNull(provider.currentToken())
+    }
+
+    @Test
+    fun missingBackendNonceDoesNotRequestPlayToken() {
+        val source = FakeSource("token")
+        val provider = PlayIntegrityTokenProvider(
+            enabled = true,
+            source = source,
+            nonceSource = FakeNonceSource(null)
+        )
+
+        assertNull(provider.currentToken())
+        assertTrue(source.nonces.isEmpty())
+    }
+
+    @Test
+    fun httpNonceSourceCallsDedicatedEndpointWithClientKey() {
+        val server = MockWebServer()
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody("""{"nonce":" nonce-from-server ","expires_in_seconds":120}""")
+        )
+        server.start()
+        try {
+            val source = HttpIntegrityNonceSource(server.url("/").toString(), " client-key ")
+
+            assertEquals("nonce-from-server", source.issueNonce())
+            val request = server.takeRequest()
+            assertEquals("POST", request.method)
+            assertEquals("/v1/security/play-integrity/nonce", request.path)
+            assertEquals("client-key", request.getHeader(SIGURSCAN_API_KEY_HEADER))
+        } finally {
+            server.shutdown()
+        }
     }
 }
