@@ -197,7 +197,7 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
 | PR-8 | Plan de actiune post-incident | Da | Da pentru flow de rezultat | `/v1/legal/action-plan` live OK; Android trimite impacts reale selectate si randeaza planul; planul apare in smoke emulator FAN fake |
 | PR-8/9 integ | `action_plan` in orchestrator + audio reference | Partial backend | Action plan functional; analiza locala a transcrierii functionala | Orchestratorul trimite `action_plan`; Android il afiseaza. Android reduce local transcrierea curenta la semnale si verdict, fara text brut in rezultat. Nu exista captura/ASR audio |
 | Extra | DNS reputation | Da | Da indirect prin scan response | `infra_dns` live OK; flag Cloud Run activ si pastrat in scriptul de deploy |
-| PR-9/PR-10 | Android on-device: ASR/Vosk, banda inline, captura difuzor | Nu ca ASR complet | Analiza transcript local + engine verdict + UI readiness + gated sigur | `AudioTranscriptEvidenceTest` acopera 34/34 fixture-uri realiste; MobAI confirma verdict local `PERICULOS`. Nu exista inca model ASR romanesc, captura audio sau QA real-device |
+| PR-9/PR-10 | Android on-device: Whisper.cpp ASR, banda inline, captura difuzor | Nu ca ASR complet | Analiza transcript local + engine verdict + UI readiness + Whisper adapter gated sigur | `AudioTranscriptEvidenceTest` acopera 34/34 fixture-uri realiste; `WhisperCppAsrEngineTest` acopera contractul adapterului fara audio raw retinut. Nu exista inca native library Whisper.cpp, model romanesc impachetat, captura audio sau QA real-device ASR |
 
 ## Gap-uri Care Nu Trebuie Numite Complete
 
@@ -221,11 +221,13 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
    - App-ul afiseaza `action_plan` primit in scan response.
    - App-ul permite declararea impacts reale si cere plan personalizat.
 
-4. PR-9/PR-10 Android audio nu este implementat ca ASR, dar este blocat matur si vizibil in UI.
-   - Nu exista Vosk/ASR/captura difuzor in productie.
+4. PR-9/PR-10 Android audio nu este implementat ca ASR production, dar este blocat matur si vizibil in UI.
+   - Nu exista Whisper.cpp native library/model/captura difuzor in productie.
+   - Vosk nu mai este calea aleasa pentru Android; inlocuitorul selectat este Whisper.cpp.
    - Exista `AudioEvidenceEngine` + `AudioTranscriptEvidence` pentru reducerea locala a transcrierii la semnale audio/vishing; rezultatul nu stocheaza transcript brut si nu foloseste server audio.
+   - Exista `WhisperCppAsrEngine` cu runtime native injectabil, contract PCM mono 16 kHz romana si fallback explicit `whisper_native_unavailable` cand JNI-ul lipseste.
    - UI poate analiza local transcrierea curenta si afisa verdictul audio chiar daca ASR/captura ramane blocata.
-   - Readiness-ul modelului necesita setul complet de fisiere runtime; un folder assets ne-gol nu mai poate declara modelul pregatit.
+   - Readiness-ul modelului necesita pachetul `assets/asr/whispercpp/` cu `model-manifest.json` si `ggml-model.bin`; un folder assets ne-gol nu mai poate declara modelul pregatit.
    - Lista oficiala Vosk verificata pe 2026-06-14 nu ofera model romanesc.
    - `AudioSafetyPolicy` blocheaza capture fara feature flag, consimtamant, disclosure si model.
    - `AndroidBuildConfigPolicyTest` confirma ca `SIGURSCAN_ENABLE_AUDIO_ASR` ramane false-by-default pentru debug/release.

@@ -1331,15 +1331,15 @@ private fun AudioAsrReadinessCard(
                 Icon(Icons.Default.MicOff, contentDescription = null, tint = if (blocked) SigurColors.Suspect else SigurColors.Safe, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Audio ASR local", color = SigurColors.TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    Text("Nu se trimite audio la server. Captura pornește doar cu model local și consimțământ.", color = SigurColors.TextMuted, fontSize = 11.sp, lineHeight = 15.sp)
+                    Text("Whisper ASR local", color = SigurColors.TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text("Nu se trimite audio la server. Captura pornește doar cu Whisper local și consimțământ.", color = SigurColors.TextMuted, fontSize = 11.sp, lineHeight = 15.sp)
                 }
                 DSChip(if (blocked) "blocat" else "pregătit", tone = if (blocked) DSChipTone.Suspect else DSChipTone.Safe)
             }
 
             Spacer(modifier = Modifier.height(10.dp))
             ReadinessRow("Feature flag", snapshot.featureFlagEnabled)
-            ReadinessRow("Model ASR local", snapshot.modelAvailable)
+            ReadinessRow("Model Whisper local", snapshot.modelAvailable)
             ReadinessRow("Consimțământ explicit", snapshot.explicitConsent)
             ReadinessRow("Disclosure privacy acceptat", snapshot.privacyDisclosureAccepted)
 

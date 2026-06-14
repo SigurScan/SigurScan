@@ -66,7 +66,19 @@ class AudioSafetyPolicyTest {
     }
 
     @Test
-    fun modelPackageRequiresManifestAndEveryRuntimeFile() {
+    fun whisperModelPackageRequiresManifestAndModelBinary() {
+        val modelReady = AudioModelPackagePolicy.isComplete(
+            existingFiles = setOf(
+                "model-manifest.json",
+                "ggml-model.bin"
+            )
+        )
+
+        assertTrue(modelReady)
+    }
+
+    @Test
+    fun voskDirectoryCannotMasqueradeAsWhisperModel() {
         val modelReady = AudioModelPackagePolicy.isComplete(
             existingFiles = setOf(
                 "model-manifest.json",
@@ -78,6 +90,6 @@ class AudioSafetyPolicyTest {
             )
         )
 
-        assertTrue(modelReady)
+        assertFalse(modelReady)
     }
 }

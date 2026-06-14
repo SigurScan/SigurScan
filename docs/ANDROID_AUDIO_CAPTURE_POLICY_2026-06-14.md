@@ -15,9 +15,10 @@ Current state:
 - Android has an on-device `AudioEvidenceEngine` plus `AudioTranscriptEvidence` for Romanian call transcripts; it extracts only decision signals, stores no raw transcript/audio in the result, and does not call a server.
 - A user-selected/current transcript can be analyzed locally from the Radar UI even while capture remains blocked.
 - The realistic call-transcript fixture pack is covered: `34/34` scam transcripts produce actionable local evidence and none retain raw audio.
-- Model readiness now requires the complete expected runtime file set plus `model-manifest.json`; a random/non-empty assets directory cannot mark ASR as ready.
-- No Vosk/ASR production model is bundled.
-- The official Vosk model list checked on 2026-06-14 does not provide a Romanian model: `https://alphacephei.com/vosk/models`.
+- Model readiness now targets the Whisper.cpp package layout under `assets/asr/whispercpp/` and requires `model-manifest.json` plus `ggml-model.bin`; a random/non-empty assets directory cannot mark ASR as ready.
+- `WhisperCppAsrEngine` is wired as the Android replacement path and feeds transcripts into the local audio evidence engine without retaining raw audio bytes.
+- No Whisper.cpp native library or production Romanian model binary is bundled yet.
+- Vosk is no longer the selected Android ASR path because the official Vosk model list checked on 2026-06-14 does not provide a Romanian model: `https://alphacephei.com/vosk/models`.
 - No hidden call recording is implemented.
 - The Android manifest does not request `android.permission.RECORD_AUDIO`.
 - The current UI provides real local transcript analysis and a separate readiness gate; it is not an audio capture feature.

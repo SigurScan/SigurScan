@@ -871,7 +871,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
             val assets = getApplication<Application>().assets
             val existingFiles = AudioModelPackagePolicy.requiredFiles.filterTo(mutableSetOf()) { path ->
                 runCatching {
-                    assets.open("vosk-model-ro/$path").use { it.read() }
+                    assets.open("${AudioModelPackagePolicy.assetRoot}/$path").use { it.read() }
                     true
                 }.getOrDefault(false)
             }
@@ -889,7 +889,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
         )
         audioReadiness = updated.copy(decision = decision)
         audioReadinessStatus = if (decision.allowed) {
-            "ASR local este pregătit. Captura rămâne on-device."
+            "Whisper local este pregătit. Captura rămâne on-device."
         } else {
             "ASR audio rămâne blocat: ${decision.reasonCodes.joinToString(", ")}."
         }

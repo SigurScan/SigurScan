@@ -25,13 +25,11 @@ object AudioSafetyPolicy {
 }
 
 object AudioModelPackagePolicy {
+    const val assetRoot = "asr/whispercpp"
+
     val requiredFiles = setOf(
         "model-manifest.json",
-        "am/final.mdl",
-        "conf/mfcc.conf",
-        "conf/model.conf",
-        "graph/HCLG.fst",
-        "graph/words.txt"
+        "ggml-model.bin"
     )
 
     fun isComplete(existingFiles: Set<String>): Boolean {
