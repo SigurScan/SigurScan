@@ -8496,6 +8496,19 @@ async def guardian_second_opinion(payload: GuardianSecondOpinionRequest):
     return so.to_dict()
 
 
+# ─── PR-7 (Faza 2) — Inboxul Protejat: BTR sync pentru match on-device ──────
+# Linia roșie §8: ZERO conținut SMS către server. Singurul trafic e manifestele
+# BTR care COBOARĂ pe device (version-gated), pentru proveniență on-device.
+# NU există endpoint care primește SMS — verdictul se calculează pe telefon
+# (services/inbox_provenance.build_inbox_verdict e logica de referință portată în app).
+@app.get("/v1/btr/sync")
+async def btr_sync(client_version: Optional[str] = None):
+    """PR-7 — device pull al Brand Truth Registry (delta version-gated)."""
+    from services.inbox_provenance import btr_sync_payload
+
+    return btr_sync_payload(brand_truth_registry, client_version=client_version)
+
+
 @app.get("/v1/campaign/families")
 async def campaign_families():
     from services.campaign_intel import FAMILY_TAXONOMY
