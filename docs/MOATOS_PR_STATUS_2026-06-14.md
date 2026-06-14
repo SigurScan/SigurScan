@@ -60,6 +60,14 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
   - rezultat: `BUILD SUCCESSFUL`
   - live BTR smoke cu `User-Agent: SigurScan/1.0 Android OkHttp` si cheia locala: `/v1/btr/sync` `200`, `count=17`, `version=btr-ro-2026.06.13`, `yoxo=true`
   - observatie: acelasi endpoint poate intoarce Cloudflare `1010` pentru clienti de terminal fara User-Agent-ul app-ului; nu este un 403 backend de API key.
+- Android emulator QA PR-7 local check (`Medium_Phone_API_36.1`):
+  - APK debug curent instalat cu `./gradlew installDebug`
+  - scan Android `YOXO Shop oferte pe https://www.yoxo.ro/`: UI `SIGUR`, `Verificări complete`, preview securizat, final domain `yoxo.ro`
+  - tab Radar dupa sync: `17 manifeste oficiale • btr-ro-2026.06.13`, chip `local`
+  - buton `Verifică local`: `Ultima verificare locală: safe · official_domain_match`
+  - mesaj UI: `Verificare locală: canal oficial și fără cerere sensibilă.`
+  - crash buffer: gol pentru sesiune
+  - evidence screenshot: `docs/evidence/android_pr7_btr_local_check_2026-06-14.png`
 - Verificari locale dupa conectarea raportului oficial si BTR YOXO:
   - Backend full final dupa merge cu `origin/main`: `914 passed, 1 warning`
   - Android full JVM: `BUILD SUCCESSFUL`
@@ -84,6 +92,7 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
   - Launch `ro.sigurscan.app/.MainActivity`: OK, fara crash `AndroidRuntime` pentru app.
   - Scan Android `https://www.yoxo.ro/`: UI `SIGUR`, verdict final, verificari complete, preview securizat cu imagine izolata, destinatie `yoxo.ro`.
   - Scan Android `https://fan-livrare.xyz/`: UI `PERICULOS`, verdict final, mesaj `Nu apasa linkul`, preview indisponibil cu motiv clar `Destinatia finala nu poate fi incarcata/verificata`.
+  - PR-7 Radar/BTR dupa commit `4d0850e`: sync BTR OK in UI (`17` manifeste), local check pe ultimul scan YOXO OK (`safe / official_domain_match`).
   - Android PR-8: plan de actiune vizibil in rezultat, inclusiv `Raportare: DNSC, PNRISC / Poliția Română` si impacts reale selectabile.
   - Android PR-5 raport 1-tap: buton `Pregătește raport oficial` a populat cardul `Raport oficial pregătit` cu `DNSC`, `PNRISC / Poliția Română`, subiecte si mesaje precompletate.
   - Android PR-5 CallScreening:
