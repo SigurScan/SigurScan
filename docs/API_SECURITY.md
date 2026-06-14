@@ -12,7 +12,7 @@ Cum este protejat backend-ul public (Cloud Run) împotriva abuzului de quota
 | Cheie de client | `X-API-KEY` (sau `Authorization: Bearer`) pe toate rutele non-publice | activabil prin env |
 | Cheie de admin | chei separate pentru telemetrie/dashboards, fail-closed | activabil prin env |
 | Rate limiting | sliding window 60s per cheie + per IP, Upstash Redis partajat între instanțe | activ; fallback documentat mai jos |
-| Play Integrity | leagă request-urile de aplicația reală din Play | backend OAuth/decode wiring + Android header plumbing; live încă `off` |
+| Play Integrity | leagă request-urile de aplicația reală din Play | backend OAuth/decode wiring + Android SDK/header plumbing; live încă `off` |
 
 ## Variabile de mediu
 
@@ -69,16 +69,17 @@ blocheze scanări legitime. Concluzie: în producție, configurează Upstash.
   `SIGURSCAN_API_KEY` / `SIGURSCAN_RELEASE_API_KEY` sunt raportate ca warning
   până când sunt înlocuite de Play Integrity sau token scurt emis de backend.
 
-## Play Integrity (schelet)
+## Play Integrity
 
 `services/play_integrity.py` conține fluxul `decodeIntegrityToken` și mapează
 `PLAY_INTEGRITY_CREDENTIALS_JSON` prin service-account OAuth2 către Google Play
-Integrity API. Android `ApiKeyInterceptor` poate atașa tokenul în
-`X-Play-Integrity-Token` când un provider local îl furnizează.
+Integrity API. Android include Play Integrity SDK (`com.google.android.play:integrity`)
+și `ApiKeyInterceptor` poate atașa tokenul în `X-Play-Integrity-Token` când
+`SIGURSCAN_ENABLE_PLAY_INTEGRITY=true`.
 
 Ce NU este gata încă pentru enforce public: secretul de service account trebuie
-configurat în Cloud Run/Secret Manager, clientul Android trebuie conectat la Play
-Integrity SDK, iar tokenurile trebuie legate de nonce single-use cu TTL scurt.
+configurat în Cloud Run/Secret Manager, iar tokenurile trebuie legate de nonce
+single-use cu TTL scurt și măsurate întâi în `monitor`.
 Rollout recomandat: `off` → `monitor` (măsoară pass rate) → `enforce`.
 În `enforce`, rutele de scan (`/v1/scan/*`, `/v1/extract/*`,
 `/v1/sandbox/urlscan`) cer un token valid în `X-Play-Integrity-Token`.

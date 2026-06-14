@@ -91,7 +91,7 @@ Nu se face:
 - Data Safety completata cu URL/content scan, third-party processing si encryption in transit.
 - `ENABLE_RATE_LIMIT=true` pe backend pentru productie.
 - `REQUIRE_API_KEY=true` este acceptabil pentru build-uri private ca bariera anti-abuz, dar cheia de client din APK este extractabila.
-- Pentru release public larg: Play Integrity trebuie trecut in `monitor/enforce` dupa configurarea secretului de service account, conectarea Android Play Integrity SDK si nonce anti-replay; nu trata shared client API key din APK ca autentificare reala.
+- Pentru release public larg: Play Integrity trebuie trecut in `monitor/enforce` dupa configurarea secretului de service account si nonce anti-replay; Android include SDK-ul Play Integrity, dar token request ramane off-by-default prin `SIGURSCAN_ENABLE_PLAY_INTEGRITY=false`. Nu trata shared client API key din APK ca autentificare reala.
 - Supabase RLS hardening aplicat remote: anon nu citeste/scrie tabele brute de telemetry, feedback, device sau community reports.
 - `SIGURSCAN_URLSCAN_API_KEY`, Google Web Risk, URLhaus si Phishing.Database configurate doar in backend/Vercel.
 - VirusTotal Public API nu este folosit in produsul comercial v1; daca revine, trebuie contract/licenta compatibila comercial.

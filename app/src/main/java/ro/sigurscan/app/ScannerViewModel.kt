@@ -483,6 +483,13 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
     private val radarHotCacheStore by lazy { RadarHotCacheStore.fromContext(application) }
     private val radarScreeningAuditStore by lazy { RadarScreeningAuditStore.fromContext(application) }
     private val btrSyncStore by lazy { BtrSyncStore.fromContext(application) }
+    private val playIntegrityTokenProvider by lazy {
+        if (BuildConfig.SIGURSCAN_ENABLE_PLAY_INTEGRITY) {
+            PlayIntegrityTokenProvider.fromContext(application)
+        } else {
+            PlayIntegrityTokenProvider.disabled()
+        }
+    }
 
     private val api: SigurScanApi by lazy {
         val logging = HttpLoggingInterceptor().apply {
@@ -493,7 +500,12 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
 	            .readTimeout(75, TimeUnit.SECONDS)
 	            .writeTimeout(30, TimeUnit.SECONDS)
 	            .connectTimeout(20, TimeUnit.SECONDS)
-	            .addInterceptor(ApiKeyInterceptor(BuildConfig.SIGURSCAN_API_KEY))
+	            .addInterceptor(
+                    ApiKeyInterceptor(
+                        rawApiKey = BuildConfig.SIGURSCAN_API_KEY,
+                        integrityTokenProvider = { playIntegrityTokenProvider.currentToken() }
+                    )
+                )
 	            .addInterceptor(logging)
 	            .build()
 

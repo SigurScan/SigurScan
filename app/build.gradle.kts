@@ -36,6 +36,12 @@ val enableAudioAsr = (
         ?: "false"
     ).trim().lowercase() in setOf("1", "true", "yes", "on")
 
+val enablePlayIntegrity = (
+    localProperties.getProperty("SIGURSCAN_ENABLE_PLAY_INTEGRITY")
+        ?: System.getenv("SIGURSCAN_ENABLE_PLAY_INTEGRITY")
+        ?: "false"
+    ).trim().lowercase() in setOf("1", "true", "yes", "on")
+
 fun buildConfigSafeString(key: String, envFallback: String): String {
     val value = (localProperties.getProperty(key) ?: System.getenv(envFallback) ?: "").trim()
     return "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
@@ -90,6 +96,7 @@ android {
             "\"\""
         )
         buildConfigField("Boolean", "SIGURSCAN_ENABLE_AUDIO_ASR", enableAudioAsr.toString())
+        buildConfigField("Boolean", "SIGURSCAN_ENABLE_PLAY_INTEGRITY", enablePlayIntegrity.toString())
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -112,6 +119,7 @@ android {
             buildConfigField("String", "URLSCAN_API_KEY", "\"\"")
             buildConfigField("String", "GOOGLE_WEB_RISK_API_KEY", "\"\"")
             buildConfigField("Boolean", "SIGURSCAN_ENABLE_AUDIO_ASR", enableAudioAsr.toString())
+            buildConfigField("Boolean", "SIGURSCAN_ENABLE_PLAY_INTEGRITY", enablePlayIntegrity.toString())
             if (hasReleaseKeystore) {
                 signingConfig = signingConfigs.getByName("release")
             }
@@ -157,6 +165,7 @@ dependencies {
     implementation(libs.retrofit.gson)
     implementation(libs.okhttp.logging)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.play.integrity)
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
     
     implementation(libs.androidx.camera.core)

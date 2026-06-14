@@ -49,4 +49,19 @@ class AndroidBuildConfigPolicyTest {
             ).findAll(gradleFile).count() >= 2
         )
     }
+
+    @Test
+    fun playIntegrityFeatureFlagDefaultsOff() {
+        assertTrue(
+            "Play Integrity token requests must default to disabled until Play Console/SDK rollout is reviewed.",
+            gradleFile.contains("""localProperties.getProperty("SIGURSCAN_ENABLE_PLAY_INTEGRITY")""") &&
+                gradleFile.contains("""?: "false"""")
+        )
+        assertTrue(
+            "Debug and release builds must use the same reviewed Play Integrity gate flag.",
+            Regex(
+                """buildConfigField\("Boolean",\s*"SIGURSCAN_ENABLE_PLAY_INTEGRITY",\s*enablePlayIntegrity\.toString\(\)\)"""
+            ).findAll(gradleFile).count() >= 2
+        )
+    }
 }
