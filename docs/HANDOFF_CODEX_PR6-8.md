@@ -154,3 +154,36 @@ Apoi verifică în Supabase că `circle_links` / `verification_pings` au primit 
 - TriageScreen care consumă `/v1/legal/action-plan`. Pe ruta ofertă, `result.action_plan`
   vine deja preventiv (impacts=["none"]); ecranul re-cere cu impacts reale după ce
   userul spune ce a făcut.
+
+---
+
+## 8. Provideri URL — chei expirate + pilon DNS nou (verificat live)
+
+### 8.1 Chei expirate (de reînnoit) — verificat 2026-06-14
+Testate direct cu cheile din `backend/.env.vercel`:
+- **Google Web Risk** → `API_KEY_INVALID` (cheia nu mai e validă).
+- **URLhaus** → `unknown_auth_key` (Auth-Key invalid).
+
+Impact: în prod, doi piloni de reputație URL **nu primesc semnal acum** (degradează
+spre „unknown", nu coboară fals la SAFE — gate-ul e safe-by-design, dar pierdem detecție).
+**De făcut Codex:** reînnoiește cheile și pune-le în env:
+- `GOOGLE_WEB_RISK_API_KEY` (Google Cloud Console → Web Risk API).
+- `URLHAUS_AUTH_KEY` (cont gratuit abuse.ch → Auth-Key).
+
+**Recomandare free-first (gol #3 §12):** pentru Web Risk, treci de la **Lookup API**
+(costă per-scan la scară) la **Update API** (liste hash descărcate local, match offline)
+— rezolvă și costul la 100k useri, și privacy-ul.
+
+### 8.2 Pilon nou DNS reputation — `services/dns_reputation.py` (GRATIS, fără cheie)
+Adăugat în pipeline, **opt-in** prin `ENABLE_DNS_REPUTATION` (implicit **OFF** → fără
+latență/rețea by default). Semnale, via DNS-over-HTTPS (Cloudflare normal vs
+`security.cloudflare-dns.com`), care NU vizitează site-ul:
+- `blocked` (rezolvă normal dar DNS-ul de securitate îl refuză) → provider hard
+  `dns_security` (malicious) → terminal, ca Web Risk/URLhaus.
+- `suspended` (NS de hold la registrar, ex. `trs-dns.com`) / `nxdomain` → semnal
+  ponderat `infra_dns` (severity medium, niciodată terminal solo — ca `infra_rdap`).
+
+**De decis Codex:** activează în prod cu `ENABLE_DNS_REPUTATION=true` (e gratis,
+Play-safe, fără cheie). Recomandat — tocmai a prins un domeniu real luat jos
+(`flixsou.site`, suspendat pe `trs-dns.com`) pe care Web Risk/URLhaus (chei moarte)
+l-ar fi ratat. Bonus: rulează și on-device (DoH e free, fără permisiuni Play).

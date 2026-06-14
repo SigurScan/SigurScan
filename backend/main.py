@@ -164,6 +164,9 @@ _SCREENSHOT_PROXY_PATH_RE = re.compile(r"^/v1/sandbox/urlscan/[^/]+/screenshot$"
 _INTEGRITY_GUARDED_PREFIXES = ("/v1/scan/", "/v1/extract/", "/v1/sandbox/urlscan")
 
 ENABLE_RATE_LIMIT = os.getenv("ENABLE_RATE_LIMIT", "true").strip().lower() in {"1", "true", "yes", "on"}
+# Pilon DNS reputation (gratis, fără cheie). Free-first: OPT-IN, implicit OFF — nu
+# adaugă latență/rețea în hot-path până nu e activat explicit în prod.
+ENABLE_DNS_REPUTATION = os.getenv("ENABLE_DNS_REPUTATION", "false").strip().lower() in {"1", "true", "yes", "on"}
 RATE_LIMIT_PER_MINUTE = int(os.getenv("RATE_LIMIT_PER_MINUTE", "60"))
 RATE_LIMIT_WINDOW_SECONDS = 60
 URLSCAN_API_KEY = (
@@ -2089,7 +2092,9 @@ def _provider_payload_is_hard_bad(raw: Dict[str, Any], *, include_suspicious: bo
 
 
 def _has_authoritative_bad_provider_verdict(summary: Dict[str, Any]) -> bool:
-    for name in ("google_web_risk", "phishing_database", "urlscan", "urlscan.io", "urlhaus"):
+    # „dns_security" = bloc autoritar de DNS de securitate (Cloudflare/Quad9),
+    # tratat ca provider hard-bad (status malicious), la fel ca Web Risk/URLhaus.
+    for name in ("google_web_risk", "phishing_database", "urlscan", "urlscan.io", "urlhaus", "dns_security"):
         raw = summary.get(name)
         if isinstance(raw, dict) and _provider_payload_is_hard_bad(raw):
             return True
@@ -2100,7 +2105,7 @@ def _has_bad_provider_verdict(summary: Dict[str, Any]) -> bool:
     if _has_authoritative_bad_provider_verdict(summary):
         return True
 
-    provider_names = ("google_web_risk", "phishing_database", "urlscan", "urlscan.io", "urlhaus")
+    provider_names = ("google_web_risk", "phishing_database", "urlscan", "urlscan.io", "urlhaus", "dns_security")
     for name in provider_names:
         raw = summary.get(name)
         if isinstance(raw, dict) and _provider_payload_is_hard_bad(raw):
@@ -3403,6 +3408,34 @@ def _apply_decision_contract_result(
     return analysis
 
 
+def _maybe_add_dns_reputation(summary: Dict[str, Any], resolved_urls: List[Dict[str, Any]]) -> None:
+    """Pilon DNS reputation (gratis, fără cheie). Opt-in prin ENABLE_DNS_REPUTATION;
+    implicit OFF → fără rețea/latență. `blocked` → provider hard (dns_security);
+    `suspended`/`nxdomain` → semnal ponderat (infra_dns). Best-effort, nu aruncă."""
+    if not ENABLE_DNS_REPUTATION or not resolved_urls:
+        return
+    from services import dns_reputation
+
+    domain = ""
+    for entry in resolved_urls:
+        if isinstance(entry, dict):
+            domain = dns_reputation.domain_from_url(entry.get("final_url") or entry.get("url") or "")
+            if domain:
+                break
+    if not domain:
+        return
+    try:
+        rep = dns_reputation.check_dns_reputation(domain)
+    except Exception:
+        return
+    hard = dns_reputation.dns_summary_entry(rep)
+    if hard:
+        summary["dns_security"] = hard
+    weak = dns_reputation.dns_infra_entry(rep)
+    if weak:
+        summary["infra_dns"] = weak
+
+
 def _apply_provider_gate_verdict(
     analysis: Dict[str, Any],
     resolved_urls: List[Dict[str, Any]],
@@ -3416,6 +3449,7 @@ def _apply_provider_gate_verdict(
         summary = {}
     infra_flags = _collect_infrastructure_flags(analysis, resolved_urls)
     _augment_summary_with_infra_flags(summary, infra_flags)
+    _maybe_add_dns_reputation(summary, resolved_urls)
     evidence["external_intel_summary"] = summary
 
     claimed_brand = str(analysis.get("claimed_brand") or "Nespecificat")
