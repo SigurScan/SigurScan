@@ -250,6 +250,18 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
 - Regresie live `urlz.fr/rZrw`: `SUSPECT/medium`, scor 55, preview `unavailable`, reason `final_url_unresolved`, rezultat final.
 - Nu exista inca dovada token Google real: lipsesc service-account-ul autorizat Play Console, build-ul instalat din Google Play cu flag activ si perioada de monitorizare. Din acest motiv live ramane corect `off`.
 
+## Fresh Live Matrix After Revision 00051
+
+- Provider smoke report: `backend/eval/live_provider_smoke_2026_06_14_post_nonce.json` -> 5/5 passed.
+- YOXO buyback, SMYK catalog, eMAG tracking si iDroid status: `SAFE`, finale, toate cu screenshot preview.
+- Google Web Risk phishing test: `DANGEROUS`, final.
+- Endpoint contract matrix PR-0..PR-8: 9/9 passed pe domeniul oficial.
+- PR-0..PR-4: provenance YOXO cu canal contractual `official_website` -> `match`; Urechea are surse active; CFX produce fingerprint si match-uri.
+- PR-5: Radar hot-cache are schema valida; raportul 1-tap produce canale DNSC + PNRISC precompletate.
+- PR-6: pair -> ping -> respond -> revoke functioneaza; Guardian downgradeaza `full_with_consent` la `metadata_only` fara consimtamant.
+- PR-7: BTR sync are versiune si 17/17 manifeste.
+- PR-8: action plan produce pasi urgenti si raport cu minimum doua canale.
+
 ## Ce E Production-Grade Acum
 
 - Backend scan pipeline nu mai ramane blocat la provider errors cunoscute.

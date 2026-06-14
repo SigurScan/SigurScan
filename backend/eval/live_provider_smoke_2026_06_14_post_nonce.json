@@ -1,0 +1,525 @@
+{
+  "base_url": "https://api.sigurscan.com",
+  "total": 5,
+  "passed": 5,
+  "failed": 0,
+  "rows": [
+    {
+      "id": "live_yoxo_buyback",
+      "title": "YOXO buyback benign commercial SMS",
+      "scan_id": "orch_1781452424_59ddb1c6",
+      "passed": true,
+      "expected_labels": [
+        "SAFE"
+      ],
+      "actual_label": "SAFE",
+      "status": "complete",
+      "is_final": true,
+      "risk_level": "low",
+      "detected_family_id": "provider-gate-official-clean",
+      "final_url": "https://buyback.yoxo.ro/?r=1",
+      "screenshot_url": "https://api.sigurscan.com/v1/sandbox/urlscan/019eb11b-692b-7011-a255-20be6df9bc47/screenshot",
+      "report_url": "https://urlscan.io/result/019eb11b-692b-7011-a255-20be6df9bc47/",
+      "provider_gate_reason": "positive_provenance_clean",
+      "provider_summary": {
+        "urlhaus": {
+          "source": "urlhaus",
+          "status": "clean",
+          "weight": 55,
+          "consulted": true,
+          "url_count": 1,
+          "risk_score": 0,
+          "threat_type": "unknown",
+          "url_example": "https://buyback.yoxo.ro/",
+          "risk_contribution": null,
+          "malicious_hit_count": 0
+        },
+        "urlscan": {
+          "score": 0,
+          "status": "clean",
+          "details": "urlscan result este gata, dar captura inca se proceseaza.",
+          "verdict": "No malicious classification",
+          "severity": "low",
+          "cache_hit": true,
+          "consulted": true,
+          "final_url": "https://buyback.yoxo.ro/?r=1",
+          "report_url": "https://urlscan.io/result/019eb11b-692b-7011-a255-20be6df9bc47/",
+          "screenshot_url": "https://api.sigurscan.com/v1/sandbox/urlscan/019eb11b-692b-7011-a255-20be6df9bc47/screenshot"
+        },
+        "infra_dns": {
+          "status": "clean",
+          "verdict": "resolves",
+          "severity": "low",
+          "consulted": true,
+          "details": "Domeniul rezolva pe DNS public si nu exista consens de blocare la resolverele de securitate."
+        },
+        "infra_ssl": {
+          "status": "suspicious",
+          "verdict": "invalid_certificate",
+          "severity": "medium",
+          "consulted": true,
+          "details": "Certificatul SSL este invalid sau auto-semnat"
+        },
+        "google_web_risk": {
+          "source": "google_web_risk",
+          "status": "clean",
+          "weight": 60,
+          "consulted": true,
+          "url_count": 1,
+          "risk_score": 0,
+          "threat_type": "unknown",
+          "url_example": "https://buyback.yoxo.ro/",
+          "risk_contribution": null,
+          "malicious_hit_count": 0
+        },
+        "infra_domain_age": {
+          "status": "clean",
+          "verdict": "established_domain",
+          "severity": "low",
+          "consulted": true,
+          "details": "domain_age_days=2560"
+        },
+        "phishing_database": {
+          "source": "phishing_database",
+          "status": "clean",
+          "weight": 80,
+          "consulted": true,
+          "url_count": 1,
+          "risk_score": 0,
+          "threat_type": "unknown",
+          "url_example": "https://buyback.yoxo.ro/",
+          "risk_contribution": null,
+          "malicious_hit_count": 0
+        },
+        "ai_offer_web_check": {
+          "status": "skipped",
+          "verdict": "skipped",
+          "severity": "unknown",
+          "summary": "AI offer web check disabled.",
+          "details": "AI offer web check disabled.",
+          "confidence": 0,
+          "claimed_brand": "Nespecificat",
+          "official_domains": [],
+          "evidence_urls": [],
+          "method": "none",
+          "knowledge_target": null
+        }
+      },
+      "status_message": "Scanarea este finalizata.",
+      "timings": {
+        "time_to_scan_id_sec": 1.24,
+        "time_to_verdict_sec": 11.79,
+        "time_to_preview_report_sec": 2.93,
+        "time_to_preview_screenshot_sec": 2.93,
+        "time_to_completion_sec": 13.03
+      }
+    },
+    {
+      "id": "live_smyk_catalog",
+      "title": "SMYK catalog benign marketing SMS",
+      "scan_id": "orch_1781452437_96a23221",
+      "passed": true,
+      "expected_labels": [
+        "SAFE",
+        "SUSPECT"
+      ],
+      "actual_label": "SAFE",
+      "status": "complete",
+      "is_final": true,
+      "risk_level": "low",
+      "detected_family_id": "provider-gate-official-clean",
+      "final_url": "https://smyk.ro/catalogul-ziua-copilului",
+      "screenshot_url": "https://api.sigurscan.com/v1/sandbox/urlscan/019eb11b-d485-7479-b80c-33fa6a10c4c5/screenshot",
+      "report_url": "https://urlscan.io/result/019eb11b-d485-7479-b80c-33fa6a10c4c5/",
+      "provider_gate_reason": "positive_provenance_clean",
+      "provider_summary": {
+        "urlhaus": {
+          "source": "urlhaus",
+          "status": "clean",
+          "weight": 55,
+          "consulted": true,
+          "url_count": 1,
+          "risk_score": 0,
+          "threat_type": "unknown",
+          "url_example": "https://smyk.ro/catalogul-ziua-copilului",
+          "risk_contribution": null,
+          "malicious_hit_count": 0
+        },
+        "urlscan": {
+          "score": 0,
+          "status": "clean",
+          "details": "urlscan result este gata, dar captura inca se proceseaza.",
+          "verdict": "No malicious classification",
+          "severity": "low",
+          "cache_hit": true,
+          "consulted": true,
+          "final_url": "https://smyk.ro/catalogul-ziua-copilului",
+          "report_url": "https://urlscan.io/result/019eb11b-d485-7479-b80c-33fa6a10c4c5/",
+          "screenshot_url": "https://api.sigurscan.com/v1/sandbox/urlscan/019eb11b-d485-7479-b80c-33fa6a10c4c5/screenshot"
+        },
+        "infra_dns": {
+          "status": "clean",
+          "verdict": "resolves",
+          "severity": "low",
+          "consulted": true,
+          "details": "Domeniul rezolva pe DNS public si nu exista consens de blocare la resolverele de securitate."
+        },
+        "google_web_risk": {
+          "source": "google_web_risk",
+          "status": "clean",
+          "weight": 60,
+          "consulted": true,
+          "url_count": 1,
+          "risk_score": 0,
+          "threat_type": "unknown",
+          "url_example": "https://smyk.ro/catalogul-ziua-copilului",
+          "risk_contribution": null,
+          "malicious_hit_count": 0
+        },
+        "infra_domain_age": {
+          "status": "clean",
+          "verdict": "established_domain",
+          "severity": "low",
+          "consulted": true,
+          "details": "domain_age_days=2707"
+        },
+        "phishing_database": {
+          "source": "phishing_database",
+          "status": "clean",
+          "weight": 80,
+          "consulted": true,
+          "url_count": 1,
+          "risk_score": 0,
+          "threat_type": "unknown",
+          "url_example": "https://smyk.ro/catalogul-ziua-copilului",
+          "risk_contribution": null,
+          "malicious_hit_count": 0
+        },
+        "ai_offer_web_check": {
+          "status": "skipped",
+          "verdict": "skipped",
+          "severity": "unknown",
+          "summary": "AI offer web check disabled.",
+          "details": "AI offer web check disabled.",
+          "confidence": 0,
+          "claimed_brand": "Nespecificat",
+          "official_domains": [],
+          "evidence_urls": [],
+          "method": "none",
+          "knowledge_target": null
+        }
+      },
+      "status_message": "Scanarea este finalizata.",
+      "timings": {
+        "time_to_scan_id_sec": 0.47,
+        "time_to_verdict_sec": 11.21,
+        "time_to_preview_report_sec": 2.76,
+        "time_to_preview_screenshot_sec": 2.76,
+        "time_to_completion_sec": 11.69
+      }
+    },
+    {
+      "id": "live_emag_tracking_official",
+      "title": "eMAG official tracking URL",
+      "scan_id": "orch_1781452449_8b9e6a91",
+      "passed": true,
+      "expected_labels": [
+        "SAFE",
+        "SUSPECT"
+      ],
+      "actual_label": "SAFE",
+      "status": "complete",
+      "is_final": true,
+      "risk_level": "low",
+      "detected_family_id": "provider-gate-official-clean",
+      "final_url": "https://auth.emag.ro/user/login",
+      "screenshot_url": "https://api.sigurscan.com/v1/sandbox/urlscan/019eb11c-4f4b-759a-8490-c1bd74688f81/screenshot",
+      "report_url": "https://urlscan.io/result/019eb11c-4f4b-759a-8490-c1bd74688f81/",
+      "provider_gate_reason": "positive_provenance_clean",
+      "provider_summary": {
+        "urlhaus": {
+          "source": "urlhaus",
+          "status": "clean",
+          "weight": 55,
+          "consulted": true,
+          "url_count": 1,
+          "risk_score": 0,
+          "threat_type": "unknown",
+          "url_example": "https://auth.emag.ro/user/login",
+          "risk_contribution": null,
+          "malicious_hit_count": 0
+        },
+        "urlscan": {
+          "score": 0,
+          "status": "clean",
+          "details": "urlscan result este gata, dar captura inca se proceseaza.",
+          "verdict": "No malicious classification",
+          "severity": "low",
+          "cache_hit": true,
+          "consulted": true,
+          "final_url": "https://auth.emag.ro/user/login",
+          "report_url": "https://urlscan.io/result/019eb11c-4f4b-759a-8490-c1bd74688f81/",
+          "screenshot_url": "https://api.sigurscan.com/v1/sandbox/urlscan/019eb11c-4f4b-759a-8490-c1bd74688f81/screenshot"
+        },
+        "infra_dns": {
+          "status": "clean",
+          "verdict": "resolves",
+          "severity": "low",
+          "consulted": true,
+          "details": "Domeniul rezolva pe DNS public si nu exista consens de blocare la resolverele de securitate."
+        },
+        "google_web_risk": {
+          "source": "google_web_risk",
+          "status": "clean",
+          "weight": 60,
+          "consulted": true,
+          "url_count": 1,
+          "risk_score": 0,
+          "threat_type": "unknown",
+          "url_example": "https://auth.emag.ro/user/login",
+          "risk_contribution": null,
+          "malicious_hit_count": 0
+        },
+        "infra_domain_age": {
+          "status": "clean",
+          "verdict": "established_domain",
+          "severity": "low",
+          "consulted": true,
+          "details": "domain_age_days=9661"
+        },
+        "phishing_database": {
+          "source": "phishing_database",
+          "status": "clean",
+          "weight": 80,
+          "consulted": true,
+          "url_count": 1,
+          "risk_score": 0,
+          "threat_type": "unknown",
+          "url_example": "https://auth.emag.ro/user/login",
+          "risk_contribution": null,
+          "malicious_hit_count": 0
+        },
+        "ai_offer_web_check": {
+          "status": "skipped",
+          "verdict": "skipped",
+          "severity": "unknown",
+          "summary": "AI offer web check disabled.",
+          "details": "AI offer web check disabled.",
+          "confidence": 0,
+          "claimed_brand": "Nespecificat",
+          "official_domains": [],
+          "evidence_urls": [],
+          "method": "none",
+          "knowledge_target": null
+        }
+      },
+      "status_message": "Scanarea este finalizata.",
+      "timings": {
+        "time_to_scan_id_sec": 0.46,
+        "time_to_verdict_sec": 10.27,
+        "time_to_preview_report_sec": 2.74,
+        "time_to_preview_screenshot_sec": 2.74,
+        "time_to_completion_sec": 10.74
+      }
+    },
+    {
+      "id": "live_google_webrisk_phishing_test",
+      "title": "Google Web Risk phishing test URL",
+      "scan_id": "orch_1781452459_114c815b",
+      "passed": true,
+      "expected_labels": [
+        "DANGEROUS"
+      ],
+      "actual_label": "DANGEROUS",
+      "status": "complete",
+      "is_final": true,
+      "risk_level": "high",
+      "detected_family_id": "provider-gate-bad-provider",
+      "final_url": "https://00000000000000000000000000000000000000000.xyz/",
+      "screenshot_url": null,
+      "report_url": null,
+      "provider_gate_reason": "provider_malicious",
+      "provider_summary": {
+        "urlhaus": {
+          "source": "urlhaus",
+          "status": "clean",
+          "details": {
+            "status": "not_listed"
+          },
+          "verdict": "clean",
+          "consulted": true,
+          "url_count": 1,
+          "risk_score": 0,
+          "threat_type": "unknown",
+          "malicious_hit_count": 0
+        },
+        "infra_dns": {
+          "status": "suspicious",
+          "verdict": "nxdomain",
+          "severity": "medium",
+          "consulted": true,
+          "details": "Domeniul nu rezolvă (NXDOMAIN) — posibil luat jos; semnal ponderat."
+        },
+        "google_web_risk": {
+          "source": "google_web_risk",
+          "status": "clean",
+          "details": {
+            "status": "no_match",
+            "provider": "google_web_risk",
+            "cache_duration": ""
+          },
+          "verdict": "clean",
+          "consulted": true,
+          "url_count": 1,
+          "risk_score": 0,
+          "threat_type": "unknown",
+          "malicious_hit_count": 0
+        },
+        "phishing_database": {
+          "source": "phishing_database",
+          "status": "malicious",
+          "details": {
+            "status": "listed",
+            "provider": "phishing_database",
+            "match_type": "domain",
+            "links_loaded": 57825,
+            "matched_value": "00000000000000000000000000000000000000000.xyz",
+            "domains_loaded": 391536,
+            "feed_version_loaded_at": 1781420826
+          },
+          "verdict": "malicious",
+          "consulted": true,
+          "url_count": 1,
+          "risk_score": 92,
+          "threat_type": "phishing",
+          "malicious_hit_count": 1
+        },
+        "ai_offer_web_check": {
+          "method": "skipped",
+          "status": "skipped",
+          "details": "Claim web check skipped because hard reputation evidence is already decisive.",
+          "summary": "Claim web check skipped because hard reputation evidence is already decisive.",
+          "verdict": "skipped",
+          "severity": "unknown",
+          "confidence": 0,
+          "claimed_brand": null,
+          "evidence_urls": [],
+          "knowledge_target": null,
+          "official_domains": []
+        }
+      },
+      "status_message": "Scanarea este finalizata. Destinatia finala nu poate fi incarcata/verificata; nu continua fara verificare oficiala.",
+      "timings": {
+        "time_to_scan_id_sec": 0.49,
+        "time_to_verdict_sec": 12.95,
+        "time_to_preview_report_sec": null,
+        "time_to_preview_screenshot_sec": null,
+        "time_to_completion_sec": 13.44
+      }
+    },
+    {
+      "id": "live_idroid_status",
+      "title": "iDroid status benign service SMS",
+      "scan_id": "orch_1781452473_230b3740",
+      "passed": true,
+      "expected_labels": [
+        "SAFE",
+        "SUSPECT"
+      ],
+      "actual_label": "SAFE",
+      "status": "complete",
+      "is_final": true,
+      "risk_level": "low",
+      "detected_family_id": "provider-gate-official-clean",
+      "final_url": "https://idroid.ro/verifica-status/",
+      "screenshot_url": "https://api.sigurscan.com/v1/sandbox/urlscan/019eb11c-f56f-7622-a01b-0e99e9cdbe43/screenshot",
+      "report_url": "https://urlscan.io/result/019eb11c-f56f-7622-a01b-0e99e9cdbe43/",
+      "provider_gate_reason": "positive_provenance_clean",
+      "provider_summary": {
+        "urlhaus": {
+          "source": "urlhaus",
+          "status": "clean",
+          "weight": 55,
+          "consulted": true,
+          "url_count": 1,
+          "risk_score": 0,
+          "threat_type": "unknown",
+          "url_example": "https://idroid.ro/verifica-status/",
+          "risk_contribution": null,
+          "malicious_hit_count": 0
+        },
+        "urlscan": {
+          "score": 0,
+          "status": "clean",
+          "details": "urlscan result este gata, dar captura inca se proceseaza.",
+          "verdict": "No malicious classification",
+          "severity": "low",
+          "cache_hit": true,
+          "consulted": true,
+          "final_url": "https://idroid.ro/verifica-status/",
+          "report_url": "https://urlscan.io/result/019eb11c-f56f-7622-a01b-0e99e9cdbe43/",
+          "screenshot_url": "https://api.sigurscan.com/v1/sandbox/urlscan/019eb11c-f56f-7622-a01b-0e99e9cdbe43/screenshot"
+        },
+        "infra_dns": {
+          "status": "clean",
+          "verdict": "resolves",
+          "severity": "low",
+          "consulted": true,
+          "details": "Domeniul rezolva pe DNS public si nu exista consens de blocare la resolverele de securitate."
+        },
+        "google_web_risk": {
+          "source": "google_web_risk",
+          "status": "clean",
+          "weight": 60,
+          "consulted": true,
+          "url_count": 1,
+          "risk_score": 0,
+          "threat_type": "unknown",
+          "url_example": "https://idroid.ro/verifica-status/",
+          "risk_contribution": null,
+          "malicious_hit_count": 0
+        },
+        "infra_domain_age": {
+          "status": "clean",
+          "verdict": "established_domain",
+          "severity": "low",
+          "consulted": true,
+          "details": "domain_age_days=2669"
+        },
+        "phishing_database": {
+          "source": "phishing_database",
+          "status": "clean",
+          "weight": 80,
+          "consulted": true,
+          "url_count": 1,
+          "risk_score": 0,
+          "threat_type": "unknown",
+          "url_example": "https://idroid.ro/verifica-status/",
+          "risk_contribution": null,
+          "malicious_hit_count": 0
+        },
+        "ai_offer_web_check": {
+          "status": "skipped",
+          "verdict": "skipped",
+          "severity": "unknown",
+          "summary": "AI offer web check disabled.",
+          "details": "AI offer web check disabled.",
+          "confidence": 0,
+          "claimed_brand": "Nespecificat",
+          "official_domains": [],
+          "evidence_urls": [],
+          "method": "none",
+          "knowledge_target": null
+        }
+      },
+      "status_message": "Scanarea este finalizata.",
+      "timings": {
+        "time_to_scan_id_sec": 0.47,
+        "time_to_verdict_sec": 10.08,
+        "time_to_preview_report_sec": 2.3,
+        "time_to_preview_screenshot_sec": 2.3,
+        "time_to_completion_sec": 10.55
+      }
+    }
+  ]
+}
