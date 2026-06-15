@@ -5765,6 +5765,101 @@ def test_orchestrated_urlscan_timeout_can_rehydrate_finished_report(monkeypatch)
     assert refreshed["analysis"]["evidence"]["external_intel_summary"]["urlscan"]["status"] == "clean"
 
 
+def test_orchestrated_urlscan_timeout_without_screenshot_stays_unavailable(monkeypatch):
+    async def fake_get_urlscan_result(uuid, request):
+        return {
+            "uuid": uuid,
+            "status": "finished",
+            "verdict": "No malicious classification",
+            "severity": "low",
+            "details": "urlscan verdict=No malicious classification; score=0",
+            "final_url": "https://www.revolut.com/ro-RO/security/",
+            "report_url": "https://urlscan.io/result/urlscan-no-shot/",
+            "screenshot_url": None,
+            "score": 0,
+            "categories": [],
+            "brands": [],
+        }
+
+    async def fail_screenshot_probe(uuid):
+        raise AssertionError("timeout job without a fresh screenshot must not be downgraded to pending")
+
+    async def fake_ai_explanation(*args, **kwargs):
+        return {"verdict_summary": "", "explanation": ""}
+
+    job = {
+        "scan_id": "orch_urlscan_timeout_no_shot",
+        "created_at": int(time.time()) - 130,
+        "pipeline_stage": "urlscan_submitted",
+        "status": "complete",
+        "input_type": "text",
+        "source_channel": "test",
+        "urls": ["https://www.revolut.com/ro-RO/security/"],
+        "redacted_text": "Revolut security https://www.revolut.com/ro-RO/security/",
+        "analysis": {
+            "risk_score": 0,
+            "risk_level": "low",
+            "detected_family": "Oficial curat",
+            "detected_family_id": "provider-gate-official-clean",
+            "claimed_brand": "Revolut",
+            "reasons": ["Providerii sunt curați."],
+            "safe_actions": [],
+            "evidence": {
+                "external_intel_summary": {
+                    "google_web_risk": {"status": "clean", "consulted": True},
+                    "phishing_database": {"status": "clean", "consulted": True},
+                },
+                "offer_claim_verification": {"status": "skipped"},
+            },
+        },
+        "resolved_urls": [
+            {
+                "original_url": "https://www.revolut.com/ro-RO/security/",
+                "final_url": "https://www.revolut.com/ro-RO/security/",
+                "final_hostname": "www.revolut.com",
+                "final_registered_domain": "revolut.com",
+                "success": True,
+            }
+        ],
+        "primary_final_url": "https://www.revolut.com/ro-RO/security/",
+        "claim_verifier_required": False,
+        "urlscan": {
+            "status": "timeout",
+            "uuid": "urlscan-no-shot",
+            "report_url": "https://urlscan.io/result/urlscan-no-shot/",
+            "details": "urlscan screenshot timeout",
+            "screenshot_ready": False,
+        },
+        "preview": {
+            "status": "unavailable",
+            "source": None,
+            "reason": "urlscan_screenshot_timeout",
+            "final_url": "https://www.revolut.com/ro-RO/security/",
+            "report_url": "https://urlscan.io/result/urlscan-no-shot/",
+            "screenshot_url": None,
+            "image_url": None,
+        },
+        "extra_fields": {"resolved_urls": []},
+        "result": {"is_final": True},
+        "orchestration_metrics": {"poll_count": 0, "stage_sequence": [], "stage_durations_ms": {}},
+    }
+
+    with monkeypatch.context() as patched:
+        patched.setattr(app_main, "get_urlscan_result", fake_get_urlscan_result)
+        patched.setattr(app_main, "_urlscan_screenshot_is_ready", fail_screenshot_probe)
+        patched.setattr(app_main, "_persist_orchestrated_job", lambda candidate: candidate)
+        patched.setattr(app_main, "_emit_orchestrated_telemetry", lambda *args, **kwargs: None)
+        patched.setattr(app_main, "_emit_scan_event", lambda *args, **kwargs: None)
+        patched.setattr(app_main, "_build_ai_explanation_async", fake_ai_explanation)
+        refreshed = asyncio.run(app_main._refresh_orchestrated_job(job, None))
+
+    assert refreshed["urlscan"]["status"] == "timeout"
+    assert refreshed["preview"]["status"] == "unavailable"
+    assert refreshed["preview"]["reason"] in {"urlscan_screenshot_timeout", "urlscan_timeout"}
+    assert not refreshed["preview"].get("screenshot_url")
+    assert not refreshed["preview"].get("image_url")
+
+
 def test_orchestration_telemetry_payload_flags_anomalies(monkeypatch):
     records = [
         {

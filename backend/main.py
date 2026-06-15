@@ -8458,6 +8458,26 @@ async def _refresh_orchestrated_job_impl(job: Dict[str, Any], request: Request) 
         if result is not None:
             if str(result.get("status") or "").lower() != "pending":
                 result = _sanitize_urlscan_result_payload(result)
+                result_screenshot_url = _normalize_screenshot_proxy_url(result.get("screenshot_url"))
+                if (
+                    urlscan_status == "timeout"
+                    and not result_screenshot_url
+                    and not (job.get("preview") if isinstance(job.get("preview"), dict) else {}).get("image_url")
+                ):
+                    job["urlscan"] = urlscan_state
+                    preview = job.setdefault("preview", {})
+                    if not preview.get("report_url"):
+                        preview["report_url"] = result.get("report_url") or urlscan_state.get("report_url")
+                    if not preview.get("final_url"):
+                        preview["final_url"] = result.get("final_url") or urlscan_state.get("final_url")
+                    preview["status"] = "unavailable"
+                    preview["source"] = None
+                    preview["reason"] = preview.get("reason") or "urlscan_screenshot_timeout"
+                    result = None
+                else:
+                    if result_screenshot_url:
+                        result["screenshot_url"] = result_screenshot_url
+            if result is not None and str(result.get("status") or "").lower() != "pending":
                 result_privacy = (
                     result.get("url_privacy")
                     if isinstance(result.get("url_privacy"), dict)
