@@ -34,6 +34,7 @@ import logging
 import html
 from starlette.concurrency import run_in_threadpool
 import tldextract
+from pypdf import PdfReader
 
 # Import our custom services
 from services.pii_redactor import redact_pii
@@ -1291,6 +1292,40 @@ def _extract_pdf_annotation_links(pdf_bytes: bytes) -> List[str]:
                 break
 
     return _dedupe_preserve_order(urls)[:MAX_URLS_PER_SCAN]
+
+
+def _extract_pdf_embedded_text(pdf_bytes: bytes, *, max_chars: int = MAX_TEXT_CHARS) -> str:
+    if not pdf_bytes:
+        return ""
+    try:
+        from io import BytesIO
+
+        reader = PdfReader(BytesIO(pdf_bytes))
+        parts: list[str] = []
+        for page in reader.pages[:10]:
+            text = page.extract_text() or ""
+            if text.strip():
+                parts.append(text.strip())
+            if sum(len(part) for part in parts) >= max_chars:
+                break
+        return "\n".join(parts)[:max_chars].strip()
+    except Exception as exc:
+        logger.info("PDF embedded text extraction failed: %s", exc)
+        return ""
+
+
+def _merge_ocr_and_embedded_text(ocr_text: str, embedded_text: str) -> str:
+    ocr = (ocr_text or "").strip()
+    embedded = (embedded_text or "").strip()
+    if not embedded:
+        return ocr
+    if not ocr:
+        return embedded
+    if embedded in ocr:
+        return ocr
+    if ocr in embedded:
+        return embedded
+    return f"{ocr}\n\n--- PDF embedded text ---\n{embedded}"
 
 
 def _extract_button_text(node: Any) -> str:
@@ -8596,6 +8631,7 @@ async def extract_pdf_for_orchestration(
         raise HTTPException(status_code=400, detail="Format PDF invalid.")
 
     annotation_urls = _extract_pdf_annotation_links(pdf_bytes)
+    embedded_text = _extract_pdf_embedded_text(pdf_bytes)
     try:
         ocr_text, ocr_warning = await extract_text_for_scan(
             filename=filename,
@@ -8603,11 +8639,12 @@ async def extract_pdf_for_orchestration(
             extract_fn=extract_text_from_pdf_with_vision,
         )
     except HTTPException as exc:
-        if exc.status_code != 503 or not annotation_urls:
+        if exc.status_code != 503 or (not annotation_urls and not embedded_text):
             raise
-        # PDF annotations are real scan evidence even when OCR cannot read text.
+        # PDF annotations/embedded text are real scan evidence even when OCR cannot read text.
         ocr_text = ""
         ocr_warning = str(exc.detail)
+    ocr_text = _merge_ocr_and_embedded_text(ocr_text, embedded_text)
 
     redacted_text = redact_pii(ocr_text)
     extracted_urls = _dedupe_preserve_order(annotation_urls + extract_urls(ocr_text) + extract_urls(redacted_text))
@@ -8908,11 +8945,19 @@ async def scan_invoice_endpoint(
         if not file_bytes.startswith(b"%PDF-"):
             raise HTTPException(status_code=400, detail="Fișierul nu pare să fie un PDF valid.")
         pdf_annotation_urls = _extract_pdf_annotation_links(file_bytes)
-        ocr_text, ocr_warning = await extract_text_for_scan(
-            filename=filename,
-            file_bytes=file_bytes,
-            extract_fn=extract_text_from_pdf_with_vision,
-        )
+        embedded_text = _extract_pdf_embedded_text(file_bytes)
+        try:
+            ocr_text, ocr_warning = await extract_text_for_scan(
+                filename=filename,
+                file_bytes=file_bytes,
+                extract_fn=extract_text_from_pdf_with_vision,
+            )
+        except HTTPException as exc:
+            if exc.status_code != 503 or (not pdf_annotation_urls and not embedded_text):
+                raise
+            ocr_text = ""
+            ocr_warning = str(exc.detail)
+        ocr_text = _merge_ocr_and_embedded_text(ocr_text, embedded_text)
         source_type = "pdf"
     else:
         assert image_file is not None

@@ -32,6 +32,19 @@ Amount due
 €21.78
 """
 
+MGH_PDF_TEXT = """
+Factura MGH 0013
+Data emiterii: 06.04.2022
+Termen plata: 07.04.2022
+Furnizor:
+MARKETING GROWTH HUB S.R.L.
+CIF:
+45758405
+IBAN (RON):
+RO42INGB0000999912242622
+Total plata 200.00 RON
+"""
+
 
 def test_scan_invoice_accepts_pdf_upload(monkeypatch):
     async def fake_extract_text_for_scan(filename, file_bytes, extract_fn):
@@ -66,6 +79,51 @@ def test_scan_invoice_accepts_pdf_upload(monkeypatch):
     assert payload["fields"]["total"] == 21.78
     assert payload["readiness"]["state"] == "ready_for_analysis"
     assert payload["readiness"]["blocks_safe_verdict"] is False
+
+
+def test_scan_invoice_pdf_merges_embedded_text_when_ocr_misses_cui(monkeypatch):
+    from services.anaf_cui import CuiResult
+
+    async def fake_extract_text_for_scan(filename, file_bytes, extract_fn):
+        return (
+            "Factura MGH 0013\n"
+            "Furnizor: MARKETING GROWTH HUB S.R.L.\n"
+            "IBAN RO42INGB0000999912242622\n"
+            "Total plata 200.00 RON",
+            None,
+        )
+
+    async def fake_check_cui(cui: str):
+        assert cui == "45758405"
+        return CuiResult(
+            exists=True,
+            checked=True,
+            denumire="MARKETING GROWTH HUB S.R.L.",
+            activ=True,
+            data_inactivare=None,
+            platitor_tva=False,
+            enrolled_efactura=False,
+            raw=None,
+        )
+
+    monkeypatch.setattr(app_main, "extract_text_for_scan", fake_extract_text_for_scan)
+    monkeypatch.setattr(app_main, "_extract_pdf_embedded_text", lambda _: MGH_PDF_TEXT)
+    monkeypatch.setattr("services.invoice_orchestrator.check_cui", fake_check_cui)
+    client = TestClient(app_main.app)
+
+    response = client.post(
+        "/v1/scan/invoice",
+        files={"pdf_file": ("mgh.pdf", b"%PDF-1.4\n%%EOF", "application/pdf")},
+        data={"source_channel": "android_native"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["fields"]["cui"] == "45758405"
+    assert payload["fields"]["iban"] == "RO42INGB0000999912242622"
+    assert payload["anaf"]["checked"] is True
+    assert payload["evidence_bundle"]["identity"]["status"] == "coherent"
+    assert payload["verdict_gate"]["label"] == "SAFE"
 
 
 def test_scan_invoice_endpoint_returns_gate_for_brand_never_asks(monkeypatch):
