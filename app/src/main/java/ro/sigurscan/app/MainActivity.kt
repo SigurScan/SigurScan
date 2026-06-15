@@ -63,6 +63,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import coil.compose.SubcomposeAsyncImage
 import ro.sigurscan.app.ui.theme.SigurScanTheme
@@ -76,6 +77,7 @@ import android.webkit.WebViewClient
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
 import java.text.SimpleDateFormat
+import java.io.File
 import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
@@ -338,6 +340,7 @@ internal fun resolveDeepLinkDestination(intent: Intent?): SharedIntentDestinatio
 @Composable
 fun MainScreen(viewModel: ScannerViewModel) {
     val context = LocalContext.current
+    var pendingInvoicePhotoUri by remember { mutableStateOf<Uri?>(null) }
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
@@ -360,10 +363,24 @@ fun MainScreen(viewModel: ScannerViewModel) {
     ) { uri ->
         uri?.let { viewModel.scanInvoiceFromDocument(it, context) }
     }
+    val invoicePhotoLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { captured ->
+        val capturedUri = pendingInvoicePhotoUri
+        if (captured && capturedUri != null) {
+            viewModel.scanInvoiceFromDocument(capturedUri, context)
+        }
+        pendingInvoicePhotoUri = null
+    }
     val offerPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
         uri?.let { viewModel.scanOfferFromDocument(it, context) }
+    }
+    val captureInvoicePhoto = {
+        val uri = createInvoiceCaptureUri(context)
+        pendingInvoicePhotoUri = uri
+        invoicePhotoLauncher.launch(uri)
     }
     var showQrScanner by remember { mutableStateOf(false) }
     val closeQrScanner = { showQrScanner = false }
@@ -382,6 +399,7 @@ fun MainScreen(viewModel: ScannerViewModel) {
                     onPickImage = { imagePickerLauncher.launch("image/*") },
                     onPickFile = { filePickerLauncher.launch("*/*") },
                     onScanQr = { showQrScanner = true },
+                    onCaptureInvoicePhoto = captureInvoicePhoto,
                     onScanInvoice = { invoicePickerLauncher.launch(arrayOf("image/*", "application/pdf")) },
                     onScanOffer = { offerPickerLauncher.launch(arrayOf("image/*", "application/pdf", "text/*", "text/html", "message/rfc822")) }
                 )
@@ -399,6 +417,7 @@ fun MainScreen(viewModel: ScannerViewModel) {
                     onPickImage = { imagePickerLauncher.launch("image/*") },
                     onPickFile = { filePickerLauncher.launch("*/*") },
                     onScanQr = { showQrScanner = true },
+                    onCaptureInvoicePhoto = captureInvoicePhoto,
                     onScanInvoice = { invoicePickerLauncher.launch(arrayOf("image/*", "application/pdf")) },
                     onScanOffer = { offerPickerLauncher.launch(arrayOf("image/*", "application/pdf", "text/*", "text/html", "message/rfc822")) }
                 )
@@ -422,12 +441,20 @@ fun MainScreen(viewModel: ScannerViewModel) {
     }
 }
 
+internal fun createInvoiceCaptureUri(context: Context): Uri {
+    val dir = File(context.cacheDir, "invoice_photos").apply { mkdirs() }
+    val stamp = SimpleDateFormat("yyyyMMdd_HHmmss_SSS", Locale.US).format(Date())
+    val photo = File.createTempFile("sigurscan_invoice_$stamp", ".jpg", dir)
+    return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", photo)
+}
+
 @Composable
 fun ScanTab(
     viewModel: ScannerViewModel,
     onPickImage: () -> Unit,
     onPickFile: () -> Unit,
     onScanQr: () -> Unit,
+    onCaptureInvoicePhoto: () -> Unit = {},
     onScanInvoice: () -> Unit = {},
     onScanOffer: () -> Unit = {}
 ) {
@@ -484,14 +511,14 @@ fun ScanTab(
                     actionPlanStatus = viewModel.actionPlanStatus,
                     onActionPlanImpacts = { viewModel.requestPostIncidentActionPlan(it) }
                 )
-                else -> ScanInputCard(viewModel, onPickImage, onPickFile, onScanQr, onScanInvoice, onScanOffer)
+                else -> ScanInputCard(viewModel, onPickImage, onPickFile, onScanQr, onCaptureInvoicePhoto, onScanInvoice, onScanOffer)
             }
 
             Spacer(modifier = Modifier.height(20.dp))
         }
 
         if (!hasActiveScanContext) {
-            ScanInputCard(viewModel, onPickImage, onPickFile, onScanQr, onScanInvoice, onScanOffer)
+            ScanInputCard(viewModel, onPickImage, onPickFile, onScanQr, onCaptureInvoicePhoto, onScanInvoice, onScanOffer)
         }
         
         Spacer(modifier = Modifier.height(20.dp))
@@ -2676,6 +2703,7 @@ fun ScanInputCard(
     onPickImage: () -> Unit,
     onPickFile: () -> Unit,
     onScanQr: () -> Unit,
+    onCaptureInvoicePhoto: () -> Unit = {},
     onScanInvoice: () -> Unit = {},
     onScanOffer: () -> Unit = {}
 ) {
@@ -2955,13 +2983,20 @@ fun ScanInputCard(
                 )
                 GridButton(
                     title = "Scanează Factură",
-                    desc = "CUI, IBAN, brand, ANAF",
+                    desc = "Alege imagine sau PDF",
                     icon = Icons.Default.Receipt,
                     color = Color(0xFF7C4DFF),
                     onClick = onScanInvoice,
                     modifier = Modifier.weight(1f)
                 )
             }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            InvoiceCaptureEntryCard(
+                onClick = onCaptureInvoicePhoto,
+                modifier = Modifier.fillMaxWidth()
+            )
 
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -3060,6 +3095,58 @@ fun GridButton(title: String, desc: String, icon: ImageVector, color: Color, onC
             }
             Text(title, color = SigurColors.TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 8.dp))
             Text(desc, color = SigurColors.TextMuted, fontSize = 10.sp, textAlign = TextAlign.Center)
+        }
+    }
+}
+
+@Composable
+fun InvoiceCaptureEntryCard(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier.clickable { onClick() },
+        colors = CardDefaults.cardColors(containerColor = SigurColors.BackgroundCard),
+        border = BorderStroke(1.dp, SigurColors.GlassBorder),
+        shape = DSCardShape
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(Color(0xFF7C4DFF).copy(alpha = 0.12f), RoundedCornerShape(16.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PhotoCamera,
+                    contentDescription = null,
+                    tint = Color(0xFF7C4DFF),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Fotografiază Factură",
+                    color = SigurColors.TextPrimary,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Fă poza acum și verificăm CUI, IBAN, brand și ANAF",
+                    color = SigurColors.TextMuted,
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp
+                )
+            }
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = SigurColors.TextSubtle,
+                modifier = Modifier.size(26.dp)
+            )
         }
     }
 }

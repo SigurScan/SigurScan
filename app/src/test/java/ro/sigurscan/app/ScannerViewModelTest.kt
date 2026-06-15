@@ -360,6 +360,34 @@ class ScannerViewModelTest {
     }
 
     @Test
+    fun invoiceCanBeCapturedWithCameraAndRoutedToInvoiceEndpoint() {
+        val activitySource = File("src/main/java/ro/sigurscan/app/MainActivity.kt").readText()
+        val manifestSource = File("src/main/AndroidManifest.xml").readText()
+
+        assertTrue(
+            "Invoice capture must use Android's camera capture contract, not only document picker.",
+            activitySource.contains("ActivityResultContracts.TakePicture()")
+        )
+        assertTrue(
+            "Invoice capture needs a FileProvider URI for the camera app output.",
+            activitySource.contains("createInvoiceCaptureUri(context)")
+        )
+        assertTrue(
+            "Successful invoice photo capture must reuse scanInvoiceFromDocument so it hits /v1/scan/invoice.",
+            activitySource.contains("viewModel.scanInvoiceFromDocument(capturedUri, context)")
+        )
+        assertTrue(
+            "Scan UI must expose a visible camera action for invoices.",
+            activitySource.contains("Fotografiază Factură")
+        )
+        assertTrue(
+            "Manifest must declare a FileProvider for camera output URIs.",
+            manifestSource.contains("androidx.core.content.FileProvider") &&
+                manifestSource.contains("android.support.FILE_PROVIDER_PATHS")
+        )
+    }
+
+    @Test
     fun pdfAndUnsupportedFileFailuresStayExplicitAndNonVerdict() {
         val viewModelSource = File("src/main/java/ro/sigurscan/app/ScannerViewModel.kt").readText()
         val fileStart = viewModelSource.indexOf("fun onFilePicked(uri: Uri, context: Context)")
