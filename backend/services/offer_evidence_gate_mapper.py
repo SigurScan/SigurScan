@@ -45,6 +45,13 @@ _PAYMENT_CONTEXT = re.compile(
     r"[îi]mprumut|rezervar|garan[țt]i|depozit|abonament|iban|cont(?:ul)?\b)",
     re.IGNORECASE,
 )
+_B2B_HIGH_FLAGS = {
+    "BEC_REPLY_TO_ACCOUNT_CHANGE",
+    "CEO_CONFIDENTIAL_PAYMENT",
+    "PHISHING_LINK_IN_INVOICE_EMAIL",
+    "INVOICE_ATTACHMENT_EXECUTABLE",
+    "REMOTE_ACCESS_REQUEST",
+}
 
 
 def _sensitive(fields: "OfferFields", signals: List[str]) -> str:
@@ -210,11 +217,16 @@ def build_offer_bundle(
     fraud_flags = set(cross_scan_knowledge.get("fraud_flags") or [])
     destination_mismatch = "PAYMENT_DESTINATION_BRAND_MISMATCH" in fraud_flags
     unknown_destination = "UNKNOWN_PAYMENT_DESTINATION" in fraud_flags
+    b2b_high_risk = bool(_B2B_HIGH_FLAGS & fraud_flags) or (
+        "PAYMENT_LINK_UNKNOWN_PSP" in fraud_flags and S.OFFER_CARD_CVV_OTP_REQUEST in signals
+    )
     semantic = _semantic_risk(
         signals, entity, coherence, family_code, family_confidence,
         registry_no_match=_registry_no_match_alert(registry_results, entity),
         suppress_brand_impersonation=official_payment_match and not destination_mismatch,
     )
+    if b2b_high_risk:
+        semantic = "high"
     if violated_never_asks or destination_mismatch:
         identity_status = "lookalike"
         identity_reason = "Brand pretins, dar cererea de plată/date contrazice politica oficială"
@@ -224,6 +236,11 @@ def build_offer_bundle(
     elif unknown_destination and identity_status == "official":
         identity_status = "unknown"
         identity_reason = "IBAN valid, dar destinația de plată nu este confirmată pentru brand"
+
+    if "REPLY_TO_MISMATCH" in fraud_flags or "BEC_REPLY_TO_ACCOUNT_CHANGE" in fraud_flags:
+        channel = "reply"
+    elif "PAYMENT_LINK_UNKNOWN_PSP" in fraud_flags or "PHISHING_LINK_IN_INVOICE_EMAIL" in fraud_flags:
+        channel = "unofficial_site"
 
     bundle: Dict[str, Any] = {
         "schema": "sigurscan_evidence_bundle_v2",

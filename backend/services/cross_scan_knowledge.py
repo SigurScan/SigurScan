@@ -38,6 +38,17 @@ def evaluate_cross_scan_knowledge(
     fraud_flags: Optional[list[str]] = None,
 ) -> dict[str, Any]:
     flags = list(fraud_flags or [])
+    b2b_signals: dict[str, Any] = {"flags": [], "warnings": [], "metadata": {}}
+    try:
+        from services.b2b_invoice_signals import evaluate_b2b_invoice_signals
+
+        b2b = evaluate_b2b_invoice_signals(text or "", claimed_vendor=claimed_brand)
+        b2b_signals = {"flags": b2b.flags, "warnings": b2b.warnings, "metadata": b2b.metadata}
+        for flag in b2b.flags:
+            if flag not in flags:
+                flags.append(flag)
+    except Exception:
+        pass
     payment_destinations: list[dict[str, Any]] = []
     for iban in _extract_ibans(text):
         payment = match_payment_destination(iban, claimed_brand=claimed_brand, cui=cui)
@@ -67,5 +78,6 @@ def evaluate_cross_scan_knowledge(
     return {
         "payment_destinations": payment_destinations,
         "brand_never_asks": never_asks,
+        "b2b_invoice_signals": b2b_signals,
         "fraud_flags": flags,
     }

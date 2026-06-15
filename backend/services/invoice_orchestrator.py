@@ -115,6 +115,19 @@ _PRESSURE_RE = re.compile(
     re.IGNORECASE,
 )
 _NAME_STOPWORDS = {"sc", "srl", "sa", "pfa", "ii", "snc", "de", "si"}
+B2B_HIGH_RISK_FLAGS = {
+    "BEC_REPLY_TO_ACCOUNT_CHANGE",
+    "CEO_CONFIDENTIAL_PAYMENT",
+    "PHISHING_LINK_IN_INVOICE_EMAIL",
+    "INVOICE_ATTACHMENT_EXECUTABLE",
+    "REMOTE_ACCESS_REQUEST",
+}
+B2B_MEDIUM_RISK_FLAGS = {
+    "REPLY_TO_MISMATCH",
+    "FREE_EMAIL_FOR_COMPANY_INVOICE",
+    "EFACTURA_CLAIM_WITHOUT_DOCUMENT",
+    "PAYMENT_LINK_UNKNOWN_PSP",
+}
 
 
 def _txt_norm(text: str) -> str:
@@ -176,6 +189,28 @@ def _fields_to_coherence(fields: InvoiceFields) -> CoherenceResult:
 
 def _has_no_extractable_data(fields: InvoiceFields) -> bool:
     return not any([fields.cui, fields.iban, fields.emitent, fields.total is not None, fields.data_emitere])
+
+
+def _detect_textual_b2b_flags(text: str, *, claimed_vendor: Optional[str] = None) -> tuple[list[str], list[str]]:
+    flags: list[str] = []
+    warnings: list[str] = []
+    try:
+        from services.b2b_invoice_signals import evaluate_b2b_invoice_signals
+
+        b2b_result = evaluate_b2b_invoice_signals(text or "", claimed_vendor=claimed_vendor)
+        flags.extend(b2b_result.flags)
+        warnings.extend(b2b_result.warnings)
+    except Exception:
+        pass
+    try:
+        from services.offer_signals import CARD_CVV_OTP
+
+        if CARD_CVV_OTP.search(text or "") and "SENSITIVE_DATA_REQUESTED" not in flags:
+            flags.append("SENSITIVE_DATA_REQUESTED")
+            warnings.append("Factura cere date de card/CVV/OTP; nu completa și nu plăti.")
+    except Exception:
+        pass
+    return flags, warnings
 
 
 def _build_beneficiary_name_check(
@@ -269,10 +304,12 @@ async def scan_invoice(ocr_text: str, links: Optional[list[str]] = None) -> Invo
     fields = parse_invoice(ocr_text)
     coherence = _fields_to_coherence(fields)
     if _has_no_extractable_data(fields):
+        fraud_flags, warnings = _detect_textual_b2b_flags(ocr_text, claimed_vendor=fields.emitent)
         error = "Nu am putut extrage niciun câmp din document."
         return InvoiceScanResult(
             raw_text=ocr_text, fields=fields, error=error,
             readiness=evaluate_readiness(fields), coherence=coherence,
+            warnings=warnings, fraud_flags=fraud_flags,
         )
 
     cached = _get_cached_verdict(fields)
@@ -398,14 +435,13 @@ async def scan_invoice(ocr_text: str, links: Optional[list[str]] = None) -> Invo
     if len(set(candidate_ibans)) >= 2:
         fraud_flags.append("MULTIPLE_IBANS")
 
-    try:
-        from services.offer_signals import CARD_CVV_OTP
-
-        if CARD_CVV_OTP.search(ocr_text or ""):
-            fraud_flags.append("SENSITIVE_DATA_REQUESTED")
-            warnings.append("Factura cere date de card/CVV/OTP; nu completa și nu plăti.")
-    except Exception:
-        pass
+    textual_flags, textual_warnings = _detect_textual_b2b_flags(ocr_text, claimed_vendor=fields.emitent)
+    for flag in textual_flags:
+        if flag not in fraud_flags:
+            fraud_flags.append(flag)
+    for warning in textual_warnings:
+        if warning not in warnings:
+            warnings.append(warning)
 
     try:
         from services import vendor_memory
@@ -422,6 +458,13 @@ async def scan_invoice(ocr_text: str, links: Optional[list[str]] = None) -> Invo
                 "ACCOUNT_CHANGE_LANGUAGE",
                 "SENSITIVE_DATA_REQUESTED",
                 "UNKNOWN_PAYMENT_DESTINATION",
+                "REPLY_TO_MISMATCH",
+                "BEC_REPLY_TO_ACCOUNT_CHANGE",
+                "CEO_CONFIDENTIAL_PAYMENT",
+                "PAYMENT_LINK_UNKNOWN_PSP",
+                "PHISHING_LINK_IN_INVOICE_EMAIL",
+                "INVOICE_ATTACHMENT_EXECUTABLE",
+                "REMOTE_ACCESS_REQUEST",
             }
             if not (hard_flags & set(fraud_flags)):
                 vendor_memory.remember_invoice_iban(fields.cui, fields.iban)
@@ -625,12 +668,24 @@ def build_invoice_evidence_bundle(
     benign_unknown_destination = bool(unknown_destination and coherent_generic_invoice_identity)
     weak_fraud_flag = any(
         flag in fraud_flags
-        for flag in ("FOREIGN_IBAN", "ACCOUNT_CHANGE_LANGUAGE", "IBAN_CHANGED_VS_HISTORY")
+        for flag in (
+            "FOREIGN_IBAN",
+            "ACCOUNT_CHANGE_LANGUAGE",
+            "IBAN_CHANGED_VS_HISTORY",
+            *B2B_MEDIUM_RISK_FLAGS,
+        )
     ) or (
         unknown_destination and not benign_unknown_destination
     )
     sensitive_requested = "SENSITIVE_DATA_REQUESTED" in fraud_flags
+    remote_access_requested = "REMOTE_ACCESS_REQUEST" in fraud_flags
     strong_bec_combo = "FOREIGN_IBAN" in fraud_flags and "ACCOUNT_CHANGE_LANGUAGE" in fraud_flags
+    b2b_high_risk = bool(B2B_HIGH_RISK_FLAGS & set(fraud_flags)) or (
+        "REPLY_TO_MISMATCH" in fraud_flags
+        and ("ACCOUNT_CHANGE_LANGUAGE" in fraud_flags or "IBAN_CHANGED_VS_HISTORY" in fraud_flags)
+    ) or (
+        "PAYMENT_LINK_UNKNOWN_PSP" in fraud_flags and sensitive_requested
+    )
 
     anaf_status = "clean"
     anaf_reasons: list = []
@@ -759,6 +814,7 @@ def build_invoice_evidence_bundle(
             or destination_trusted
             or coherent_generic_invoice_identity
             or bool(violated_never_asks)
+            or b2b_high_risk
         ),
         "violated_never_asks": violated_never_asks,
     }
@@ -766,8 +822,16 @@ def build_invoice_evidence_bundle(
         identity_section["never_asks_source_refs"] = never_asks_result.get("source_refs")
 
     request_section = {
-        "sensitive": "card" if sensitive_requested else "transfer",
-        "channel": never_asks_result.get("source_channel") if violated_never_asks else "invoice",
+        "sensitive": "remote" if remote_access_requested else "card" if sensitive_requested else "transfer",
+        "channel": (
+            never_asks_result.get("source_channel")
+            if violated_never_asks
+            else "reply"
+            if "REPLY_TO_MISMATCH" in fraud_flags or "BEC_REPLY_TO_ACCOUNT_CHANGE" in fraud_flags
+            else "unofficial_site"
+            if "PAYMENT_LINK_UNKNOWN_PSP" in fraud_flags or "PHISHING_LINK_IN_INVOICE_EMAIL" in fraud_flags
+            else "invoice"
+        ),
         "completeness": True,
     }
 
@@ -779,7 +843,15 @@ def build_invoice_evidence_bundle(
     if weak_fraud_flag:
         semantic_risk = "medium"
         semantic_reasons.append("Semnal de fraudă pe destinația plății")
-    if impersonation_risk or beneficiary_mismatch or destination_mismatch or strong_bec_combo or sensitive_requested:
+    if (
+        impersonation_risk
+        or beneficiary_mismatch
+        or destination_mismatch
+        or strong_bec_combo
+        or sensitive_requested
+        or remote_access_requested
+        or b2b_high_risk
+    ):
         semantic_risk = "high"
         semantic_reasons.append("Impersonation risk detected")
     if violated_never_asks:
@@ -805,7 +877,8 @@ def build_invoice_evidence_bundle(
         "context": {
             "urgency": bool(re.search(r"\b(urgent|azi|acum|24\s*de\s*ore|ultima|expir[ăa])\b", str(redacted_text or ""), re.IGNORECASE)),
             "passive_payment": bool(re.search(r"\b(plata abonamentului|se va efectua automat plata|factur[ăa])\b", str(redacted_text or ""), re.IGNORECASE)),
-            "apk_or_remote_mention": False,
+            "apk_or_remote_mention": remote_access_requested,
+            "b2b_invoice_signals": [flag for flag in fraud_flags if flag in B2B_HIGH_RISK_FLAGS or flag in B2B_MEDIUM_RISK_FLAGS],
         },
     }
     canonical = json.dumps(bundle, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
