@@ -80,6 +80,62 @@ PAYMENT_OR_INVOICE_CONTEXT_RE = re.compile(
     re.IGNORECASE,
 )
 COMPANY_MARKER_RE = re.compile(r"\b(?:s\.?\s?r\.?\s?l|s\.?\s?a|pfa|i\.?\s?i|cui|cif|factur[ăa])\b", re.IGNORECASE)
+OSIM_TRADEMARK_RE = re.compile(
+    r"\b(?:osim|tmview|marc[ăa]|m[ăa]rci|trademark|proprietate\s+industrial[ăa])\b"
+    r".{0,120}\b(?:tax[ăa]|plat[ăa]|achita(?:re|[țt]i)?|inregistrare|înregistrare)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+LEGAL_DEMAND_RE = re.compile(
+    r"\b(?:soma[țt]ie|recuperare\s+crean[țt]e|executor|avocat|penalit[ăa][țt]i)\b"
+    r".{0,160}\b(?:iban|cont\s+nou|achita[țt]i\s+urgent)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+DOMAIN_RENEWAL_RE = re.compile(
+    r"\b(?:renewal|reinnoire|reînnoire|domain|domeniu|hosting|ssl|dns)\b"
+    r".{0,120}\b(?:factur[ăa]|invoice|payment|plat[ăa]|achita[țt]i)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+GRANT_CONSULTING_RE = re.compile(
+    r"\b(?:fonduri|grant|subven[țt]ie|program\s+ue|pnrr)\b"
+    r".{0,160}\b(?:tax[ăa]\s+dosar|garan[țt]ie|analiz[ăa]|avans)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+SAAS_LICENSE_AUDIT_RE = re.compile(
+    r"\b(?:audit\s+licen[țt]e|software\s+compliance|cloud\s+subscription|microsoft\s*365|google\s+workspace|adobe)\b"
+    r".{0,160}\b(?:plat[ăa]\s+urgent[ăa]|regularizare|suspendare)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+OVERPAYMENT_RETURN_RE = re.compile(
+    r"\b(?:supraplat[ăa]|eroare\s+plat[ăa]|returna[țt]i\s+diferen[țt]a|p[ăa]stra[țt]i\s+comisionul|purchase\s+order|\bpo[-\s]?\d*)\b"
+    r".{0,180}\b(?:returna[țt]i|diferen[țt]a|comision|iban|cont)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+PROCUREMENT_FEE_RE = re.compile(
+    r"\b(?:seap|licita[țt]ie|contract\s+public|subcontractare)\b"
+    r".{0,160}\b(?:tax[ăa]|garan[țt]ie|inscriere|înscriere|dosar)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+PAYROLL_DATA_RE = re.compile(
+    r"\b(?:stat\s+de\s+plat[ăa]|salarii|cnp|cont\s+salariu|iban\s+salariu|date\s+angaja[țt]i)\b"
+    r".{0,180}\b(?:actualizare|transmite[țt]i|confirmare|trimite[țt]i)\b|"
+    r"\b(?:actualizare|transmite[țt]i|confirmare|trimite[țt]i)\b"
+    r".{0,180}\b(?:stat\s+de\s+plat[ăa]|salarii|cnp|cont\s+salariu|iban\s+salariu|date\s+angaja[țt]i)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+OFFICIAL_REGISTRY_CLAIM_RE = re.compile(
+    r"\b(?:onrc|bnr|asf|anpc|osim|registru|autorizat|certificat)\b"
+    r".{0,160}\b(?:plat[ăa]|achita[țt]i|tax[ăa]|urgent)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+URGENT_PAYMENT_OVERRIDE_RE = re.compile(
+    r"\b(?:urgent|azi|imediat|confiden[țt]ial|nu\s+suna|sunt\s+(?:in|în)\s+(?:sedinta|ședință))\b"
+    r".{0,180}\b(?:plat[ăa]|transfer|ordin|iban|virament)\b|"
+    r"\b(?:plat[ăa]|transfer|ordin|iban|virament)\b"
+    r".{0,180}\b(?:urgent|azi|imediat|confiden[țt]ial|nu\s+suna|sunt\s+(?:in|în)\s+(?:sedinta|ședință))\b",
+    re.IGNORECASE | re.DOTALL,
+)
+OFFICIAL_OSIM_DOMAIN_RE = re.compile(r"\b(?:https?://)?(?:portal\.)?osim\.ro\b", re.IGNORECASE)
+APPROVAL_EVIDENCE_RE = re.compile(r"\b(?:ticket\s*#?\d+|aprobat(?:[ăa])?\s+de|aprobare\s+(?:valid[ăa]|intern[ăa])|po[-\s]?\d+)\b", re.IGNORECASE)
 
 
 @dataclass
@@ -225,6 +281,76 @@ def evaluate_b2b_invoice_signals(text: str, *, claimed_vendor: Optional[str] = N
             result,
             "BEC_REPLY_TO_ACCOUNT_CHANGE",
             "Schimbare de cont bancar plus Reply-To diferit: tipar puternic de fraudă BEC.",
+        )
+
+    if OSIM_TRADEMARK_RE.search(raw) and not OFFICIAL_OSIM_DOMAIN_RE.search(raw):
+        _add(
+            result,
+            "OSIM_TRADEMARK_FEE_UNOFFICIAL_SENDER",
+            "Solicitare de plată pentru marcă/OSIM/TMview fără canal oficial OSIM verificabil.",
+        )
+
+    if LEGAL_DEMAND_RE.search(raw):
+        _add(
+            result,
+            "LEGAL_DEMAND_PAYMENT_TO_NEW_IBAN",
+            "Somație/recuperare creanțe cere plată urgentă către IBAN/cont nou.",
+        )
+
+    if DOMAIN_RENEWAL_RE.search(raw):
+        _add(
+            result,
+            "DOMAIN_RENEWAL_INVOICE_NO_EXISTING_VENDOR",
+            "Factură de reînnoire domeniu/hosting/SSL de la furnizor neverificat.",
+        )
+
+    if GRANT_CONSULTING_RE.search(raw):
+        _add(
+            result,
+            "GRANT_CONSULTING_FEE_BEFORE_CONTRACT",
+            "Taxă/garanție pentru grant/fonduri înainte de contract sau verificare oficială.",
+        )
+
+    if SAAS_LICENSE_AUDIT_RE.search(raw):
+        _add(
+            result,
+            "SAAS_LICENSE_AUDIT_URGENT_PAYMENT",
+            "Pretins audit/licență software cere plată urgentă sau regularizare.",
+        )
+
+    if OVERPAYMENT_RETURN_RE.search(raw):
+        _add(
+            result,
+            "PO_OR_OVERPAYMENT_RETURN_REQUEST",
+            "Cerere de returnare diferență/supraplată către alt cont: tipar B2B de fraudă.",
+        )
+
+    if PROCUREMENT_FEE_RE.search(raw):
+        _add(
+            result,
+            "NEW_VENDOR_PUBLIC_PROCUREMENT_FEE",
+            "Contract public/subcontractare cere taxă de înscriere/garanție înainte de verificare.",
+        )
+
+    if PAYROLL_DATA_RE.search(raw):
+        _add(
+            result,
+            "PAYROLL_OR_EMPLOYEE_DATA_REQUEST_VIA_INVOICE_THREAD",
+            "Thread de factură cere date angajați/CNP/IBAN salariu.",
+        )
+
+    if OFFICIAL_REGISTRY_CLAIM_RE.search(raw) and not OFFICIAL_OSIM_DOMAIN_RE.search(raw):
+        _add(
+            result,
+            "OFFICIAL_REGISTRY_CLAIM_BUT_NO_PROVENANCE",
+            "Documentul invocă registru/autoritate, dar fără proveniență oficială verificabilă.",
+        )
+
+    if URGENT_PAYMENT_OVERRIDE_RE.search(raw) and not APPROVAL_EVIDENCE_RE.search(raw):
+        _add(
+            result,
+            "URGENT_PAYMENT_OVERRIDE_NO_TICKET",
+            "Cerere de plată urgentă care ocolește procedura internă/ticket/aprobare.",
         )
 
     return result

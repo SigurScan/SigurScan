@@ -99,3 +99,108 @@ def test_cross_scan_exports_b2b_invoice_signals_for_non_invoice_text():
 
     assert "REPLY_TO_MISMATCH" in result["fraud_flags"]
     assert "BEC_REPLY_TO_ACCOUNT_CHANGE" in result["b2b_invoice_signals"]["flags"]
+
+
+@pytest.mark.asyncio
+async def test_osim_trademark_fee_from_unofficial_sender_is_dangerous():
+    result = await scan_invoice(
+        "From: taxe@osim-tax-ro.example\n"
+        "Factura OSIM/TMview pentru inregistrare marca. Achitati azi taxa in "
+        "IBAN RO49AAAA1B31007593840000. Total 1000 RON"
+    )
+    verdict = evaluate_invoice_verdict(result, result.raw_text, source_channel="email")
+
+    assert "OSIM_TRADEMARK_FEE_UNOFFICIAL_SENDER" in result.fraud_flags
+    assert verdict["gate"]["label"] == "DANGEROUS"
+
+
+def test_osim_trademark_fee_official_portal_is_guarded():
+    result = evaluate_b2b_invoice_signals(
+        "OSIM taxa marca confirmata pe https://portal.osim.ro si osim.ro pentru plata oficiala."
+    )
+
+    assert "OSIM_TRADEMARK_FEE_UNOFFICIAL_SENDER" not in result.flags
+
+
+@pytest.mark.asyncio
+async def test_legal_demand_new_iban_is_dangerous():
+    result = await scan_invoice(
+        "Somatie recuperare creante: achitati urgent penalitatile in cont nou "
+        "IBAN RO49AAAA1B31007593840000. Total 4200 RON"
+    )
+    verdict = evaluate_invoice_verdict(result, result.raw_text, source_channel="email")
+
+    assert "LEGAL_DEMAND_PAYMENT_TO_NEW_IBAN" in result.fraud_flags
+    assert verdict["gate"]["label"] == "DANGEROUS"
+
+
+@pytest.mark.asyncio
+async def test_domain_renewal_unknown_vendor_is_suspect_not_safe():
+    result = await scan_invoice(
+        "Factura reinnoire domeniu si SSL pentru firma dvs. Payment due today. "
+        "IBAN RO49AAAA1B31007593840000 Total 390 RON"
+    )
+    verdict = evaluate_invoice_verdict(result, result.raw_text, source_channel="email")
+
+    assert "DOMAIN_RENEWAL_INVOICE_NO_EXISTING_VENDOR" in result.fraud_flags
+    assert verdict["gate"]["label"] in {"SUSPECT", "DANGEROUS"}
+
+
+@pytest.mark.asyncio
+async def test_saas_license_audit_urgent_payment_is_dangerous():
+    result = await scan_invoice(
+        "Microsoft 365 software compliance audit: plata urgenta pentru regularizare "
+        "altfel suspendare. IBAN RO49AAAA1B31007593840000 Total 2500 RON"
+    )
+    verdict = evaluate_invoice_verdict(result, result.raw_text, source_channel="email")
+
+    assert "SAAS_LICENSE_AUDIT_URGENT_PAYMENT" in result.fraud_flags
+    assert verdict["gate"]["label"] == "DANGEROUS"
+
+
+@pytest.mark.asyncio
+async def test_overpayment_return_request_is_dangerous():
+    result = await scan_invoice(
+        "Purchase order PO-8831 achitat cu eroare plata. Returnati diferenta in "
+        "IBAN RO49AAAA1B31007593840000 si pastrati comisionul."
+    )
+    verdict = evaluate_invoice_verdict(result, result.raw_text, source_channel="email")
+
+    assert "PO_OR_OVERPAYMENT_RETURN_REQUEST" in result.fraud_flags
+    assert verdict["gate"]["label"] == "DANGEROUS"
+
+
+@pytest.mark.asyncio
+async def test_payroll_data_request_in_invoice_thread_is_dangerous():
+    result = await scan_invoice(
+        "In threadul facturii, transmiteti date angajati, CNP si IBAN salariu "
+        "pentru actualizare stat de plata."
+    )
+    verdict = evaluate_invoice_verdict(result, result.raw_text, source_channel="email")
+
+    assert "PAYROLL_OR_EMPLOYEE_DATA_REQUEST_VIA_INVOICE_THREAD" in result.fraud_flags
+    assert verdict["gate"]["label"] == "DANGEROUS"
+
+
+@pytest.mark.asyncio
+async def test_procurement_registration_fee_is_suspect():
+    result = await scan_invoice(
+        "Invitatie subcontractare SEAP pentru contract public. Achitati taxa de "
+        "inscriere dosar in IBAN RO49AAAA1B31007593840000."
+    )
+    verdict = evaluate_invoice_verdict(result, result.raw_text, source_channel="email")
+
+    assert "NEW_VENDOR_PUBLIC_PROCUREMENT_FEE" in result.fraud_flags
+    assert verdict["gate"]["label"] in {"SUSPECT", "DANGEROUS"}
+
+
+@pytest.mark.asyncio
+async def test_urgent_payment_override_without_ticket_is_dangerous():
+    result = await scan_invoice(
+        "Urgent azi, nu suna, sunt in sedinta. Fa plata prin transfer in "
+        "IBAN RO49AAAA1B31007593840000 fara ticket sau aprobare."
+    )
+    verdict = evaluate_invoice_verdict(result, result.raw_text, source_channel="email")
+
+    assert "URGENT_PAYMENT_OVERRIDE_NO_TICKET" in result.fraud_flags
+    assert verdict["gate"]["label"] == "DANGEROUS"
