@@ -33,8 +33,8 @@ ROUND3_SIGNALS = [
     ("urgent_payment_override_no_ticket", ["URGENT_PAYMENT_OVERRIDE_NO_TICKET"], "covered"),
     (
         "efactura_or_official_document_mismatch",
-        ["EFACTURA_CLAIM_WITHOUT_DOCUMENT"],
-        "partial_no_xml_diff_engine_yet",
+        ["EFACTURA_CLAIM_WITHOUT_DOCUMENT", "EFACTURA_OFFICIAL_DOCUMENT_MISMATCH"],
+        "covered",
     ),
 ]
 
@@ -83,7 +83,12 @@ def _git_head() -> str:
 
 
 def _implemented_flags() -> set[str]:
-    code = _read("backend/services/b2b_invoice_signals.py")
+    code = "\n".join(
+        [
+            _read("backend/services/b2b_invoice_signals.py"),
+            _read("backend/services/invoice_orchestrator.py"),
+        ]
+    )
     return set(re.findall(r'"([A-Z0-9_]{6,})"', code))
 
 
@@ -213,7 +218,7 @@ def build_report() -> str:
         [
             "",
             "Notes:",
-            "- `efactura_or_official_document_mismatch` is intentionally marked partial: the backend detects missing e-Factura proof, but does not yet compare official XML/PDF content against an email PDF field-by-field.",
+            "- `efactura_or_official_document_mismatch` is covered in two layers: missing proof remains advisory/medium, while a provided official XML that contradicts CUI/IBAN/total becomes a high-risk evidence flag.",
             "- `invoice_attachment_has_payment_link_mismatch` is covered by the generic payment-link / anchor-mismatch evidence, not a dedicated one-off flag.",
             "",
             "## Payment Destination Pass1",
@@ -255,7 +260,7 @@ def build_report() -> str:
             "",
             "## Next Coverage Work",
             "",
-            "1. Add an official XML/PDF e-Factura diff path before marking `efactura_or_official_document_mismatch` as fully covered.",
+            "1. Add Android UI for optional official XML attachment so the backend e-Factura diff is user-accessible.",
             "2. Expand pass1 `needs_confirmation` entities only when official complete IBANs or official never-asks statements are available.",
             "3. Keep this audit updated when new research packs are imported.",
             "",

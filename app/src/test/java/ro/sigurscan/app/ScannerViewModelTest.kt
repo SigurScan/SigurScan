@@ -465,6 +465,8 @@ class ScannerViewModelTest {
     fun invoiceCanBeCapturedWithCameraAndRoutedToInvoiceEndpoint() {
         val activitySource = File("src/main/java/ro/sigurscan/app/MainActivity.kt").readText()
         val manifestSource = File("src/main/AndroidManifest.xml").readText()
+        val viewModelSource = File("src/main/java/ro/sigurscan/app/ScannerViewModel.kt").readText()
+        val apiSource = File("src/main/java/ro/sigurscan/app/SigurScanApi.kt").readText()
 
         assertTrue(
             "Invoice capture must use Android's camera capture contract, not only document picker.",
@@ -475,8 +477,9 @@ class ScannerViewModelTest {
             activitySource.contains("createInvoiceCaptureUri(context)")
         )
         assertTrue(
-            "Successful invoice photo capture must reuse scanInvoiceFromDocument so it hits /v1/scan/invoice.",
-            activitySource.contains("viewModel.scanInvoiceFromDocument(capturedUri, context)")
+            "Successful invoice photo capture must stage the photo for the same optional XML + invoice endpoint flow.",
+            activitySource.contains("stageInvoiceForOptionalXml(capturedUri)") &&
+                activitySource.contains("viewModel.scanInvoiceFromDocument(invoiceUri, context)")
         )
         assertTrue(
             "Invoice camera capture must request CAMERA permission before launching TakePicture.",
@@ -488,6 +491,18 @@ class ScannerViewModelTest {
             activitySource.contains("InvoiceSourceChooserDialog") &&
                 activitySource.contains("Fă poză") &&
                 activitySource.contains("Încarcă imagine/PDF")
+        )
+        assertTrue(
+            "Invoice flow must offer optional official e-Factura XML after selecting the invoice.",
+            activitySource.contains("OfficialInvoiceXmlChooserDialog") &&
+                activitySource.contains("Atașează XML e-Factura") &&
+                activitySource.contains("Continuă fără XML")
+        )
+        assertTrue(
+            "Invoice API upload must support optional official_xml_file without replacing pdf_file/image_file.",
+            apiSource.contains("officialXmlFile") &&
+                viewModelSource.contains("officialXmlUri: Uri? = null") &&
+                viewModelSource.contains("""createFormData("official_xml_file"""")
         )
         assertFalse(
             "Invoice camera must not be a second standalone tile next to Scanează Factură.",

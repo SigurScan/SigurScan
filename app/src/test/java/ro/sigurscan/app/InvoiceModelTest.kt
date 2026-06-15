@@ -96,4 +96,36 @@ class InvoiceModelTest {
         assertEquals(55, response.verdictGate?.riskScore)
         assertEquals(listOf("value_request_needs_verification"), response.verdictGate?.reasonCodes)
     }
+
+    @Test
+    fun invoiceResponseParsesOfficialDocumentMismatch() {
+        val json = """
+            {
+              "official_document_check": {
+                "provided": true,
+                "status": "mismatch",
+                "risk_flag": "EFACTURA_OFFICIAL_DOCUMENT_MISMATCH",
+                "matched_fields": ["cui", "total"],
+                "mismatches": [
+                  {
+                    "field": "iban",
+                    "invoice_value": "RO42INGB0000999912242622",
+                    "official_value": "RO49AAAA1B31007593840000",
+                    "severity": "high"
+                  }
+                ]
+              },
+              "fraud_flags": ["EFACTURA_OFFICIAL_DOCUMENT_MISMATCH"]
+            }
+        """.trimIndent()
+
+        val response = Gson().fromJson(json, InvoiceScanResponse::class.java)
+
+        assertEquals(true, response.officialDocumentCheck?.provided)
+        assertEquals("mismatch", response.officialDocumentCheck?.status)
+        assertEquals("EFACTURA_OFFICIAL_DOCUMENT_MISMATCH", response.officialDocumentCheck?.riskFlag)
+        assertEquals(listOf("cui", "total"), response.officialDocumentCheck?.matchedFields)
+        assertEquals("iban", response.officialDocumentCheck?.mismatches?.firstOrNull()?.field)
+        assertEquals("high", response.officialDocumentCheck?.mismatches?.firstOrNull()?.severity)
+    }
 }

@@ -5,7 +5,7 @@ import os
 import re
 import time
 from typing import Any, List, Optional, TYPE_CHECKING
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from services.invoice_parser import parse_invoice, InvoiceFields
 from services.iban_validator import validate_iban, IbanResult
 from services.invoice_coherence import CoherenceResult, check_coherence
@@ -87,6 +87,7 @@ class InvoiceScanResult:
     anaf_cui_check: Optional[dict] = None
     payment_destination: Optional[dict] = None
     beneficiary_name_check: Optional[dict] = None
+    official_document_check: Optional[dict] = None
     error: Optional[str] = None
     warnings: list = field(default_factory=list)
     fraud_flags: list[str] = field(default_factory=list)
@@ -127,6 +128,7 @@ B2B_HIGH_RISK_FLAGS = {
     "PO_OR_OVERPAYMENT_RETURN_REQUEST",
     "PAYROLL_OR_EMPLOYEE_DATA_REQUEST_VIA_INVOICE_THREAD",
     "URGENT_PAYMENT_OVERRIDE_NO_TICKET",
+    "EFACTURA_OFFICIAL_DOCUMENT_MISMATCH",
 }
 B2B_MEDIUM_RISK_FLAGS = {
     "REPLY_TO_MISMATCH",
@@ -308,6 +310,30 @@ def _build_beneficiary_name_check(
         ],
         "privacy_note": "SigurScan nu îți cere acces la banca ta, parolă, OTP, PIN sau captură de ecran.",
     }
+
+
+def with_official_document_check(result: InvoiceScanResult, check: Optional[dict]) -> InvoiceScanResult:
+    if not check or check.get("provided") is not True:
+        return result
+
+    fraud_flags = list(result.fraud_flags or [])
+    warnings = list(result.warnings or [])
+    risk_flag = check.get("risk_flag")
+    if risk_flag and risk_flag not in fraud_flags:
+        fraud_flags.append(str(risk_flag))
+    if check.get("status") == "mismatch":
+        warning = (
+            "Factura scanată diferă de documentul oficial atașat. "
+            "Nu plăti până nu verifici sursa documentului."
+        )
+        if warning not in warnings:
+            warnings.append(warning)
+    return replace(
+        result,
+        official_document_check=check,
+        fraud_flags=fraud_flags,
+        warnings=warnings,
+    )
 
 
 async def scan_invoice(ocr_text: str, links: Optional[list[str]] = None) -> InvoiceScanResult:
@@ -629,7 +655,9 @@ def build_invoice_evidence_bundle(
     beneficiary_mismatch = "BENEFICIARY_PERSON_MISMATCH" in fraud_flags
     destination_mismatch = "PAYMENT_DESTINATION_BRAND_MISMATCH" in fraud_flags
     unknown_destination = "UNKNOWN_PAYMENT_DESTINATION" in fraud_flags
+    official_document_mismatch = "EFACTURA_OFFICIAL_DOCUMENT_MISMATCH" in fraud_flags
     payment_destination = getattr(result, "payment_destination", None) or {}
+    official_document_check = getattr(result, "official_document_check", None) or None
     never_asks_result = {
         "brand_ids": [],
         "violated_never_asks": [],
@@ -777,6 +805,16 @@ def build_invoice_evidence_bundle(
                 "brand_matches": None,
                 "reasons": ["IBAN valid structural, dar neconfirmat ca destinație oficială"],
             }
+    if official_document_check:
+        official_status = official_document_check.get("status")
+        provider_section["official_document"] = {
+            "status": "suspicious" if official_status == "mismatch" else "clean" if official_status == "match" else "unknown",
+            "verdict": "suspicious" if official_status == "mismatch" else "clean" if official_status == "match" else "unknown",
+            "provided": True,
+            "risk_flag": official_document_check.get("risk_flag"),
+            "matched_fields": official_document_check.get("matched_fields") or [],
+            "mismatches": official_document_check.get("mismatches") or [],
+        }
 
     if beneficiary_mismatch:
         identity_status = "lookalike"
@@ -831,6 +869,7 @@ def build_invoice_evidence_bundle(
             or coherent_generic_invoice_identity
             or bool(violated_never_asks)
             or b2b_high_risk
+            or official_document_mismatch
         ),
         "violated_never_asks": violated_never_asks,
     }
@@ -867,6 +906,7 @@ def build_invoice_evidence_bundle(
         or sensitive_requested
         or remote_access_requested
         or b2b_high_risk
+        or official_document_mismatch
     ):
         semantic_risk = "high"
         semantic_reasons.append("Impersonation risk detected")

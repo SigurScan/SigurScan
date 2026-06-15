@@ -97,6 +97,7 @@ app = FastAPI(
 
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
 MAX_PDF_BYTES = 12 * 1024 * 1024
+MAX_XML_BYTES = 2 * 1024 * 1024
 MAX_TEXT_CHARS = int(os.getenv("MAX_TEXT_CHARS", "12000"))
 MAX_URLS_PER_SCAN = int(os.getenv("MAX_URLS_PER_SCAN", "15"))
 RISK_THRESHOLD = int(os.getenv("RISK_THRESHOLD", "50"))
@@ -109,6 +110,8 @@ ALLOWED_IMAGE_MIME_TYPES = {"image/jpeg", "image/png", "image/webp"}
 ALLOWED_IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp"}
 ALLOWED_PDF_MIME_TYPES = {"application/pdf", "application/x-pdf"}
 ALLOWED_PDF_EXTS = {".pdf"}
+ALLOWED_XML_MIME_TYPES = {"application/xml", "text/xml", "application/octet-stream"}
+ALLOWED_XML_EXTS = {".xml"}
 ALLOWED_MOCK_OCR = os.getenv("ALLOW_MOCK_OCR", "false").strip().lower() in {
     "1",
     "true",
@@ -8981,6 +8984,7 @@ async def scan_pdf(
 async def scan_invoice_endpoint(
     image_file: Optional[UploadFile] = File(None),
     pdf_file: Optional[UploadFile] = File(None),
+    official_xml_file: Optional[UploadFile] = File(None),
     source_channel: Optional[str] = Form("android_native"),
 ):
     """
@@ -8988,7 +8992,8 @@ async def scan_invoice_endpoint(
     Accepts an image or PDF, runs OCR, extracts invoice fields, validates
     IBAN/CUI/brand, checks ANAF registry, and returns structured warnings.
     """
-    from services.invoice_orchestrator import evaluate_invoice_verdict, scan_invoice
+    from services.efactura_xml import EFacturaXmlError, compare_invoice_to_official_xml, parse_efactura_xml
+    from services.invoice_orchestrator import evaluate_invoice_verdict, scan_invoice, with_official_document_check
 
     if bool(image_file) == bool(pdf_file):
         raise HTTPException(
@@ -9050,6 +9055,34 @@ async def scan_invoice_endpoint(
 
     extracted_urls = _dedupe_preserve_order(pdf_annotation_urls + extract_urls(ocr_text))
     result = await scan_invoice(ocr_text, links=extracted_urls)
+    official_document_check = {"provided": False, "status": "not_provided"}
+    if official_xml_file is not None:
+        xml_filename = official_xml_file.filename or "efactura.xml"
+        xml_bytes = await official_xml_file.read()
+        if not xml_bytes:
+            raise HTTPException(status_code=400, detail="XML-ul oficial încărcat este gol.")
+        _validate_file_upload(
+            filename=xml_filename,
+            content_type=official_xml_file.content_type,
+            file_bytes=xml_bytes,
+            max_bytes=MAX_XML_BYTES,
+            allowed_exts=ALLOWED_XML_EXTS,
+            allowed_mime_types=ALLOWED_XML_MIME_TYPES,
+        )
+        try:
+            official_fields = parse_efactura_xml(xml_bytes)
+            official_document_check = compare_invoice_to_official_xml(result.fields, official_fields)
+        except EFacturaXmlError as exc:
+            official_document_check = {
+                "provided": True,
+                "status": "parse_error",
+                "risk_flag": None,
+                "mismatches": [],
+                "matched_fields": [],
+                "missing_official_fields": [],
+                "error": str(exc),
+            }
+        result = with_official_document_check(result, official_document_check)
     invoice_gate = evaluate_invoice_verdict(result, result.raw_text, source_channel=source_channel)
 
     response = {
@@ -9097,6 +9130,7 @@ async def scan_invoice_endpoint(
         } if result.brand_match else None,
         "payment_destination": result.payment_destination,
         "beneficiary_name_check": result.beneficiary_name_check,
+        "official_document_check": official_document_check,
         "anaf": result.anaf_cui_check,
         "fraud_flags": result.fraud_flags,
         "evidence_bundle": invoice_gate["bundle"],

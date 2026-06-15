@@ -1,6 +1,6 @@
 # SigurScan Research Coverage Audit - 2026-06-15
 
-Generated from repo state: `b74e1ce`.
+Generated from repo state: `8dddcbe`.
 
 Scope:
 - `sigurscan_imm_b2b_invoice_fraud_round3_2026_06_15.zip`
@@ -14,7 +14,7 @@ Policy:
 
 ## Summary
 
-- B2B Round3 signals represented: `12/12` (`11` full, `1` partial).
+- B2B Round3 signals represented: `12/12` (`12` full, `0` partial).
 - Payment pass1 entities represented: `17/17`.
 - RDAP / Cloudflare MX brace bug: `fixed`.
 
@@ -33,10 +33,10 @@ Policy:
 | `official_registry_claim_but_no_provenance` | `OFFICIAL_REGISTRY_CLAIM_BUT_NO_PROVENANCE` | OK `covered` |
 | `invoice_attachment_has_payment_link_mismatch` | `PHISHING_LINK_IN_INVOICE_EMAIL, PAYMENT_LINK_UNKNOWN_PSP` | OK `covered_by_generic_payment_link_logic` |
 | `urgent_payment_override_no_ticket` | `URGENT_PAYMENT_OVERRIDE_NO_TICKET` | OK `covered` |
-| `efactura_or_official_document_mismatch` | `EFACTURA_CLAIM_WITHOUT_DOCUMENT` | PARTIAL `partial_no_xml_diff_engine_yet` |
+| `efactura_or_official_document_mismatch` | `EFACTURA_CLAIM_WITHOUT_DOCUMENT, EFACTURA_OFFICIAL_DOCUMENT_MISMATCH` | OK `covered` |
 
 Notes:
-- `efactura_or_official_document_mismatch` is intentionally marked partial: the backend detects missing e-Factura proof, but does not yet compare official XML/PDF content against an email PDF field-by-field.
+- `efactura_or_official_document_mismatch` is covered in two layers: missing proof remains advisory/medium, while a provided official XML that contradicts CUI/IBAN/total becomes a high-risk evidence flag.
 - `invoice_attachment_has_payment_link_mismatch` is covered by the generic payment-link / anchor-mismatch evidence, not a dedicated one-off flag.
 
 ## Payment Destination Pass1
@@ -74,6 +74,6 @@ Verified files:
 
 ## Next Coverage Work
 
-1. Add an official XML/PDF e-Factura diff path before marking `efactura_or_official_document_mismatch` as fully covered.
+1. Add Android UI for optional official XML attachment so the backend e-Factura diff is user-accessible.
 2. Expand pass1 `needs_confirmation` entities only when official complete IBANs or official never-asks statements are available.
 3. Keep this audit updated when new research packs are imported.

@@ -2730,13 +2730,14 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
         publishAssessmentResult(null, result)
     }
 
-    fun scanInvoiceFromDocument(uri: Uri, context: Context) {
+    fun scanInvoiceFromDocument(uri: Uri, context: Context, officialXmlUri: Uri? = null) {
         loading = true
-        loadingMsg = "Scanăm factura prin OCR..."
+        loadingMsg = if (officialXmlUri != null) "Comparăm factura cu XML-ul e-Factura..." else "Scanăm factura prin OCR..."
         invoiceResult = null
 
         viewModelScope.launch {
             var file: File? = null
+            var officialXmlFile: File? = null
             try {
                 val fileName = getFileName(uri, context)
                 val mimeType = context.contentResolver.getType(uri).orEmpty().lowercase(Locale.getDefault())
@@ -2758,14 +2759,31 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                 val requestFile = file.asRequestBody(mediaType.toMediaTypeOrNull())
                 val body = MultipartBody.Part.createFormData(partName, fileName, requestFile)
                 val source = "android_native".toRequestBody("text/plain".toMediaTypeOrNull())
+                val officialPart = officialXmlUri?.let { xmlUri ->
+                    val xmlFileName = getFileName(xmlUri, context)
+                    val xmlMimeType = context.contentResolver.getType(xmlUri).orEmpty().lowercase(Locale.getDefault())
+                    val isXml = xmlMimeType.contains("xml") || xmlFileName.lowercase(Locale.getDefault()).endsWith(".xml")
+                    if (!isXml) {
+                        invoiceResult = InvoiceScanResponse(
+                            error = "Alege XML-ul oficial e-Factura în format .xml."
+                        )
+                        return@launch
+                    }
+                    officialXmlFile = uriToFile(xmlUri, context, MAX_UPLOAD_BYTES)
+                    val xmlRequest = officialXmlFile!!.asRequestBody(
+                        (xmlMimeType.ifBlank { "application/xml" }).toMediaTypeOrNull()
+                    )
+                    MultipartBody.Part.createFormData("official_xml_file", xmlFileName, xmlRequest)
+                }
 
-                invoiceResult = api.scanInvoice(body, source)
+                invoiceResult = api.scanInvoice(body, source, officialPart)
             } catch (e: Exception) {
                 invoiceResult = InvoiceScanResponse(
                     error = "Eroare la scanarea facturii: ${e.localizedMessage ?: "conexiune eșuată"}"
                 )
             } finally {
                 file?.delete()
+                officialXmlFile?.delete()
                 loading = false
                 loadingMsg = ""
             }

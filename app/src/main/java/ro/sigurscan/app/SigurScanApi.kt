@@ -494,6 +494,22 @@ data class BeneficiaryNameCheckResponse(
     @SerializedName("privacy_note") val privacyNote: String? = null,
 )
 
+data class OfficialDocumentMismatchResponse(
+    val field: String? = null,
+    @SerializedName("invoice_value") val invoiceValue: String? = null,
+    @SerializedName("official_value") val officialValue: String? = null,
+    val severity: String? = null,
+)
+
+data class OfficialDocumentCheckResponse(
+    val provided: Boolean = false,
+    val status: String? = null,
+    @SerializedName("risk_flag") val riskFlag: String? = null,
+    @SerializedName("matched_fields") val matchedFields: List<String> = emptyList(),
+    val mismatches: List<OfficialDocumentMismatchResponse> = emptyList(),
+    val error: String? = null,
+)
+
 data class InvoiceScanResponse(
     val fields: InvoiceFieldsResponse? = null,
     val readiness: InvoiceReadinessResponse? = null,
@@ -503,6 +519,7 @@ data class InvoiceScanResponse(
     @SerializedName("brand_match") val brandMatch: InvoiceBrandMatchResponse? = null,
     @SerializedName("payment_destination") val paymentDestination: InvoicePaymentDestinationResponse? = null,
     @SerializedName("beneficiary_name_check") val beneficiaryNameCheck: BeneficiaryNameCheckResponse? = null,
+    @SerializedName("official_document_check") val officialDocumentCheck: OfficialDocumentCheckResponse? = null,
     val anaf: Map<String, Any>? = null,
     @SerializedName("fraud_flags") val fraudFlags: List<String>? = null,
     @SerializedName("verdict_gate") val verdictGate: InvoiceVerdictGateResponse? = null,
@@ -552,7 +569,8 @@ interface SigurScanApi {
     @POST("v1/scan/invoice")
     suspend fun scanInvoice(
         @retrofit2.http.Part file: okhttp3.MultipartBody.Part,
-        @retrofit2.http.Part("source_channel") sourceChannel: okhttp3.RequestBody
+        @retrofit2.http.Part("source_channel") sourceChannel: okhttp3.RequestBody,
+        @retrofit2.http.Part officialXmlFile: okhttp3.MultipartBody.Part? = null,
     ): InvoiceScanResponse
 
     @POST("v1/community/report")

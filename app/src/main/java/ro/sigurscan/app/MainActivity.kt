@@ -342,6 +342,12 @@ internal fun resolveDeepLinkDestination(intent: Intent?): SharedIntentDestinatio
 fun MainScreen(viewModel: ScannerViewModel) {
     val context = LocalContext.current
     var pendingInvoicePhotoUri by remember { mutableStateOf<Uri?>(null) }
+    var pendingInvoiceScanUri by remember { mutableStateOf<Uri?>(null) }
+    var showOfficialInvoiceXmlChooser by remember { mutableStateOf(false) }
+    fun stageInvoiceForOptionalXml(uri: Uri) {
+        pendingInvoiceScanUri = uri
+        showOfficialInvoiceXmlChooser = true
+    }
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
@@ -362,14 +368,24 @@ fun MainScreen(viewModel: ScannerViewModel) {
     val invoicePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
-        uri?.let { viewModel.scanInvoiceFromDocument(it, context) }
+        uri?.let { stageInvoiceForOptionalXml(it) }
+    }
+    val invoiceOfficialXmlPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { xmlUri ->
+        val invoiceUri = pendingInvoiceScanUri
+        showOfficialInvoiceXmlChooser = false
+        pendingInvoiceScanUri = null
+        if (invoiceUri != null) {
+            viewModel.scanInvoiceFromDocument(invoiceUri, context, officialXmlUri = xmlUri)
+        }
     }
     val invoicePhotoLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { captured ->
         val capturedUri = pendingInvoicePhotoUri
         if (captured && capturedUri != null) {
-            viewModel.scanInvoiceFromDocument(capturedUri, context)
+            stageInvoiceForOptionalXml(capturedUri)
         }
         pendingInvoicePhotoUri = null
     }
@@ -452,6 +468,25 @@ fun MainScreen(viewModel: ScannerViewModel) {
                     onPickImageFallback = {
                         closeQrScanner()
                         qrPickerLauncher.launch("image/*")
+                    }
+                )
+            }
+            if (showOfficialInvoiceXmlChooser) {
+                OfficialInvoiceXmlChooserDialog(
+                    onDismiss = {
+                        showOfficialInvoiceXmlChooser = false
+                        pendingInvoiceScanUri = null
+                    },
+                    onSkip = {
+                        val invoiceUri = pendingInvoiceScanUri
+                        showOfficialInvoiceXmlChooser = false
+                        pendingInvoiceScanUri = null
+                        if (invoiceUri != null) {
+                            viewModel.scanInvoiceFromDocument(invoiceUri, context)
+                        }
+                    },
+                    onPickXml = {
+                        invoiceOfficialXmlPickerLauncher.launch(arrayOf("application/xml", "text/xml", "text/*"))
                     }
                 )
             }
@@ -3168,6 +3203,48 @@ fun InvoiceSourceChooserDialog(
 }
 
 @Composable
+fun OfficialInvoiceXmlChooserDialog(
+    onDismiss: () -> Unit,
+    onSkip: () -> Unit,
+    onPickXml: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "XML e-Factura",
+                color = SigurColors.TextPrimary,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                InvoiceSourceAction(
+                    title = "Atașează XML e-Factura",
+                    desc = "Compară factura cu documentul oficial",
+                    icon = Icons.Default.UploadFile,
+                    onClick = onPickXml
+                )
+                InvoiceSourceAction(
+                    title = "Continuă fără XML",
+                    desc = "Scanează doar factura aleasă",
+                    icon = Icons.Default.Receipt,
+                    onClick = onSkip
+                )
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Închide")
+            }
+        },
+        containerColor = SigurColors.BackgroundCard,
+        shape = DSCardShape
+    )
+}
+
+@Composable
 private fun InvoiceSourceAction(
     title: String,
     desc: String,
@@ -5414,6 +5491,35 @@ fun InvoiceResultCard(result: InvoiceScanResponse, onBack: () -> Unit) {
                 InvoiceBeneficiaryNameCheck(check)
             }
 
+            result.officialDocumentCheck?.takeIf { it.provided }?.let { check ->
+                Spacer(modifier = Modifier.height(12.dp))
+                val xmlTone = when (check.status) {
+                    "match" -> DSChipTone.Safe
+                    "mismatch" -> DSChipTone.Danger
+                    "parse_error" -> DSChipTone.Suspect
+                    else -> DSChipTone.Pending
+                }
+                val xmlLabel = when (check.status) {
+                    "match" -> "se potrivește"
+                    "mismatch" -> "contrazice factura"
+                    "parse_error" -> "XML invalid"
+                    else -> "neverificat"
+                }
+                InvoiceFieldRow("Document oficial", xmlLabel, xmlTone)
+                check.mismatches.take(3).forEach { mismatch ->
+                    val fieldLabel = invoiceOfficialFieldLabel(mismatch.field)
+                    Text(
+                        "• $fieldLabel diferă între factură și XML",
+                        fontSize = 12.sp,
+                        color = SigurColors.TextSecondary,
+                        modifier = Modifier.padding(start = 8.dp, top = 4.dp)
+                    )
+                }
+                check.error?.takeIf { it.isNotBlank() }?.let { error ->
+                    Text("• $error", fontSize = 12.sp, color = SigurColors.TextSecondary, modifier = Modifier.padding(start = 8.dp, top = 4.dp))
+                }
+            }
+
             fraudFlags.takeIf { it.isNotEmpty() }?.let { flags ->
                 Spacer(modifier = Modifier.height(12.dp))
                 Text("Semnale detectate:", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = SigurColors.Suspect)
@@ -5469,7 +5575,18 @@ private fun invoiceSignalLabel(code: String): String = when (code) {
     "PO_OR_OVERPAYMENT_RETURN_REQUEST" -> "PO/supraplată cu cerere de returnare"
     "PAYROLL_OR_EMPLOYEE_DATA_REQUEST_VIA_INVOICE_THREAD" -> "Cerere date angajați în fir de factură"
     "NEW_VENDOR_PUBLIC_PROCUREMENT_FEE" -> "Taxă achiziție publică/furnizor nou"
+    "EFACTURA_OFFICIAL_DOCUMENT_MISMATCH" -> "Factura diferă de XML-ul oficial atașat"
     else -> code.replace('_', ' ').lowercase(Locale.getDefault()).replaceFirstChar { it.titlecase(Locale.getDefault()) }
+}
+
+private fun invoiceOfficialFieldLabel(code: String?): String = when (code) {
+    "cui" -> "CUI-ul"
+    "iban" -> "IBAN-ul"
+    "total" -> "Totalul"
+    "nr_factura" -> "Numărul facturii"
+    "data_emitere" -> "Data emiterii"
+    "scadenta" -> "Scadența"
+    else -> code?.replace('_', ' ') ?: "Câmpul"
 }
 
 private fun invoiceReasonLabel(code: String): String = when (code) {
