@@ -28,6 +28,17 @@ Production image: `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/si
 - Dupa instrumented tests, release APK a fost reinstalat pe Nokia C22: `versionCode=1`, `versionName=1.0`, `targetSdk=36`, `lastUpdateTime=2026-06-15 08:12:13`.
 - Brutal de sincer: PR-0..PR-8 + provider expansion sunt live/testate pe backend, domeniu oficial si Android build/device. PR-9/PR-10 ramane corect numit Speaker Guard best-effort pentru apel pe difuzor, nu interceptare audio de apel si nu ASR real-time strict. CallScreening are in continuare nevoie de proba cu apel carrier real pentru semnatura finala “100% telefon fizic in conditii de retea”.
 
+## Addendum 2026-06-15 — main alignment + redeploy
+
+- `origin/main` si `origin/feature/osint-intel-pipeline` sunt aliniate la `28cb605f254c0c6e78382a834e4458d103d92819`.
+- Cloud Run redeploy din main: `sigurscan-api-00058-9n2`, 100% trafic, image `europe-west1-docker.pkg.dev/project-20f225c0-d756-4cba-864/sigurscan/sigurscan-api:28cb605`.
+- Cloud Build `e6ffbc8f-d829-4391-a1e1-b8e0f3bb4718`: `SUCCESS`, artifact digest `sha256:7b5cedfe7b0dc92094a92bfd919daa9d6aa460c3c37f5c6e9bda4f787a92f4d9`.
+- Post-main-deploy health pe `https://api.sigurscan.com/health`: `status=ok`, `api_key_required=true`, `rate_limit_backend=upstash`, `play_integrity_mode=off`, providerii `scam_blocklist_nrd` si `phishdestroy_destroylist` configurati.
+- Post-main-deploy YOXO exact (`www.yoxo.ro` + `reconditionate.yoxo.ro`): `SAFE`, score `10`, `official_destination=true`, `positive_provenance_clean`, preview `ready`, provideri noi `clean`.
+- Post-main-deploy contract critic: BTR/Radar/Circle pair-ping-respond-revoke/Action Plan -> `7/7 passed`.
+- Cloud Run logs pe revizia `sigurscan-api-00058-9n2`, `severity>=ERROR`, `freshness=30m`: `[]`.
+- Nokia C22: rolul `android.app.role.CALL_SCREENING` poate fi setat pe `ro.sigurscan.app`, iar `READ_PHONE_STATE` este granted. Nu exista inca dovada de apel carrier nou dupa activarea rolului; istoricul Telecom disponibil in aceasta runda contine apeluri mai vechi filtrate de Google Dialer, nu de `ro.sigurscan.app`.
+
 ## Rezumat Brutal
 
 - Backend PR-5..PR-8 este deployat live si verificat pe endpoint-uri reale.
