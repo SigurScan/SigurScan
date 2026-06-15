@@ -2555,16 +2555,17 @@ def _looks_like_official_safety_education(raw_text: str) -> bool:
     if not normalized:
         return False
     sensitive_terms = r"(?:cnp|pin|cvv|cvc|otp|cod(?:ul|uri?)?(?:\s+sms)?|parol[ăa]|date\s+de\s+card|date\s+bancare)"
+    ask_verbs = r"(?:cer(?:e|em)|solicit(?:[ăa]|[aă]m)|trimitem|pretindem)"
     negative_claim = (
-        r"(?:nu\s+(?:iti|îți|va|vă|iti\s+)?\s*(?:cerem|solicit[aă]m|trimitem|pretindem)"
+        rf"(?:nu\s+(?:iti|îți|va|vă|iti\s+)?\s*{ask_verbs}"
         r"|nu\s+(?:ti|ți|vi|vă)?\s*se\s+solicit[aă]"
         r"|nu\s+introduc\w*"
         r"|nu\s+(?:(?:il|îl|le)\s+)?comunic\w*"
         r"|nu\s+(?:(?:il|îl|le)\s+)?trimite\w*"
-        r"|nu\s+(?:cerem|solicit[aă]m)"
-        r"|niciodat[aă]\s+nu\s+(?:cerem|solicit[aă]m))"
+        rf"|nu\s+{ask_verbs}"
+        rf"|niciodat[aă]\s+nu\s+{ask_verbs})"
     )
-    window = r"(?:\W+\w+){0,12}\W+"
+    window = r"(?:\W+\w+){0,12}\W*"
     return bool(
         re.search(negative_claim + window + sensitive_terms, normalized, re.IGNORECASE)
         or re.search(sensitive_terms + window + negative_claim, normalized, re.IGNORECASE)

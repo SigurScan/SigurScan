@@ -28,6 +28,16 @@ def test_live_smoke_runner_defaults_to_sigurscan_api_domain(monkeypatch):
     assert module.DEFAULT_BASE_URL == PRODUCTION_API_BASE_URL
 
 
+def test_e2e_fixture_runner_treats_unverified_info_as_suspect():
+    module = _load_module(
+        BACKEND_DIR / "eval" / "e2e_fixture_runner.py",
+        "e2e_fixture_runner_unverified_mapping_test",
+    )
+
+    assert module._actual_user_status({"risk_level": "info"}) == "SUSPECT"
+    assert module._actual_user_status({"risk_level": "unverified"}) == "SUSPECT"
+
+
 def test_preview_preseed_tool_defaults_to_sigurscan_api_domain():
     module = _load_module(
         BACKEND_DIR / "tools" / "preseed_urlscan_previews.py",

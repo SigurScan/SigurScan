@@ -2202,6 +2202,49 @@ def test_provider_gate_official_safety_education_does_not_trigger_false_positive
     assert result["detected_family_id"] == "provider-gate-official-clean"
 
 
+def test_provider_gate_bank_safety_education_immediate_sensitive_terms_are_not_false_positive():
+    analysis = {
+        "claimed_brand": "Revolut",
+        "risk_level": "high",
+        "risk_score": 65,
+        "detected_family": "Marketing",
+        "detected_family_id": "marketing",
+        "reasons": ["Context bancar cu termeni sensibili."],
+        "evidence": {
+            "has_domain_mismatch": False,
+            "offer_claim_verification": {"status": "confirmed"},
+            "external_intel_summary": {
+                "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
+                "urlscan": {"status": "clean", "verdict": "clean", "consulted": True},
+            },
+        },
+    }
+    resolved_urls = [
+        {
+            "url": "https://www.revolut.com/ro-RO/security/",
+            "final_url": "https://www.revolut.com/ro-RO/security/",
+            "hostname": "www.revolut.com",
+            "final_hostname": "www.revolut.com",
+            "registered_domain": "revolut.com",
+            "final_registered_domain": "revolut.com",
+        }
+    ]
+
+    result = _apply_provider_gate_verdict(
+        analysis,
+        resolved_urls,
+        raw_text=(
+            "Revolut: campanie de informare privind siguranța online. "
+            "Banca nu îți cere parola, PIN-ul, CVV-ul sau codurile primite prin SMS. "
+            "Citește recomandările pe canalul oficial: https://www.revolut.com/ro-RO/security/"
+        ),
+    )
+
+    assert result["risk_level"] == "low"
+    assert result["detected_family_id"] == "provider-gate-official-clean"
+    assert result["evidence"]["provider_gate"]["official_safety_education"] is True
+
+
 def test_provider_gate_sensitive_url_path_on_unofficial_domain_is_high_risk():
     analysis = {
         "claimed_brand": "Nespecificat",

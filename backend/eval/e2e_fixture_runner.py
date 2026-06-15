@@ -475,7 +475,7 @@ def _actual_user_status(analysis: Dict[str, Any]) -> str:
     risk_level = str(analysis.get("risk_level") or "").lower()
     if risk_level in {"critical", "dangerous", "high"}:
         return "DANGEROUS"
-    if risk_level in {"medium", "warning", "unknown", "pending"}:
+    if risk_level in {"medium", "warning", "unknown", "pending", "info", "unverified"}:
         return "SUSPECT"
     return "SAFE"
 
