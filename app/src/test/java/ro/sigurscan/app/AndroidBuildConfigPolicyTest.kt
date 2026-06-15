@@ -64,4 +64,14 @@ class AndroidBuildConfigPolicyTest {
             ).findAll(gradleFile).count() >= 2
         )
     }
+
+    @Test
+    fun releaseBackendBaseUrlDefaultsToOfficialApiDomain() {
+        assertTrue(
+            "Release builds must not silently fall back to offline.sigurscan.invalid when local release config is missing.",
+            gradleFile.contains(
+                """buildConfigSafeString("SIGURSCAN_RELEASE_BACKEND_BASE_URL", "SIGURSCAN_RELEASE_BACKEND_BASE_URL", "https://api.sigurscan.com/")"""
+            )
+        )
+    }
 }

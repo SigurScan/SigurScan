@@ -140,6 +140,22 @@ class TestNegativeIbanRegistry:
         assert nir.is_reported_fraud("SK07 1111 0000 0013 2910 0001") is True
         assert nir.is_reported_fraud("ES91 2100 2020 4601 4443 9386") is False
 
+    def test_reported_fraud_ibans_loads_supabase_reports_lazily(self, monkeypatch):
+        from services import negative_iban_registry as nir
+        from services import supabase_store
+
+        nir.reload_registry()
+        monkeypatch.setenv("NEGATIVE_IBAN_SUPABASE_CACHE_TTL_SECONDS", "300")
+        monkeypatch.setattr(
+            supabase_store,
+            "load_negative_ibans",
+            lambda: ["RO49AAAA1B31007593840000"],
+        )
+
+        assert nir.reported_fraud_ibans(["RO49 AAAA 1B31 0075 9384 0000"]) == [
+            "RO49AAAA1B31007593840000"
+        ]
+
 
 class TestInvoiceFraudSignals:
     @pytest.mark.asyncio

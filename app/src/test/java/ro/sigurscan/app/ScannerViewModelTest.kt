@@ -141,6 +141,23 @@ class ScannerViewModelTest {
     }
 
     @Test
+    fun finalUrlscanScreenshotTimeoutMessageShowsPreviewUnavailable() {
+        val message = orchestratedScanServerInfo(
+            statusMessage = "Scanarea este finalizata.",
+            preview = OrchestratedPreview(
+                status = "unavailable",
+                reason = "urlscan_screenshot_timeout",
+                finalUrl = "https://reconditionate.yoxo.ro/oferte-speciale"
+            ),
+            isFinal = true
+        )
+
+        assertTrue(message.contains("Preview-ul securizat nu a fost gata"))
+        assertFalse(message.contains("generează"))
+        assertFalse(message.contains("Scanarea completă a fost finalizată."))
+    }
+
+    @Test
     fun resultCacheKeyNormalizesWhitespaceAndUrls() {
         val first = scanResultCacheKey(
             rawInput = "  Verifică   oferta aici: example.com/path  ",
@@ -293,6 +310,30 @@ class ScannerViewModelTest {
             "Publishing a backend verdict must not enter IO just to localize the screenshot before showing the verdict.",
             publishFlow.contains("withContext(Dispatchers.IO)")
         )
+    }
+
+    @Test
+    fun orchestratedPollingBudgetPublishesExplicitTimeoutState() {
+        val viewModelSource = File("src/main/java/ro/sigurscan/app/ScannerViewModel.kt").readText()
+        val runStart = viewModelSource.indexOf("private suspend fun runBackendOrchestratedScan")
+        val runEnd = viewModelSource.indexOf("fun onScanClick", runStart)
+        assertTrue("runBackendOrchestratedScan must exist.", runStart >= 0 && runEnd > runStart)
+
+        val runFlow = viewModelSource.substring(runStart, runEnd)
+        val loopIndex = runFlow.indexOf("while (shouldContinueOrchestratedPolling(response)")
+        val timeoutPublishIndex = runFlow.indexOf("publishOrchestratedPollingTimeout(response, rawInput, urls, response.scanId)")
+        assertTrue("Polling loop must exist.", loopIndex >= 0)
+        assertTrue(
+            "When the polling budget expires, Android must publish an explicit non-spinning state instead of leaving the UI in progress.",
+            timeoutPublishIndex > loopIndex
+        )
+
+        val timeoutStart = viewModelSource.indexOf("private suspend fun publishOrchestratedPollingTimeout")
+        val timeoutEnd = viewModelSource.indexOf("fun onScanClick", timeoutStart)
+        assertTrue("publishOrchestratedPollingTimeout must exist.", timeoutStart >= 0 && timeoutEnd > timeoutStart)
+        val timeoutFlow = viewModelSource.substring(timeoutStart, timeoutEnd)
+        assertTrue(timeoutFlow.contains("Verificarea a durat prea mult"))
+        assertTrue(timeoutFlow.contains("loading = false"))
     }
 
     @Test
@@ -497,6 +538,12 @@ class ScannerViewModelTest {
             activitySource.contains("OfficialInvoiceXmlChooserDialog") &&
                 activitySource.contains("Atașează XML e-Factura") &&
                 activitySource.contains("Continuă fără XML")
+        )
+        assertTrue(
+            "Closing the optional XML dialog must continue the invoice scan without XML, not discard the staged invoice.",
+            activitySource.contains("fun continueInvoiceWithoutOfficialXml()") &&
+                activitySource.contains("onDismiss = { continueInvoiceWithoutOfficialXml() }") &&
+                activitySource.contains("onSkip = { continueInvoiceWithoutOfficialXml() }")
         )
         assertTrue(
             "Invoice API upload must support optional official_xml_file without replacing pdf_file/image_file.",

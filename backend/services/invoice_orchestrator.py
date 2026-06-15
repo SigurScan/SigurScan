@@ -33,8 +33,17 @@ def _hmac_digest(data: str) -> str:
     return hmac.new(_cache_hmac_key(), data.encode(), "sha256").hexdigest()
 
 
-def _cache_key(fields) -> str:
+def _cache_key(fields, links: Optional[list[str]] = None) -> str:
     raw = fields.raw_text or f"{fields.cui}|{fields.iban}|{fields.total}|{fields.data_emitere}|{fields.nr_factura}"
+    normalized_links = sorted(
+        {
+            str(link or "").strip().lower()
+            for link in links or []
+            if str(link or "").strip()
+        }
+    )
+    if normalized_links:
+        raw = raw + "|links:" + "|".join(normalized_links)
     return _hmac_digest(raw)
 
 
@@ -57,22 +66,20 @@ def _set_cached_cui(cui: str, data: dict):
     _cui_cache[key] = (time.time(), data)
 
 
-def _get_cached_verdict(fields) -> InvoiceScanResult | None:
-    key = _cache_key(fields)
+def _get_cached_verdict(fields, links: Optional[list[str]] = None) -> InvoiceScanResult | None:
+    key = _cache_key(fields, links)
     entry = _verdict_cache.get(key)
     if entry and (time.time() - entry[0]) < CACHE_TTL:
         cached = entry[1]
-        cached._from_cache = True
-        return cached
+        return replace(cached, from_cache=True)
     if entry:
         del _verdict_cache[key]
     return None
 
 
-def _set_cached_verdict(fields, result: "InvoiceScanResult"):
-    key = _cache_key(fields)
-    result._from_cache = False
-    _verdict_cache[key] = (time.time(), result)
+def _set_cached_verdict(fields, result: "InvoiceScanResult", links: Optional[list[str]] = None):
+    key = _cache_key(fields, links)
+    _verdict_cache[key] = (time.time(), replace(result, from_cache=False))
 
 
 @dataclass
@@ -134,6 +141,7 @@ B2B_MEDIUM_RISK_FLAGS = {
     "REPLY_TO_MISMATCH",
     "FREE_EMAIL_FOR_COMPANY_INVOICE",
     "EFACTURA_CLAIM_WITHOUT_DOCUMENT",
+    "EFACTURA_OFFICIAL_DOCUMENT_UNREADABLE",
     "PAYMENT_LINK_UNKNOWN_PSP",
     "DOMAIN_RENEWAL_INVOICE_NO_EXISTING_VENDOR",
     "GRANT_CONSULTING_FEE_BEFORE_CONTRACT",
@@ -319,12 +327,21 @@ def with_official_document_check(result: InvoiceScanResult, check: Optional[dict
     fraud_flags = list(result.fraud_flags or [])
     warnings = list(result.warnings or [])
     risk_flag = check.get("risk_flag")
+    if check.get("status") == "parse_error" and not risk_flag:
+        risk_flag = "EFACTURA_OFFICIAL_DOCUMENT_UNREADABLE"
     if risk_flag and risk_flag not in fraud_flags:
         fraud_flags.append(str(risk_flag))
     if check.get("status") == "mismatch":
         warning = (
             "Factura scanată diferă de documentul oficial atașat. "
             "Nu plăti până nu verifici sursa documentului."
+        )
+        if warning not in warnings:
+            warnings.append(warning)
+    elif check.get("status") == "parse_error":
+        warning = (
+            "XML-ul e-Factura atașat nu a putut fi citit. "
+            "Nu îl folosim ca dovadă oficială; confirmă documentul în SPV/e-Factura."
         )
         if warning not in warnings:
             warnings.append(warning)
@@ -348,11 +365,11 @@ async def scan_invoice(ocr_text: str, links: Optional[list[str]] = None) -> Invo
             warnings=warnings, fraud_flags=fraud_flags,
         )
 
-    cached = _get_cached_verdict(fields)
+    all_links = links or []
+    cached = _get_cached_verdict(fields, all_links)
     if cached is not None:
         return cached
 
-    all_links = links or []
     warnings: list[str] = []
     readiness = evaluate_readiness(fields)
 
@@ -531,7 +548,7 @@ async def scan_invoice(ocr_text: str, links: Optional[list[str]] = None) -> Invo
         warnings=warnings,
         fraud_flags=fraud_flags,
     )
-    _set_cached_verdict(fields, result)
+    _set_cached_verdict(fields, result, all_links)
     return result
 
 

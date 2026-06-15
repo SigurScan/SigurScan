@@ -190,6 +190,45 @@ def test_scan_invoice_flags_official_xml_mismatch(monkeypatch):
     assert payload["verdict_gate"]["label"] == "DANGEROUS"
 
 
+def test_scan_invoice_invalid_official_xml_blocks_safe(monkeypatch):
+    from services.anaf_cui import CuiResult
+
+    async def fake_extract_text_for_scan(filename, file_bytes, extract_fn):
+        return MGH_PDF_TEXT, None
+
+    async def fake_check_cui(cui: str):
+        return CuiResult(
+            exists=True,
+            checked=True,
+            denumire="MARKETING GROWTH HUB S.R.L.",
+            activ=True,
+            data_inactivare=None,
+            platitor_tva=False,
+            enrolled_efactura=True,
+            raw=None,
+        )
+
+    monkeypatch.setattr(app_main, "extract_text_for_scan", fake_extract_text_for_scan)
+    monkeypatch.setattr("services.invoice_orchestrator.check_cui", fake_check_cui)
+    client = TestClient(app_main.app)
+
+    response = client.post(
+        "/v1/scan/invoice",
+        files={
+            "pdf_file": ("mgh.pdf", b"%PDF-1.4\n%%EOF", "application/pdf"),
+            "official_xml_file": ("efactura.xml", b"<Invoice>", "application/xml"),
+        },
+        data={"source_channel": "android_native"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["official_document_check"]["status"] == "parse_error"
+    assert payload["official_document_check"]["risk_flag"] == "EFACTURA_OFFICIAL_DOCUMENT_UNREADABLE"
+    assert "EFACTURA_OFFICIAL_DOCUMENT_UNREADABLE" in payload["fraud_flags"]
+    assert payload["verdict_gate"]["label"] != "SAFE"
+
+
 def test_scan_invoice_endpoint_returns_gate_for_brand_never_asks(monkeypatch):
     async def fake_extract_text_for_scan(filename, file_bytes, extract_fn):
         return (

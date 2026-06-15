@@ -234,6 +234,16 @@ internal fun orchestratedScanServerInfo(
             "Destinatia finala nu poate fi incarcata/verificata. Nu continua fara verificare oficiala."
         }
     }
+    if (isFinal && preview?.status?.trim()?.lowercase(Locale.US) == "unavailable") {
+        return previewDetails.ifBlank {
+            when (previewReason) {
+                "urlscan_screenshot_timeout", "android_polling_timeout" ->
+                    "Preview-ul securizat nu a fost gata la timp. Verdictul final rămâne afișat; rescanează pentru o captură proaspătă."
+                else ->
+                    "Preview-ul securizat nu este disponibil momentan. Folosește verdictul final și verifică destinația oficială înainte de orice acțiune sensibilă."
+            }
+        }
+    }
     if (isFinal && orchestratedPreviewStillPending(preview)) {
         return "Preview-ul securizat se generează."
     }
@@ -1984,6 +1994,32 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
         return true
     }
 
+    private suspend fun publishOrchestratedPollingTimeout(
+        response: OrchestratedScanResponse,
+        rawInput: String,
+        urls: List<String>,
+        existingScanId: String?
+    ) {
+        val timeoutPreview = response.preview?.copy(
+            status = "unavailable",
+            reason = response.preview.reason ?: "android_polling_timeout",
+            details = response.preview.details
+                ?: "Preview-ul securizat nu a fost gata la timp. Verdictul curent rămâne afișat; rescanează pentru o captură proaspătă."
+        ) ?: OrchestratedPreview(
+            status = "unavailable",
+            reason = "android_polling_timeout",
+            details = "Verificarea a durat prea mult. Reîncearcă scanarea pentru rezultate proaspete.",
+            finalUrl = urls.firstOrNull()
+        )
+        val timeoutResponse = response.copy(
+            statusMessage = "Verificarea a durat prea mult. Rezultatul curent a fost afișat; poți rescana pentru actualizare.",
+            preview = timeoutPreview
+        )
+        publishOrchestratedResponse(timeoutResponse, rawInput, urls, existingScanId)
+        loading = false
+        loadingMsg = ""
+    }
+
     private suspend fun runBackendOrchestratedScan(
         rawInput: String,
         htmlPayload: String?,
@@ -2001,6 +2037,9 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
             kotlinx.coroutines.delay(orchestratedPollDelayMillis(response))
             response = api.getOrchestratedScan(response.scanId)
             publishOrchestratedResponse(response, rawInput, urls, response.scanId, resultCacheKey)
+        }
+        if (shouldContinueOrchestratedPolling(response)) {
+            publishOrchestratedPollingTimeout(response, rawInput, urls, response.scanId)
         }
     }
 

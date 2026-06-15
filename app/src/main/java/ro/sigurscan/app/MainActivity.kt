@@ -348,6 +348,14 @@ fun MainScreen(viewModel: ScannerViewModel) {
         pendingInvoiceScanUri = uri
         showOfficialInvoiceXmlChooser = true
     }
+    fun continueInvoiceWithoutOfficialXml() {
+        val invoiceUri = pendingInvoiceScanUri
+        showOfficialInvoiceXmlChooser = false
+        pendingInvoiceScanUri = null
+        if (invoiceUri != null) {
+            viewModel.scanInvoiceFromDocument(invoiceUri, context)
+        }
+    }
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
@@ -473,18 +481,8 @@ fun MainScreen(viewModel: ScannerViewModel) {
             }
             if (showOfficialInvoiceXmlChooser) {
                 OfficialInvoiceXmlChooserDialog(
-                    onDismiss = {
-                        showOfficialInvoiceXmlChooser = false
-                        pendingInvoiceScanUri = null
-                    },
-                    onSkip = {
-                        val invoiceUri = pendingInvoiceScanUri
-                        showOfficialInvoiceXmlChooser = false
-                        pendingInvoiceScanUri = null
-                        if (invoiceUri != null) {
-                            viewModel.scanInvoiceFromDocument(invoiceUri, context)
-                        }
-                    },
+                    onDismiss = { continueInvoiceWithoutOfficialXml() },
+                    onSkip = { continueInvoiceWithoutOfficialXml() },
                     onPickXml = {
                         invoiceOfficialXmlPickerLauncher.launch(arrayOf("application/xml", "text/xml", "text/*"))
                     }

@@ -42,8 +42,8 @@ val enablePlayIntegrity = (
         ?: "false"
     ).trim().lowercase() in setOf("1", "true", "yes", "on")
 
-fun buildConfigSafeString(key: String, envFallback: String): String {
-    val value = (localProperties.getProperty(key) ?: System.getenv(envFallback) ?: "").trim()
+fun buildConfigSafeString(key: String, envFallback: String, defaultValue: String = ""): String {
+    val value = (localProperties.getProperty(key) ?: System.getenv(envFallback) ?: defaultValue).trim()
     return "\"${value.replace("\\", "\\\\").replace("\"", "\\\"")}\""
 }
 
@@ -114,7 +114,7 @@ android {
 
     buildTypes {
         release {
-            buildConfigField("String", "SIGURSCAN_BACKEND_BASE_URL", buildConfigSafeString("SIGURSCAN_RELEASE_BACKEND_BASE_URL", "SIGURSCAN_RELEASE_BACKEND_BASE_URL"))
+            buildConfigField("String", "SIGURSCAN_BACKEND_BASE_URL", buildConfigSafeString("SIGURSCAN_RELEASE_BACKEND_BASE_URL", "SIGURSCAN_RELEASE_BACKEND_BASE_URL", "https://api.sigurscan.com/"))
             buildConfigField("String", "SIGURSCAN_PRIVACY_URL", buildConfigSafeString("SIGURSCAN_RELEASE_PRIVACY_URL", "SIGURSCAN_RELEASE_PRIVACY_URL"))
             buildConfigField("String", "SIGURSCAN_API_KEY", buildConfigSafeString("SIGURSCAN_RELEASE_API_KEY", "SIGURSCAN_RELEASE_API_KEY"))
             buildConfigField("String", "URLSCAN_API_KEY", "\"\"")

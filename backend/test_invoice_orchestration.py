@@ -188,6 +188,23 @@ def test_invoice_cache_keys_are_hmac_and_do_not_leak_identifiers(monkeypatch):
     assert "RO33RNCB1234567890123456" not in key_a
 
 
+def test_invoice_cache_key_includes_links_without_leaking_them(monkeypatch):
+    fields = InvoiceFields(
+        raw_text="Vodafone Romania SA CUI 8971726 IBAN RO49AAAA1B31007593840000 Total 100 RON",
+        cui="8971726",
+        iban="RO49AAAA1B31007593840000",
+        total=100.0,
+    )
+
+    monkeypatch.setenv("INVOICE_CACHE_HMAC_KEY", "test-secret")
+    official_key = _cache_key(fields, ["https://www.vodafone.ro/factura"])
+    attacker_key = _cache_key(fields, ["https://pay-vodafone.example/factura"])
+
+    assert official_key != attacker_key
+    assert "vodafone" not in official_key
+    assert "pay-vodafone" not in attacker_key
+
+
 def test_invoice_cache_key_requires_env_secret(monkeypatch):
     fields = InvoiceFields(
         cui="24387371",

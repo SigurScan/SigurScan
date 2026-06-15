@@ -4578,6 +4578,7 @@ def test_orchestrated_urlscan_preview_cache_hit_skips_submit(monkeypatch):
         "final_url": "https://bilete.sublime.ro/regulament.pdf",
         "report_url": "https://urlscan.io/result/cached-urlscan-1/",
         "screenshot_url": "https://backend/v1/sandbox/urlscan/cached-urlscan-1/screenshot",
+        "screenshot_ready": True,
         "verdict": "No malicious classification",
         "severity": "low",
         "details": "urlscan preview cache hit",
@@ -4703,7 +4704,7 @@ def test_urlscan_preview_cache_rewrites_legacy_screenshot_proxy_url():
         normalized["screenshot_url"]
         == "https://api.sigurscan.com/v1/sandbox/urlscan/legacy-cache-1/screenshot"
     )
-    assert normalized["screenshot_ready"] is True
+    assert normalized["screenshot_ready"] is False
 
 
 def test_urlscan_preview_cache_rejects_legacy_entry_with_sensitive_final_path():
@@ -5020,6 +5021,7 @@ def test_orchestrated_fast_lane_attaches_cached_preview_before_submit_stage(monk
         "final_url": "https://bilete.sublime.ro/regulament.pdf",
         "report_url": "https://urlscan.io/result/cached-fast-lane/",
         "screenshot_url": "https://backend/v1/sandbox/urlscan/cached-fast-lane/screenshot",
+        "screenshot_ready": True,
         "verdict": "No malicious classification",
         "severity": "low",
         "details": "urlscan preview cache hit",
@@ -5407,6 +5409,29 @@ def test_persist_orchestrated_job_conflict_merge_keeps_urlscan_timeout_over_pend
     assert merged["preview"]["reason"] == "urlscan_screenshot_timeout"
     assert saved_jobs[-1]["urlscan"]["status"] == "timeout"
     assert saved_jobs[-1]["preview"]["status"] == "unavailable"
+
+
+def test_persist_orchestrated_job_save_failure_keeps_memory_fallback(monkeypatch):
+    scan_id = "orch_persist_memory_fallback"
+    current_job = {
+        "scan_id": scan_id,
+        "created_at": 10,
+        "_storage_updated_at": "stale",
+        "pipeline_stage": "queued",
+        "status": "scanning",
+        "orchestration_metrics": {"poll_count": 0, "stage_sequence": [], "stage_durations_ms": {}},
+    }
+
+    with monkeypatch.context() as patched:
+        patched.setattr(app_main.supabase_store, "save_scan_job", lambda job: False)
+        patched.setattr(app_main.supabase_store, "load_scan_job", lambda sid: None)
+        patched.setattr(app_main, "_emit_orchestrated_telemetry", lambda *args, **kwargs: None)
+        app_main._ORCHESTRATED_SCAN_JOBS.pop(scan_id, None)
+        persisted = app_main._persist_orchestrated_job(current_job)
+
+    assert persisted is current_job
+    assert app_main._ORCHESTRATED_SCAN_JOBS[scan_id] is current_job
+    assert current_job["orchestration_metrics"]["persist_fallback_memory_count"] == 1
 
 
 def test_persist_orchestrated_job_retries_merged_conflict_save_twice(monkeypatch):
@@ -5858,6 +5883,118 @@ def test_orchestrated_urlscan_timeout_without_screenshot_stays_unavailable(monke
     assert refreshed["preview"]["reason"] in {"urlscan_screenshot_timeout", "urlscan_timeout"}
     assert not refreshed["preview"].get("screenshot_url")
     assert not refreshed["preview"].get("image_url")
+
+
+def test_orchestrated_urlscan_timeout_late_malicious_report_upgrades_without_screenshot(monkeypatch):
+    async def fake_get_urlscan_result(uuid, request):
+        return {
+            "uuid": uuid,
+            "status": "finished",
+            "verdict": "Malicious phishing",
+            "severity": "high",
+            "details": "urlscan verdict=Malicious phishing; score=100",
+            "final_url": "https://evil-phishing.test/login",
+            "report_url": "https://urlscan.io/result/urlscan-late-risk/",
+            "screenshot_url": "https://api.sigurscan.com/v1/sandbox/urlscan/urlscan-late-risk/screenshot",
+            "score": 100,
+            "categories": ["phishing"],
+            "brands": [],
+        }
+
+    async def fake_screenshot_not_ready(uuid):
+        return False
+
+    async def fake_ai_explanation(*args, **kwargs):
+        return {"verdict_summary": "", "explanation": ""}
+
+    safe_gate = {
+        "label": "SAFE",
+        "risk_level": "low",
+        "risk_score": 0,
+        "reason_codes": ["positive_provenance_clean"],
+    }
+    job = {
+        "scan_id": "orch_urlscan_timeout_late_malicious",
+        "created_at": int(time.time()) - 130,
+        "pipeline_stage": "urlscan_submitted",
+        "status": "complete",
+        "input_type": "text",
+        "source_channel": "test",
+        "urls": ["https://www.revolut.com/ro-RO/security/"],
+        "redacted_text": "Revolut security https://www.revolut.com/ro-RO/security/",
+        "analysis": {
+            "risk_score": 0,
+            "risk_level": "low",
+            "detected_family": "Destinație oficială",
+            "detected_family_id": "provider-gate-official-clean",
+            "claimed_brand": "Revolut",
+            "reasons": ["Providerii sunt curați."],
+            "safe_actions": [],
+            "evidence": {
+                "external_intel_summary": {
+                    "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
+                    "phishing_database": {"status": "clean", "verdict": "clean", "consulted": True},
+                },
+                "offer_claim_verification": {"status": "skipped"},
+                "verdict_gate": dict(safe_gate),
+                "provider_gate": {"label": "SAFE"},
+            },
+        },
+        "resolved_urls": [
+            {
+                "original_url": "https://www.revolut.com/ro-RO/security/",
+                "final_url": "https://www.revolut.com/ro-RO/security/",
+                "final_hostname": "www.revolut.com",
+                "final_registered_domain": "revolut.com",
+                "success": True,
+            }
+        ],
+        "primary_final_url": "https://www.revolut.com/ro-RO/security/",
+        "claim_verifier_required": False,
+        "urlscan": {
+            "status": "timeout",
+            "uuid": "urlscan-late-risk",
+            "report_url": "https://urlscan.io/result/urlscan-late-risk/",
+            "details": "urlscan screenshot timeout",
+            "screenshot_ready": False,
+        },
+        "preview": {
+            "status": "unavailable",
+            "source": None,
+            "reason": "urlscan_screenshot_timeout",
+            "final_url": "https://www.revolut.com/ro-RO/security/",
+            "report_url": "https://urlscan.io/result/urlscan-late-risk/",
+            "screenshot_url": None,
+            "image_url": None,
+        },
+        "extra_fields": {},
+        "result": {
+            "is_final": True,
+            "user_risk_label": "SAFE",
+            "risk_level": "low",
+            "evidence": {"verdict_gate": dict(safe_gate)},
+        },
+        "result_fingerprint": "old-safe",
+        "orchestration_metrics": {"poll_count": 0, "stage_sequence": [], "stage_durations_ms": {}},
+    }
+
+    with monkeypatch.context() as patched:
+        patched.setattr(app_main, "get_urlscan_result", fake_get_urlscan_result)
+        patched.setattr(app_main, "_urlscan_screenshot_is_ready", fake_screenshot_not_ready)
+        patched.setattr(app_main, "_persist_orchestrated_job", lambda candidate: candidate)
+        patched.setattr(app_main, "_emit_orchestrated_telemetry", lambda *args, **kwargs: None)
+        patched.setattr(app_main, "_emit_scan_event", lambda *args, **kwargs: None)
+        patched.setattr(app_main, "_build_ai_explanation_async", fake_ai_explanation)
+        refreshed = asyncio.run(app_main._refresh_orchestrated_job(job, None))
+
+    assert refreshed["urlscan"]["status"] == "finished"
+    assert refreshed["urlscan"]["screenshot_ready"] is False
+    assert refreshed["preview"]["status"] == "unavailable"
+    assert refreshed["preview"]["reason"] == "urlscan_screenshot_timeout"
+    assert refreshed["analysis"]["evidence"]["external_intel_summary"]["urlscan"]["status"] == "malicious"
+    assert refreshed["result"]["user_risk_label"] == "DANGEROUS"
+    assert refreshed["result"]["risk_level"] == "high"
+    assert refreshed["result"]["is_final"] is True
 
 
 def test_orchestration_telemetry_payload_flags_anomalies(monkeypatch):

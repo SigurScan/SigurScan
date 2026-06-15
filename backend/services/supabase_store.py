@@ -464,6 +464,7 @@ def save_urlscan_preview_cache(entry: Dict[str, Any]) -> None:
         "uuid": entry.get("uuid"),
         "report_url": entry.get("report_url"),
         "screenshot_url": entry.get("screenshot_url"),
+        "screenshot_ready": bool(entry.get("screenshot_ready")),
         "verdict": entry.get("verdict"),
         "severity": entry.get("severity"),
         "details": entry.get("details"),

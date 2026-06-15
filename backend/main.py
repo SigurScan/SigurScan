@@ -5495,7 +5495,7 @@ def _normalize_urlscan_preview_cache_entry(entry: Any) -> Optional[Dict[str, Any
     )
     normalized["screenshot_url"] = screenshot_url
     normalized["report_url"] = report_url
-    normalized["screenshot_ready"] = bool(normalized.get("screenshot_ready", bool(screenshot_url))) and bool(screenshot_url)
+    normalized["screenshot_ready"] = bool(normalized.get("screenshot_ready")) and bool(screenshot_url)
     normalized["cache_hit"] = True
     normalized.setdefault("verdict", "No malicious classification")
     normalized.setdefault("severity", "low")
@@ -5870,6 +5870,8 @@ def _urlscan_merge_rank(state: Dict[str, Any]) -> int:
     status = str((state or {}).get("status") or "").strip().lower()
     if status == "finished" and bool((state or {}).get("screenshot_ready")):
         return 6
+    if status == "finished" and _urlscan_state_has_risk(state):
+        return 6
     if status == "timeout":
         return 5
     if status in {"error", "rate_limited", "skipped"}:
@@ -5881,6 +5883,33 @@ def _urlscan_merge_rank(state: Dict[str, Any]) -> int:
     if status in {"queued", "submitting"}:
         return 1
     return 0
+
+
+def _urlscan_state_has_risk(state: Dict[str, Any]) -> bool:
+    verdict = str((state or {}).get("verdict") or "").strip().lower()
+    severity = str((state or {}).get("severity") or "").strip().lower()
+    try:
+        score = int((state or {}).get("score") or 0)
+    except Exception:
+        score = 0
+    benign_verdict = any(
+        phrase in verdict
+        for phrase in (
+            "no malicious",
+            "not malicious",
+            "no classification",
+            "no malicious classification",
+        )
+    )
+    if benign_verdict and severity not in {"high", "critical", "medium"} and score < 50:
+        return False
+    return (
+        "malicious" in verdict
+        or "phishing" in verdict
+        or "suspicious" in verdict
+        or severity in {"high", "critical", "medium"}
+        or score >= 50
+    )
 
 
 def _preview_merge_rank(state: Dict[str, Any]) -> int:
@@ -6121,6 +6150,9 @@ def _persist_orchestrated_job(job: Dict[str, Any]) -> Dict[str, Any]:
                 )
             _ORCHESTRATED_SCAN_JOBS[scan_id] = merged
             return merged
+        _increment_orchestrated_metric(job, "persist_fallback_memory_count")
+        _ORCHESTRATED_SCAN_JOBS[scan_id] = job
+        _emit_orchestrated_telemetry("orchestrated_persist_memory_fallback", job)
         return job
     _ORCHESTRATED_SCAN_JOBS[scan_id] = job
     return job
@@ -6369,19 +6401,7 @@ def _urlscan_finished_with_risk(job: Dict[str, Any]) -> bool:
     urlscan_state = job.get("urlscan") if isinstance(job.get("urlscan"), dict) else {}
     if str(urlscan_state.get("status") or "").strip().lower() != "finished":
         return False
-    verdict = str(urlscan_state.get("verdict") or "").strip().lower()
-    severity = str(urlscan_state.get("severity") or "").strip().lower()
-    try:
-        score = int(urlscan_state.get("score") or 0)
-    except Exception:
-        score = 0
-    return (
-        "malicious" in verdict
-        or "phishing" in verdict
-        or "suspicious" in verdict
-        or severity in {"high", "critical", "medium"}
-        or score >= 50
-    )
+    return _urlscan_state_has_risk(urlscan_state)
 
 
 def _official_clean_can_finalize_before_urlscan(
@@ -6809,7 +6829,8 @@ def _apply_urlscan_preview_cache_hit(job: Dict[str, Any], cached: Dict[str, Any]
     preview["final_url"] = cached_summary.get("final_url")
     preview["report_url"] = cached_summary.get("report_url")
     screenshot_url = cached_summary.get("screenshot_url")
-    if screenshot_url:
+    screenshot_ready = bool(cached_summary.get("screenshot_ready")) and bool(screenshot_url)
+    if screenshot_ready:
         preview["status"] = "ready"
         preview["source"] = "urlscan"
         preview["image_url"] = screenshot_url
@@ -6845,7 +6866,8 @@ def _urlscan_preview_cache_entry_from_job(job: Dict[str, Any]) -> Optional[Dict[
         or job.get("primary_final_url")
         or urlscan_state.get("submitted_url")
     )
-    screenshot_url = urlscan_state.get("screenshot_url") or preview.get("screenshot_url")
+    screenshot_ready = bool(urlscan_state.get("screenshot_ready"))
+    screenshot_url = (urlscan_state.get("screenshot_url") or preview.get("screenshot_url")) if screenshot_ready else None
     report_url = urlscan_state.get("report_url") or preview.get("report_url")
     if not final_url or not report_url:
         return None
@@ -6856,7 +6878,7 @@ def _urlscan_preview_cache_entry_from_job(job: Dict[str, Any]) -> Optional[Dict[
         "final_url": final_url,
         "report_url": report_url,
         "screenshot_url": screenshot_url,
-        "screenshot_ready": bool(screenshot_url),
+        "screenshot_ready": screenshot_ready and bool(screenshot_url),
         "verdict": urlscan_state.get("verdict") or "No malicious classification",
         "severity": urlscan_state.get("severity") or "low",
         "details": urlscan_state.get("details") or "urlscan preview cached",
@@ -8468,12 +8490,10 @@ async def _refresh_orchestrated_job_impl(job: Dict[str, Any], request: Request) 
                         timeout_screenshot_ready = False
                     finally:
                         _record_orchestrated_component_duration(job, "urlscan.screenshot_probe", started_at)
-                if (
-                    urlscan_status == "timeout"
-                    and not timeout_screenshot_ready
-                    and not (job.get("preview") if isinstance(job.get("preview"), dict) else {}).get("image_url")
-                ):
-                    job["urlscan"] = urlscan_state
+                timeout_without_ready_screenshot = urlscan_status == "timeout" and not timeout_screenshot_ready
+                if timeout_without_ready_screenshot and not (
+                    job.get("preview") if isinstance(job.get("preview"), dict) else {}
+                ).get("image_url"):
                     preview = job.setdefault("preview", {})
                     if not preview.get("report_url"):
                         preview["report_url"] = result.get("report_url") or urlscan_state.get("report_url")
@@ -8482,7 +8502,6 @@ async def _refresh_orchestrated_job_impl(job: Dict[str, Any], request: Request) 
                     preview["status"] = "unavailable"
                     preview["source"] = None
                     preview["reason"] = preview.get("reason") or "urlscan_screenshot_timeout"
-                    result = None
                 else:
                     if result_screenshot_url:
                         result["screenshot_url"] = result_screenshot_url
@@ -8496,9 +8515,20 @@ async def _refresh_orchestrated_job_impl(job: Dict[str, Any], request: Request) 
                 )
                 urlscan_state.update(result)
                 urlscan_state["screenshot_ready"] = bool(result.get("screenshot_ready"))
-                urlscan_state["status"] = "finished"
+                result_has_risk = _urlscan_state_has_risk(result)
+                timeout_without_ready_screenshot = (
+                    urlscan_status == "timeout"
+                    and not urlscan_state["screenshot_ready"]
+                    and not result_has_risk
+                )
+                urlscan_state["status"] = "timeout" if timeout_without_ready_screenshot else "finished"
                 if urlscan_state["screenshot_ready"]:
                     urlscan_state["details"] = str(result.get("details") or urlscan_state.get("verdict") or "urlscan result este gata")
+                elif timeout_without_ready_screenshot:
+                    urlscan_state["details"] = (
+                        "urlscan a finalizat raportul, dar captura nu a devenit disponibila "
+                        "in timpul maxim permis."
+                    )
                 else:
                     urlscan_state["details"] = "urlscan result este gata, dar captura inca se proceseaza."
                 job["urlscan"] = urlscan_state
@@ -8522,6 +8552,12 @@ async def _refresh_orchestrated_job_impl(job: Dict[str, Any], request: Request) 
                         preview["screenshot_url"] = result.get("screenshot_url")
                         preview["image_url"] = result.get("screenshot_url")
                         preview["reason"] = None
+                    elif urlscan_status == "timeout" and not urlscan_state["screenshot_ready"]:
+                        preview["status"] = "unavailable"
+                        preview["source"] = None
+                        preview["screenshot_url"] = None
+                        preview["image_url"] = None
+                        preview["reason"] = preview.get("reason") or "urlscan_screenshot_timeout"
                     elif not has_ready_visual:
                         preview["status"] = "pending"
                         preview["source"] = "urlscan"
@@ -9174,7 +9210,7 @@ async def scan_invoice_endpoint(
             official_document_check = {
                 "provided": True,
                 "status": "parse_error",
-                "risk_flag": None,
+                "risk_flag": "EFACTURA_OFFICIAL_DOCUMENT_UNREADABLE",
                 "mismatches": [],
                 "matched_fields": [],
                 "missing_official_fields": [],

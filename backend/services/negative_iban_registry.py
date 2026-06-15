@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from functools import lru_cache
 from typing import Any, List, Optional, Set
 
@@ -13,6 +14,7 @@ _ACTIVE_STATUSES = {"verified", "confirmed", "active"}
 _ACTIVE_CONFIDENCE = {"high", "confirmed"}
 
 _runtime_reported: Set[str] = set()
+_last_supabase_load_at = 0.0
 
 
 def _path() -> str:
@@ -61,8 +63,10 @@ def _seed_registry() -> Set[str]:
 
 
 def reload_registry() -> None:
+    global _last_supabase_load_at
     _seed_registry.cache_clear()
     _runtime_reported.clear()
+    _last_supabase_load_at = 0.0
 
 
 def is_reported_fraud(iban: str) -> bool:
@@ -85,6 +89,7 @@ def report_fraud_iban(iban: str, *, source: str = "manual", family: Optional[str
 
 
 def load_supabase_reports() -> int:
+    global _last_supabase_load_at
     try:
         from services import supabase_store
 
@@ -97,10 +102,26 @@ def load_supabase_reports() -> int:
         if norm and validate_iban(norm).valid_structure and norm not in _runtime_reported:
             _runtime_reported.add(norm)
             added += 1
+    _last_supabase_load_at = time.time()
     return added
 
 
+def _maybe_load_supabase_reports() -> None:
+    global _last_supabase_load_at
+    try:
+        ttl_seconds = int(os.getenv("NEGATIVE_IBAN_SUPABASE_CACHE_TTL_SECONDS", "300"))
+    except Exception:
+        ttl_seconds = 300
+    if ttl_seconds < 0:
+        ttl_seconds = 0
+    now = time.time()
+    if _last_supabase_load_at and now - _last_supabase_load_at < ttl_seconds:
+        return
+    load_supabase_reports()
+
+
 def reported_fraud_ibans(ibans: List[str]) -> List[str]:
+    _maybe_load_supabase_reports()
     seen: Set[str] = set()
     output: List[str] = []
     for raw in ibans or []:
