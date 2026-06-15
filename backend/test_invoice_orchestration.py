@@ -42,6 +42,32 @@ async def test_scan_missing_cui_and_iban():
 
 
 @pytest.mark.asyncio
+async def test_scan_recommends_bank_beneficiary_name_check_for_unknown_valid_iban():
+    text = (
+        "Furnizor: Atelier Digital Sibiu SRL\n"
+        "CUI: 12345678\n"
+        "IBAN: RO33RNCB1234567890123456\n"
+        "Total: 100 RON\n"
+        "Data: 01.06.2026\n"
+        "Scadenta: 15.06.2026"
+    )
+    with patch("services.invoice_orchestrator.check_cui", new_callable=AsyncMock) as mock_cui:
+        mock_cui.return_value.exists = True
+        mock_cui.return_value.denumire = "ATELIER DIGITAL SIBIU SRL"
+        mock_cui.return_value.activ = True
+        mock_cui.return_value.platitor_tva = True
+        mock_cui.return_value.data_inactivare = None
+
+        result = await scan_invoice(text)
+
+    assert result.beneficiary_name_check is not None
+    assert result.beneficiary_name_check["recommended"] is True
+    assert result.beneficiary_name_check["method"] == "bank_app_beneficiary_name_check"
+    assert result.beneficiary_name_check["expected_beneficiary"] == "ATELIER DIGITAL SIBIU SRL"
+    assert "parolă" in result.beneficiary_name_check["privacy_note"]
+
+
+@pytest.mark.asyncio
 async def test_scan_brand_impersonation():
     text = "Furnizor: ANAF\nCUI: 12345678\nIBAN: RO33RNCB1234567890123456\nTotal: 1000 RON"
     with patch("services.invoice_orchestrator.check_cui", new_callable=AsyncMock) as mock_cui:

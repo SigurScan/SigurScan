@@ -5370,6 +5370,10 @@ fun InvoiceResultCard(result: InvoiceScanResponse, onBack: () -> Unit) {
                 }
             }
 
+            result.beneficiaryNameCheck?.takeIf { it.recommended }?.let { check ->
+                InvoiceBeneficiaryNameCheck(check)
+            }
+
             result.warnings?.takeIf { it.isNotEmpty() }?.let { warnings ->
                 Spacer(modifier = Modifier.height(12.dp))
                 Text("Avertismente:", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = SigurColors.Suspect)
@@ -5595,6 +5599,50 @@ private fun formatInvoiceAmount(value: Double?, currency: String): String {
 
 private fun formatOfferAmount(value: Double?, currency: String): String {
     return value?.let { "%.2f %s".format(it, currency) } ?: "—"
+}
+
+@Composable
+private fun InvoiceBeneficiaryNameCheck(check: BeneficiaryNameCheckResponse) {
+    Spacer(modifier = Modifier.height(12.dp))
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, SigurColors.Suspect.copy(alpha = 0.35f), RoundedCornerShape(10.dp))
+            .background(SigurColors.Suspect.copy(alpha = 0.08f), RoundedCornerShape(10.dp))
+            .padding(12.dp)
+    ) {
+        Text(
+            check.title ?: "Verifică numele beneficiarului în aplicația băncii",
+            fontWeight = FontWeight.Bold,
+            fontSize = 13.sp,
+            color = SigurColors.TextPrimary
+        )
+        check.reason?.takeIf { it.isNotBlank() }?.let {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(it, fontSize = 12.sp, color = SigurColors.TextSecondary)
+        }
+        check.expectedBeneficiary?.takeIf { it.isNotBlank() }?.let {
+            Spacer(modifier = Modifier.height(6.dp))
+            Text("Nume așteptat: $it", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = SigurColors.TextPrimary)
+        }
+        val contextLine = listOfNotNull(
+            check.ibanMaskedForClient?.takeIf { it.isNotBlank() }?.let { "IBAN $it" },
+            check.bank?.takeIf { it.isNotBlank() },
+            check.localServiceHint?.takeIf { it.isNotBlank() },
+        ).joinToString(" · ")
+        if (contextLine.isNotBlank()) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(contextLine, fontSize = 12.sp, color = SigurColors.TextSecondary)
+        }
+        check.steps.take(4).forEachIndexed { index, step ->
+            Spacer(modifier = Modifier.height(6.dp))
+            Text("${index + 1}. $step", fontSize = 12.sp, color = SigurColors.TextPrimary)
+        }
+        check.privacyNote?.takeIf { it.isNotBlank() }?.let {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(it, fontSize = 11.sp, color = SigurColors.TextSecondary)
+        }
+    }
 }
 
 private fun offerSignalLabel(signal: String): String {

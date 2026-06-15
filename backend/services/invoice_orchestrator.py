@@ -86,6 +86,7 @@ class InvoiceScanResult:
     brand_match: Optional[BrandMatchResult] = None
     anaf_cui_check: Optional[dict] = None
     payment_destination: Optional[dict] = None
+    beneficiary_name_check: Optional[dict] = None
     error: Optional[str] = None
     warnings: list = field(default_factory=list)
     fraud_flags: list[str] = field(default_factory=list)
@@ -175,6 +176,67 @@ def _fields_to_coherence(fields: InvoiceFields) -> CoherenceResult:
 
 def _has_no_extractable_data(fields: InvoiceFields) -> bool:
     return not any([fields.cui, fields.iban, fields.emitent, fields.total is not None, fields.data_emitere])
+
+
+def _build_beneficiary_name_check(
+    *,
+    fields: InvoiceFields,
+    iban_valid: Optional[IbanResult],
+    anaf_check: Optional[dict],
+    payment_destination: Optional[dict],
+    fraud_flags: list[str],
+) -> Optional[dict]:
+    """Manual SANB/BNDS guidance for valid-but-unconfirmed payment destinations."""
+    if not fields.iban or not iban_valid or not iban_valid.valid_structure:
+        return None
+
+    hard_stop_flags = {
+        "REPORTED_FRAUD_IBAN",
+        "BENEFICIARY_PERSON_MISMATCH",
+        "PAYMENT_DESTINATION_BRAND_MISMATCH",
+        "SENSITIVE_DATA_REQUESTED",
+    }
+    if hard_stop_flags & set(fraud_flags):
+        return None
+
+    destination_confirmed = bool(
+        payment_destination
+        and payment_destination.get("matched")
+        and (payment_destination.get("brand_matches") is True or payment_destination.get("cui_matches") is True)
+        and payment_destination.get("can_contribute_to_safe") is True
+    )
+    if destination_confirmed:
+        return None
+
+    expected_name = (
+        str(anaf_check.get("denumire")).strip()
+        if anaf_check and anaf_check.get("checked") and anaf_check.get("exists") and anaf_check.get("denumire")
+        else (fields.emitent or fields.payment_beneficiary or "")
+    ).strip()
+    iban_masked = fields.iban[:4] + "..." + fields.iban[-4:] if len(fields.iban) > 8 else fields.iban
+    reasons: list[str] = []
+    if payment_destination and payment_destination.get("registry_has_brand_destinations") is True:
+        reasons.append("IBAN-ul nu apare între destinațiile oficiale cunoscute pentru acest furnizor.")
+    else:
+        reasons.append("Nu avem o sursă publică suficientă care să confirme proprietarul IBAN-ului.")
+
+    return {
+        "recommended": True,
+        "method": "bank_app_beneficiary_name_check",
+        "local_service_hint": "SANB/BNDS dacă banca ta îl afișează",
+        "title": "Verifică numele beneficiarului în aplicația băncii",
+        "reason": " ".join(reasons),
+        "expected_beneficiary": expected_name or None,
+        "iban_masked_for_client": iban_masked,
+        "bank": iban_valid.bank_name,
+        "steps": [
+            "În aplicația băncii, începe o plată nouă către IBAN-ul de pe factură.",
+            "Înainte să autorizezi plata, verifică numele beneficiarului afișat de bancă.",
+            "Continuă doar dacă numele afișat seamănă clar cu firma emitentă de pe factură.",
+            "Dacă banca nu afișează numele sau numele nu se potrivește, oprește plata și confirmă direct cu furnizorul pe un canal oficial.",
+        ],
+        "privacy_note": "SigurScan nu îți cere acces la banca ta, parolă, OTP, PIN sau captură de ecran.",
+    }
 
 
 async def scan_invoice(ocr_text: str, links: Optional[list[str]] = None) -> InvoiceScanResult:
@@ -340,6 +402,14 @@ async def scan_invoice(ocr_text: str, links: Optional[list[str]] = None) -> Invo
     except Exception:
         pass
 
+    beneficiary_name_check = _build_beneficiary_name_check(
+        fields=fields,
+        iban_valid=iban_valid,
+        anaf_check=anaf_check,
+        payment_destination=payment_destination,
+        fraud_flags=fraud_flags,
+    )
+
     result = InvoiceScanResult(
         raw_text=ocr_text,
         fields=fields,
@@ -350,6 +420,7 @@ async def scan_invoice(ocr_text: str, links: Optional[list[str]] = None) -> Invo
         brand_match=brand_match_result,
         anaf_cui_check=anaf_check,
         payment_destination=payment_destination,
+        beneficiary_name_check=beneficiary_name_check,
         warnings=warnings,
         fraud_flags=fraud_flags,
     )

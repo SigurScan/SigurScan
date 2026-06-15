@@ -9028,6 +9028,7 @@ async def scan_invoice_endpoint(
             "impersonation_risk": result.brand_match.impersonation_risk,
         } if result.brand_match else None,
         "payment_destination": result.payment_destination,
+        "beneficiary_name_check": result.beneficiary_name_check,
         "anaf": result.anaf_cui_check,
         "fraud_flags": result.fraud_flags,
         "evidence_bundle": invoice_gate["bundle"],
