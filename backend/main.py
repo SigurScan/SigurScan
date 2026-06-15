@@ -2730,6 +2730,18 @@ def _provider_verdict_for_decision_bundle(
     if _has_bad_provider_verdict(summary):
         return {"verdict": "malicious", "hits": ["provider_malicious"], "completeness": True}
 
+    suspicious_hits = [
+        name
+        for name in ("scam_blocklist_nrd",)
+        if _source_consulted(summary, name) and _source_status(summary, name) == "suspicious"
+    ]
+    if suspicious_hits:
+        return {
+            "verdict": "suspicious",
+            "hits": suspicious_hits,
+            "completeness": True,
+        }
+
     if isinstance(pillars, dict):
         pending_required = []
         error_required = []
@@ -3476,6 +3488,7 @@ def _apply_decision_contract_result(
     label = str(gate_result.get("label") or "UNVERIFIED").upper()
     family_id_by_reason = {
         "provider_malicious": "provider-gate-bad-provider",
+        "provider_suspicious": "provider-gate-suspicious-provider",
         "identity_spoof": "provider-gate-decisive-structural-danger",
         "identity_spoof_value_request": "provider-gate-decisive-structural-danger",
         "sensitive_wrong_channel": "provider-gate-sensitive-wrong-channel",

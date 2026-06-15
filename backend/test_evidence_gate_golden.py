@@ -103,6 +103,15 @@ def test_provider_malicious_urlhaus_is_dangerous():
     assert "provider_malicious" in r["reason_codes"]
 
 
+def test_provider_suspicious_open_feed_is_suspect_not_dangerous():
+    b = _bundle(providers_verdict="suspicious")
+    b["providers"]["hits"] = ["scam_blocklist_nrd"]
+    r = verdict(b)
+    assert r["label"] == "SUSPECT"
+    assert r["risk_level"] == "medium"
+    assert r["reason_codes"] == ["provider_suspicious"]
+
+
 # ─── Rule 2: BTR mismatch + sensitive request → DANGEROUS ──────────────────
 
 def test_btr_mismatch_with_card_sensitive_is_dangerous():

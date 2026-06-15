@@ -1920,6 +1920,50 @@ def test_provider_gate_web_risk_malicious_is_decisive_provider_risk_when_other_p
     assert "google_web_risk" in provider_gate["consulted_sources"]
 
 
+def test_provider_gate_scam_blocklist_nrd_suspicious_is_user_facing_suspect():
+    analysis = {
+        "claimed_brand": "Nespecificat",
+        "risk_level": "low",
+        "risk_score": 5,
+        "detected_family": "Necunoscut",
+        "evidence": {
+            "external_intel_summary": {
+                "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
+                "phishing_database": {"status": "clean", "verdict": "clean", "consulted": True},
+                "urlscan": {"status": "clean", "verdict": "clean", "consulted": True},
+                "urlhaus": {"status": "clean", "verdict": "clean", "consulted": True},
+                "scam_blocklist_nrd": {
+                    "status": "suspicious",
+                    "verdict": "suspicious",
+                    "consulted": True,
+                    "risk_score": 60,
+                    "threat_type": "scam_nrd",
+                    "details": {"provider": "scam_blocklist_nrd", "matched_value": "fresh-fraud.example"},
+                },
+            }
+        },
+    }
+    resolved_urls = [
+        {
+            "url": "https://fresh-fraud.example/",
+            "final_url": "https://fresh-fraud.example/",
+            "hostname": "fresh-fraud.example",
+            "final_hostname": "fresh-fraud.example",
+            "registered_domain": "fresh-fraud.example",
+            "final_registered_domain": "fresh-fraud.example",
+        }
+    ]
+
+    result = _apply_provider_gate_verdict(analysis, resolved_urls)
+
+    assert result["risk_level"] == "medium"
+    assert result["risk_score"] == 55
+    assert result["evidence"]["verdict_gate"]["label"] == "SUSPECT"
+    assert result["evidence"]["verdict_gate"]["reason_codes"] == ["provider_suspicious"]
+    assert result["evidence"]["decision_bundle"]["providers"]["verdict"] == "suspicious"
+    assert "scam_blocklist_nrd" in result["evidence"]["provider_gate"]["consulted_sources"]
+
+
 def test_scam_atlas_text_only_social_fraud_escalates_to_high_risk():
     local_engine = ScamAtlasEngine()
     samples = [

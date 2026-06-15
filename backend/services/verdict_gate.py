@@ -12,6 +12,7 @@ WRONG_CHANNELS = {"reply", "whatsapp", "unofficial_site", "phone", "sms"}
 BAD_IDENTITY = {"lookalike", "unrelated"}
 TRUSTED_IDENTITY = {"official", "delegated", "coherent", "official_match"}
 PROVIDER_MALICIOUS = {"malicious", "phishing", "malware", "dangerous", "blacklisted"}
+PROVIDER_SUSPICIOUS = {"suspicious"}
 PROVIDER_CLEAN = {"clean", "no_match", "safe"}
 PROVIDER_ERROR = {"error"}
 PROVIDER_PENDING = {"pending", "running", "queued", "scanning"}
@@ -69,6 +70,7 @@ def _providers_verdict(providers: Dict[str, Any]) -> str:
         return value
 
     saw_clean = False
+    saw_suspicious = False
     saw_pending = False
     saw_error = False
     for key, raw in providers.items():
@@ -78,6 +80,8 @@ def _providers_verdict(providers: Dict[str, Any]) -> str:
         severity = _norm(raw.get("severity"))
         if source_status in PROVIDER_MALICIOUS or severity == "high":
             return "malicious"
+        if source_status in PROVIDER_SUSPICIOUS:
+            saw_suspicious = True
         if source_status in PROVIDER_PENDING:
             saw_pending = True
         elif source_status in PROVIDER_ERROR:
@@ -87,6 +91,8 @@ def _providers_verdict(providers: Dict[str, Any]) -> str:
 
     if saw_pending:
         return "pending"
+    if saw_suspicious:
+        return "suspicious"
     if saw_error and not saw_clean:
         return "error"
     if saw_clean and not saw_error:
@@ -291,20 +297,24 @@ def verdict(bundle: Dict[str, Any]) -> Dict[str, Any]:
             return _result("UNVERIFIED", ["provider_error"], confidence=0, is_final=True)
         return _result("SUSPECT", ["provider_error"], confidence=55)
 
-    # ─── Rule 6: Campaign fingerprint match solo → max SUSPECT ────────────
+    # ─── Rule 6: Weighted provider warning → SUSPECT, not DANGEROUS ────────
+    if provider_verdict in PROVIDER_SUSPICIOUS:
+        return _result("SUSPECT", ["provider_suspicious"], confidence=70)
+
+    # ─── Rule 7: Campaign fingerprint match solo → max SUSPECT ────────────
     if campaign_high and not has_provenance:
         return _result("SUSPECT", ["campaign_match_only"], confidence=68)
 
-    # ─── Rule 7: Semantic high + sensitive combo ───────────────────────────
+    # ─── Rule 8: Semantic high + sensitive combo ───────────────────────────
     if semantic_risk == "high" and (hard_sensitive or value_sensitive or identity_status in BAD_IDENTITY):
         return _result("DANGEROUS", ["semantic_high_risk_match"], confidence=86)
 
-    # ─── Rule 7b: Raport comunitar singular → max SUSPECT ──────────────────
+    # ─── Rule 8b: Raport comunitar singular → max SUSPECT ──────────────────
     # Doar dacă e singurul semnal (fără proveniență pozitivă). Niciodată DANGEROUS solo.
     if community_reports >= 1 and not has_provenance:
         return _result("SUSPECT", ["community_report_only"], confidence=64)
 
-    # ─── Rule 8: SAFE via positive provenance ──────────────────────────────
+    # ─── Rule 9: SAFE via positive provenance ──────────────────────────────
     # SAFE requires BTR match + zero sensitive + provider clean + URL final
     if (
         has_provenance
@@ -314,15 +324,15 @@ def verdict(bundle: Dict[str, Any]) -> Dict[str, Any]:
     ):
         return _result("SAFE", ["positive_provenance_clean"], confidence=92)
 
-    # ─── Rule 9: Unknown provenance + clean → UNVERIFIED (NOT SAFE) ───────
+    # ─── Rule 10: Unknown provenance + clean → UNVERIFIED (NOT SAFE) ──────
     if identity_status == "unknown" and provider_verdict in PROVIDER_CLEAN and sensitive == "none":
         if _domain_is_established(identity) and not tld_suspicious:
             return _result("UNVERIFIED", ["unknown_but_clean_established"], confidence=0)
         return _result("UNVERIFIED", ["unknown_but_clean"], confidence=0)
 
-    # ─── Rule 10: Value transfer without decisive evidence → SUSPECT ───────
+    # ─── Rule 11: Value transfer without decisive evidence → SUSPECT ──────
     if value_sensitive and not has_provenance:
         return _result("SUSPECT", ["value_request_needs_verification"], confidence=70)
 
-    # ─── Rule 11: Residual ────────────────────────────────────────────────
+    # ─── Rule 12: Residual ────────────────────────────────────────────────
     return _result("UNVERIFIED", ["residual"], confidence=60, is_final=True)
