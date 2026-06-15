@@ -332,3 +332,52 @@ class TestChannelProvenance:
                             anaf_cui_check=None, iban_valid=None)
         b = build_invoice_bundle(r, "", source_channel="whatsapp")
         assert b["identity"]["status"] == "lookalike"
+
+
+class TestWhitelistRefinement:
+    """Whitelist IBAN cu `is_complete_list`: match = boost; mismatch ≠ impersonare
+    decât pe listă COMPLETĂ. Folosește datele de cercetare (IBAN-uri oficiale)."""
+
+    def test_orange_iban_oficial_e_boost_nu_impersonare(self):
+        from services.brand_registry import match_brand
+        from services.iban_validator import validate_iban
+        ib = "RO91INGB0001000000011511"  # cont oficial Orange (cercetare 2026-06-14)
+        r = match_brand("Orange Romania", "factura orange",
+                        ["https://orange.ro/factura"], "9010105", validate_iban(ib), ib)
+        assert r.claimed_brand == "orange"
+        assert r.iban_matches is True
+        assert r.impersonation_risk is False
+
+    def test_orange_iban_necunoscut_NU_e_impersonare_lista_incompleta(self):
+        from services.brand_registry import match_brand
+        from services.iban_validator import validate_iban
+        ib = "RO49AAAA1B31007593840000"  # alt IBAN valid, neprezent în listă
+        r = match_brand("Orange Romania", "factura orange",
+                        ["https://orange.ro/factura"], "9010105", validate_iban(ib), ib)
+        assert r.iban_matches is False          # nu e în lista seed-ată
+        assert r.impersonation_risk is False    # DAR listă incompletă → NU fals-pozitiv
+
+    def test_orange_cui_gresit_ramane_impersonare(self):
+        from services.brand_registry import match_brand
+        from services.iban_validator import validate_iban
+        ib = "RO91INGB0001000000011511"
+        r = match_brand("Orange Romania", "factura orange",
+                        ["https://orange.ro"], "99999999", validate_iban(ib), ib)
+        assert r.cui_matches is False
+        assert r.impersonation_risk is True     # CUI greșit → tot impersonare
+
+    def test_lista_completa_mismatch_ramane_impersonare(self):
+        # energy_gas are iban_list_complete=True → mismatch = impersonare (păstrat)
+        from services.brand_registry import match_brand
+        from services.iban_validator import validate_iban
+        ib = "RO33RNCB1234567890123456"
+        r = match_brand(None, "SC ENERGY GAS PROVIDER SRL\nCUI RO26741040", [],
+                        "26741040", validate_iban(ib), ib)
+        assert r.iban_matches is False
+        assert r.impersonation_risk is True
+
+    def test_seed_contine_ibanuri_frauda_cercetare(self):
+        from services import negative_iban_registry as nir
+        nir.reload_registry()
+        assert nir.is_reported_fraud("SK0711110000001329100001")
+        assert nir.is_reported_fraud("PL27114020040000300280926524")
