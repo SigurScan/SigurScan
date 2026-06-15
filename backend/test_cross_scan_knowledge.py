@@ -118,6 +118,24 @@ def test_cross_scan_does_not_treat_safety_education_as_never_asks_violation():
     assert result["brand_never_asks"]["violated_never_asks"] == []
 
 
+def test_cross_scan_applies_olx_card_for_receiving_money_warning():
+    text = (
+        "Am platit pe OLX. Ca sa primesti banii, intra pe link si introdu "
+        "datele cardului si codul CVV: https://olx-incasare.example/card"
+    )
+
+    result = evaluate_cross_scan_knowledge(
+        text=text,
+        claimed_brand="olx",
+        source_channel="whatsapp",
+    )
+
+    assert "olx" in result["brand_never_asks"]["brand_ids"]
+    assert "card_data_for_receiving_money" in result["brand_never_asks"]["violated_never_asks"]
+    assert "card_number" in result["brand_never_asks"]["violated_never_asks"]
+    assert "cvv" in result["brand_never_asks"]["violated_never_asks"]
+
+
 @pytest.mark.asyncio
 async def test_offer_bundle_carries_cross_scan_payment_destination_context():
     text = (

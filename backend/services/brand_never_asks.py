@@ -40,6 +40,7 @@ _BRAND_ALIASES = {
     "orange": {"orange", "yoxo"},
     "vodafone": {"vodafone"},
     "digi": {"digi", "rcs rds", "rcs-rds"},
+    "olx": {"olx", "olx romania", "olx românia", "livrare olx"},
 }
 
 _IBAN_RE = re.compile(r"\b[A-Z]{2}\d{2}[A-Z0-9 ]{10,34}\b", re.IGNORECASE)
@@ -261,6 +262,19 @@ def evaluate_brand_never_asks(
                 if _URL_RE.search(text or "") and "card_data_by_link" in allowed:
                     brand_violations.append("card_data_by_link")
 
+        if brand_id == "olx":
+            receiving_money = re.search(
+                r"\b(primesti|prime[șs]ti|incasezi|încasezi|ridici|confirm[ăa])\b.{0,80}\b(banii|plata|suma)\b|"
+                r"\b(banii|plata|suma)\b.{0,80}\b(primesti|prime[șs]ti|incasezi|încasezi|ridici|confirm[ăa])\b",
+                normalized_text,
+            )
+            wrong_channel = normalized_channel in _WRONG_SMS_CHANNELS | _WRONG_SOCIAL_CHANNELS
+            if wrong_channel and receiving_money and (_CARD_CVV_RE.search(text or "") or _URL_RE.search(text or "")):
+                if "card_data_for_receiving_money" in allowed:
+                    brand_violations.append("card_data_for_receiving_money")
+                if _CARD_CVV_RE.search(text or ""):
+                    brand_violations.extend(item for item in ("card_number", "cvv") if item in allowed)
+
         if brand_id in {"fan_courier", "posta_romana"}:
             delivery_payment = bool(_PAYMENT_RE.search(text or "") and re.search(r"\b(colet|livrare|awb|curier)\b", normalized_text))
             if normalized_channel in _WRONG_SMS_CHANNELS | _WRONG_SOCIAL_CHANNELS and delivery_payment:
@@ -309,6 +323,7 @@ def evaluate_brand_never_asks(
             "orange",
             "vodafone",
             "digi",
+            "olx",
             "anaf",
             "politia_romana_general_warning",
         }:

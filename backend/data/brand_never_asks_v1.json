@@ -259,6 +259,19 @@
       "confidence": "high"
     },
     {
+      "brand_id": "olx",
+      "type": "marketplace",
+      "never_asks": [
+        "card_data_for_receiving_money",
+        "card_number",
+        "cvv"
+      ],
+      "official_statement_url": "https://blog.olx.ro/2020/12/ai-grija-la-linkurile-false-pentru-articole-platite-vezi-cum-te-protejezi-de-cele-mai-noi-atacuri-de-phishing/",
+      "verified_at": "2026-06-15",
+      "evidence_quote": "OLX avertizeaza asupra linkurilor false prin care vanzatorilor li se cer datele cardului, soldul si CVV/CVC pentru a primi banii.",
+      "confidence": "high"
+    },
+    {
       "brand_id": "orange",
       "type": "telecom",
       "never_asks": [
