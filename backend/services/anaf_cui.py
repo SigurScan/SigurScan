@@ -28,6 +28,7 @@ _INACTIVE_COMPANY_MARKERS = (
     "radiata",
     "radiată",
     "dizolvat",
+    "dizolvare",
     "lichidare",
     "faliment",
     "insolven",
@@ -96,17 +97,30 @@ async def _call_anaf_api(cui_int: int, ref_date: str) -> CuiResult | None:
 
     try:
         response = await loop.run_in_executor(_ANAF_EXECUTOR, _request)
-        if response.status_code != 200:
-            return None
         data = response.json()
-        if not isinstance(data, list) or len(data) == 0:
+        entry = _extract_anaf_entry(data)
+        if response.status_code != 200 and entry is None:
             return None
-        entry = data[0] if isinstance(data[0], dict) else None
-        if not entry:
+        if entry is None:
             return None
         return _parse_anaf_entry(entry)
     except requests.RequestException:
         return None
+
+
+def _extract_anaf_entry(data: Any) -> Dict[str, Any] | None:
+    if isinstance(data, list):
+        return data[0] if data and isinstance(data[0], dict) else None
+    if not isinstance(data, dict):
+        return None
+    found = data.get("found")
+    if isinstance(found, list) and found:
+        return found[0] if isinstance(found[0], dict) else None
+    not_found = data.get("notFound") or data.get("not_found")
+    if isinstance(not_found, list) and not_found:
+        raw = not_found[0] if isinstance(not_found[0], dict) else {"notFound": not_found[0]}
+        return {"date_generale": None, "notFound": raw, "raw_response": data}
+    return None
 
 
 def _parse_anaf_entry(entry: Dict[str, Any]) -> CuiResult:
@@ -117,13 +131,19 @@ def _parse_anaf_entry(entry: Dict[str, Any]) -> CuiResult:
             platitor_tva=False, enrolled_efactura=False, raw=entry,
         )
     denumire = (dg.get("denumire") or "").strip() or None
+    stare_inactiv = entry.get("stare_inactiv") if isinstance(entry.get("stare_inactiv"), dict) else {}
     raw_status = dg.get("statusInactivi")
+    if raw_status is None:
+        raw_status = stare_inactiv.get("statusInactivi")
     if isinstance(raw_status, bool):
         status_inactiv = "true" if raw_status else "false"
     else:
         status_inactiv = (raw_status or "").strip().lower()
-    data_inactivare = (dg.get("dataInactivare") or "").strip() or None
+    data_inactivare = (dg.get("dataInactivare") or stare_inactiv.get("dataInactivare") or "").strip() or None
     scp_tva_raw = dg.get("scpTVA")
+    scop_tva = entry.get("inregistrare_scop_Tva") if isinstance(entry.get("inregistrare_scop_Tva"), dict) else {}
+    if scp_tva_raw is None:
+        scp_tva_raw = scop_tva.get("scpTVA")
     if isinstance(scp_tva_raw, bool):
         scp_tva = scp_tva_raw
     else:
@@ -133,7 +153,17 @@ def _parse_anaf_entry(entry: Dict[str, Any]) -> CuiResult:
         enrol_efactura = enrol_raw
     else:
         enrol_efactura = (enrol_raw or "").strip().lower() == "da"
-    activ = status_inactiv not in {"inactiv", "true"}
+    status_text = _collect_status_text(
+        {
+            "statusInactivi": status_inactiv,
+            "stare_inregistrare": dg.get("stare_inregistrare"),
+            "dataInactivare": data_inactivare,
+            "dataRadiere": stare_inactiv.get("dataRadiere"),
+        }
+    ).lower()
+    activ = status_inactiv not in {"inactiv", "true"} and not any(
+        marker in status_text for marker in _INACTIVE_COMPANY_MARKERS
+    )
     exists = bool(denumire)
     return CuiResult(
         exists=exists,

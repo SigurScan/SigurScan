@@ -114,13 +114,14 @@ class TestSuspectNotPericulos:
 
 class TestSafe:
     @pytest.mark.asyncio
-    async def test_verified_active_company_transfer_is_safe(self):
+    async def test_verified_active_company_transfer_with_unconfirmed_iban_needs_verification(self):
         text = (
             "Furnizor: ENEL ENERGIE SA\nCUI: 24387371\nTotal: 245,00 RON\n"
             "IBAN: RO33RNCB1234567890123456\nData: 01.06.2026\nScadenta: 15.06.2026"
         )
         out = await _run(text, cui_result=_cui(exists=True, activ=True, denumire="ENEL ENERGIE SA"))
-        assert out["gate"]["label"] == "SAFE"
+        assert out["gate"]["label"] == "SUSPECT"
+        assert out["gate"]["reason_codes"] == ["value_request_needs_verification"]
 
 
 class TestDeterminism:

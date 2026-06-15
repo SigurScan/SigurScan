@@ -417,9 +417,9 @@ BRAND_REGISTRY: Dict[str, BrandEntry] = {
 @dataclass
 class BrandMatchResult:
     claimed_brand: str | None
-    domain_matches: bool
-    iban_matches: bool
-    cui_matches: bool
+    domain_matches: bool | None
+    iban_matches: bool | None
+    cui_matches: bool | None
     impersonation_risk: bool
 
 
@@ -478,14 +478,14 @@ def match_brand(
     claimed_brand = detect_claimed_brand(emitent, text, links)
     if not claimed_brand:
         return BrandMatchResult(
-            claimed_brand=None, domain_matches=True, iban_matches=True,
-            cui_matches=True, impersonation_risk=False,
+            claimed_brand=None, domain_matches=None, iban_matches=None,
+            cui_matches=None, impersonation_risk=False,
         )
     entry = BRAND_REGISTRY.get(claimed_brand)
     if not entry:
         return BrandMatchResult(
-            claimed_brand=claimed_brand, domain_matches=True, iban_matches=True,
-            cui_matches=True, impersonation_risk=False,
+            claimed_brand=claimed_brand, domain_matches=None, iban_matches=None,
+            cui_matches=None, impersonation_risk=False,
         )
     domain_matches_raw = _any_link_matches(links, entry.domains)
     domain_matches = domain_matches_raw if domain_matches_raw is not None else True
@@ -494,7 +494,7 @@ def match_brand(
         cui_normalized = _normalize_cui(cui) if cui else ""
         normalized_entry_cuis = [_normalize_cui(c) for c in entry.cuis]
         cui_matches = bool(cui_normalized) and cui_normalized in normalized_entry_cuis
-    iban_matches: bool | None = True
+    iban_matches: bool | None = None
     if entry.trezorerie_only:
         iban_matches = validated_iban.is_trezorerie if validated_iban else False
     elif entry.official_ibans and iban_raw:

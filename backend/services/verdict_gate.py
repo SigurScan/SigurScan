@@ -171,6 +171,28 @@ def _has_positive_provenance(identity: Dict[str, Any], provenance: Dict[str, Any
     return False
 
 
+def _has_trusted_payment_destination(providers: Dict[str, Any]) -> bool:
+    payment = providers.get("payment_destination")
+    if not isinstance(payment, dict):
+        return False
+    status = _norm(payment.get("status") or payment.get("verdict"))
+    trust_tier = _norm(payment.get("trust_tier"))
+    return (
+        status in PROVIDER_CLEAN
+        and _bool(payment.get("matched"))
+        and (
+            _bool(payment.get("brand_matches"))
+            or _bool(payment.get("cui_matches"))
+        )
+        and trust_tier
+        in {
+            "t0_partner_signed",
+            "t1_public_official",
+            "t2_official_document_chain",
+        }
+    )
+
+
 def _campaign_match_high_enough(campaign: Dict[str, Any]) -> bool:
     """Campaign fingerprint match solo -> max SUSPECT."""
     status = _norm(campaign.get("status"))
@@ -313,6 +335,10 @@ def verdict(bundle: Dict[str, Any]) -> Dict[str, Any]:
     # Doar dacă e singurul semnal (fără proveniență pozitivă). Niciodată DANGEROUS solo.
     if community_reports >= 1 and not has_provenance:
         return _result("SUSPECT", ["community_report_only"], confidence=64)
+
+    # ─── Rule 8c: Money transfer needs confirmed destination ───────────────
+    if value_sensitive and has_provenance and not _has_trusted_payment_destination(providers):
+        return _result("SUSPECT", ["value_request_needs_verification"], confidence=70)
 
     # ─── Rule 9: SAFE via positive provenance ──────────────────────────────
     # SAFE requires BTR match + zero sensitive + provider clean + URL final

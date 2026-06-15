@@ -266,9 +266,10 @@ class TestVerdictRules:
         assert out["gate"]["label"] == "UNVERIFIED"
 
     @pytest.mark.asyncio
-    async def test_anaf_confirmed_not_undermined_by_registry_no_match(self):
+    async def test_anaf_confirmed_with_unconfirmed_transfer_iban_needs_verification(self):
         # ANAF live confirmă firma activă + nume → un snapshot ONRC incomplet
-        # (NO_MATCH) NU dărâmă verdictul; ANAF e sursa mai puternică.
+        # (NO_MATCH) NU devine semnal de fraudă. Totuși, transferul bancar
+        # fără destinație de plată confirmată nu mai poate primi SAFE.
         text = (
             "Furnizor: ENEL ENERGIE SA\nCUI: 24387371\nTotal: 245,00 RON\n"
             "IBAN: RO33RNCB1234567890123456\nData: 01.06.2026\nScadenta: 15.06.2026"
@@ -278,7 +279,8 @@ class TestVerdictRules:
             cui_result=_cui(exists=True, activ=True, denumire="ENEL ENERGIE SA"),
             registry_results=[_registry(status=RegistryStatus.NO_MATCH)],
         )
-        assert out["gate"]["label"] == "SAFE"
+        assert out["gate"]["label"] == "SUSPECT"
+        assert out["gate"]["reason_codes"] == ["value_request_needs_verification"]
 
     @pytest.mark.asyncio
     async def test_registry_evidence_lands_in_bundle(self):

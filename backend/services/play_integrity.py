@@ -161,5 +161,12 @@ def evaluate_request_token(token: str, api_key: str = "") -> Dict[str, Any]:
             logger.info("play_integrity monitor: %s", json.dumps(result, default=str))
         return {"block": False, "result": result}
 
-    # enforce
-    return {"block": result.get("status") != "valid", "result": result}
+    # enforce: reject only hard client failures. Transient Google/API errors or
+    # missing server credentials must not turn into a global production outage.
+    status = result.get("status")
+    if status in {"valid"}:
+        return {"block": False, "result": result}
+    if status in {"missing", "invalid"}:
+        return {"block": True, "result": result}
+    logger.warning("play_integrity enforce fail-open: %s", json.dumps(result, default=str))
+    return {"block": False, "result": result}

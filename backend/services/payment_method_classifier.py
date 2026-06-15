@@ -54,7 +54,7 @@ CVV_OTP_RECEIVE = re.compile(
 )
 
 # — HIGH —
-REVOLUT = re.compile(r"\b(?:revolut|wise|paypal\s*friends|prieteni\s*paypal|@[a-z0-9_.]+)\b", re.IGNORECASE)
+REVOLUT = re.compile(r"\b(?:revolut|wise|paypal\s*friends|prieteni\s*paypal)\b", re.IGNORECASE)
 AVANS_INAINTE = re.compile(
     r"avans.{0,40}(?:inainte|înainte|pana|până)|(?:inainte|înainte)\s*de\s*(?:vizionare|livrare|predare).{0,40}(?:plat|avans|transfer)",
     re.IGNORECASE,

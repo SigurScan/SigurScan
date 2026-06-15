@@ -68,6 +68,14 @@ class TestMatchBrand:
         assert result.claimed_brand == "enel"
         assert result.domain_matches is True
         assert result.cui_matches is True
+        assert result.iban_matches is None
+        assert result.impersonation_risk is False
+
+    def test_known_brand_without_official_iban_registry_does_not_confirm_iban(self):
+        result = match_brand("Digi Romania", "Digi Romania S.A.", [], "5888716", validate_iban("RO51INGB0001000000018827"), "RO51INGB0001000000018827")
+        assert result.claimed_brand == "digi"
+        assert result.cui_matches is True
+        assert result.iban_matches is None
         assert result.impersonation_risk is False
 
     def test_enel_wrong_domain_impersonation(self):

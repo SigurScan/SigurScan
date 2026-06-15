@@ -26,6 +26,11 @@ class TestHigh:
     def test_revolut(self):
         assert classify_payment_method("plata pe Revolut @maria").risk == PaymentRisk.HIGH
 
+    def test_contact_email_is_not_treated_as_payment_alias(self):
+        c = classify_payment_method("Contact: vanzari@dedeman.ro pentru detalii factura")
+        assert c.risk == PaymentRisk.LOW
+        assert c.method is None
+
     def test_avans_inainte_de_vizionare(self):
         c = classify_payment_method("plateste avans inainte de vizionare")
         assert c.risk == PaymentRisk.HIGH

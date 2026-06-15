@@ -43,6 +43,48 @@ ANAF_NONEXISTENT_RESPONSE = [
     }
 ]
 
+ANAF_V9_FOUND_RESPONSE = {
+    "cod": 200,
+    "message": "SUCCESS",
+    "found": [
+        {
+            "date_generale": {
+                "data": "2026-06-15",
+                "cui": 5888716,
+                "denumire": "DIGI ROMANIA S.A.",
+                "stare_inregistrare": "INREGISTRAT din data 25.11.2003",
+                "statusRO_e_Factura": False,
+            },
+            "inregistrare_scop_Tva": {"scpTVA": True},
+            "stare_inactiv": {"statusInactivi": False, "dataInactivare": ""},
+        }
+    ],
+    "notFound": [],
+}
+
+ANAF_V9_DISSOLVED_RESPONSE = {
+    "cod": 200,
+    "message": "SUCCESS",
+    "found": [
+        {
+            "date_generale": {
+                "data": "2026-06-15",
+                "cui": 24387371,
+                "denumire": "PPC ENERGIE MUNTENIA S.A.",
+                "stare_inregistrare": "DIZOLVARE FARA LICHIDARE(FUZIUNE) din data 31.12.2024",
+                "statusRO_e_Factura": False,
+            },
+            "inregistrare_scop_Tva": {"scpTVA": False},
+            "stare_inactiv": {
+                "statusInactivi": False,
+                "dataInactivare": "",
+                "dataRadiere": "",
+            },
+        }
+    ],
+    "notFound": [],
+}
+
 
 @pytest.mark.asyncio
 async def test_cui_activ():
@@ -60,6 +102,70 @@ async def test_cui_activ():
     assert result.platitor_tva is True
     assert result.enrolled_efactura is True
     assert result.data_inactivare is None
+
+
+@pytest.mark.asyncio
+async def test_cui_activ_from_anaf_v9_found_object_shape():
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = ANAF_V9_FOUND_RESPONSE
+
+    with patch("services.anaf_cui.requests.post", return_value=mock_response):
+        result = await check_cui("5888716")
+
+    assert result.exists is True
+    assert result.checked is True
+    assert result.denumire == "DIGI ROMANIA S.A."
+    assert result.activ is True
+    assert result.platitor_tva is True
+
+
+@pytest.mark.asyncio
+async def test_cui_dissolved_from_anaf_v9_status_text_is_inactive():
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = ANAF_V9_DISSOLVED_RESPONSE
+
+    with patch("services.anaf_cui.requests.post", return_value=mock_response):
+        result = await check_cui("24387371")
+
+    assert result.exists is True
+    assert result.checked is True
+    assert result.denumire == "PPC ENERGIE MUNTENIA S.A."
+    assert result.activ is False
+
+
+@pytest.mark.asyncio
+async def test_cui_nonexistent_from_anaf_v9_not_found_object_shape():
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        "cod": 200,
+        "message": "SUCCESS",
+        "found": [],
+        "notFound": [{"cui": 11111111}],
+    }
+
+    with patch("services.anaf_cui.requests.post", return_value=mock_response):
+        result = await check_cui("11111111")
+
+    assert result.exists is False
+    assert result.checked is True
+    assert result.denumire is None
+
+
+@pytest.mark.asyncio
+async def test_cui_nonexistent_from_anaf_v9_http_404_json_not_found_is_checked():
+    mock_response = MagicMock()
+    mock_response.status_code = 404
+    mock_response.json.return_value = {"found": [], "notFound": [11111111]}
+
+    with patch("services.anaf_cui.requests.post", return_value=mock_response):
+        result = await check_cui("11111111")
+
+    assert result.exists is False
+    assert result.checked is True
+    assert result.denumire is None
 
 
 @pytest.mark.asyncio

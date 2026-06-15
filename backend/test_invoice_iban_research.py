@@ -301,6 +301,42 @@ class TestInvoiceChannelProvenance:
         official = evaluate_invoice_verdict(result, "", source_channel="android_native")
         whatsapp = evaluate_invoice_verdict(result, "", source_channel="whatsapp")
 
-        assert official["gate"]["label"] == "SAFE"
+        assert official["gate"]["label"] == "SUSPECT"
+        assert official["gate"]["reason_codes"] == ["value_request_needs_verification"]
         assert whatsapp["gate"]["label"] != "SAFE"
         assert whatsapp["gate"]["label"] != "DANGEROUS"
+
+    @pytest.mark.asyncio
+    async def test_active_company_with_unconfirmed_payment_iban_is_not_safe(self):
+        from services.anaf_cui import CuiResult
+        from services.invoice_orchestrator import evaluate_invoice_verdict
+
+        async def fake_check_cui(cui: str):
+            return CuiResult(
+                exists=True,
+                checked=True,
+                denumire="ATELIER DIGITAL SIBIU SRL",
+                activ=True,
+                data_inactivare=None,
+                platitor_tva=True,
+                enrolled_efactura=False,
+                raw=None,
+            )
+
+        text = (
+            "Furnizor: Atelier Digital Sibiu SRL\n"
+            "CUI: 12345678\n"
+            "IBAN: RO33RNCB1234567890123456\n"
+            "Total: 100 RON\n"
+            "Data: 01.06.2026\n"
+            "Scadenta: 15.06.2026"
+        )
+        with patch("services.invoice_orchestrator.check_cui", new_callable=AsyncMock) as mock_cui:
+            mock_cui.side_effect = fake_check_cui
+            result = await scan_invoice(text)
+
+        verdict = evaluate_invoice_verdict(result, result.raw_text, source_channel="android_native")
+
+        assert verdict["bundle"]["identity"]["status"] == "coherent"
+        assert verdict["gate"]["label"] != "SAFE"
+        assert verdict["gate"]["reason_codes"] == ["value_request_needs_verification"]

@@ -226,6 +226,30 @@ def test_play_integrity_enforce_allows_valid_token(monkeypatch):
     assert response.status_code != 401
 
 
+def test_play_integrity_enforce_fails_open_for_unconfigured_or_transient_error(monkeypatch):
+    monkeypatch.setattr(play_integrity, "PLAY_INTEGRITY_MODE", "enforce")
+    monkeypatch.setattr(
+        play_integrity,
+        "verify_token",
+        lambda token, api_key="": {"status": "unconfigured"},
+    )
+    assert play_integrity.evaluate_request_token("fake-token", CLIENT_KEY)["block"] is False
+
+    monkeypatch.setattr(
+        play_integrity,
+        "verify_token",
+        lambda token, api_key="": {"status": "error", "detail": "google timeout"},
+    )
+    assert play_integrity.evaluate_request_token("fake-token", CLIENT_KEY)["block"] is False
+
+    monkeypatch.setattr(
+        play_integrity,
+        "verify_token",
+        lambda token, api_key="": {"status": "invalid"},
+    )
+    assert play_integrity.evaluate_request_token("fake-token", CLIENT_KEY)["block"] is True
+
+
 def test_play_integrity_monitor_mode_never_blocks(monkeypatch):
     _enable_client_auth(monkeypatch)
     monkeypatch.setattr(play_integrity, "PLAY_INTEGRITY_MODE", "monitor")

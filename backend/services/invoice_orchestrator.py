@@ -339,11 +339,11 @@ async def scan_invoice(ocr_text: str, links: Optional[list[str]] = None) -> Invo
         )
         if brand_match_result.impersonation_risk:
             reasons = []
-            if not brand_match_result.domain_matches:
+            if brand_match_result.domain_matches is False:
                 reasons.append("domeniul nu corespunde brandului")
-            if not brand_match_result.cui_matches:
+            if brand_match_result.cui_matches is False:
                 reasons.append("CUI-ul nu corespunde brandului")
-            if not brand_match_result.iban_matches:
+            if brand_match_result.iban_matches is False:
                 reasons.append("IBAN-ul nu corespunde brandului")
             warnings.append(
                 f"Potential impersonation of {claimed_brand}: "
@@ -753,6 +753,7 @@ def build_invoice_evidence_bundle(
                 "brand_id": payment_destination.get("brand_id"),
                 "matched": True,
                 "brand_matches": True,
+                "cui_matches": payment_destination.get("cui_matches"),
                 "iban_masked_for_client": payment_destination.get("iban_masked_for_client"),
             }
         elif destination_required or (unknown_destination and not benign_unknown_destination):
@@ -774,7 +775,10 @@ def build_invoice_evidence_bundle(
     elif impersonation_risk:
         identity_status = "lookalike"
         identity_reason = "CUI/IBAN nealiniat cu brandul declarat"
-    elif destination_trusted and payment_destination.get("cui_matches") is True:
+    elif destination_trusted and (
+        payment_destination.get("brand_matches") is True
+        or payment_destination.get("cui_matches") is True
+    ):
         identity_status = "official"
         identity_reason = "CUI și destinație de plată confirmate oficial"
     elif cui_matches and iban_matches and (not destination_required or destination_trusted):

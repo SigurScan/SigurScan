@@ -55,13 +55,14 @@ class TestScanOfferChain:
         assert r.gate["label"] == "DANGEROUS"
 
     @pytest.mark.asyncio
-    async def test_verified_active_company_is_safe(self):
+    async def test_verified_active_company_transfer_with_unconfirmed_iban_needs_verification(self):
         text = (
             "Furnizor: ENEL ENERGIE SA\nCUI: 24387371\nTotal: 245,00 RON\n"
             "IBAN: RO33RNCB1234567890123456\nData: 01.06.2026\nScadenta: 15.06.2026"
         )
         r = await _scan(text, cui_result=_cui(exists=True, activ=True, denumire="ENEL ENERGIE SA"))
-        assert r.gate["label"] == "SAFE"
+        assert r.gate["label"] == "SUSPECT"
+        assert r.gate["reason_codes"] == ["value_request_needs_verification"]
 
     @pytest.mark.asyncio
     async def test_qr_payloads_threaded(self):

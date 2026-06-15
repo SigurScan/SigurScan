@@ -512,7 +512,7 @@ async def test_destination_official_for_other_brand_is_dangerous_mismatch():
 
 
 @pytest.mark.asyncio
-async def test_generic_real_company_unknown_payment_destination_can_be_safe_when_identity_is_coherent():
+async def test_generic_real_company_unknown_payment_destination_needs_verification_when_identity_is_coherent():
     from services.anaf_cui import CuiResult
     from services.invoice_orchestrator import evaluate_invoice_verdict, scan_invoice
 
@@ -542,7 +542,8 @@ async def test_generic_real_company_unknown_payment_destination_can_be_safe_when
     assert "UNKNOWN_PAYMENT_DESTINATION" not in result.fraud_flags
     assert result.payment_destination["matched"] is False
     assert verdict["bundle"]["identity"]["status"] == "coherent"
-    assert verdict["gate"]["label"] == "SAFE"
+    assert verdict["gate"]["label"] == "SUSPECT"
+    assert verdict["gate"]["reason_codes"] == ["value_request_needs_verification"]
     assert verdict["gate"]["is_final"] is True
 
 

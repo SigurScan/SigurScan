@@ -123,7 +123,8 @@ def test_scan_invoice_pdf_merges_embedded_text_when_ocr_misses_cui(monkeypatch):
     assert payload["fields"]["iban"] == "RO42INGB0000999912242622"
     assert payload["anaf"]["checked"] is True
     assert payload["evidence_bundle"]["identity"]["status"] == "coherent"
-    assert payload["verdict_gate"]["label"] == "SAFE"
+    assert payload["verdict_gate"]["label"] == "SUSPECT"
+    assert payload["verdict_gate"]["reason_codes"] == ["value_request_needs_verification"]
 
 
 def test_scan_invoice_endpoint_returns_gate_for_brand_never_asks(monkeypatch):
