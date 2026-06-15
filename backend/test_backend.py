@@ -2848,6 +2848,23 @@ def _fake_urlscan_get_malicious(url, headers, timeout, **kwargs):
     return _FakeUrlscanResponse(content=b"\x89PNG\r\n", headers={"content-type": "image/png"})
 
 
+def test_public_route_url_rewrites_internal_cloud_run_host_for_android_preview(monkeypatch):
+    class InternalRequest:
+        def url_for(self, route_name, **path_params):
+            uuid = path_params["uuid"]
+            return f"http://sigurscan-api-tvszku44fq-ew.a.run.app/v1/sandbox/urlscan/{uuid}/screenshot"
+
+    with monkeypatch.context() as patched:
+        patched.setattr(app_main, "SIGURSCAN_PUBLIC_API_BASE_URL", "https://api.sigurscan.com")
+        rewritten = app_main._public_route_url(
+            InternalRequest(),
+            "urlscan_screenshot",
+            uuid="urlscan-yoxo-1",
+        )
+
+    assert rewritten == "https://api.sigurscan.com/v1/sandbox/urlscan/urlscan-yoxo-1/screenshot"
+
+
 def _poll_orchestrated(client: TestClient, scan_id: str, count: int = 1):
     payload = None
     response = None

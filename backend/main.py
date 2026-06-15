@@ -5297,7 +5297,7 @@ def _summarize_urlscan_payload(payload: Dict[str, Any], uuid: str, request: Requ
         "details": "; ".join(detail_parts),
         "final_url": final_url,
         "report_url": _urlscan_report_url(uuid),
-        "screenshot_url": str(request.url_for("urlscan_screenshot", uuid=uuid)),
+        "screenshot_url": _public_route_url(request, "urlscan_screenshot", uuid=uuid),
         "score": score,
         "categories": categories,
         "brands": brands[:4],
@@ -5443,6 +5443,15 @@ def _normalize_screenshot_proxy_url(raw_url: Any) -> str:
         return f"{public_base}{value}"
 
     return value
+
+
+def _public_route_url(request: Request, route_name: str, **path_params: Any) -> str:
+    generated = str(request.url_for(route_name, **path_params))
+    public_base = SIGURSCAN_PUBLIC_API_BASE_URL or "https://api.sigurscan.com"
+    parsed = urllib.parse.urlparse(generated)
+    path = parsed.path or "/"
+    query = f"?{parsed.query}" if parsed.query else ""
+    return f"{public_base}{path}{query}"
 
 
 def _normalize_urlscan_preview_cache_entry(entry: Any) -> Optional[Dict[str, Any]]:
@@ -8499,8 +8508,8 @@ async def submit_urlscan_sandbox(payload: UrlscanSandboxRequest, request: Reques
         "uuid": uuid,
         "status": "pending",
         "report_url": _urlscan_report_url(uuid),
-        "result_url": str(request.url_for("get_urlscan_result", uuid=uuid)),
-        "screenshot_url": str(request.url_for("urlscan_screenshot", uuid=uuid)),
+        "result_url": _public_route_url(request, "get_urlscan_result", uuid=uuid),
+        "screenshot_url": _public_route_url(request, "urlscan_screenshot", uuid=uuid),
         "submitted_url": url,
     }
 
@@ -8528,7 +8537,7 @@ async def get_urlscan_result(uuid: str, request: Request):
             "severity": "unknown",
             "details": "urlscan.io sandbox inca proceseaza rezultatul.",
             "report_url": _urlscan_report_url(safe_uuid),
-            "screenshot_url": str(request.url_for("urlscan_screenshot", uuid=safe_uuid)),
+            "screenshot_url": _public_route_url(request, "urlscan_screenshot", uuid=safe_uuid),
         }
     if response.status_code >= 400:
         raise HTTPException(

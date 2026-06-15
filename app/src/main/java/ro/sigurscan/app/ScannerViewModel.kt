@@ -189,6 +189,25 @@ internal fun orchestratedPollDelayMillis(response: OrchestratedScanResponse): Lo
     }
 }
 
+internal fun orchestratedPreviewStillPending(preview: OrchestratedPreview?): Boolean {
+    if (preview == null) return false
+    if (!preview.screenshotUrl.isNullOrBlank()) return false
+    val status = preview.status?.trim()?.lowercase(Locale.US)
+    val reason = preview.reason?.trim()?.lowercase(Locale.US)
+    return status == "pending" ||
+        reason in setOf("urlscan_pending", "urlscan_screenshot_pending")
+}
+
+internal fun shouldContinueOrchestratedPolling(response: OrchestratedScanResponse): Boolean {
+    val status = response.status?.lowercase(Locale.US)
+    if (response.result == null) return true
+    if (response.result.isFinal == false) return true
+    if (orchestratedPreviewStillPending(response.preview)) return true
+    if (status == "complete") return false
+    return status == "scanning" ||
+            status == "ready"
+}
+
 internal fun orchestratedScanServerInfo(
     statusMessage: String?,
     preview: OrchestratedPreview?,
@@ -200,6 +219,9 @@ internal fun orchestratedScanServerInfo(
         return previewDetails.ifBlank {
             "Destinatia finala nu poate fi incarcata/verificata. Nu continua fara verificare oficiala."
         }
+    }
+    if (isFinal && orchestratedPreviewStillPending(preview)) {
+        return "Preview-ul securizat se generează."
     }
     return if (!isFinal) {
         statusMessage ?: "Avem un verdict provizoriu. Continuăm verificarea preview-ului securizat."
@@ -1566,6 +1588,11 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
     private fun cachedAssessmentFor(cacheKey: String): OfflineAssessment? {
         val now = System.currentTimeMillis()
         val cached = resultCache[cacheKey] ?: return null
+        if (cached.assessment.finalUrl != null && cached.assessment.screenshotUrl == null) {
+            resultCache.remove(cacheKey)
+            persistResultCache()
+            return null
+        }
         return if (cached.expiresAtMillis > now) {
             cached.assessment.copy(
                 cacheStatus = ScanCacheStatus(
@@ -1922,7 +1949,9 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
         if (response.result != null && updated.gateResult?.finality == GateFinality.FINAL) {
             loading = false
             if (!resultCacheKey.isNullOrBlank()) {
-                saveFinalAssessmentToResultCache(resultCacheKey, updated)
+                if (shouldCacheFinalAssessment(response, updated)) {
+                    saveFinalAssessmentToResultCache(resultCacheKey, updated)
+                }
             }
         }
         if (response.result != null && !remoteScreenshotUrl.isNullOrBlank()) {
@@ -1930,13 +1959,13 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-    private fun shouldContinueOrchestratedPolling(response: OrchestratedScanResponse): Boolean {
-        val status = response.status?.lowercase(Locale.US)
-        if (response.result == null) return true
-        if (response.result.isFinal == false) return true
-        if (status == "complete") return false
-        return status == "scanning" ||
-                status == "ready"
+    private fun shouldCacheFinalAssessment(
+        response: OrchestratedScanResponse,
+        assessment: OfflineAssessment
+    ): Boolean {
+        if (assessment.gateResult?.finality != GateFinality.FINAL) return false
+        if (orchestratedPreviewStillPending(response.preview)) return false
+        return true
     }
 
     private suspend fun runBackendOrchestratedScan(

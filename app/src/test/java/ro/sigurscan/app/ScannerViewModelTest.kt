@@ -71,6 +71,76 @@ class ScannerViewModelTest {
     }
 
     @Test
+    fun finalUrlscanPendingPreviewKeepsPollingAfterFinalVerdict() {
+        val response = OrchestratedScanResponse(
+            scanId = "orch-yoxo-preview",
+            status = "complete",
+            preview = OrchestratedPreview(
+                status = "pending",
+                reason = "urlscan_screenshot_pending",
+                reportUrl = "https://urlscan.io/result/urlscan-yoxo-1/",
+                finalUrl = "https://reconditionate.yoxo.ro/oferte-speciale"
+            ),
+            result = ScanResponse(
+                scanId = "orch-yoxo-preview",
+                riskScore = 10,
+                riskLevel = "low",
+                detectedFamily = "Destinație oficială",
+                reasons = emptyList(),
+                safeActions = emptyList(),
+                userRiskLabel = "SAFE",
+                isFinal = true
+            )
+        )
+
+        assertTrue(shouldContinueOrchestratedPolling(response))
+        assertTrue(orchestratedPreviewStillPending(response.preview))
+    }
+
+    @Test
+    fun readyPreviewStopsPollingAfterFinalVerdict() {
+        val response = OrchestratedScanResponse(
+            scanId = "orch-yoxo-preview-ready",
+            status = "complete",
+            preview = OrchestratedPreview(
+                status = "ready",
+                screenshotUrl = "https://api.sigurscan.com/v1/sandbox/urlscan/urlscan-yoxo-1/screenshot",
+                finalUrl = "https://reconditionate.yoxo.ro/oferte-speciale"
+            ),
+            result = ScanResponse(
+                scanId = "orch-yoxo-preview-ready",
+                riskScore = 10,
+                riskLevel = "low",
+                detectedFamily = "Destinație oficială",
+                reasons = emptyList(),
+                safeActions = emptyList(),
+                userRiskLabel = "SAFE",
+                isFinal = true
+            )
+        )
+
+        assertFalse(shouldContinueOrchestratedPolling(response))
+        assertFalse(orchestratedPreviewStillPending(response.preview))
+    }
+
+    @Test
+    fun finalPendingPreviewMessageShowsGenerationInsteadOfGenericCompletion() {
+        val message = orchestratedScanServerInfo(
+            statusMessage = "Scanarea este finalizata.",
+            preview = OrchestratedPreview(
+                status = "pending",
+                reason = "urlscan_screenshot_pending",
+                finalUrl = "https://reconditionate.yoxo.ro/oferte-speciale"
+            ),
+            isFinal = true
+        )
+
+        assertTrue(message.contains("Preview-ul securizat"))
+        assertTrue(message.contains("generează"))
+        assertFalse(message.contains("Scanarea completă a fost finalizată."))
+    }
+
+    @Test
     fun resultCacheKeyNormalizesWhitespaceAndUrls() {
         val first = scanResultCacheKey(
             rawInput = "  Verifică   oferta aici: example.com/path  ",
@@ -166,10 +236,30 @@ class ScannerViewModelTest {
     }
 
     @Test
+    fun finalPendingPreviewIsNotCachedAsCompleteResult() {
+        val viewModelSource = File("src/main/java/ro/sigurscan/app/ScannerViewModel.kt").readText()
+        val publishStart = viewModelSource.indexOf("private suspend fun publishOrchestratedResponse")
+        val publishEnd = viewModelSource.indexOf("private fun shouldCacheFinalAssessment", publishStart)
+        assertTrue("publishOrchestratedResponse must exist.", publishStart >= 0 && publishEnd > publishStart)
+
+        val publishFlow = viewModelSource.substring(publishStart, publishEnd)
+        assertTrue(
+            "Final cache writes must wait until the preview is not pending, otherwise future scans show an old no-preview result.",
+            publishFlow.contains("shouldCacheFinalAssessment(response, updated)")
+        )
+        assertTrue(
+            "Final cache writes must be inside the cacheability guard.",
+            publishFlow.contains("if (shouldCacheFinalAssessment(response, updated))") &&
+                publishFlow.indexOf("saveFinalAssessmentToResultCache(resultCacheKey, updated)") >
+                publishFlow.indexOf("if (shouldCacheFinalAssessment(response, updated))")
+        )
+    }
+
+    @Test
     fun finalOrchestratedVerdictStopsLoadingBeforePreviewRefresh() {
         val viewModelSource = File("src/main/java/ro/sigurscan/app/ScannerViewModel.kt").readText()
         val publishStart = viewModelSource.indexOf("private suspend fun publishOrchestratedResponse")
-        val publishEnd = viewModelSource.indexOf("private fun shouldContinueOrchestratedPolling", publishStart)
+        val publishEnd = viewModelSource.indexOf("private fun shouldCacheFinalAssessment", publishStart)
         assertTrue("publishOrchestratedResponse must exist.", publishStart >= 0 && publishEnd > publishStart)
 
         val publishFlow = viewModelSource.substring(publishStart, publishEnd)
@@ -191,7 +281,7 @@ class ScannerViewModelTest {
     fun orchestratedVerdictPublishDoesNotSynchronouslyDownloadScreenshot() {
         val viewModelSource = File("src/main/java/ro/sigurscan/app/ScannerViewModel.kt").readText()
         val publishStart = viewModelSource.indexOf("private suspend fun publishOrchestratedResponse")
-        val publishEnd = viewModelSource.indexOf("private fun shouldContinueOrchestratedPolling", publishStart)
+        val publishEnd = viewModelSource.indexOf("private fun shouldCacheFinalAssessment", publishStart)
         assertTrue("publishOrchestratedResponse must exist.", publishStart >= 0 && publishEnd > publishStart)
 
         val publishFlow = viewModelSource.substring(publishStart, publishEnd)
@@ -220,6 +310,11 @@ class ScannerViewModelTest {
         )
         assertTrue("Stale cache eviction must be persisted.", cacheFlow.contains("persistResultCache()"))
         assertTrue("Cache hits must be visible to the user.", cacheFlow.contains("Verificat anterior"))
+        assertTrue(
+            "Cached URL results without a screenshot must be evicted so Android can refresh a late urlscan preview.",
+            cacheFlow.contains("cached.assessment.finalUrl != null") &&
+                cacheFlow.contains("cached.assessment.screenshotUrl == null")
+        )
     }
 
     @Test
