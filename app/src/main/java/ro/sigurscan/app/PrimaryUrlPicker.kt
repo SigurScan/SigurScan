@@ -64,7 +64,7 @@ internal object PrimaryUrlPicker {
 
     private val brandHints: Map<String, List<String>>
         get() = BrandKnowledgeRegistry.entries.associate { entry ->
-            entry.id to (entry.aliases + entry.id).map { it.lowercase(Locale.getDefault()) }.distinct()
+            entry.id to (entry.aliases + entry.id).map { it.lowercase(Locale.ROOT) }.distinct()
         }
 
     fun pick(candidates: Collection<String>, rawText: String = ""): String {
@@ -102,7 +102,7 @@ internal object PrimaryUrlPicker {
     }
 
     private fun detectClaimedBrandTokens(rawText: String): List<String> {
-        val normalized = rawText.lowercase(Locale.getDefault())
+        val normalized = rawText.lowercase(Locale.ROOT)
         return brandHints
             .filter { (brand, hints) -> normalized.contains(brand) || hints.any { normalized.contains(it) } }
             .flatMap { it.value }

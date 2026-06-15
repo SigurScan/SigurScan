@@ -2,6 +2,7 @@ package ro.sigurscan.app
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import java.util.Locale
 
 class PrimaryUrlPickerTest {
 
@@ -54,5 +55,24 @@ class PrimaryUrlPickerTest {
         )
 
         assertEquals("https://www.emag.ro/oferta", picked)
+    }
+
+    @Test
+    fun claimedBrandDetectionIsStableUnderTurkishLocale() {
+        val previous = Locale.getDefault()
+        Locale.setDefault(Locale.forLanguageTag("tr-TR"))
+        try {
+            val picked = PrimaryUrlPicker.pick(
+                candidates = listOf(
+                    "https://ordinary-super-long-example.net/oferta",
+                    "https://digi.example.net/oferta"
+                ),
+                rawText = "DIGI: oferta specială expiră azi."
+            )
+
+            assertEquals("https://digi.example.net/oferta", picked)
+        } finally {
+            Locale.setDefault(previous)
+        }
     }
 }

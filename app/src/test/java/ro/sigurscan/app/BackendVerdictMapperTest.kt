@@ -3,6 +3,7 @@ package ro.sigurscan.app
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.util.Locale
 
 class BackendVerdictMapperTest {
 
@@ -20,6 +21,20 @@ class BackendVerdictMapperTest {
             GateAction.DO_NOT_CONTINUE,
             backendGateResult(scanResponse(label = "DANGEROUS", riskLevel = "high")).action
         )
+    }
+
+    @Test
+    fun backendLabelsAreLocaleIndependent() {
+        val previous = Locale.getDefault()
+        Locale.setDefault(Locale.forLanguageTag("tr-TR"))
+        try {
+            val result = backendGateResult(scanResponse(label = "safe", riskLevel = "low"))
+
+            assertEquals(GateAction.CONTINUE_WITH_CAUTION, result.action)
+            assertEquals(GateFinality.FINAL, result.finality)
+        } finally {
+            Locale.setDefault(previous)
+        }
     }
 
     @Test

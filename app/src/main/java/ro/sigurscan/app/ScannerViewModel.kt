@@ -2071,7 +2071,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun onScanClick(forceRefresh: Boolean = false) {
-        if (text.isBlank()) return
+        if (loading || text.isBlank()) return
         loading = true
         loadingMsg = "Analizăm textul și link-urile..."
         
@@ -2116,7 +2116,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
 
     private fun isTrustedOfficialUrl(url: String): Boolean {
         val host = runCatching {
-            Uri.parse(normalizeUrl(url)).host?.lowercase(Locale.getDefault()).orEmpty()
+            Uri.parse(normalizeUrl(url)).host?.lowercase(Locale.ROOT).orEmpty()
         }.getOrDefault("")
         if (host.isBlank()) return false
 
@@ -2811,9 +2811,9 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
             var officialXmlFile: File? = null
             try {
                 val fileName = getFileName(uri, context)
-                val mimeType = context.contentResolver.getType(uri).orEmpty().lowercase(Locale.getDefault())
-                val isPdf = mimeType.contains("pdf") || fileName.lowercase(Locale.getDefault()).endsWith(".pdf")
-                val isImage = mimeType.startsWith("image/") || fileName.lowercase(Locale.getDefault()).matches(
+                val mimeType = context.contentResolver.getType(uri).orEmpty().lowercase(Locale.ROOT)
+                val isPdf = mimeType.contains("pdf") || fileName.lowercase(Locale.ROOT).endsWith(".pdf")
+                val isImage = mimeType.startsWith("image/") || fileName.lowercase(Locale.ROOT).matches(
                     Regex(""".*\.(jpg|jpeg|png|webp)$""")
                 )
                 if (!isPdf && !isImage) {
@@ -2832,16 +2832,17 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                 val source = "android_native".toRequestBody("text/plain".toMediaTypeOrNull())
                 val officialPart = officialXmlUri?.let { xmlUri ->
                     val xmlFileName = getFileName(xmlUri, context)
-                    val xmlMimeType = context.contentResolver.getType(xmlUri).orEmpty().lowercase(Locale.getDefault())
-                    val isXml = xmlMimeType.contains("xml") || xmlFileName.lowercase(Locale.getDefault()).endsWith(".xml")
+                    val xmlMimeType = context.contentResolver.getType(xmlUri).orEmpty().lowercase(Locale.ROOT)
+                    val isXml = xmlMimeType.contains("xml") || xmlFileName.lowercase(Locale.ROOT).endsWith(".xml")
                     if (!isXml) {
                         invoiceResult = InvoiceScanResponse(
                             error = "Alege XML-ul oficial e-Factura în format .xml."
                         )
                         return@launch
                     }
-                    officialXmlFile = uriToFile(xmlUri, context, MAX_UPLOAD_BYTES)
-                    val xmlRequest = officialXmlFile!!.asRequestBody(
+                    val xmlFile = uriToFile(xmlUri, context, MAX_UPLOAD_BYTES)
+                    officialXmlFile = xmlFile
+                    val xmlRequest = xmlFile.asRequestBody(
                         (xmlMimeType.ifBlank { "application/xml" }).toMediaTypeOrNull()
                     )
                     MultipartBody.Part.createFormData("official_xml_file", xmlFileName, xmlRequest)
@@ -2871,8 +2872,8 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
             var file: File? = null
             try {
                 val fileName = getFileName(uri, context)
-                val mimeType = context.contentResolver.getType(uri).orEmpty().lowercase(Locale.getDefault())
-                val lowerName = fileName.lowercase(Locale.getDefault())
+                val mimeType = context.contentResolver.getType(uri).orEmpty().lowercase(Locale.ROOT)
+                val lowerName = fileName.lowercase(Locale.ROOT)
                 val isPdf = mimeType.contains("pdf") || lowerName.endsWith(".pdf")
                 val isImage = mimeType.startsWith("image/") || lowerName.matches(
                     Regex(""".*\.(jpg|jpeg|png|webp)$""")

@@ -537,18 +537,21 @@ fun ScanTab(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
+            val pendingOfferConfirmation = viewModel.pendingOfferConfirmation
+            val invoiceResult = viewModel.invoiceResult
+            val assessment = viewModel.assessment
             when {
-                viewModel.pendingOfferConfirmation != null -> OfferConfirmationCard(
-                    draft = viewModel.pendingOfferConfirmation!!,
+                pendingOfferConfirmation != null -> OfferConfirmationCard(
+                    draft = pendingOfferConfirmation,
                     onConfirm = { viewModel.confirmOfferAndScan(it) },
                     onCancel = { viewModel.cancelOfferConfirmation() }
                 )
-                viewModel.invoiceResult != null -> InvoiceResultCard(
-                    result = viewModel.invoiceResult!!,
+                invoiceResult != null -> InvoiceResultCard(
+                    result = invoiceResult,
                     onBack = { viewModel.reset() }
                 )
-                viewModel.assessment != null -> ResultCard(
-                    assessment = viewModel.assessment!!,
+                assessment != null -> ResultCard(
+                    assessment = assessment,
                     onBack = { viewModel.reset() },
                     onRescan = { viewModel.onScanClick(forceRefresh = true) },
                     onReport = { viewModel.onCommunityReport() },
@@ -574,8 +577,8 @@ fun ScanTab(
         
         Spacer(modifier = Modifier.height(20.dp))
 
-        if (viewModel.activeCampaignAlert != null) {
-            ActiveCampaignBanner(viewModel.activeCampaignAlert!!) {
+        viewModel.activeCampaignAlert?.let { activeCampaignAlert ->
+            ActiveCampaignBanner(activeCampaignAlert) {
                 viewModel.activeCampaignAlert = null
             }
             Spacer(modifier = Modifier.height(16.dp))
@@ -1013,21 +1016,21 @@ fun RadarTab(viewModel: ScannerViewModel) {
         )
         Spacer(modifier = Modifier.height(16.dp))
 
-        if (viewModel.liveCampaignEvent != null) {
-            ActiveCampaignBanner(viewModel.liveCampaignEvent!!) {
+        viewModel.liveCampaignEvent?.let { liveCampaignEvent ->
+            ActiveCampaignBanner(liveCampaignEvent) {
                 viewModel.clearLiveCampaignEvent()
             }
             Spacer(modifier = Modifier.height(12.dp))
         }
 
-        if (viewModel.activeCampaignAlert != null) {
+        viewModel.activeCampaignAlert?.let { activeCampaignAlert ->
             Card(
                 colors = CardDefaults.cardColors(containerColor = SigurColors.DangerousLight),
                 border = BorderStroke(1.dp, SigurColors.DangerousBorder),
                 shape = DSCardShape
             ) {
                 Text(
-                    text = viewModel.activeCampaignAlert!!,
+                    text = activeCampaignAlert,
                     color = SigurColors.Dangerous,
                     fontSize = 12.sp,
                     modifier = Modifier.padding(10.dp)
@@ -5806,11 +5809,11 @@ private fun OfferFieldEditor(
 }
 
 private fun formatInvoiceAmount(value: Double?, currency: String): String {
-    return value?.let { "%.2f %s".format(it, currency) } ?: "—"
+    return value?.let { String.format(Locale.getDefault(), "%.2f %s", it, currency) } ?: "—"
 }
 
 private fun formatOfferAmount(value: Double?, currency: String): String {
-    return value?.let { "%.2f %s".format(it, currency) } ?: "—"
+    return value?.let { String.format(Locale.getDefault(), "%.2f %s", it, currency) } ?: "—"
 }
 
 @Composable
