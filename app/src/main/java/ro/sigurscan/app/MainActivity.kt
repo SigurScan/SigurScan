@@ -2727,6 +2727,21 @@ fun ScanInputCard(
 ) {
     val clipboard = LocalClipboardManager.current
     val context = LocalContext.current
+    var showInvoiceSourceChooser by remember { mutableStateOf(false) }
+
+    if (showInvoiceSourceChooser) {
+        InvoiceSourceChooserDialog(
+            onDismiss = { showInvoiceSourceChooser = false },
+            onCapturePhoto = {
+                showInvoiceSourceChooser = false
+                onCaptureInvoicePhoto()
+            },
+            onPickDocument = {
+                showInvoiceSourceChooser = false
+                onScanInvoice()
+            }
+        )
+    }
 
     val heroShape = RoundedCornerShape(24.dp)
     Box(
@@ -3001,20 +3016,13 @@ fun ScanInputCard(
                 )
                 GridButton(
                     title = "Scanează Factură",
-                    desc = "Alege imagine sau PDF",
+                    desc = "Poză sau fișier",
                     icon = Icons.Default.Receipt,
                     color = Color(0xFF7C4DFF),
-                    onClick = onScanInvoice,
+                    onClick = { showInvoiceSourceChooser = true },
                     modifier = Modifier.weight(1f)
                 )
             }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            InvoiceCaptureEntryCard(
-                onClick = onCaptureInvoicePhoto,
-                modifier = Modifier.fillMaxWidth()
-            )
 
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -3118,53 +3126,77 @@ fun GridButton(title: String, desc: String, icon: ImageVector, color: Color, onC
 }
 
 @Composable
-fun InvoiceCaptureEntryCard(onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun InvoiceSourceChooserDialog(
+    onDismiss: () -> Unit,
+    onCapturePhoto: () -> Unit,
+    onPickDocument: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Scanează factura",
+                color = SigurColors.TextPrimary,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                InvoiceSourceAction(
+                    title = "Fă poză",
+                    desc = "Fotografiază factura acum",
+                    icon = Icons.Default.PhotoCamera,
+                    onClick = onCapturePhoto
+                )
+                InvoiceSourceAction(
+                    title = "Încarcă imagine/PDF",
+                    desc = "Alege o factură salvată",
+                    icon = Icons.Default.UploadFile,
+                    onClick = onPickDocument
+                )
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Închide")
+            }
+        },
+        containerColor = SigurColors.BackgroundCard,
+        shape = DSCardShape
+    )
+}
+
+@Composable
+private fun InvoiceSourceAction(
+    title: String,
+    desc: String,
+    icon: ImageVector,
+    onClick: () -> Unit
+) {
     Card(
-        modifier = modifier.clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = SigurColors.BackgroundCard),
+        modifier = Modifier.fillMaxWidth().clickable { onClick() },
+        colors = CardDefaults.cardColors(containerColor = SigurColors.Canvas),
         border = BorderStroke(1.dp, SigurColors.GlassBorder),
         shape = DSCardShape
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(48.dp)
-                    .background(Color(0xFF7C4DFF).copy(alpha = 0.12f), RoundedCornerShape(16.dp)),
+                    .size(44.dp)
+                    .background(Color(0xFF7C4DFF).copy(alpha = 0.12f), RoundedCornerShape(14.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Default.PhotoCamera,
-                    contentDescription = null,
-                    tint = Color(0xFF7C4DFF),
-                    modifier = Modifier.size(24.dp)
-                )
+                Icon(icon, contentDescription = null, tint = Color(0xFF7C4DFF), modifier = Modifier.size(22.dp))
             }
-            Spacer(modifier = Modifier.width(14.dp))
+            Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Fotografiază Factură",
-                    color = SigurColors.TextPrimary,
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "Fă poza acum și verificăm CUI, IBAN, brand și ANAF",
-                    color = SigurColors.TextMuted,
-                    fontSize = 13.sp,
-                    lineHeight = 18.sp
-                )
+                Text(title, color = SigurColors.TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                Text(desc, color = SigurColors.TextMuted, fontSize = 12.sp)
             }
-            Icon(
-                imageVector = Icons.Default.ChevronRight,
-                contentDescription = null,
-                tint = SigurColors.TextSubtle,
-                modifier = Modifier.size(26.dp)
-            )
         }
     }
 }

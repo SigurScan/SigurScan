@@ -382,8 +382,14 @@ class ScannerViewModelTest {
                 activitySource.contains("ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)")
         )
         assertTrue(
-            "Scan UI must expose a visible camera action for invoices.",
-            activitySource.contains("Fotografiază Factură")
+            "Invoice scan must use one entry point and then offer camera or document choices.",
+            activitySource.contains("InvoiceSourceChooserDialog") &&
+                activitySource.contains("Fă poză") &&
+                activitySource.contains("Încarcă imagine/PDF")
+        )
+        assertFalse(
+            "Invoice camera must not be a second standalone tile next to Scanează Factură.",
+            activitySource.contains("InvoiceCaptureEntryCard")
         )
         assertTrue(
             "Manifest must declare a FileProvider for camera output URIs.",
