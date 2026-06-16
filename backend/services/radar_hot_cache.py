@@ -75,6 +75,26 @@ def reputation_bucket(report_count: int) -> str:
     return "100+"
 
 
+def reputation_status(report_count: int, risk_level: Optional[str] = None) -> str:
+    """Conservative status for offline call screening.
+
+    Community reports normally warn only. Blocking is reserved for explicit
+    server-side block status or high-volume/high-risk phone reports.
+    """
+    normalized_risk = str(risk_level or "").strip().lower()
+    if normalized_risk in {"blocked", "dangerous_blocked"}:
+        return "blocked"
+    try:
+        n = int(report_count)
+    except (TypeError, ValueError):
+        n = 0
+    if n >= 100:
+        return "blocked"
+    if n >= 25 and normalized_risk in {"high", "critical", "dangerous"}:
+        return "blocked"
+    return "reported"
+
+
 def _now_iso() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
@@ -121,7 +141,7 @@ def build_hot_cache(
         number_reputation.append(
             {
                 "phone_hash": phone_hash,
-                "status": "reported",
+                "status": reputation_status(r.get("report_count", 0), r.get("risk_level")),
                 "family": r.get("family"),
                 "bucket_count": reputation_bucket(r.get("report_count", 0)),
             }

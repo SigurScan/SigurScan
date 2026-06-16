@@ -9,9 +9,4 @@
         android:name="android.permission.RECORD_AUDIO"
         tools:node="remove" />
 
-    <application>
-        <service
-            android:name=".SigurScanCallScreeningService"
-            tools:node="remove" />
-    </application>
 </manifest>

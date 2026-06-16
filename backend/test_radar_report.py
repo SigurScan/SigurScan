@@ -13,6 +13,7 @@ from services.campaign_intel import CampaignIntel, CampaignStore
 from services.radar_hot_cache import (
     build_hot_cache,
     reputation_bucket,
+    reputation_status,
     hot_warning_for_family,
 )
 from services.report_builder import REPORT_DISCLAIMER, build_report_package
@@ -142,6 +143,22 @@ class TestNumberReputationPrivacy:
             reports=[{"hash": "c" * 64, "target_type": "phone", "report_count": 3}],
         )
         assert out["number_reputation"][0]["status"] == "reported"
+
+    def test_reputation_status_blocks_only_high_confidence_phone_reports(self):
+        assert reputation_status(3, "high") == "reported"
+        assert reputation_status(25, "medium") == "reported"
+        assert reputation_status(25, "high") == "blocked"
+        assert reputation_status(100, "unknown") == "blocked"
+        assert reputation_status(1, "blocked") == "blocked"
+
+    def test_high_confidence_phone_report_can_feed_blocking_status(self):
+        out = build_hot_cache(
+            _store_with(),
+            reports=[{"hash": "e" * 64, "target_type": "phone", "report_count": 25, "risk_level": "high"}],
+        )
+
+        assert out["number_reputation"][0]["status"] == "blocked"
+        assert out["number_reputation"][0]["bucket_count"] == "25-99"
 
 
 class TestReportBuilder:

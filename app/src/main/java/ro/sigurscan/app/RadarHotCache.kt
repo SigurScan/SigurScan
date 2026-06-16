@@ -92,16 +92,23 @@ object RadarCallDecider {
         }
 
         val reputationHit = cache.numberReputation.firstOrNull {
-            it.phoneHash.equals(phoneHash, ignoreCase = true) && it.status.equals("reported", ignoreCase = true)
+            it.phoneHash.equals(phoneHash, ignoreCase = true) &&
+                it.status.orEmpty().lowercase(Locale.US) in ACTIONABLE_REPUTATION_STATUSES
         }
         if (reputationHit != null) {
+            val normalizedStatus = reputationHit.status.orEmpty().lowercase(Locale.US)
+            val shouldReject = normalizedStatus in REJECT_REPUTATION_STATUSES
             return RadarCallDecision(
                 action = RadarCallAction.WARN,
-                reason = "reported_number_bucket_${reputationHit.bucketCount.orEmpty()}",
+                reason = "${normalizedStatus}_number_bucket_${reputationHit.bucketCount.orEmpty()}",
                 family = reputationHit.family,
                 warningTitle = "Număr semnalat în Radar",
-                warningBody = "Numărul apare în rapoarte recente. Nu oferi date sau bani; verifică pe canal oficial.",
-                rejectCall = false,
+                warningBody = if (shouldReject) {
+                    "Numărul are reputație de risc ridicat în Radar. Apelul poate fi respins automat; verifică pe canal oficial."
+                } else {
+                    "Numărul apare în rapoarte recente. Nu oferi date sau bani; verifică pe canal oficial."
+                },
+                rejectCall = shouldReject,
                 silenceCall = true
             )
         }
@@ -125,6 +132,9 @@ object RadarCallDecider {
 
         return RadarCallDecision(action = RadarCallAction.ALLOW, reason = "no_radar_hit")
     }
+
+    private val ACTIONABLE_REPUTATION_STATUSES = setOf("reported", "blocked", "dangerous", "high_confidence")
+    private val REJECT_REPUTATION_STATUSES = setOf("blocked", "dangerous", "high_confidence")
 }
 
 class RadarScreeningAuditStore(

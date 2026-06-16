@@ -13,12 +13,17 @@ class SigurScanCallScreeningService : CallScreeningService() {
         RadarScreeningAuditStore.fromContext(applicationContext).save(RadarScreeningAudit.fromDecision(decision))
         Log.i(TAG, "call_screened action=${decision.action} reason=${decision.reason} family=${decision.family.orEmpty()}")
         val builder = CallResponse.Builder()
-            .setDisallowCall(false)
-            .setRejectCall(false)
+            .setDisallowCall(decision.rejectCall)
+            .setRejectCall(decision.rejectCall)
             .setSkipCallLog(false)
             .setSkipNotification(false)
 
-        if (decision.action == RadarCallAction.WARN && decision.silenceCall && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        if (
+            !decision.rejectCall &&
+            decision.action == RadarCallAction.WARN &&
+            decision.silenceCall &&
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+        ) {
             builder.setSilenceCall(true)
         }
 

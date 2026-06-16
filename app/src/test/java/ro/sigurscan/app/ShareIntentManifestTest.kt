@@ -52,14 +52,19 @@ class ShareIntentManifestTest {
                 releaseOverlay.contains("""tools:node="remove"""")
         )
         assertTrue(
-            "Public release must remove READ_PHONE_STATE until Radar CallScreening ships as a reviewed opt-in surface.",
+            "Public release must remove READ_PHONE_STATE; Radar uses the official opt-in CallScreening role, not broad phone-state access.",
             releaseOverlay.contains("""android:name="android.permission.READ_PHONE_STATE"""") &&
                 releaseOverlay.contains("""tools:node="remove"""")
         )
         assertTrue(
-            "Public release must remove CallScreeningService from the mainstream manifest.",
-            releaseOverlay.contains("""android:name=".SigurScanCallScreeningService"""") &&
-                releaseOverlay.contains("""tools:node="remove"""")
+            "Main manifest must declare the official CallScreeningService for opt-in Radar caller protection.",
+            manifest.contains("""android:name=".SigurScanCallScreeningService"""") &&
+                manifest.contains("""android.permission.BIND_SCREENING_SERVICE""") &&
+                manifest.contains("""android.telecom.CallScreeningService""")
+        )
+        assertFalse(
+            "Public release must not remove CallScreeningService now that Radar caller protection is opt-in and number-only.",
+            releaseOverlay.contains("""android:name=".SigurScanCallScreeningService"""")
         )
     }
 
@@ -71,7 +76,10 @@ class ShareIntentManifestTest {
             "android.permission.SEND_SMS",
             "android.permission.READ_CALL_LOG",
             "android.permission.READ_CONTACTS",
-            "android.permission.POST_NOTIFICATIONS"
+            "android.permission.POST_NOTIFICATIONS",
+            "android.permission.READ_PHONE_NUMBERS",
+            "android.permission.ANSWER_PHONE_CALLS",
+            "android.permission.PROCESS_OUTGOING_CALLS"
         )
 
         forbiddenPermissions.forEach { permission ->

@@ -53,6 +53,37 @@ class RadarHotCacheTest {
     }
 
     @Test
+    fun blockedPhoneReputationWarnsAndRejects() {
+        val phoneHash = PhoneNumberHasher.hashPhone("0721 123 456")
+        val cache = RadarHotCacheSnapshot(
+            generatedAtEpochMillis = 1_000L,
+            ttlMinutes = 60,
+            hotCampaigns = emptyList(),
+            numberReputation = listOf(
+                RadarNumberReputation(phoneHash = phoneHash, status = "blocked", family = "bank_safe_account", bucketCount = "25+")
+            )
+        )
+
+        val decision = RadarCallDecider.decide("+40 721 123 456", cache, nowMillis = 2_000L)
+
+        assertEquals(RadarCallAction.WARN, decision.action)
+        assertTrue(decision.rejectCall)
+        assertTrue(decision.silenceCall)
+        assertTrue(decision.reason.contains("blocked"))
+    }
+
+    @Test
+    fun callScreeningServiceHonorsRejectDecisions() {
+        val serviceSource = java.io.File("src/main/java/ro/sigurscan/app/SigurScanCallScreeningService.kt").readText()
+
+        assertTrue(
+            "CallScreeningService must wire reject decisions into CallResponse instead of only logging them.",
+            serviceSource.contains(".setDisallowCall(decision.rejectCall)") &&
+                serviceSource.contains(".setRejectCall(decision.rejectCall)")
+        )
+    }
+
+    @Test
     fun campaignHashPrefixWarnsOffline() {
         val phoneHash = PhoneNumberHasher.hashPhone("+40 721 123 456")
         val cache = RadarHotCacheSnapshot(
