@@ -6871,17 +6871,36 @@ def test_privacy_policy_is_public_and_discloses_user_initiated_scans(monkeypatch
     try:
         client = TestClient(app_main.app)
         response = client.get("/privacy")
+        alias_response = client.get("/privacy-policy")
     finally:
         app_main.REQUIRE_API_KEY = original_require_api_key
 
     assert response.status_code == 200
+    assert alias_response.status_code == 200
+    assert alias_response.text == response.text
     assert "text/html" in response.headers["content-type"]
     body = response.text.lower()
     assert "nu citeste automat notificari" in body
     assert "clipboard" in body
+    assert "facturi" in body
+    assert "cui" in body
+    assert "iban" in body
+    assert "audio partajate" in body
+    assert "nu inregistreaza apeluri" in body
+    assert "call screening" in body
+    assert "numarul apelantului" in body
+    assert "hash" in body
     assert "urlscan.io" in body
     assert "google web risk" in body
+    assert "safe browsing" in body
+    assert "urlhaus" in body
     assert "phishing.database" in body
+    assert "scam-blocklist" in body
+    assert "phishdestroy" in body
+    assert "cloud run" in body
+    assert "supabase" in body
+    assert "api.sigurscan.com/privacy" in body
+    assert "nudaclick" not in body
 
 
 def test_build_ai_explanation_uses_fallback_in_safe_mode(monkeypatch):

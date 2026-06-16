@@ -12,6 +12,10 @@ SigurScan must not claim production audio/call ASR until all of these are true:
 
 Current state:
 
+- Public release removes `android.permission.RECORD_AUDIO` through `app/src/release/AndroidManifest.xml`; the release APK must not expose microphone capture until the product/privacy review below is complete.
+- The Android share flow keeps `audio/*` so a user can explicitly share a voice note/audio file to SigurScan. If ASR is not active, the app must fall back to a safe message asking for a transcript instead of crashing or implying hidden listening.
+- Radar Call Screening is number-only. It can warn/silence/reject based on local hashed reputation cache, but it does not listen to or record call audio.
+
 - Audio capture is blocked by `AudioSafetyPolicy` by default.
 - Android has an on-device `AudioEvidenceEngine` plus `AudioTranscriptEvidence` for Romanian call transcripts; it extracts only decision signals, stores no raw transcript/audio in the result, and does not call a server.
 - A user-selected/current transcript can be analyzed locally from the Radar UI even while capture remains blocked.
@@ -27,6 +31,6 @@ Current state:
 - `SpeakerGuardSession` now implements user-started microphone capture for calls placed on speaker: 16 kHz mono PCM chunks, one-chunk queue with old audio dropped under ASR backpressure, local Whisper transcription, local evidence reduction, and no raw audio retention in result state.
 - Vosk is no longer the selected Android ASR path because the official Vosk model list checked on 2026-06-14 does not provide a Romanian model: `https://alphacephei.com/vosk/models`.
 - No hidden call recording is implemented.
-- The Android manifest now requests `android.permission.RECORD_AUDIO` for the reviewed Speaker Guard product path. `AudioSafetyPolicy` still blocks capture unless feature flag, explicit consent, privacy disclosure, model, native runtime, and microphone permission are all present.
+- The main manifest may contain `android.permission.RECORD_AUDIO` for the reviewed Speaker Guard development path, but the public release overlay removes it. `AudioSafetyPolicy` still blocks capture unless feature flag, explicit consent, privacy disclosure, model, native runtime, and microphone permission are all present.
 - The Radar UI provides both local transcript analysis and Start/Stop controls for Speaker Guard.
 - PR-9/PR-10 remain not fully real-time production because current Whisper latency on Nokia C22 is still too high for low-latency inline call warnings.

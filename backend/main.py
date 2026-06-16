@@ -5058,7 +5058,7 @@ PRIVACY_POLICY_HTML = """<!doctype html>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.6; margin: 0; color: #172033; background: #f7f9fc; }
     main { max-width: 860px; margin: 0 auto; padding: 40px 20px 64px; }
-    section { background: #fff; border: 1px solid #dfe7f3; border-radius: 18px; padding: 24px; margin: 18px 0; }
+    section { background: #fff; border: 1px solid #dfe7f3; border-radius: 12px; padding: 24px; margin: 18px 0; }
     h1, h2 { line-height: 1.2; }
     h1 { font-size: 2rem; margin-bottom: 8px; }
     h2 { font-size: 1.2rem; margin-top: 0; }
@@ -5070,11 +5070,11 @@ PRIVACY_POLICY_HTML = """<!doctype html>
 <body>
 <main>
   <h1>Politica de confidentialitate SigurScan</h1>
-  <p class="muted">Ultima actualizare: 3 iunie 2026</p>
+  <p class="muted">Ultima actualizare: 16 iunie 2026. URL public: <code>https://api.sigurscan.com/privacy</code>.</p>
 
   <section>
     <h2>Principiul de baza</h2>
-    <p>SigurScan scaneaza doar continut pe care utilizatorul alege explicit sa il verifice. Aplicatia nu citeste automat notificari, SMS-uri, inbox Gmail/Outlook/Yahoo, clipboard sau alte aplicatii in fundal.</p>
+    <p>SigurScan scaneaza doar continut pe care utilizatorul alege explicit sa il verifice. Aplicatia nu citeste automat notificari, SMS-uri, inbox Gmail/Outlook/Yahoo, clipboard sau alte aplicatii in fundal. Nu pornim scanari fara actiunea utilizatorului si nu folosim datele pentru publicitate.</p>
   </section>
 
   <section>
@@ -5084,24 +5084,34 @@ PRIVACY_POLICY_HTML = """<!doctype html>
       <li>continut primit prin Android Share Intent, inclusiv HTML daca aplicatia sursa il furnizeaza;</li>
       <li>URL-uri vizibile si URL-uri ascunse in HTML sub butoane/linkuri;</li>
       <li>imagini, coduri QR, PDF-uri sau fisiere selectate manual de utilizator;</li>
+      <li>facturi, date de plata si documente comerciale selectate manual, inclusiv CUI, IBAN, nume furnizor, suma si explicatii de plata, cand acestea apar in document;</li>
+      <li>fisiere audio partajate sau transcripturi trimise explicit catre SigurScan; daca transcrierea audio nu este activa in build-ul folosit, aplicatia poate cere utilizatorului sa lipeasca transcriptul;</li>
       <li>feedback trimis explicit de utilizator despre un verdict.</li>
     </ul>
   </section>
 
   <section>
     <h2>Cum folosim datele</h2>
-    <p>Datele sunt folosite pentru a extrage linkuri, a urmari redirecturi, a verifica reputatia URL-urilor si a afisa un verdict simplu de risc. Inainte de analiza, backend-ul aplica redactare pentru date precum email, telefon, IBAN si coduri OTP unde este posibil.</p>
+    <p>Datele sunt folosite pentru a extrage linkuri, a urmari redirecturi, a verifica reputatia URL-urilor, a analiza cereri de plata/facturi si a afisa un verdict simplu de risc. Backend-ul aplica redactare si minimizare pentru date precum email, telefon, IBAN si coduri OTP unde este posibil, iar URL-urile cu tokeni sau date sensibile pot fi reduse la origine sau blocate de la preview.</p>
+  </section>
+
+  <section>
+    <h2>Radar si protectia apelurilor</h2>
+    <p>Radar foloseste, cand utilizatorul il activeaza din setarile Android, serviciul oficial Android Call Screening. Pentru aceasta functie, SigurScan analizeaza numarul apelantului local, pe telefon, printr-un cache de reputatie sincronizat anterior. SigurScan nu inregistreaza apeluri, nu asculta continutul apelurilor si nu citeste jurnalul de apeluri.</p>
+    <p>Numerele raportate sunt tratate privacy-first: cache-ul foloseste hash-uri SHA-256 si bucket-uri de numar de raportari, nu liste publice cu numere brute. Rapoartele comunitare pot genera avertizare, silent ring sau blocare doar pentru reputatie ridicata/explicit blocata.</p>
   </section>
 
   <section>
     <h2>Servicii terte</h2>
-    <p>Pentru scanari declansate de utilizator, SigurScan poate folosi servicii terte prin backend:</p>
+    <p>Pentru scanari declansate de utilizator, SigurScan poate folosi servicii terte prin backend-ul SigurScan rulat pe Google Cloud Run, in spatele domeniului <code>api.sigurscan.com</code> si al protectiei Cloudflare:</p>
     <ul>
       <li><strong>urlscan.io</strong> pentru sandbox si preview securizat al paginii finale;</li>
-      <li><strong>Google Web Risk</strong> pentru verificari de malware/phishing/social engineering;</li>
+      <li><strong>Google Web Risk / Safe Browsing</strong> pentru verificari de malware, phishing si social engineering;</li>
+      <li><strong>URLhaus / abuse.ch</strong> pentru reputatie URL malware/phishing, cand cheia este configurata server-side;</li>
       <li><strong>Phishing.Database</strong> ca feed open-source pentru domenii si linkuri active de phishing;</li>
-      <li><strong>Supabase</strong> pentru evenimente agregate, feedback si campanii comunitare;</li>
-      <li>provider AI optional pentru explicatii, cu fallback local cand este dezactivat.</li>
+      <li><strong>Scam-Blocklist</strong> (jarelllama) si <strong>PhishDestroy</strong> pentru feed-uri publice de domenii suspecte, cand sunt activate;</li>
+      <li><strong>Supabase</strong> pentru joburi de scanare, cache de preview/reputatie, feedback si rapoarte comunitare agregate;</li>
+      <li>provideri AI optionali, precum Gemini sau Mistral, pentru explicatii si second-opinion semantic; verdictul ramane controlat de gate-ul SigurScan si providerii hard.</li>
     </ul>
   </section>
 
@@ -5109,20 +5119,27 @@ PRIVACY_POLICY_HTML = """<!doctype html>
     <h2>Ce nu facem</h2>
     <ul>
       <li>nu monitorizam automat inbox, SMS-uri, notificari sau clipboard;</li>
-      <li>nu cerem permisiuni de citire SMS, contacte, apeluri sau media larga;</li>
+      <li>nu cerem permisiuni de citire SMS, contacte, jurnal apeluri sau media larga in build-ul public;</li>
+      <li>nu inregistram apeluri si nu pornim microfonul in ascuns;</li>
       <li>nu vindem date personale;</li>
-      <li>nu trimitem scanari fara actiunea explicita a utilizatorului.</li>
+      <li>nu trimitem scanari fara actiunea explicita a utilizatorului;</li>
+      <li>nu includem cheile providerilor in aplicatia Android de productie.</li>
     </ul>
   </section>
 
   <section>
     <h2>Securitate si retentie</h2>
-    <p>Comunicarea cu backend-ul se face prin HTTPS. Cheile providerilor nu sunt incluse in aplicatia Android de productie. Cache-ul de reputatie foloseste hash-uri si TTL-uri pentru a reduce apelurile repetate la provideri.</p>
+    <p>Comunicarea cu backend-ul se face prin HTTPS. Cache-ul de reputatie foloseste hash-uri si TTL-uri pentru a reduce apelurile repetate la provideri. Pastram date operationale necesare pentru scanare, debugging de securitate, rate-limit, preview cache si rapoarte agregate; acolo unde este posibil, stocarea foloseste date redactionate, normalizate sau hash-uite.</p>
+  </section>
+
+  <section>
+    <h2>Cookie-uri si analytics</h2>
+    <p>Endpointul API de privacy nu are nevoie de cookie-uri de cont si SigurScan nu foloseste datele de scanare pentru advertising. Protectiile de infrastructura, precum Cloudflare sau rate-limit-ul, pot procesa metadata tehnica necesara pentru securitate si disponibilitate.</p>
   </section>
 
   <section>
     <h2>Contact</h2>
-    <p>Pentru solicitari privind confidentialitatea sau stergerea feedbackului trimis, contacteaza echipa SigurScan la <code>privacy@sigurscan.ro</code>.</p>
+    <p>Pentru solicitari privind confidentialitatea, corectarea sau stergerea feedbackului trimis, contacteaza echipa SigurScan la <code>privacy@sigurscan.ro</code> sau prin canalul public indicat in Google Play.</p>
   </section>
 </main>
 </body>
