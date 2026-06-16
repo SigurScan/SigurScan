@@ -25,6 +25,22 @@ class ShareIntentManifestTest {
             "Mixed PDF/image/email attachments commonly arrive as */* and must remain shareable to SigurScan.",
             sendMultipleFilter?.contains("""android:mimeType="*/*"""") == true
         )
+        assertTrue(
+            "Voice notes shared with other files must remain visible to SigurScan.",
+            sendMultipleFilter?.contains("""android:mimeType="audio/*"""") == true
+        )
+    }
+
+    @Test
+    fun sendAcceptsUserInitiatedVoiceNotes() {
+        val sendFilters = Regex(
+            """<intent-filter>[\s\S]*?<action android:name="android.intent.action.SEND" />[\s\S]*?</intent-filter>"""
+        ).findAll(manifest).map { it.value }.toList()
+
+        assertTrue(
+            "A single voice note/audio file shared from WhatsApp/Telegram/Files must expose SigurScan in the share sheet.",
+            sendFilters.any { it.contains("""android:mimeType="audio/*"""") }
+        )
     }
 
     @Test

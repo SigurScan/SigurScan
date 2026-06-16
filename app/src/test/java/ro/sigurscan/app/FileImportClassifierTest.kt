@@ -14,6 +14,9 @@ class FileImportClassifierTest {
         assertEquals(FileImportKind.EMAIL, FileImportClassifier.classify("download", "message/rfc822"))
         assertEquals(FileImportKind.TEXT, FileImportClassifier.classify("sms.txt", "application/octet-stream"))
         assertEquals(FileImportKind.TEXT, FileImportClassifier.classify("download", "text/plain"))
+        assertEquals(FileImportKind.AUDIO, FileImportClassifier.classify("voice-note.m4a", "application/octet-stream"))
+        assertEquals(FileImportKind.AUDIO, FileImportClassifier.classify("whatsapp.opus", "audio/ogg"))
+        assertEquals(FileImportKind.AUDIO, FileImportClassifier.classify("download", "audio/mpeg"))
     }
 
     @Test

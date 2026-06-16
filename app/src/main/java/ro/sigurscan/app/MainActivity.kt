@@ -313,6 +313,7 @@ private fun sourceLabelForSharedUri(context: Context, uri: Uri, fallbackMime: St
 private fun sourceLabelForMime(mime: String): String {
     return when {
         mime.startsWith("image/") -> "Imagine partajată"
+        mime.startsWith("audio/") -> "Audio partajat"
         mime.startsWith("application/pdf") || mime.contains("pdf") -> "PDF partajat"
         mime == "message/rfc822" || mime.contains("eml") -> "Email partajat"
         mime.contains("text/html") -> "HTML partajat"

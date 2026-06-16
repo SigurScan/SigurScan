@@ -3427,6 +3427,11 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
             return
         }
 
+        if (importKind == FileImportKind.AUDIO) {
+            publishAudioShareRequiresTranscript(fileName)
+            return
+        }
+
         if (importKind == FileImportKind.TEXT) {
             loading = true
             loadingMsg = "Analizăm fișierul text..."
@@ -3618,6 +3623,37 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                 loading = false
             }
         }
+    }
+
+    private fun publishAudioShareRequiresTranscript(fileName: String) {
+        val reason = "Audio primit. Transcrierea audio nu este activă încă; poți lipi transcriptul."
+        stagedEvidenceHtml = null
+        stagedEvidenceLinks = emptyList()
+        stagedEvidenceText = null
+        stagedEvidenceInputKind = "import_audio_file"
+        stagedEvidenceChannel = "audio_share"
+        text = ""
+        assessment = applyEvidenceGate(
+            current = OfflineAssessment(
+                family = "Audio primit",
+                riskScore = 0,
+                riskLevel = "unknown",
+                reasons = listOf(reason),
+                safeActions = listOf(
+                    "Lipește transcriptul conversației sau partajează textul conversației către SigurScan.",
+                    "Nu trimite bani, coduri sau date personale până nu verifici conversația printr-un canal oficial."
+                ),
+                keyDangers = listOf("Fișierul audio nu a fost transcris, deci nu avem dovezi suficiente pentru verdict."),
+                originalText = "Audio primit, transcriere necesară: $fileName."
+            ),
+            rawInput = "Audio primit, transcriere necesară: $fileName",
+            inputKind = "import_audio_file",
+            channel = "audio_share",
+            providerStates = unavailableProviderStates(),
+            completeness = EvidenceCompleteness.LOCAL_ONLY
+        )
+        loading = false
+        loadingMsg = ""
     }
 
     private fun getFileName(uri: Uri, context: Context): String {

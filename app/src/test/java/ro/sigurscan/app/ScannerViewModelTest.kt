@@ -669,6 +669,35 @@ class ScannerViewModelTest {
     }
 
     @Test
+    fun audioShareIsAcceptedButFallsBackToTranscriptUntilAsrIsEnabled() {
+        val manifestSource = File("src/main/AndroidManifest.xml").readText()
+        val activitySource = File("src/main/java/ro/sigurscan/app/MainActivity.kt").readText()
+        val classifierSource = File("src/main/java/ro/sigurscan/app/FileImportClassifier.kt").readText()
+        val viewModelSource = File("src/main/java/ro/sigurscan/app/ScannerViewModel.kt").readText()
+        val fileStart = viewModelSource.indexOf("fun onFilePicked(uri: Uri, context: Context)")
+        val fileEnd = viewModelSource.indexOf("private fun getFileName", fileStart)
+        assertTrue("onFilePicked must exist.", fileStart >= 0 && fileEnd > fileStart)
+        val fileFlow = viewModelSource.substring(fileStart, fileEnd)
+
+        assertTrue("Manifest must expose user-initiated audio shares.", manifestSource.contains("""android:mimeType="audio/*""""))
+        assertTrue("Audio shares should be labeled distinctly in the pending-file UI.", activitySource.contains("Audio partajat"))
+        assertTrue("Audio MIME/extensions need a dedicated classifier result, not generic unsupported.", classifierSource.contains("FileImportKind.AUDIO"))
+        assertTrue(
+            "Audio files must not be sent through PDF/image extraction while ASR is disabled.",
+            fileFlow.indexOf("FileImportKind.AUDIO") in 0 until fileFlow.indexOf("FileImportKind.TEXT")
+        )
+        assertTrue(
+            "Audio share fallback must tell the user to provide a transcript instead of silently failing.",
+            fileFlow.contains("Audio primit. Transcrierea audio nu este activă încă; poți lipi transcriptul.")
+        )
+        assertTrue(
+            "Audio share fallback should use explicit audio telemetry.",
+            fileFlow.contains("""inputKind = "import_audio_file"""") &&
+                fileFlow.contains("""channel = "audio_share"""")
+        )
+    }
+
+    @Test
     fun neutralPendingAssessmentBuilderCannotEmitRiskVerdict() {
         val viewModelSource = File("src/main/java/ro/sigurscan/app/ScannerViewModel.kt").readText()
         assertFalse(

@@ -54,6 +54,7 @@
                 <data android:mimeType="image/*" />
                 <data android:mimeType="image/png" />
                 <data android:mimeType="image/jpeg" />
+                <data android:mimeType="audio/*" />
                 <data android:mimeType="application/pdf" />
                 <data android:mimeType="text/html" />
                 <data android:mimeType="text/plain" />
@@ -67,6 +68,7 @@
                 <data android:mimeType="text/plain" />
                 <data android:mimeType="application/pdf" />
                 <data android:mimeType="image/*" />
+                <data android:mimeType="audio/*" />
                 <data android:mimeType="*/*" />
             </intent-filter>
 
