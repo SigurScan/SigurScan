@@ -141,13 +141,20 @@ android {
         compose = true
         buildConfig = true
     }
-    externalNativeBuild {
-        cmake {
-            path = file("src/main/cpp/CMakeLists.txt")
-            version = "3.31.6"
+    if (enableAudioAsr) {
+        externalNativeBuild {
+            cmake {
+                path = file("src/main/cpp/CMakeLists.txt")
+                version = "3.31.6"
+            }
         }
     }
     sourceSets {
+        getByName("main") {
+            if (enableAudioAsr) {
+                assets.srcDir("src/audioAsr/assets")
+            }
+        }
         getByName("androidTest") {
             assets.srcDirs(rootProject.file("e2e_fixtures"))
         }

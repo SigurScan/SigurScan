@@ -48,6 +48,16 @@ class AndroidBuildConfigPolicyTest {
                 """buildConfigField\("Boolean",\s*"SIGURSCAN_ENABLE_AUDIO_ASR",\s*enableAudioAsr\.toString\(\)\)"""
             ).findAll(gradleFile).count() >= 2
         )
+        assertTrue(
+            "Release builds with audio disabled must not package the local ASR model assets.",
+            gradleFile.contains("""if (enableAudioAsr)""") &&
+                gradleFile.contains("""assets.srcDir("src/audioAsr/assets")""")
+        )
+        assertTrue(
+            "Whisper native build must be opt-in with the reviewed audio flag.",
+            gradleFile.contains("""if (enableAudioAsr)""") &&
+                gradleFile.contains("""externalNativeBuild""")
+        )
     }
 
     @Test
