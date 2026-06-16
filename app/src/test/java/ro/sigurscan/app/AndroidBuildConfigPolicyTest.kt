@@ -8,6 +8,8 @@ import java.io.File
 class AndroidBuildConfigPolicyTest {
     private val gradleFile: String
         get() = File("build.gradle.kts").readText()
+    private val mainActivityFile: String
+        get() = File("src/main/java/ro/sigurscan/app/MainActivity.kt").readText()
 
     @Test
     fun directProviderKeysAreOptInAndProviderBuildConfigFieldsStayEmpty() {
@@ -57,6 +59,11 @@ class AndroidBuildConfigPolicyTest {
             "Whisper native build must be opt-in with the reviewed audio flag.",
             gradleFile.contains("""if (enableAudioAsr)""") &&
                 gradleFile.contains("""externalNativeBuild""")
+        )
+        assertTrue(
+            "Public release must not show the Speaker Guard/ASR surface while the audio flag is disabled.",
+            mainActivityFile.contains("""if (BuildConfig.SIGURSCAN_ENABLE_AUDIO_ASR)""") &&
+                mainActivityFile.contains("""AudioAsrReadinessCard(""")
         )
     }
 

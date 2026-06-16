@@ -1004,27 +1004,29 @@ fun RadarTab(viewModel: ScannerViewModel) {
         )
         Spacer(modifier = Modifier.height(16.dp))
 
-        AudioAsrReadinessCard(
-            snapshot = viewModel.audioReadiness,
-            status = viewModel.audioReadinessStatus,
-            evidenceResult = viewModel.audioEvidenceResult,
-            hasAssessment = viewModel.assessment != null,
-            onConsentChanged = { viewModel.setAudioConsent(it) },
-            onDisclosureChanged = { viewModel.setAudioPrivacyDisclosureAccepted(it) },
-            onRefresh = { viewModel.refreshAudioReadiness() },
-            onAnalyzeTranscript = { viewModel.analyzeCurrentTextAsAudioTranscript() },
-            speakerGuard = viewModel.speakerGuardSnapshot,
-            hasMicrophonePermission = hasMicrophonePermission,
-            onStartSpeakerGuard = {
-                if (!hasMicrophonePermission) {
-                    microphonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                } else {
-                    viewModel.startSpeakerGuard()
-                }
-            },
-            onStopSpeakerGuard = { viewModel.stopSpeakerGuard() }
-        )
-        Spacer(modifier = Modifier.height(16.dp))
+        if (BuildConfig.SIGURSCAN_ENABLE_AUDIO_ASR) {
+            AudioAsrReadinessCard(
+                snapshot = viewModel.audioReadiness,
+                status = viewModel.audioReadinessStatus,
+                evidenceResult = viewModel.audioEvidenceResult,
+                hasAssessment = viewModel.assessment != null,
+                onConsentChanged = { viewModel.setAudioConsent(it) },
+                onDisclosureChanged = { viewModel.setAudioPrivacyDisclosureAccepted(it) },
+                onRefresh = { viewModel.refreshAudioReadiness() },
+                onAnalyzeTranscript = { viewModel.analyzeCurrentTextAsAudioTranscript() },
+                speakerGuard = viewModel.speakerGuardSnapshot,
+                hasMicrophonePermission = hasMicrophonePermission,
+                onStartSpeakerGuard = {
+                    if (!hasMicrophonePermission) {
+                        microphonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                    } else {
+                        viewModel.startSpeakerGuard()
+                    }
+                },
+                onStopSpeakerGuard = { viewModel.stopSpeakerGuard() }
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+        }
 
         viewModel.liveCampaignEvent?.let { liveCampaignEvent ->
             ActiveCampaignBanner(liveCampaignEvent) {
