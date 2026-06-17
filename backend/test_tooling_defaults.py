@@ -137,6 +137,20 @@ def test_cloud_run_deploy_wires_orchestrated_cloud_tasks_worker():
     assert " INTERNAL_WORKER_TOKEN=" not in script
 
 
+def test_backend_ci_installs_pytest_before_running_backend_tests():
+    workflow = (ROOT_DIR / ".github" / "workflows" / "backend-ci.yml").read_text(
+        encoding="utf-8"
+    )
+    install_block = workflow.split("- name: Install backend dependencies", 1)[1].split(
+        "- name: Run backend tests",
+        1,
+    )[0]
+
+    assert "python -m pip install -r requirements.txt" in install_block
+    assert "python -m pip install pytest" in install_block
+    assert "python -m pytest -q" in workflow
+
+
 def test_supabase_logical_backup_workflow_is_scheduled_and_private_artifact():
     workflow = (ROOT_DIR / ".github" / "workflows" / "supabase-logical-backup.yml").read_text(
         encoding="utf-8"
