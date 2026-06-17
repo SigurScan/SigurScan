@@ -8862,6 +8862,7 @@ def test_health_reports_provider_config_without_secrets(monkeypatch):
         patched.setenv("GOOGLE_WEB_RISK_API_KEY", "super-secret-webrisk")
         patched.setenv("URLHAUS_AUTH_KEY", "super-secret-urlhaus")
         patched.setenv("OPENAPI_RO_API_KEY", "super-secret-openapi")
+        patched.setenv("HUNTER_IO_API_KEY", "super-secret-hunter")
         patched.setenv("ENABLE_PHISHING_DATABASE", "true")
         patched.setenv("ENABLE_SCAM_BLOCKLIST_NRD", "true")
         patched.setenv("ENABLE_PHISHDESTROY", "true")
@@ -8876,6 +8877,11 @@ def test_health_reports_provider_config_without_secrets(monkeypatch):
     assert payload["config"]["providers"]["phishing_database"]["configured"] is True
     assert payload["config"]["providers"]["urlhaus"]["configured"] is True
     assert payload["config"]["providers"]["openapi_ro_company"]["configured"] is True
+    assert payload["config"]["providers"]["openapi_ro_company"]["policy"] == "paid_escalation_only"
+    assert payload["config"]["providers"]["openapi_ro_company"]["monthly_budget"] == 100
+    assert payload["config"]["providers"]["hunter_io_email_domain"]["configured"] is True
+    assert payload["config"]["providers"]["hunter_io_email_domain"]["policy"] == "paid_escalation_only"
+    assert payload["config"]["providers"]["hunter_io_email_domain"]["monthly_budget"] == 50
     assert payload["config"]["providers"]["scam_blocklist_nrd"]["configured"] is True
     assert payload["config"]["providers"]["scam_blocklist_nrd"]["source"] == "jarelllama/Scam-Blocklist"
     assert payload["config"]["providers"]["phishdestroy_destroylist"]["configured"] is True

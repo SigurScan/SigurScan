@@ -303,7 +303,38 @@ async def test_lista_firme_fallback_rejects_mismatched_cui_payload():
 
 
 @pytest.mark.asyncio
-async def test_openapi_ro_fallback_maps_company_when_public_sources_fail(monkeypatch):
+async def test_openapi_ro_fallback_is_not_used_without_paid_escalation(monkeypatch):
+    def failing_post(*args, **kwargs):
+        import requests
+        raise requests.ConnectionError("anaf timeout")
+
+    openapi_calls = []
+
+    def get_side_effect(url, *args, **kwargs):
+        import requests
+
+        if "lista-firme.info" in url:
+            raise requests.ConnectionError("lista-firme timeout")
+        openapi_calls.append(url)
+        response = MagicMock()
+        response.status_code = 200
+        response.json.return_value = {"cui": "5888716", "name": "DIGI ROMANIA S.A."}
+        return response
+
+    monkeypatch.setenv("OPENAPI_RO_API_KEY", "test-openapi-key")
+    monkeypatch.setenv("OPENAPI_RO_MONTHLY_BUDGET", "100")
+    with patch("services.anaf_cui.requests.post", side_effect=failing_post):
+        with patch("services.anaf_cui.requests.get", side_effect=get_side_effect):
+            result = await check_cui("RO5888716")
+
+    assert result.exists is False
+    assert result.checked is False
+    assert result.source is None
+    assert openapi_calls == []
+
+
+@pytest.mark.asyncio
+async def test_openapi_ro_fallback_maps_company_when_paid_escalation_is_allowed(monkeypatch):
     def failing_post(*args, **kwargs):
         import requests
         raise requests.ConnectionError("anaf timeout")
@@ -324,9 +355,11 @@ async def test_openapi_ro_fallback_maps_company_when_public_sources_fail(monkeyp
         return response
 
     monkeypatch.setenv("OPENAPI_RO_API_KEY", "test-openapi-key")
+    monkeypatch.setenv("OPENAPI_RO_MONTHLY_BUDGET", "100")
+    monkeypatch.setattr("services.anaf_cui.consume_openapi_ro_budget", lambda: True)
     with patch("services.anaf_cui.requests.post", side_effect=failing_post):
         with patch("services.anaf_cui.requests.get", side_effect=get_side_effect) as mock_get:
-            result = await check_cui("RO5888716")
+            result = await check_cui("RO5888716", allow_paid_fallback=True)
 
     assert result.exists is True
     assert result.checked is True
@@ -361,14 +394,47 @@ async def test_openapi_ro_fallback_rejects_mismatched_cui(monkeypatch):
         return response
 
     monkeypatch.setenv("OPENAPI_RO_API_KEY", "test-openapi-key")
+    monkeypatch.setenv("OPENAPI_RO_MONTHLY_BUDGET", "100")
+    monkeypatch.setattr("services.anaf_cui.consume_openapi_ro_budget", lambda: True)
     with patch("services.anaf_cui.requests.post", side_effect=failing_post):
         with patch("services.anaf_cui.requests.get", side_effect=get_side_effect):
-            result = await check_cui("5888716")
+            result = await check_cui("5888716", allow_paid_fallback=True)
 
     assert result.exists is False
     assert result.checked is True
     assert result.denumire is None
     assert result.source == "openapi_ro"
+
+
+@pytest.mark.asyncio
+async def test_openapi_ro_fallback_respects_monthly_budget_zero(monkeypatch):
+    def failing_post(*args, **kwargs):
+        import requests
+        raise requests.ConnectionError("primary sources timeout")
+
+    openapi_calls = []
+
+    def get_side_effect(url, *args, **kwargs):
+        import requests
+
+        if "lista-firme.info" in url:
+            raise requests.ConnectionError("lista-firme timeout")
+        openapi_calls.append(url)
+        response = MagicMock()
+        response.status_code = 200
+        response.json.return_value = {"cui": "5888716", "name": "DIGI ROMANIA S.A."}
+        return response
+
+    monkeypatch.setenv("OPENAPI_RO_API_KEY", "test-openapi-key")
+    monkeypatch.setenv("OPENAPI_RO_MONTHLY_BUDGET", "0")
+    with patch("services.anaf_cui.requests.post", side_effect=failing_post):
+        with patch("services.anaf_cui.requests.get", side_effect=get_side_effect):
+            result = await check_cui("5888716", allow_paid_fallback=True)
+
+    assert result.exists is False
+    assert result.checked is False
+    assert result.source is None
+    assert openapi_calls == []
 
 
 @pytest.mark.asyncio

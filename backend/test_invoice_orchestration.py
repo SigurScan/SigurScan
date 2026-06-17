@@ -102,6 +102,89 @@ async def test_scan_invoice_exposes_company_registry_source_from_openapi_ro():
 
 
 @pytest.mark.asyncio
+async def test_scan_invoice_does_not_allow_paid_company_registry_for_plain_invoice():
+    text = (
+        "Furnizor: Atelier Digital Sibiu SRL\n"
+        "CUI: 12345678\n"
+        "IBAN: RO33RNCB1234567890123456\n"
+        "Total: 100 RON\n"
+        "Data: 01.06.2026\n"
+        "Scadenta: 15.06.2026"
+    )
+    with patch("services.invoice_orchestrator.check_cui", new_callable=AsyncMock) as mock_cui:
+        mock_cui.return_value.exists = True
+        mock_cui.return_value.checked = True
+        mock_cui.return_value.denumire = "ATELIER DIGITAL SIBIU SRL"
+        mock_cui.return_value.activ = True
+        mock_cui.return_value.platitor_tva = True
+        mock_cui.return_value.source = "anaf"
+
+        await scan_invoice(text)
+
+    assert mock_cui.call_args.kwargs.get("allow_paid_fallback", False) is False
+
+
+@pytest.mark.asyncio
+async def test_scan_invoice_allows_paid_company_registry_for_account_change_case():
+    text = (
+        "From: facturi@furnizor-real.ro\n"
+        "Reply-To: plata-furnizor@gmail.com\n"
+        "Furnizor: Furnizor Real SRL\n"
+        "CUI: 12345678\n"
+        "Am schimbat contul bancar. Noul IBAN este RO33RNCB1234567890123456.\n"
+        "Total: 4800 RON\n"
+        "Data: 01.06.2026"
+    )
+    with patch("services.invoice_orchestrator.check_cui", new_callable=AsyncMock) as mock_cui:
+        mock_cui.return_value.exists = True
+        mock_cui.return_value.checked = True
+        mock_cui.return_value.denumire = "FURNIZOR REAL SRL"
+        mock_cui.return_value.activ = True
+        mock_cui.return_value.platitor_tva = True
+        mock_cui.return_value.source = "openapi_ro"
+
+        await scan_invoice(text)
+
+    assert mock_cui.call_args.kwargs["allow_paid_fallback"] is True
+    assert mock_cui.call_args.kwargs["paid_fallback_reason"] == "invoice_high_risk"
+
+
+@pytest.mark.asyncio
+async def test_scan_invoice_adds_hunter_io_email_domain_intel_for_heavy_case():
+    text = (
+        "From: facturi@furnizor-real.ro\n"
+        "Reply-To: plata@vendor-payments.example\n"
+        "Furnizor: Furnizor Real SRL\n"
+        "CUI: 12345678\n"
+        "Am schimbat contul bancar. Noul IBAN este RO33RNCB1234567890123456.\n"
+        "Total: 4800 RON\n"
+    )
+    hunter_payload = {
+        "provider": "hunter_io",
+        "status": "checked",
+        "domain": "vendor-payments.example",
+        "flags": ["HUNTER_DISPOSABLE_EMAIL_DOMAIN"],
+        "warnings": ["Domeniul de răspuns are semnal slab în Hunter.io."],
+        "email_count": 0,
+    }
+    with patch("services.invoice_orchestrator.check_cui", new_callable=AsyncMock) as mock_cui:
+        mock_cui.return_value.exists = True
+        mock_cui.return_value.checked = True
+        mock_cui.return_value.denumire = "FURNIZOR REAL SRL"
+        mock_cui.return_value.activ = True
+        mock_cui.return_value.platitor_tva = True
+        mock_cui.return_value.source = "anaf"
+        with patch("services.hunter_io.evaluate_heavy_email_domain_intel", return_value=hunter_payload):
+            result = await scan_invoice(text)
+
+    assert "HUNTER_DISPOSABLE_EMAIL_DOMAIN" in result.fraud_flags
+    assert result.email_domain_intel == hunter_payload
+    bundle = build_invoice_evidence_bundle(result, result.raw_text, source_channel="email")
+    assert bundle["providers"]["hunter_io_email_domain"]["status"] == "checked"
+    assert bundle["providers"]["hunter_io_email_domain"]["domain"] == "vendor-payments.example"
+
+
+@pytest.mark.asyncio
 async def test_scan_brand_impersonation():
     text = "Furnizor: ANAF\nCUI: 12345678\nIBAN: RO33RNCB1234567890123456\nTotal: 1000 RON"
     with patch("services.invoice_orchestrator.check_cui", new_callable=AsyncMock) as mock_cui:

@@ -95,6 +95,7 @@ class InvoiceScanResult:
     payment_destination: Optional[dict] = None
     beneficiary_name_check: Optional[dict] = None
     official_document_check: Optional[dict] = None
+    email_domain_intel: Optional[dict] = None
     error: Optional[str] = None
     warnings: list = field(default_factory=list)
     fraud_flags: list[str] = field(default_factory=list)
@@ -211,6 +212,62 @@ def _fields_to_coherence(fields: InvoiceFields) -> CoherenceResult:
 
 def _has_no_extractable_data(fields: InvoiceFields) -> bool:
     return not any([fields.cui, fields.iban, fields.emitent, fields.total is not None, fields.data_emitere])
+
+
+def _should_allow_paid_company_registry(
+    *,
+    fields: InvoiceFields,
+    text: str,
+    brand_match_result: Optional[BrandMatchResult],
+) -> bool:
+    if not fields.cui:
+        return False
+
+    preliminary_flags: set[str] = set()
+    normalized_text = _txt_norm(text)
+    candidate_ibans = list(getattr(fields, "all_ibans", []) or [])
+    if fields.iban:
+        candidate_ibans.append(fields.iban)
+
+    if brand_match_result and brand_match_result.impersonation_risk:
+        preliminary_flags.add("BRAND_IMPERSONATION_RISK")
+    if _beneficiary_mismatch(getattr(fields, "payment_beneficiary", None), fields.emitent):
+        preliminary_flags.add("BENEFICIARY_PERSON_MISMATCH")
+    if _foreign_ibans(candidate_ibans):
+        preliminary_flags.add("FOREIGN_IBAN")
+    if len(set(candidate_ibans)) >= 2:
+        preliminary_flags.add("MULTIPLE_IBANS")
+    if _ACCOUNT_CHANGE_RE.search(normalized_text):
+        preliminary_flags.add("ACCOUNT_CHANGE_LANGUAGE")
+
+    textual_flags, _ = _detect_textual_b2b_flags(text, claimed_vendor=fields.emitent)
+    preliminary_flags.update(textual_flags)
+
+    paid_escalation_flags = {
+        "ACCOUNT_CHANGE_LANGUAGE",
+        "BENEFICIARY_PERSON_MISMATCH",
+        "BRAND_IMPERSONATION_RISK",
+        "FOREIGN_IBAN",
+        "MULTIPLE_IBANS",
+        "SENSITIVE_DATA_REQUESTED",
+        *B2B_HIGH_RISK_FLAGS,
+    }
+    return bool(preliminary_flags & paid_escalation_flags)
+
+
+async def _check_cui_for_invoice(cui: str, *, allow_paid_fallback: bool):
+    if not allow_paid_fallback:
+        return await check_cui(cui)
+    try:
+        return await check_cui(
+            cui,
+            allow_paid_fallback=True,
+            paid_fallback_reason="invoice_high_risk",
+        )
+    except TypeError as exc:
+        if "unexpected keyword" not in str(exc):
+            raise
+        return await check_cui(cui)
 
 
 def _detect_textual_b2b_flags(text: str, *, claimed_vendor: Optional[str] = None) -> tuple[list[str], list[str]]:
@@ -411,7 +468,15 @@ async def scan_invoice(ocr_text: str, links: Optional[list[str]] = None) -> Invo
         if cached_cui:
             cui_check = cached_cui
         else:
-            raw_cui_check = await check_cui(fields.cui)
+            allow_paid_company_registry = _should_allow_paid_company_registry(
+                fields=fields,
+                text=ocr_text,
+                brand_match_result=brand_match_result,
+            )
+            raw_cui_check = await _check_cui_for_invoice(
+                fields.cui,
+                allow_paid_fallback=allow_paid_company_registry,
+            )
             cui_check = {
                 "exists": raw_cui_check.exists,
                 "checked": raw_cui_check.checked,
@@ -500,6 +565,25 @@ async def scan_invoice(ocr_text: str, links: Optional[list[str]] = None) -> Invo
         if warning not in warnings:
             warnings.append(warning)
 
+    email_domain_intel = None
+    try:
+        from services.hunter_io import evaluate_heavy_email_domain_intel
+
+        email_domain_intel = evaluate_heavy_email_domain_intel(
+            text=ocr_text,
+            claimed_vendor=fields.emitent,
+            fraud_flags=fraud_flags,
+        )
+        if email_domain_intel and email_domain_intel.get("status") == "checked":
+            for flag in email_domain_intel.get("flags") or []:
+                if flag not in fraud_flags:
+                    fraud_flags.append(str(flag))
+            for warning in email_domain_intel.get("warnings") or []:
+                if warning not in warnings:
+                    warnings.append(str(warning))
+    except Exception:
+        email_domain_intel = None
+
     try:
         from services import vendor_memory
 
@@ -553,6 +637,7 @@ async def scan_invoice(ocr_text: str, links: Optional[list[str]] = None) -> Invo
         anaf_cui_check=anaf_check,
         payment_destination=payment_destination,
         beneficiary_name_check=beneficiary_name_check,
+        email_domain_intel=email_domain_intel,
         warnings=warnings,
         fraud_flags=fraud_flags,
     )
@@ -683,6 +768,7 @@ def build_invoice_evidence_bundle(
     official_document_mismatch = "EFACTURA_OFFICIAL_DOCUMENT_MISMATCH" in fraud_flags
     payment_destination = getattr(result, "payment_destination", None) or {}
     official_document_check = getattr(result, "official_document_check", None) or None
+    email_domain_intel = getattr(result, "email_domain_intel", None) or None
     never_asks_result = {
         "brand_ids": [],
         "violated_never_asks": [],
@@ -804,6 +890,21 @@ def build_invoice_evidence_bundle(
             "severity": "high",
             "consulted": True,
             "reasons": ["IBAN raportat ca fraudă"],
+        }
+    if email_domain_intel:
+        provider_section["hunter_io_email_domain"] = {
+            "status": email_domain_intel.get("status"),
+            "verdict": "suspicious" if email_domain_intel.get("flags") else "unknown",
+            "domain": email_domain_intel.get("domain"),
+            "organization": email_domain_intel.get("organization"),
+            "disposable": email_domain_intel.get("disposable"),
+            "webmail": email_domain_intel.get("webmail"),
+            "accept_all": email_domain_intel.get("accept_all"),
+            "email_count": email_domain_intel.get("email_count"),
+            "max_confidence": email_domain_intel.get("max_confidence"),
+            "reasons": list(email_domain_intel.get("warnings") or []),
+            "completeness": email_domain_intel.get("status") == "checked",
+            "policy": "paid_escalation_only",
         }
     if payment_destination:
         if destination_mismatch:

@@ -9,6 +9,8 @@ from typing import Any, Dict
 
 import requests
 
+from services.provider_budget import consume_monthly_budget, monthly_limit_from_env
+
 # ANAF PlatitorTVA v9 endpoint (public, zero auth).
 ANAF_TVA_URL = "https://webservicesp.anaf.ro/api/PlatitorTvaRest/v9/tva"
 ANAF_TIMEOUT_SECONDS = 4.0
@@ -20,6 +22,7 @@ LISTA_FIRME_TIMEOUT_SECONDS = 3.0
 # Paid/API-key fallback: openapi.ro company lookup.
 OPENAPI_RO_COMPANY_URL = "https://api.openapi.ro/api/companies"
 OPENAPI_RO_TIMEOUT_SECONDS = 3.0
+OPENAPI_RO_MONTHLY_BUDGET_DEFAULT = 100
 
 # Bug#14: apelurile blocante către ANAF/lista-firme.info rulau pe executorul
 # implicit al loop-ului (shared cu restul aplicației). Un ANAF lent/picat
@@ -57,7 +60,25 @@ class CuiResult:
     source: str | None = None
 
 
-async def check_cui(cui: str, data: str | None = None) -> CuiResult:
+def openapi_ro_monthly_budget() -> int:
+    return monthly_limit_from_env("OPENAPI_RO_MONTHLY_BUDGET", OPENAPI_RO_MONTHLY_BUDGET_DEFAULT)
+
+
+def consume_openapi_ro_budget() -> bool:
+    decision = consume_monthly_budget(
+        "openapi_ro_company",
+        limit=openapi_ro_monthly_budget(),
+    )
+    return decision.allowed
+
+
+async def check_cui(
+    cui: str,
+    data: str | None = None,
+    *,
+    allow_paid_fallback: bool = False,
+    paid_fallback_reason: str | None = None,
+) -> CuiResult:
     cui_digits = _normalize_cui(cui)
     if not cui_digits or not cui_digits.isdigit():
         return CuiResult(
@@ -79,12 +100,13 @@ async def check_cui(cui: str, data: str | None = None) -> CuiResult:
             return result
     except Exception:
         pass
-    try:
-        result = await _call_openapi_ro_fallback(cui_digits)
-        if result is not None:
-            return result
-    except Exception:
-        pass
+    if allow_paid_fallback:
+        try:
+            result = await _call_openapi_ro_fallback(cui_digits)
+            if result is not None:
+                return result
+        except Exception:
+            pass
     return CuiResult(
         exists=False, checked=anaf_ok, denumire=None, activ=False, data_inactivare=None,
         platitor_tva=False, enrolled_efactura=False, raw=None, source=None,
@@ -241,6 +263,8 @@ async def _call_lista_firme_fallback(cui_digits: str) -> CuiResult | None:
 async def _call_openapi_ro_fallback(cui_digits: str) -> CuiResult | None:
     api_key = os.getenv("OPENAPI_RO_API_KEY", "").strip()
     if not api_key:
+        return None
+    if not consume_openapi_ro_budget():
         return None
 
     url = f"{OPENAPI_RO_COMPANY_URL}/{cui_digits}"

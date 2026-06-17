@@ -319,6 +319,19 @@ def _provider_config_status() -> Dict[str, Any]:
     }
     urlhaus_configured = _env_present("URLHAUS_AUTH_KEY", "URLHAUS_API_KEY", "ABUSECH_AUTH_KEY")
     openapi_ro_configured = _env_present("OPENAPI_RO_API_KEY")
+    try:
+        from services.anaf_cui import openapi_ro_monthly_budget
+
+        openapi_ro_budget = openapi_ro_monthly_budget()
+    except Exception:
+        openapi_ro_budget = 100
+    hunter_io_configured = _env_present("HUNTER_IO_API_KEY")
+    try:
+        from services.hunter_io import hunter_io_monthly_budget
+
+        hunter_io_budget = hunter_io_monthly_budget()
+    except Exception:
+        hunter_io_budget = 50
     mistral_configured = _env_present("MISTRAL_API_KEY")
     gemini_configured = _env_present("GEMINI_API_KEY")
     offer_claim_configured = gemini_configured
@@ -350,7 +363,13 @@ def _provider_config_status() -> Dict[str, Any]:
             },
             "openapi_ro_company": {
                 "configured": openapi_ro_configured and not PRIVACY_SAFE_MODE,
-                "policy": "company_registry_fallback",
+                "policy": "paid_escalation_only",
+                "monthly_budget": openapi_ro_budget,
+            },
+            "hunter_io_email_domain": {
+                "configured": hunter_io_configured and not PRIVACY_SAFE_MODE,
+                "policy": "paid_escalation_only",
+                "monthly_budget": hunter_io_budget,
             },
             "scam_blocklist_nrd": {
                 "configured": scam_blocklist_nrd_enabled and not PRIVACY_SAFE_MODE,
