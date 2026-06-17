@@ -6,7 +6,7 @@ from services.verdict_gate import verdict
 
 ROOT = Path(__file__).resolve().parent
 TESTSET_PATH = ROOT / "data" / "verdict_testset_ro.jsonl"
-FIRE_CASES = {"FAN-01", "FAN-02", "YOXO-01", "COM-01"}
+FIRE_CASES = {"FAN-01", "FAN-02", "YOXO-01", "COM-01", "BRASOV-01"}
 
 
 def _load_cases():
@@ -108,6 +108,12 @@ def _bundle_v2_from_case(case: dict) -> dict:
         },
         "semantic_review": _semantic_review_from_case(case),
     }
+    if case.get("id") == "BRASOV-01":
+        bundle["providers"]["payment_destination"] = {
+            "status": "mismatch",
+            "verdict": "mismatch",
+            "reason": "iban_owner_differs_from_claimed_company",
+        }
     if community_reports:
         bundle["community"] = {"reports": community_reports}
     return bundle

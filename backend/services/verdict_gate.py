@@ -197,6 +197,9 @@ def _has_checked_payment_destination(providers: Dict[str, Any]) -> bool:
     payment = providers.get("payment_destination")
     if not isinstance(payment, dict):
         return False
+    status = _norm(payment.get("status") or payment.get("verdict"))
+    if status and status not in PROVIDER_PENDING:
+        return True
     return any(
         key in payment
         for key in (
