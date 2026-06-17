@@ -8866,6 +8866,7 @@ def test_health_reports_provider_config_without_secrets(monkeypatch):
         patched.setenv("ENABLE_PHISHDESTROY", "true")
         patched.setattr(app_main, "URLSCAN_API_KEY", "super-secret-urlscan")
         patched.setattr(app_main, "PRIVACY_SAFE_MODE", False)
+        patched.setattr(app_main, "ENABLE_CLOUD_AI_EXPLANATION", True)
         payload = app_main.read_health()
 
     serialized = json.dumps(payload)
