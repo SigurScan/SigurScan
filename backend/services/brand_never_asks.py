@@ -129,10 +129,13 @@ _CASH_FIELD_RE = re.compile(
 )
 _SAFETY_EDUCATION_RE = re.compile(
     r"(nu\s+(?:iti|îti|iti|va|vă|comunica|trimite|spune|introduce|dezvalui|"
-    r"cerem|solicitam|solicităm)|niciodata\s+nu|niciodată\s+nu)"
-    r".{0,80}\b(otp|pin|cvv|cvc|parola|password|cod(?:ul)?\s+(?:sms|de\s+verificare))\b|"
-    r"\b(otp|pin|cvv|cvc|parola|password|cod(?:ul)?\s+(?:sms|de\s+verificare))\b"
-    r".{0,80}(nu\s+(?:comunica|trimite|spune|introduce|dezvalui)|niciodata\s+nu|niciodată\s+nu)",
+    r"cerem|solicitam|solicităm|folosi|plati|plăti|depune|contine|conține|anunta|anunță)|niciodata\s+nu|niciodată\s+nu)"
+    r".{0,120}\b(otp|pin|cvv|cvc|card|parola|password|iban|cont\s+(?:nou|sigur)|obligatii?\s+de\s+plata|obligații?\s+de\s+plată|cod(?:ul)?\s+(?:sms|whatsapp|de\s+verificare|de\s+autorizare|de\s+autentificare))\b|"
+    r"\bf[ăa]r[ăa]\s+cerere\s+de\b.{0,100}\b(otp|pin|cvv|cvc|card|parola|password|cod(?:ul)?\s+(?:sms|whatsapp|de\s+verificare|de\s+autorizare|de\s+autentificare))\b|"
+    r"\b(otp|pin|cvv|cvc|card|parola|password|iban|cont\s+(?:nou|sigur)|obligatii?\s+de\s+plata|obligații?\s+de\s+plată|cod(?:ul)?\s+(?:sms|whatsapp|de\s+verificare|de\s+autorizare|de\s+autentificare))\b"
+    r".{0,120}(nu\s+(?:comunica|trimite|spune|introduce|dezvalui|folosi|plati|plăti|depune|contine|conține|anunta|anunță)|niciodata\s+nu|niciodată\s+nu)|"
+    r"\bghiseul(?:\.ro)?\b.{0,80}\bnu\s+anun[țt][ăa]\b.{0,100}\bobliga[țt]ii?\s+de\s+plat[ăa]\b|"
+    r"\bconfirm[ăa]\b.{0,100}\b(?:iban|cont|schimbare)\b.{0,140}\b(?:num[ăa]rul\s+deja\s+cunoscut|canalul\s+oficial|telefonic|apel)\b",
     re.IGNORECASE,
 )
 

@@ -48,6 +48,10 @@ def _table_url(table: str) -> str:
     return f"{SUPABASE_URL}/rest/v1/{table}"
 
 
+def _rpc_url(function_name: str) -> str:
+    return f"{SUPABASE_URL}/rest/v1/rpc/{function_name}"
+
+
 def _ts_to_iso(value: Any) -> Optional[str]:
     try:
         ts = int(value)
@@ -87,6 +91,21 @@ def _post_json(table: str, payload: Dict[str, Any], prefer: str = "return=minima
         ).raise_for_status()
     except Exception:
         return
+
+
+def _rpc_json(function_name: str, payload: Dict[str, Any]) -> bool:
+    if not is_supabase_enabled():
+        return False
+    try:
+        requests.post(
+            _rpc_url(function_name),
+            headers=_headers(),
+            json=payload,
+            timeout=SUPABASE_TIMEOUT_SECONDS,
+        ).raise_for_status()
+        return True
+    except Exception:
+        return False
 
 
 def _patch_json(
@@ -368,6 +387,8 @@ def load_reputation_graph_rows(limit: int = 1000) -> Dict[str, List[Dict[str, An
 def save_vendor_iban(cui: str, iban: str) -> None:
     if not cui or not iban:
         return
+    if _rpc_json("remember_vendor_iban", {"p_cui": cui, "p_iban": iban}):
+        return
     row = {
         "cui": cui,
         "iban": iban,
@@ -378,6 +399,33 @@ def save_vendor_iban(cui: str, iban: str) -> None:
 
 def load_vendor_ibans() -> List[Dict[str, Any]]:
     return _get_json("vendor_iban_memory", {"select": "cui,iban"})
+
+
+def try_consume_provider_budget(provider: str, month_key: str, monthly_limit: int) -> Optional[bool]:
+    if not is_supabase_enabled():
+        return None
+    try:
+        response = requests.post(
+            _rpc_url("try_consume_provider_budget"),
+            headers=_headers(),
+            json={
+                "p_provider": provider,
+                "p_month_key": month_key,
+                "p_monthly_limit": int(monthly_limit),
+            },
+            timeout=SUPABASE_TIMEOUT_SECONDS,
+        )
+        response.raise_for_status()
+        if not response.content:
+            return None
+        data = response.json()
+        if isinstance(data, bool):
+            return data
+        if isinstance(data, list) and data and isinstance(data[0], bool):
+            return data[0]
+    except Exception:
+        return None
+    return None
 
 
 def save_campaign_fingerprint(entry: Dict[str, Any]) -> None:

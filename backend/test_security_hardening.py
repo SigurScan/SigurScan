@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import time
 
@@ -83,6 +84,44 @@ def test_security_health_exposes_non_secret_prod_posture(monkeypatch):
     assert "providers" in config
 
 
+def test_api_docs_are_not_public_by_default():
+    client = TestClient(app_main.app)
+
+    assert client.get("/docs").status_code != 200
+    assert client.get("/openapi.json").status_code != 200
+    assert client.get("/redoc").status_code != 200
+    assert client.get("/").json()["api_docs"] is None
+
+
+def test_cors_policy_uses_explicit_methods_and_headers():
+    assert "*" not in app_main.ALLOWED_CORS_METHODS
+    assert "*" not in app_main.ALLOWED_CORS_HEADERS
+    assert {"GET", "POST", "OPTIONS"}.issubset(set(app_main.ALLOWED_CORS_METHODS))
+    assert {
+        "Authorization",
+        "Content-Type",
+        "X-API-KEY",
+        "X-Play-Integrity-Token",
+        "X-SigurScan-Client-Instance",
+    }.issubset(set(app_main.ALLOWED_CORS_HEADERS))
+
+
+def test_image_upload_validation_checks_magic_bytes():
+    with pytest.raises(HTTPException) as exc:
+        app_main._validate_file_upload(
+            filename="invoice.jpg",
+            content_type="image/jpeg",
+            file_bytes=b"not really an image",
+            max_bytes=app_main.MAX_IMAGE_BYTES,
+            allowed_exts=app_main.ALLOWED_IMAGE_EXTS,
+            allowed_mime_types=app_main.ALLOWED_IMAGE_MIME_TYPES,
+            magic_validator=app_main._is_allowed_image_bytes,
+        )
+
+    assert exc.value.status_code == 400
+    assert "valid" in str(exc.value.detail).lower()
+
+
 def test_scan_routes_reject_missing_or_invalid_client_key(monkeypatch):
     _enable_client_auth(monkeypatch)
     client = TestClient(app_main.app)
@@ -135,12 +174,35 @@ def test_admin_endpoints_reject_client_key_and_accept_admin_key(monkeypatch):
     assert client.get("/v1/orchestration/dashboard", headers={"X-API-KEY": ADMIN_KEY}).status_code == 200
 
 
-def test_admin_key_also_works_on_client_routes(monkeypatch):
+def test_admin_key_does_not_work_on_client_routes(monkeypatch):
     _enable_client_auth(monkeypatch)
     _enable_admin_auth(monkeypatch)
     client = TestClient(app_main.app)
 
-    assert client.get(CHEAP_CLIENT_ENDPOINT, headers={"X-API-KEY": ADMIN_KEY}).status_code == 200
+    assert client.get(CHEAP_CLIENT_ENDPOINT, headers={"X-API-KEY": ADMIN_KEY}).status_code == 401
+
+
+def test_internal_worker_routes_reject_client_and_admin_api_keys(monkeypatch):
+    _enable_client_auth(monkeypatch)
+    _enable_admin_auth(monkeypatch)
+    monkeypatch.setattr(app_main, "INTERNAL_WORKER_TOKEN", "unit-worker-token")
+    client = TestClient(app_main.app)
+
+    path = "/internal/orchestrated/orch_missing/advance"
+
+    assert client.post(path, headers={"X-API-KEY": CLIENT_KEY}).status_code == 401
+    assert client.post(path, headers={"X-API-KEY": ADMIN_KEY}).status_code == 401
+    assert client.post(path, headers={"X-Internal-Worker-Token": "unit-worker-token"}).status_code == 404
+
+
+def test_scan_ids_do_not_expose_timestamp_or_low_entropy_suffix():
+    generated = {app_main._new_scan_id("orch") for _ in range(20)}
+
+    assert len(generated) == 20
+    for scan_id in generated:
+        assert scan_id.startswith("orch_")
+        assert not re.match(r"^orch_\d{9,12}_[0-9a-f]{8}$", scan_id)
+        assert len(scan_id.removeprefix("orch_")) >= 24
 
 
 def test_evaluation_dataset_path_is_limited_to_backend_data(tmp_path):
@@ -271,6 +333,7 @@ def test_rate_limiter_uses_upstash_pipeline_when_configured(monkeypatch):
 def test_rate_limiter_fails_open_to_memory_on_upstash_error(monkeypatch):
     monkeypatch.setattr(rate_limiter, "UPSTASH_REDIS_REST_URL", "https://fake-upstash.example")
     monkeypatch.setattr(rate_limiter, "UPSTASH_REDIS_REST_TOKEN", "fake-token")
+    monkeypatch.setattr(rate_limiter, "RATE_LIMIT_FAIL_CLOSED", False)
 
     def broken_pipeline(commands):
         raise RuntimeError("upstash unreachable")
@@ -281,6 +344,23 @@ def test_rate_limiter_fails_open_to_memory_on_upstash_error(monkeypatch):
     )
     assert decision.allowed is True
     assert decision.backend == "memory_best_effort"
+
+
+def test_rate_limiter_can_fail_closed_on_upstash_error(monkeypatch):
+    monkeypatch.setattr(rate_limiter, "UPSTASH_REDIS_REST_URL", "https://fake-upstash.example")
+    monkeypatch.setattr(rate_limiter, "UPSTASH_REDIS_REST_TOKEN", "fake-token")
+    monkeypatch.setattr(rate_limiter, "RATE_LIMIT_FAIL_CLOSED", True)
+
+    def broken_pipeline(commands):
+        raise RuntimeError("upstash unreachable")
+
+    monkeypatch.setattr(rate_limiter, "_run_upstash_pipeline", broken_pipeline)
+    decision = rate_limiter.check_sync(
+        api_key=None, client_ip="10.0.0.10", path="/v1/scan/text", limit_per_minute=60
+    )
+
+    assert decision.allowed is False
+    assert decision.backend == "upstash_unavailable"
 
 
 def test_play_integrity_default_mode_off_does_not_block(monkeypatch):
@@ -518,20 +598,56 @@ def test_play_integrity_rejects_stale_or_replayed_nonce(monkeypatch):
     assert result["timestamp_fresh"] is False
 
 
-def test_play_integrity_nonce_endpoint_requires_client_key_and_issues_nonce(monkeypatch):
+def test_play_integrity_enforce_can_authorize_scan_without_static_client_key(monkeypatch):
     _enable_client_auth(monkeypatch)
+    monkeypatch.setattr(play_integrity, "PLAY_INTEGRITY_MODE", "enforce")
+    captured = {}
+
+    def fake_evaluate(token, client_binding=""):
+        captured["token"] = token
+        captured["client_binding"] = client_binding
+        return {"block": False, "result": {"status": "valid"}}
+
+    monkeypatch.setattr(play_integrity, "evaluate_request_token", fake_evaluate)
+    client = TestClient(app_main.app)
+
+    response = client.post(
+        "/v1/scan/text",
+        json={"text": "salut"},
+        headers={
+            "X-Play-Integrity-Token": "valid-integrity-token",
+            "X-SigurScan-Client-Instance": "android-install-1",
+        },
+    )
+
+    assert response.status_code != 401
+    assert captured == {
+        "token": "valid-integrity-token",
+        "client_binding": "android-install-1",
+    }
+
+
+def test_play_integrity_nonce_endpoint_uses_client_instance_without_static_key(monkeypatch):
+    _enable_client_auth(monkeypatch)
+    monkeypatch.setattr(play_integrity, "PLAY_INTEGRITY_MODE", "enforce")
+    captured = {}
+
+    def fake_issue_nonce(client_binding):
+        captured["client_binding"] = client_binding
+        return {"status": "issued", "nonce": "nonce-1", "expires_in_seconds": 120}
+
     monkeypatch.setattr(
         play_integrity_nonce,
         "issue_nonce",
-        lambda api_key: {"status": "issued", "nonce": "nonce-1", "expires_in_seconds": 120},
+        fake_issue_nonce,
     )
     client = TestClient(app_main.app)
 
-    assert client.post("/v1/security/play-integrity/nonce").status_code == 401
     response = client.post(
         "/v1/security/play-integrity/nonce",
-        headers={"X-API-KEY": CLIENT_KEY},
+        headers={"X-SigurScan-Client-Instance": " android-install-1 "},
     )
 
     assert response.status_code == 200
     assert response.json() == {"nonce": "nonce-1", "expires_in_seconds": 120}
+    assert captured == {"client_binding": "android-install-1"}

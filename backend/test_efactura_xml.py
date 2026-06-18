@@ -5,6 +5,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from services.invoice_parser import InvoiceFields
 from services.efactura_xml import compare_invoice_to_official_xml, parse_efactura_xml
+import services.efactura_xml as efactura_xml
 
 
 EFACTURA_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
@@ -46,6 +47,10 @@ def test_parse_efactura_xml_extracts_supplier_payment_and_total():
     assert fields.iban == "RO49AAAA1B31007593840000"
     assert fields.total == 200.0
     assert fields.currency == "RON"
+
+
+def test_efactura_xml_uses_defusedxml_parser():
+    assert efactura_xml.ET.__name__ == "defusedxml.ElementTree"
 
 
 def test_compare_invoice_to_official_xml_flags_decisive_mismatches():

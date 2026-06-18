@@ -25,6 +25,12 @@ import requests
 UPSTASH_REDIS_REST_URL = os.getenv("UPSTASH_REDIS_REST_URL", "").strip().rstrip("/")
 UPSTASH_REDIS_REST_TOKEN = os.getenv("UPSTASH_REDIS_REST_TOKEN", "").strip()
 UPSTASH_TIMEOUT_SECONDS = float(os.getenv("UPSTASH_TIMEOUT_SECONDS", "1.5"))
+RATE_LIMIT_FAIL_CLOSED = os.getenv("RATE_LIMIT_FAIL_CLOSED", "false").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
 
 RATE_LIMIT_WINDOW_SECONDS = 60
 
@@ -36,7 +42,7 @@ _memory_lock = threading.Lock()
 class RateLimitDecision:
     allowed: bool
     retry_after_seconds: int
-    backend: str  # "upstash" | "memory_best_effort"
+    backend: str  # "upstash" | "memory_best_effort" | "upstash_unavailable"
     identity: str = ""
 
 
@@ -135,6 +141,8 @@ def check_sync(
                     return RateLimitDecision(False, RATE_LIMIT_WINDOW_SECONDS, "upstash", identity)
                 continue
             except Exception:
+                if RATE_LIMIT_FAIL_CLOSED:
+                    return RateLimitDecision(False, RATE_LIMIT_WINDOW_SECONDS, "upstash_unavailable", identity)
                 used_memory_fallback = True
         else:
             used_memory_fallback = True

@@ -67,6 +67,11 @@ MGH_OFFICIAL_XML_DIFFERENT_IBAN = b"""<?xml version="1.0" encoding="UTF-8"?>
 </Invoice>
 """
 
+MGH_OFFICIAL_XML_MATCHING_IBAN = MGH_OFFICIAL_XML_DIFFERENT_IBAN.replace(
+    b"RO49AAAA1B31007593840000",
+    b"RO42INGB0000999912242622",
+)
+
 
 def test_scan_invoice_accepts_pdf_upload(monkeypatch):
     async def fake_extract_text_for_scan(filename, file_bytes, extract_fn):
@@ -147,8 +152,54 @@ def test_scan_invoice_pdf_merges_embedded_text_when_ocr_misses_cui(monkeypatch):
     assert payload["evidence_bundle"]["identity"]["status"] == "coherent"
     assert payload["payment_destination"]["matched"] is False
     assert payload["beneficiary_name_check"]["recommended"] is True
+    assert payload["verdict_gate"]["label"] == "SUSPECT"
+    assert "value_request_needs_verification" in payload["verdict_gate"]["reason_codes"]
+
+
+def test_scan_invoice_official_xml_match_confirms_payment_destination_t2(monkeypatch):
+    from services.anaf_cui import CuiResult
+
+    async def fake_extract_text_for_scan(filename, file_bytes, extract_fn):
+        return MGH_PDF_TEXT, None
+
+    async def fake_check_cui(cui: str):
+        return CuiResult(
+            exists=True,
+            checked=True,
+            denumire="MARKETING GROWTH HUB S.R.L.",
+            activ=True,
+            data_inactivare=None,
+            platitor_tva=False,
+            enrolled_efactura=True,
+            raw=None,
+        )
+
+    monkeypatch.setattr(app_main, "extract_text_for_scan", fake_extract_text_for_scan)
+    monkeypatch.setattr("services.invoice_orchestrator.check_cui", fake_check_cui)
+    client = TestClient(app_main.app)
+
+    response = client.post(
+        "/v1/scan/invoice",
+        files={
+            "pdf_file": ("mgh.pdf", b"%PDF-1.4\n%%EOF", "application/pdf"),
+            "official_xml_file": ("efactura.xml", MGH_OFFICIAL_XML_MATCHING_IBAN, "application/xml"),
+        },
+        data={"source_channel": "android_native"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["official_document_check"]["status"] == "match"
+    assert payload["payment_destination"]["matched"] is True
+    assert payload["payment_destination"]["can_contribute_to_safe"] is True
+    assert payload["payment_destination"]["trust_tier"] == "T2_OFFICIAL_DOCUMENT_CHAIN"
+    assert payload["payment_destination"]["source_kind"] == "official_efactura_xml"
+    assert payload["payment_destination"]["display"] == "IBAN confirmat prin document oficial"
+    evidence_payment = payload["evidence_bundle"]["providers"]["payment_destination"]
+    assert evidence_payment["status"] == "clean"
+    assert evidence_payment["trust_tier"] == "T2_OFFICIAL_DOCUMENT_CHAIN"
+    assert evidence_payment["source_kind"] == "official_efactura_xml"
     assert payload["verdict_gate"]["label"] == "SAFE"
-    assert payload["verdict_gate"]["reason_codes"] == ["positive_provenance_clean"]
 
 
 def test_scan_invoice_flags_official_xml_mismatch(monkeypatch):

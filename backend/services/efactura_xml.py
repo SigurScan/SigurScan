@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import re
-import xml.etree.ElementTree as ET
 from typing import Any, Iterable, Optional
+
+import defusedxml.ElementTree as ET
 
 from services.invoice_parser import IBAN_PATTERN, InvoiceFields, _normalize_cui, _parse_ro_amount
 

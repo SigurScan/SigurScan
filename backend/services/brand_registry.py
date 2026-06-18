@@ -423,6 +423,23 @@ class BrandMatchResult:
     impersonation_risk: bool
 
 
+def _norm_text(text: str) -> str:
+    return (text or "").lower().translate(str.maketrans("ăâîșşțţ", "aaisstt"))
+
+
+def _looks_like_anaf_reference_not_issuer(text: str) -> bool:
+    normalized = _norm_text(" ".join((text or "").split("\n")[:4]))
+    if re.match(r"\s*(anaf|agentia\s+nationala|ministerul\s+finantelor|fisc)\b", normalized):
+        return False
+    return bool(
+        re.search(
+            r"\b(e-?factura|roefactura|spv|acceptat[aa]\s+de\s+anaf|inregistrare\s+anaf|"
+            r"sistemul\s+e-?factura)\b",
+            normalized,
+        )
+    )
+
+
 def detect_claimed_brand(emitent: str | None, text: str, links: List[str]) -> str | None:
     if emitent:
         for brand_key, entry in BRAND_REGISTRY.items():
@@ -438,6 +455,8 @@ def detect_claimed_brand(emitent: str | None, text: str, links: List[str]) -> st
     header_lines = text.split("\n")[:3]
     header = " ".join(header_lines)
     for brand_key, entry in BRAND_REGISTRY.items():
+        if brand_key == "anaf" and _looks_like_anaf_reference_not_issuer(text):
+            continue
         for alias in entry.aliases:
             if re.search(rf"\b{re.escape(alias)}\b", header, re.IGNORECASE):
                 return brand_key
@@ -487,16 +506,16 @@ def match_brand(
             claimed_brand=claimed_brand, domain_matches=None, iban_matches=None,
             cui_matches=None, impersonation_risk=False,
         )
-    domain_matches_raw = _any_link_matches(links, entry.domains)
-    domain_matches = domain_matches_raw if domain_matches_raw is not None else True
-    cui_matches: bool | None = True
+    domain_matches = _any_link_matches(links, entry.domains)
+    cui_matches: bool | None = None
     if entry.cuis:
         cui_normalized = _normalize_cui(cui) if cui else ""
         normalized_entry_cuis = [_normalize_cui(c) for c in entry.cuis]
-        cui_matches = bool(cui_normalized) and cui_normalized in normalized_entry_cuis
+        cui_matches = (cui_normalized in normalized_entry_cuis) if cui_normalized else None
     iban_matches: bool | None = None
     if entry.trezorerie_only:
-        iban_matches = validated_iban.is_trezorerie if validated_iban else False
+        if validated_iban and validated_iban.valid_structure:
+            iban_matches = validated_iban.is_trezorerie
     elif entry.official_ibans and iban_raw:
         iban_normalized = iban_raw.strip().upper().replace(" ", "")
         iban_matches = iban_normalized in [i.strip().upper().replace(" ", "") for i in entry.official_ibans]
