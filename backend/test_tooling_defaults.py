@@ -116,7 +116,9 @@ def test_cloud_run_deploy_enables_play_integrity_monitor_rollout():
 
     assert "PLAY_INTEGRITY_MODE=monitor" in script
     assert "PLAY_INTEGRITY_MODE=enforce" not in script
-    assert "PLAY_INTEGRITY_CREDENTIALS_JSON=play-integrity-credentials-json:latest" in script
+    assert "PLAY_INTEGRITY_CREDENTIALS_JSON_SECRET=" in script
+    assert "PLAY_INTEGRITY_CREDENTIALS_JSON=$PLAY_INTEGRITY_CREDENTIALS_JSON_SECRET" in script
+    assert "PLAY_INTEGRITY_CREDENTIALS_JSON=play-integrity-credentials-json:latest" not in script
     assert "UPSTASH_REDIS_REST_URL=upstash-redis-rest-url:latest" in script
     assert "UPSTASH_REDIS_REST_TOKEN=upstash-redis-rest-token:latest" in script
 
