@@ -204,6 +204,22 @@ def _has_positive_provenance(identity: Dict[str, Any], provenance: Dict[str, Any
     return False
 
 
+def _has_positive_provenance_contradiction(
+    identity: Dict[str, Any],
+    provenance: Dict[str, Any],
+    semantic: Dict[str, Any],
+) -> bool:
+    if _bool(identity.get("brand_token_mismatch")):
+        return True
+    if _bool(identity.get("host_unreachable")):
+        return True
+    provenance_status = _norm(provenance.get("provenance"))
+    semantic_high = _semantic_risk(semantic) == "high" or _bool(semantic.get("claim_matches_known_scam_family"))
+    if provenance_status in {"mismatch", "domain_mismatch", "sender_mismatch", "identity_mismatch"}:
+        return semantic_high
+    return False
+
+
 def _has_trusted_payment_destination(providers: Dict[str, Any]) -> bool:
     payment = providers.get("payment_destination")
     if not isinstance(payment, dict):
@@ -354,6 +370,7 @@ def verdict(bundle: Dict[str, Any]) -> Dict[str, Any]:
     value_sensitive = sensitive in MONEY_OR_VALUE_REQUESTS
     wrong_channel = channel in WRONG_CHANNELS
     has_provenance = _has_positive_provenance(identity, provenance)
+    provenance_contradicted = _has_positive_provenance_contradiction(identity, provenance, semantic)
     campaign_high = _campaign_match_high_enough(campaign)
     try:
         community_reports = int(community.get("reports") or 0)
@@ -444,6 +461,20 @@ def verdict(bundle: Dict[str, Any]) -> Dict[str, Any]:
     if semantic_risk == "high" and (hard_sensitive or value_sensitive or identity_status in BAD_IDENTITY):
         return _result("DANGEROUS", ["semantic_high_risk_match"], confidence=86)
 
+    # ─── Rule 8a: Semantic high + known scam family, even without sensitive ──
+    # Atlas a match-at o familie scam cunoscută (IMP-*) cu confidence high.
+    # Chiar dacă nu cerere sensibilă explicită, scenariul e periculos.
+    matched_family = _norm(semantic.get("matched_family"))
+    if (
+        semantic_risk == "high"
+        and _bool(semantic.get("claim_matches_known_scam_family"))
+        and matched_family
+        and "false_positive" not in matched_family
+        and "marketing" not in matched_family
+        and not has_provenance
+    ):
+        return _result("SUSPECT", ["semantic_high_family_match"], confidence=72)
+
     # ─── Rule 6: Weighted provider warning → SUSPECT, not DANGEROUS ────────
     if provider_verdict in PROVIDER_SUSPICIOUS:
         return _result("SUSPECT", ["provider_suspicious"], confidence=70)
@@ -466,6 +497,10 @@ def verdict(bundle: Dict[str, Any]) -> Dict[str, Any]:
         )
     ):
         return _result("SUSPECT", ["value_request_needs_verification"], confidence=70)
+
+    # ─── Rule 8d: Positive provenance cannot override structural contradictions ──
+    if has_provenance and provider_verdict in PROVIDER_CLEAN and provenance_contradicted:
+        return _result("SUSPECT", ["positive_provenance_contradicted"], confidence=78)
 
     # ─── Rule 9: SAFE via positive provenance ──────────────────────────────
     # SAFE requires BTR match + zero sensitive + provider clean + URL final
