@@ -3271,12 +3271,12 @@ def _brand_token_lookalike_in_resolved_urls(resolved_urls: List[Dict[str, Any]])
             base = (extracted.domain or "").strip().lower()
         except Exception:
             base = candidate.split(".")[0] if "." in candidate else candidate
-        if not base or len(base) < 3:
+        if not base or len(base) < 2:
             continue
         tokens = set()
         for sep in ("-", "_", "."):
             if sep in base:
-                tokens.update(t for t in base.split(sep) if t and len(t) >= 3)
+                tokens.update(t for t in base.split(sep) if t and len(t) >= 2)
         tokens.add(base)
         # Verifică fiecare token contra TRUSTED_BASE_NAMES
         for token in tokens:

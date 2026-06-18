@@ -6,9 +6,9 @@ from typing import Any, Dict, List
 INTERNAL_LABELS = {"DANGEROUS", "SUSPECT", "UNVERIFIED", "SAFE"}
 USER_LABELS = {"DANGEROUS", "SUSPECT", "UNVERIFIED", "SAFE"}
 
-HARD_SENSITIVE_REQUESTS = {"card", "otp", "password", "pin", "crypto", "remote", "id_document"}
+HARD_SENSITIVE_REQUESTS = {"card", "cvv", "otp", "password", "pin", "banking_pin", "cnp", "iban", "crypto", "remote", "apk", "id_document"}
 MONEY_OR_VALUE_REQUESTS = {"transfer"}
-WRONG_CHANNELS = {"reply", "whatsapp", "unofficial_site", "phone", "sms"}
+WRONG_CHANNELS = {"reply", "whatsapp", "unofficial_site", "phone", "sms", "telegram", "messenger", "social_dm"}
 BAD_IDENTITY = {"lookalike", "unrelated"}
 TRUSTED_IDENTITY = {"official", "delegated", "coherent", "official_match"}
 PROVIDER_MALICIOUS = {"malicious", "phishing", "malware", "dangerous", "blacklisted"}
