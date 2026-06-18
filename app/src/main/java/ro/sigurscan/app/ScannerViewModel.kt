@@ -458,7 +458,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
         private const val TMP_UPLOAD_PREFIX = "temp_upload_"
         private const val WEB_RISK_NO_THREAT_CACHE_MS = 10L * 60L * 1000L
         private const val WEB_RISK_THREAT_FALLBACK_CACHE_MS = 5L * 60L * 1000L
-        private const val RESULT_CACHE_PREF_KEY = "scan_result_cache_v2"
+        private const val RESULT_CACHE_PREF_KEY = "scan_result_cache_v3"
         private const val MAX_RESULT_CACHE_ITEMS = 50
         private const val URLSCAN_PERSONA_COUNTRY = "ro"
         private const val URLSCAN_MOBILE_ANDROID_AGENT =

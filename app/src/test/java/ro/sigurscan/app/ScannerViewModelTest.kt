@@ -499,6 +499,10 @@ class ScannerViewModelTest {
         val viewModelSource = File("src/main/java/ro/sigurscan/app/ScannerViewModel.kt").readText()
         assertTrue(
             "Result cache storage key must be versioned so backend verdict contract changes can invalidate stale local verdicts.",
+            viewModelSource.contains("scan_result_cache_v3")
+        )
+        assertFalse(
+            "Old result cache v2 must not be read after the public-navigation verdict contract changed.",
             viewModelSource.contains("scan_result_cache_v2")
         )
         assertFalse(
