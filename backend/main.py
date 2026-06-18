@@ -721,10 +721,14 @@ def _normalise_obfuscated_text(value: str) -> str:
         flags=re.IGNORECASE,
     )
     normalized = _OBFUSCATED_DOT_RE.sub(".", normalized)
-    # Keep phishing-style "brand . ro" detectable, but do not join normal
-    # sentence boundaries such as "nu pot vorbi. Am nevoie" into fake domains.
+    # Keep phishing-style "brand . ro" detectable, but do not join normal sentence
+    # boundaries ("...pierzi acces. NU amana", "Suna acum. nu astepta") into fake
+    # domains. A deliberately obfuscated domain carries whitespace BEFORE the dot
+    # ("brand . ro"); a sentence period does not ("acces."). Requiring \s+ before
+    # the dot is the discriminator — without it, common Romanian words that are
+    # also ccTLDs (nu/da/ro) get fabricated into .nu/.da/.ro domains.
     normalized = re.sub(
-        r"(?<=[A-Za-z0-9-])\s*\.\s*(?=(?:[a-z]{2,24}|[A-Z]{2,24})(?:\b|/))",
+        r"(?<=[A-Za-z0-9-])\s+\.\s*(?=(?:[a-z]{2,24}|[A-Z]{2,24})(?:\b|/))",
         ".",
         normalized,
     )
