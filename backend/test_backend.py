@@ -1765,6 +1765,45 @@ def test_provider_gate_marks_clean_established_qr_public_navigation_as_low_risk(
     ]
 
 
+def test_provider_gate_marks_native_deeplink_without_web_preview_as_suspect():
+    raw_text = (
+        "Meniu si comanda rapida: muciro://1484962952940779. "
+        "Daca nu se deschide, contacteaza-ne la *2020."
+    )
+    analysis = {
+        "claimed_brand": "Nespecificat",
+        "risk_level": "low",
+        "risk_score": 10,
+        "detected_family": "Link aplicatie",
+        "evidence": {
+            "source_channel": "android_native",
+            "semantic_review": {
+                "status": "done",
+                "risk_class": "unknown",
+                "claim_matches_known_scam_family": False,
+                "claim_matches_legit_template": False,
+                "completeness": True,
+            },
+        },
+    }
+
+    result = _apply_provider_gate_verdict(analysis, [], raw_text=raw_text)
+
+    gate = result["evidence"]["verdict_gate"]
+    assert gate["label"] == "SUSPECT"
+    assert gate["reason_codes"] == ["non_http_deeplink_unverified"]
+    deeplink = result["evidence"]["decision_bundle"]["context"]["non_http_deeplink"]
+    assert deeplink == {
+        "present": True,
+        "count": 1,
+        "schemes": ["muciro"],
+        "preview_supported": False,
+    }
+    assert result["reasons"] == [
+        "Linkul deschide o aplicație sau o destinație care nu poate fi previzualizată în browser; verifică în aplicația oficială înainte să continui."
+    ]
+
+
 def test_rdap_domain_age_uses_valid_url_without_literal_braces(monkeypatch):
     from services import redirect_resolver
 
@@ -1943,6 +1982,7 @@ def test_safety_education_scope_does_not_turn_warnings_into_sensitive_requests()
         "Nu permitem suport prin control la distanță pentru facturi. Deschide tichet în portal.",
         "Nu depune bani la crypto ATM pentru a-ți proteja contul. Banca nu cere așa ceva.",
         "Nu plăti taxe de retragere ca să primești profitul dintr-o platformă crypto.",
+        "Operator real antifraudă: nu transfera bani în așa-zise conturi sigure. Închide și sună banca pe numărul oficial.",
         "Factura nu conține schimbare de IBAN. Dacă primești un cont nou, confirmă telefonic pe numărul deja cunoscut.",
         "Nu folosi IBAN-uri din email până nu confirmi cu furnizorul pe canalul deja cunoscut.",
         "Nu răspunde cu codul de verificare pentru petiții sau concursuri.",
@@ -9423,6 +9463,11 @@ def test_url_extraction_filters_malformed_domain_tokens():
     print("  - URL extraction noise filter: PASS\n")
 
 
+def test_url_extraction_ignores_redacted_bracket_tokens_without_crashing():
+    raw = "Contact: http://[EMAIL_REDACTED]/verificare sau continua pe site-ul oficial."
+    assert extract_urls(raw) == []
+
+
 def test_url_extraction_supports_unknown_tld_links():
     print("Testing extraction for scheme-based unknown TLD links...")
     raw = "Verifica aici: https://security-check.alert/login?session=ok"
@@ -9442,6 +9487,29 @@ def test_official_brand_link_paths_do_not_raise_false_positive():
     result = engine.analyze(message, urls)
     assert result["risk_level"] == "low"
     assert not any("Pattern de risc pe cale URL" in reason for reason in result["reasons"])
+
+
+def test_official_brand_domain_check_resolves_alias_claims():
+    engine = ScamAtlasEngine()
+
+    assert engine._is_brand_allowed_domain(
+        "BT",
+        "bancatransilvania.ro",
+        hostname="www.bancatransilvania.ro",
+        url="https://www.bancatransilvania.ro/siguranta-online",
+    )
+    assert engine._is_brand_allowed_domain(
+        "E.ON",
+        "eon.ro",
+        hostname="www.eon.ro",
+        url="https://www.eon.ro/",
+    )
+    assert engine._is_brand_allowed_domain(
+        "PPC Energy",
+        "ppcenergy.ro",
+        hostname="myppc.ppcenergy.ro",
+        url="https://myppc.ppcenergy.ro/",
+    )
 
 
 def test_uber_marketing_tracker_link_does_not_raise_false_positive():

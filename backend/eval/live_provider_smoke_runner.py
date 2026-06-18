@@ -29,6 +29,14 @@ DEFAULT_MOBILE_USER_AGENT = (
     "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/125.0.0.0 Mobile Safari/537.36"
 )
+LABEL_ALIASES = {
+    "SIGUR": "SAFE",
+    "PERICULOS": "DANGEROUS",
+    "PERICULOS!": "DANGEROUS",
+    "NEVERIFICAT": "UNVERIFIED",
+    "NEVERIFICAT!": "UNVERIFIED",
+    "SUSPECT": "SUSPECT",
+}
 
 
 @dataclass(frozen=True)
@@ -40,6 +48,17 @@ class LiveSmokeCase:
     source_refs: List[Dict[str, Any]] | None = None
     case_kind: str = "live_provider_smoke"
     max_seconds: int = 120
+
+
+def _normalize_label(value: Any) -> str:
+    normalized = str(value or "").strip().upper()
+    return LABEL_ALIASES.get(normalized, normalized)
+
+
+def _label_matches_expected(actual_label: Any, expected_labels: List[str]) -> bool:
+    actual = _normalize_label(actual_label)
+    expected = {_normalize_label(label) for label in expected_labels}
+    return actual in expected
 
 
 LIVE_SMOKE_CASES = [
@@ -281,7 +300,7 @@ def _run_case(base_url: str, case: LiveSmokeCase, poll_interval: float, timeout:
     evidence = result.get("evidence") if isinstance(result.get("evidence"), dict) else {}
     provider_summary = evidence.get("external_intel_summary") if isinstance(evidence.get("external_intel_summary"), dict) else {}
     provider_gate = evidence.get("provider_gate") if isinstance(evidence.get("provider_gate"), dict) else {}
-    passed = label in set(case.expected_labels)
+    passed = _label_matches_expected(label, case.expected_labels)
     return {
         "id": case.case_id,
         "title": case.title,

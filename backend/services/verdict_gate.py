@@ -443,6 +443,8 @@ def verdict(bundle: Dict[str, Any]) -> Dict[str, Any]:
     provenance = _section(bundle, "provenance")
     campaign = _section(bundle, "campaign_match")
     community = _section(bundle, "community")
+    context = _section(bundle, "context")
+    non_http_deeplink = _section(context, "non_http_deeplink")
 
     provider_verdict = _providers_verdict(providers)
     identity_status = _norm(identity.get("status") or "unknown")
@@ -466,6 +468,7 @@ def verdict(bundle: Dict[str, Any]) -> Dict[str, Any]:
     violated_never_asks = _has_violated_never_asks(identity)
     violated_never_does = _has_violated_never_does(identity)
     provider_is_error = provider_verdict in PROVIDER_ERROR
+    non_http_deeplink_present = _bool(non_http_deeplink.get("present"))
 
     # ─── Rule 1: Hard external evidence wins ────────────────────────────────
     if provider_verdict in PROVIDER_MALICIOUS:
@@ -530,7 +533,7 @@ def verdict(bundle: Dict[str, Any]) -> Dict[str, Any]:
         or provider_verdict in PROVIDER_PENDING
         or semantic_status != "done"
         or not _required_completeness(bundle)
-    ):
+    ) and not non_http_deeplink_present:
         return _result("UNVERIFIED", ["insufficient_evidence"], confidence=0)
 
     # ─── Rule 4b: Structured social-engineering intent ─────────────────────
@@ -543,6 +546,10 @@ def verdict(bundle: Dict[str, Any]) -> Dict[str, Any]:
 
     if _is_social_engineering_build_up(social_engineering) and not has_provenance:
         return _result("SUSPECT", ["social_engineering_build_up"], confidence=72)
+
+    # ─── Rule 4c: Native/app deeplink cannot be web-previewed ──────────────
+    if non_http_deeplink_present and not has_provenance:
+        return _result("SUSPECT", ["non_http_deeplink_unverified"], confidence=66, is_final=True)
 
     # ─── Rule 5: Provider error blocks SAFE but allows SUSPECT ─────────────
     # Moved after all DANGEROUS checks but before SAFE.

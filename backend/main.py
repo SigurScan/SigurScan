@@ -595,6 +595,10 @@ URL_REGEX = re.compile(
     r'[a-zA-Z0-9-._~:/?#\[\]@!$&\'()*+,;=%]*',
     re.IGNORECASE
 )
+NON_HTTP_DEEPLINK_REGEX = re.compile(
+    r"\b([a-zA-Z][a-zA-Z0-9+.-]{1,31})://[^\s<>()\"']+",
+    re.IGNORECASE,
+)
 _PDF_URI_LITERAL_RE = re.compile(rb"/URI\s*\(((?:\\.|[^\\)]){0,8192})\)", re.IGNORECASE | re.DOTALL)
 _PDF_URI_HEX_RE = re.compile(rb"/URI\s*<([0-9A-Fa-f\s]{6,16384})>", re.IGNORECASE)
 _AUTH_RESULT_RE = re.compile(r"\b(spf|dkim|dmarc)\s*=\s*([a-z]+)", re.IGNORECASE)
@@ -1301,7 +1305,10 @@ def _extract_email_auth_context(msg: Message | None, is_forwarded_guess: bool = 
 
 
 def _is_allowed_origin(url: str) -> bool:
-    parsed = urllib.parse.urlparse(url)
+    try:
+        parsed = urllib.parse.urlparse(url)
+    except ValueError:
+        return False
     scheme = (parsed.scheme or "").lower()
     if scheme not in {"http", "https"}:
         return False
@@ -1325,7 +1332,10 @@ def _canonicalize_url(raw_url: str) -> Optional[str]:
     if not re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*://", cleaned):
         cleaned = f"https://{cleaned}"
 
-    parsed = urllib.parse.urlparse(cleaned)
+    try:
+        parsed = urllib.parse.urlparse(cleaned)
+    except ValueError:
+        return None
     if not _is_allowed_origin(cleaned):
         return None
 
@@ -1381,6 +1391,27 @@ def extract_urls(text: str) -> List[str]:
         if len(urls) >= MAX_URLS_PER_SCAN:
             break
     return urls
+
+
+def _non_http_deeplink_context(text: str) -> Dict[str, Any]:
+    normalized_text = _normalise_obfuscated_text(text or "")
+    schemes: List[str] = []
+    seen = set()
+    for match in NON_HTTP_DEEPLINK_REGEX.finditer(normalized_text):
+        scheme = str(match.group(1) or "").strip().lower()
+        if scheme in {"http", "https"} or not scheme:
+            continue
+        if scheme not in seen:
+            seen.add(scheme)
+            schemes.append(scheme)
+        if len(schemes) >= MAX_URLS_PER_SCAN:
+            break
+    return {
+        "present": bool(schemes),
+        "count": len(schemes),
+        "schemes": schemes,
+        "preview_supported": False,
+    }
 
 
 def _decode_pdf_string_bytes(value: bytes) -> str:
@@ -2837,6 +2868,7 @@ def _looks_like_official_safety_education(raw_text: str) -> bool:
     sensitive_terms = (
         r"(?:cnp|pin|cvv|cvc|otp|cod(?:ul|uri?)?(?:\s+sms)?|parol[ăa]|date\s+de\s+card|date(?:le)?\s+bancare|"
         r"datele\s+cardului|num[aă]r(?:ul)?\s+(?:de\s+)?card|iban|cont\s+(?:nou|sigur|temporar|seif)|"
+        r"conturi\s+(?:noi|sigure|temporare|seif)|"
         r"transfer(?:[ăa]|a)?\s+bani|transfer\s+preventiv|bani|crypto\s+atm|usdt|tax(?:[ăa]|e)\s+de\s+retragere|profit\s+garantat|"
         r"obliga[țt]ii?\s+de\s+plat[ăa]|schimbare\s+de\s+iban|"
         r"copie\s+(?:ci|act)|ci\s+fa[țt][ăa][-\s]?verso|act(?:ul)?\s+(?:de\s+)?identitate|"
@@ -2862,6 +2894,7 @@ def _looks_like_official_safety_education(raw_text: str) -> bool:
         r"|nu\s+folos\w*"
         r"|nu\s+pl[ăa]t\w*"
         r"|nu\s+depun\w*"
+        r"|nu\s+transfer\w*"
         r"|nu\s+(?:(?:il|îl|le)\s+)?comunic\w*"
         r"|nu\s+(?:(?:il|îl|le)\s+)?trimite\w*"
         r"|nu\s+(?:(?:il|îl|le|i|o)\s+)?da(?:ti|ți|u)?\b"
@@ -4741,6 +4774,7 @@ def _build_decision_evidence_bundle(
     }
     resolution_status = "resolved" if first_url else ("failed" if has_urls else "not_required")
     community_data = evidence.get("community") if isinstance(evidence.get("community"), dict) else None
+    non_http_deeplink = _non_http_deeplink_context(raw_text)
     bundle = {
         "schema": "sigurscan_evidence_bundle_v2",
         "input": {
@@ -4764,6 +4798,7 @@ def _build_decision_evidence_bundle(
             "urgency": bool(re.search(r"\b(urgent|azi|acum|24\s*de\s*ore|ultima|expir[ăa])\b", str(raw_text or ""), re.IGNORECASE)),
             "passive_payment": bool(re.search(r"\b(plata abonamentului|se va efectua automat plata|factur[ăa])\b", str(raw_text or ""), re.IGNORECASE)),
             "apk_or_remote_mention": bool(re.search(r"\b(apk|anydesk|teamviewer|remote access|control la distan[țt][ăa])\b", str(raw_text or ""), re.IGNORECASE)),
+            "non_http_deeplink": non_http_deeplink,
             "cross_scan_knowledge": cross_scan,
         },
         "semantic_review": semantic_review,
@@ -4813,6 +4848,7 @@ def _apply_decision_contract_result(
         "unknown_but_clean": "provider-gate-unofficial-inconclusive",
         "unknown_but_clean_established": "provider-gate-unofficial-inconclusive",
         "value_request_needs_verification": "provider-gate-value-request-review",
+        "non_http_deeplink_unverified": "provider-gate-unofficial-inconclusive",
         "insufficient_evidence": "provider-gate-pending",
         "provider_error": "provider-gate-pending",
         "campaign_match_only": "provider-gate-campaign-match",
@@ -4849,6 +4885,10 @@ def _apply_decision_contract_result(
     if primary_reason in {"clean_public_navigation_qr", "clean_public_navigation_url"}:
         reasons = [
             "Domeniul este stabil, providerii de reputație sunt curați și nu există cereri sensibile."
+        ]
+    elif primary_reason == "non_http_deeplink_unverified":
+        reasons = [
+            "Linkul deschide o aplicație sau o destinație care nu poate fi previzualizată în browser; verifică în aplicația oficială înainte să continui."
         ]
     else:
         reasons = {
