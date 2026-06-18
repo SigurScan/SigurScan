@@ -11,6 +11,14 @@ MONEY_OR_VALUE_REQUESTS = {"transfer"}
 WRONG_CHANNELS = {"reply", "whatsapp", "unofficial_site", "phone", "sms", "telegram", "messenger", "social_dm"}
 BAD_IDENTITY = {"lookalike", "unrelated"}
 TRUSTED_IDENTITY = {"official", "delegated", "coherent", "official_match"}
+DANGEROUS_SOCIAL_ENGINEERING_INTENTS = {
+    "credential_theft",
+    "payment_redirection",
+    "remote_access",
+    "investment_fraud",
+    "recovery_scam",
+}
+BUILDUP_SOCIAL_ENGINEERING_INTENTS = DANGEROUS_SOCIAL_ENGINEERING_INTENTS | {"impersonation"}
 PROVIDER_MALICIOUS = {"malicious", "phishing", "malware", "dangerous", "blacklisted"}
 PROVIDER_SUSPICIOUS = {"suspicious"}
 PROVIDER_CLEAN = {"clean", "no_match", "safe"}
@@ -137,6 +145,53 @@ def _is_safety_education_semantic(semantic: Dict[str, Any]) -> bool:
     return matched_template == "safety_education" or "semantic:safety_education_scope" in {
         _norm(code) for code in reason_codes
     }
+
+
+def _float(value: Any, default: float = 0.0) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _str_list(value: Any) -> List[str]:
+    if not value:
+        return []
+    if isinstance(value, (str, int, float)):
+        value = [value]
+    if not isinstance(value, list):
+        return []
+    return [_norm(item) for item in value if _norm(item)]
+
+
+def _is_actionable_social_engineering(social_engineering: Dict[str, Any]) -> bool:
+    if _norm(social_engineering.get("status")) != "done":
+        return False
+    intent = _norm(social_engineering.get("intent"))
+    if intent not in DANGEROUS_SOCIAL_ENGINEERING_INTENTS:
+        return False
+    if not _bool(social_engineering.get("ask_present")):
+        return False
+    if _float(social_engineering.get("confidence")) < 0.78:
+        return False
+    ask_types = set(_str_list(social_engineering.get("ask_type")))
+    levers = set(_str_list(social_engineering.get("levers")))
+    if ask_types - {"none"}:
+        return True
+    return bool(levers & {"authority", "fear", "urgency", "secrecy", "greed"})
+
+
+def _is_social_engineering_build_up(social_engineering: Dict[str, Any]) -> bool:
+    if _norm(social_engineering.get("status")) != "done":
+        return False
+    intent = _norm(social_engineering.get("intent"))
+    if intent not in BUILDUP_SOCIAL_ENGINEERING_INTENTS:
+        return False
+    if _bool(social_engineering.get("ask_present")):
+        return False
+    if _float(social_engineering.get("confidence")) < 0.68:
+        return False
+    return bool(set(_str_list(social_engineering.get("levers"))) & {"authority", "fear", "greed", "social_proof", "liking"})
 
 
 def _domain_age_days(identity: Dict[str, Any]) -> int | None:
@@ -384,6 +439,7 @@ def verdict(bundle: Dict[str, Any]) -> Dict[str, Any]:
     identity = _section(bundle, "identity")
     request = _section(bundle, "request")
     semantic = _section(bundle, "semantic_review")
+    social_engineering = _section(bundle, "social_engineering")
     provenance = _section(bundle, "provenance")
     campaign = _section(bundle, "campaign_match")
     community = _section(bundle, "community")
@@ -476,6 +532,17 @@ def verdict(bundle: Dict[str, Any]) -> Dict[str, Any]:
         or not _required_completeness(bundle)
     ):
         return _result("UNVERIFIED", ["insufficient_evidence"], confidence=0)
+
+    # ─── Rule 4b: Structured social-engineering intent ─────────────────────
+    # AI/local SE extractors are analysts, not judges. They can only emit a
+    # structured signal; this deterministic gate decides severity. Safety
+    # education was handled above and positive provenance can still constrain
+    # non-actionable build-up.
+    if _is_actionable_social_engineering(social_engineering) and not has_provenance:
+        return _result("DANGEROUS", ["social_engineering_high_confidence_intent"], confidence=88)
+
+    if _is_social_engineering_build_up(social_engineering) and not has_provenance:
+        return _result("SUSPECT", ["social_engineering_build_up"], confidence=72)
 
     # ─── Rule 5: Provider error blocks SAFE but allows SUSPECT ─────────────
     # Moved after all DANGEROUS checks but before SAFE.
