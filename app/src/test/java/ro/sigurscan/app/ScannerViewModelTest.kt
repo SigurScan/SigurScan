@@ -471,13 +471,20 @@ class ScannerViewModelTest {
             "Preview refresh must not reuse shouldContinueOrchestratedPolling as its stop condition.",
             viewModelSource.substring(helperStart, helperEnd).contains("shouldContinueOrchestratedPolling")
         )
+        val helperFlow = viewModelSource.substring(helperStart, helperEnd)
+        val activePollIndex = helperFlow.indexOf("getOrchestratedScan(response.scanId)")
+        val statusPollIndex = helperFlow.indexOf("getOrchestratedScanStatus")
         assertTrue(
-            "Final preview refresh should prefer the read-only status endpoint after a final verdict.",
-            viewModelSource.substring(helperStart, helperEnd).contains("getOrchestratedScanStatus")
+            "Final preview refresh must poll the active scan endpoint so urlscan screenshot collection can advance after the verdict.",
+            activePollIndex >= 0
         )
         assertTrue(
-            "Final preview refresh should keep the old scan endpoint only as a compatibility fallback.",
-            viewModelSource.substring(helperStart, helperEnd).contains("getOrchestratedScan(response.scanId)")
+            "Final preview refresh should keep the read-only status endpoint only as a compatibility fallback.",
+            statusPollIndex >= 0
+        )
+        assertTrue(
+            "The active scan endpoint must be attempted before the read-only status endpoint during final preview refresh.",
+            activePollIndex < statusPollIndex
         )
 
         val apiSource = File("src/main/java/ro/sigurscan/app/SigurScanApi.kt").readText()
@@ -490,6 +497,14 @@ class ScannerViewModelTest {
     @Test
     fun resultCacheExpiryRemovesStaleRecordsInsteadOfServingOldVerdicts() {
         val viewModelSource = File("src/main/java/ro/sigurscan/app/ScannerViewModel.kt").readText()
+        assertTrue(
+            "Result cache storage key must be versioned so backend verdict contract changes can invalidate stale local verdicts.",
+            viewModelSource.contains("scan_result_cache_v2")
+        )
+        assertFalse(
+            "Old result cache v1 must not be read after the preview/verdict contract changed.",
+            viewModelSource.contains("scan_result_cache_v1")
+        )
         val cacheStart = viewModelSource.indexOf("private fun cachedAssessmentFor")
         val cacheEnd = viewModelSource.indexOf("private fun saveFinalAssessmentToResultCache", cacheStart)
         assertTrue("cachedAssessmentFor must exist.", cacheStart >= 0 && cacheEnd > cacheStart)

@@ -458,7 +458,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
         private const val TMP_UPLOAD_PREFIX = "temp_upload_"
         private const val WEB_RISK_NO_THREAT_CACHE_MS = 10L * 60L * 1000L
         private const val WEB_RISK_THREAT_FALLBACK_CACHE_MS = 5L * 60L * 1000L
-        private const val RESULT_CACHE_PREF_KEY = "scan_result_cache_v1"
+        private const val RESULT_CACHE_PREF_KEY = "scan_result_cache_v2"
         private const val MAX_RESULT_CACHE_ITEMS = 50
         private const val URLSCAN_PERSONA_COUNTRY = "ro"
         private const val URLSCAN_MOBILE_ANDROID_AGENT =
@@ -2201,18 +2201,18 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
             while (shouldRefreshFinalOrchestratedPreview(response)) {
                 kotlinx.coroutines.delay(orchestratedPollDelayMillis(response))
                 response = try {
-                    scanPollApi.getOrchestratedScanStatus(response.scanId).also {
+                    scanPollApi.getOrchestratedScan(response.scanId).also {
                         refreshFailures = 0
                     }
-                } catch (statusError: Exception) {
-                    Log.w("SigurScan", "orchestrated status refresh failed: ${statusError.javaClass.simpleName}")
+                } catch (pollError: Exception) {
+                    Log.w("SigurScan", "orchestrated preview active refresh failed: ${pollError.javaClass.simpleName}")
                     try {
-                        scanPollApi.getOrchestratedScan(response.scanId).also {
+                        scanPollApi.getOrchestratedScanStatus(response.scanId).also {
                             refreshFailures = 0
                         }
-                    } catch (pollError: Exception) {
+                    } catch (statusError: Exception) {
                         refreshFailures += 1
-                        Log.w("SigurScan", "orchestrated preview refresh failed: ${pollError.javaClass.simpleName}")
+                        Log.w("SigurScan", "orchestrated preview status refresh failed: ${statusError.javaClass.simpleName}")
                         if (refreshFailures >= 3) {
                             return@launch
                         }
