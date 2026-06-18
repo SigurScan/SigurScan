@@ -360,6 +360,7 @@ def verdict(bundle: Dict[str, Any]) -> Dict[str, Any]:
 
     provider_verdict = _providers_verdict(providers)
     identity_status = _norm(identity.get("status") or "unknown")
+    claimed_brand = _norm(identity.get("claimed_brand"))
     resolution_status = _norm(resolution.get("status") or "unknown")
     sensitive = _norm(request.get("sensitive") or "none")
     channel = _norm(request.get("channel") or "unknown")
@@ -464,6 +465,9 @@ def verdict(bundle: Dict[str, Any]) -> Dict[str, Any]:
     # ─── Rule 8a: Semantic high + known scam family, even without sensitive ──
     # Atlas a match-at o familie scam cunoscută (IMP-*) cu confidence high.
     # Chiar dacă nu cerere sensibilă explicită, scenariul e periculos.
+    # EXCEPȚIE: dacă brandul e cunoscut, nu există URL suspect și nu se cer date,
+    # e probabil o notificare legitimă (BT tranzactie, Sameday colet) pe care
+    # atlasul o match-uiește fals pe o familie scam.
     matched_family = _norm(semantic.get("matched_family"))
     if (
         semantic_risk == "high"
@@ -472,6 +476,13 @@ def verdict(bundle: Dict[str, Any]) -> Dict[str, Any]:
         and "false_positive" not in matched_family
         and "marketing" not in matched_family
         and not has_provenance
+        and not (
+            claimed_brand
+            and claimed_brand not in {"none", "unknown", "nespecificat"}
+            and sensitive == "none"
+            and resolution_status in {"not_required", "resolved"}
+            and not _bool(identity.get("brand_token_mismatch"))
+        )
     ):
         return _result("SUSPECT", ["semantic_high_family_match"], confidence=72)
 

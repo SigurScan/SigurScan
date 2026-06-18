@@ -2494,21 +2494,38 @@ def _official_destination_confirmed(resolved_urls: List[Dict[str, Any]], claimed
     for entry in resolved_urls:
         reg_domain = str(entry.get("final_registered_domain") or entry.get("registered_domain") or "").lower()
         hostname = str(entry.get("final_hostname") or entry.get("hostname") or "").lower()
-        if not hostname and (entry.get("final_url") or entry.get("url")):
-            hostname = urllib.parse.urlparse(str(entry.get("final_url") or entry.get("url") or "")).hostname or ""
-        if engine._is_context_allowed_domain(reg_domain, hostname=hostname, claimed_brand=claimed_brand):
+        final_url = str(entry.get("final_url") or entry.get("url") or "")
+        if not hostname and final_url:
+            hostname = urllib.parse.urlparse(final_url).hostname or ""
+        normalized_claim_for_destination = _normalize_claimed_brand(claimed_brand)
+        if normalized_claim_for_destination:
+            destination_allowed = engine._is_brand_allowed_domain(
+                claimed_brand,
+                reg_domain,
+                hostname=hostname,
+                url=final_url,
+            )
+        else:
+            destination_allowed = engine._is_context_allowed_domain(
+                reg_domain,
+                hostname=hostname,
+                claimed_brand=None,
+                url=final_url,
+            )
+        if destination_allowed:
             saw_allowed_destination = True
             continue
         original_hostname = str(entry.get("hostname") or "").lower()
         original_reg_domain = str(entry.get("registered_domain") or "").lower()
-        if not original_hostname and entry.get("url"):
-            original_hostname = urllib.parse.urlparse(str(entry.get("url") or "")).hostname or ""
+        original_url = str(entry.get("url") or "")
+        if not original_hostname and original_url:
+            original_hostname = urllib.parse.urlparse(original_url).hostname or ""
         original_is_brand_delegated = engine._is_context_allowed_domain(
             original_reg_domain,
             hostname=original_hostname,
             claimed_brand=claimed_brand,
+            url=original_url,
         )
-        final_url = str(entry.get("final_url") or "")
         final_hostname = str(entry.get("final_hostname") or hostname or "").lower()
         normalized_brand = _normalize_claimed_brand(claimed_brand)
         if (
@@ -3254,7 +3271,7 @@ def _brand_token_lookalike_in_resolved_urls(resolved_urls: List[Dict[str, Any]])
     if not resolved_urls:
         return None
     try:
-        from services.scam_atlas import BRAND_REGISTRY, TRUSTED_BASE_NAMES
+        from services.scam_atlas import BRAND_REGISTRY, OFFICIAL_REGISTRY_LOOKALIKE_TOKENS, TRUSTED_BASE_NAMES
     except Exception:
         return None
     for entry in resolved_urls:
@@ -3262,25 +3279,40 @@ def _brand_token_lookalike_in_resolved_urls(resolved_urls: List[Dict[str, Any]])
             continue
         hostname = str(entry.get("final_hostname") or entry.get("hostname") or "").strip().lower()
         registered_domain = str(entry.get("final_registered_domain") or entry.get("registered_domain") or "").strip().lower()
+        final_url = str(entry.get("final_url") or entry.get("url") or "").strip()
         if not hostname and not registered_domain:
             continue
         candidate = registered_domain or hostname
         # Extrage base name (fără TLD) și tokenizează pe -, _, .
         try:
-            extracted = tldextract.extract(candidate)
+            extracted = tldextract.extract(hostname or candidate)
             base = (extracted.domain or "").strip().lower()
+            subdomain = (extracted.subdomain or "").strip().lower()
         except Exception:
             base = candidate.split(".")[0] if "." in candidate else candidate
+            subdomain = ""
         if not base or len(base) < 2:
             continue
         tokens = set()
+        # Tokenize base (registered domain)
         for sep in ("-", "_", "."):
             if sep in base:
                 tokens.update(t for t in base.split(sep) if t and len(t) >= 2)
         tokens.add(base)
+        # Tokenize și subdomeniul (prinde bcr.secure-login.atacator.com)
+        if subdomain:
+            for sep in ("-", "_", "."):
+                if sep in subdomain:
+                    tokens.update(t for t in subdomain.split(sep) if t and len(t) >= 2)
+            tokens.add(subdomain)
+        compact_base = _compact_brand_match_token(base)
+        if compact_base:
+            tokens.add(compact_base)
+        tokens = {token for token in tokens if token}
         # Verifică fiecare token contra TRUSTED_BASE_NAMES
-        for token in tokens:
-            brand = TRUSTED_BASE_NAMES.get(token)
+        for token in sorted(tokens, key=len, reverse=True):
+            normalized_token = str(token or "").strip().lower()
+            brand = TRUSTED_BASE_NAMES.get(normalized_token) or OFFICIAL_REGISTRY_LOOKALIKE_TOKENS.get(normalized_token)
             if not brand:
                 continue
             official_domains = BRAND_REGISTRY.get(brand, [])
@@ -3289,6 +3321,13 @@ def _brand_token_lookalike_in_resolved_urls(resolved_urls: List[Dict[str, Any]])
                 candidate == d or candidate.endswith(f".{d}") or hostname == d or hostname.endswith(f".{d}")
                 for d in official_domains
             )
+            if not is_official:
+                is_official = engine._is_context_allowed_domain(
+                    registered_domain,
+                    hostname=hostname,
+                    claimed_brand=brand,
+                    url=final_url,
+                )
             if not is_official:
                 return brand
     return None
