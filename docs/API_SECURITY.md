@@ -128,8 +128,12 @@ backend-ul verifică timestamp-ul Google și consumă provocarea atomic cu
 nu pot produce status `valid`.
 
 Ce NU este gata încă pentru enforce public: secretul de service account trebuie
-configurat în Cloud Run/Secret Manager, build-ul Play semnat trebuie să activeze
-flagul Android, release-ul trebuie livrat prin Play ca să primească verdict
+configurat în Cloud Run/Secret Manager și mapat la deploy prin
+`PLAY_INTEGRITY_CREDENTIALS_JSON_SECRET=<secret-name>:latest`. Deploy-ul default
+rulează în `PLAY_INTEGRITY_MODE=monitor` fără să ceară acest secret opțional, ca
+să nu blocăm release-ul pe un credential încă neconfigurat.
+Build-ul Play semnat trebuie să activeze flagul Android, release-ul trebuie
+livrat prin Play ca să primească verdict
 `PLAY_RECOGNIZED`, iar pass rate-ul trebuie măsurat întâi în `monitor`.
 Rollout recomandat: `off` → `monitor` (măsoară pass rate) → `enforce`.
 În `enforce`, rutele de scan (`/v1/scan/*`, `/v1/extract/*`,
