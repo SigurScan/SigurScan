@@ -214,12 +214,12 @@ class ScannerViewModelTest {
     }
 
     @Test
-    fun finalPreviewRefreshExhaustionShowsPreviewUnavailableInsteadOfEndlessSpinner() {
+    fun backendPreviewTimeoutShowsPreviewUnavailableAfterServerTerminalState() {
         val message = orchestratedScanServerInfo(
             statusMessage = "Scanarea este finalizata.",
             preview = OrchestratedPreview(
                 status = "unavailable",
-                reason = "android_final_preview_refresh_timeout",
+                reason = "urlscan_timeout",
                 finalUrl = "https://www.smart-menu.ro/qr/vbiwmbouhu"
             ),
             isFinal = true
@@ -230,7 +230,7 @@ class ScannerViewModelTest {
     }
 
     @Test
-    fun finalPreviewRefreshPublishesUnavailableStateAfterBoundedAttempts() {
+    fun finalPreviewRefreshKeepsPendingInsteadOfPublishingLocalUnavailableTimeout() {
         val viewModelSource = File("src/main/java/ro/sigurscan/app/ScannerViewModel.kt").readText()
         val helperStart = viewModelSource.indexOf("private fun launchFinalOrchestratedPreviewRefresh")
         val helperEnd = viewModelSource.indexOf("private fun buildDegradedAssessmentFromBackendScanResponse", helperStart)
@@ -238,12 +238,13 @@ class ScannerViewModelTest {
 
         val helperFlow = viewModelSource.substring(helperStart, helperEnd)
         assertTrue(
-            "After bounded preview refresh attempts, Android must publish a non-spinning unavailable preview state.",
-            helperFlow.contains("publishFinalOrchestratedPreviewTimeout")
+            "After a final verdict, Android must keep refreshing a pending preview until the backend returns a terminal preview state.",
+            helperFlow.contains("while (shouldRefreshFinalOrchestratedPreview(response))")
         )
-        assertTrue(
-            "The timeout state must mark the preview unavailable.",
-            helperFlow.contains("android_final_preview_refresh_timeout")
+        assertFalse(
+            "Android must not invent a local preview timeout; unavailable belongs to backend terminal reasons.",
+            helperFlow.contains("publishFinalOrchestratedPreviewTimeout") ||
+                helperFlow.contains("android_final_preview_refresh_timeout")
         )
     }
 

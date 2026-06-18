@@ -185,7 +185,6 @@ internal fun urlscanScreenshotUrl(uuid: String): String = "https://urlscan.io/sc
 internal fun urlscanReportUrl(uuid: String): String = "https://urlscan.io/result/$uuid/"
 
 internal const val ORCHESTRATED_POLLING_BUDGET_MILLIS = 180_000L
-private const val ORCHESTRATED_FINAL_PREVIEW_REFRESH_ATTEMPTS = 3
 
 internal fun orchestratedPollDelayMillis(response: OrchestratedScanResponse): Long {
     response.pollAfterMs
@@ -271,7 +270,7 @@ internal fun orchestratedScanServerInfo(
     if (isFinal && preview?.status?.trim()?.lowercase(Locale.US) == "unavailable") {
         return previewDetails.ifBlank {
             when (previewReason) {
-                "urlscan_screenshot_timeout", "android_polling_timeout", "android_final_preview_refresh_timeout" ->
+                "urlscan_timeout", "urlscan_screenshot_timeout", "android_polling_timeout" ->
                     "Preview-ul securizat nu a fost gata la timp. Verdictul final rămâne afișat; rescanează pentru o captură proaspătă."
                 else ->
                     "Preview-ul securizat nu este disponibil momentan. Folosește verdictul final și verifică destinația oficială înainte de orice acțiune sensibilă."
@@ -2198,52 +2197,31 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
         if (!shouldRefreshFinalOrchestratedPreview(initialResponse)) return
         viewModelScope.launch {
             var response = initialResponse
-            repeat(ORCHESTRATED_FINAL_PREVIEW_REFRESH_ATTEMPTS) {
-                if (!shouldRefreshFinalOrchestratedPreview(response)) return@launch
+            var refreshFailures = 0
+            while (shouldRefreshFinalOrchestratedPreview(response)) {
                 kotlinx.coroutines.delay(orchestratedPollDelayMillis(response))
                 response = try {
-                    scanPollApi.getOrchestratedScanStatus(response.scanId)
+                    scanPollApi.getOrchestratedScanStatus(response.scanId).also {
+                        refreshFailures = 0
+                    }
                 } catch (statusError: Exception) {
                     Log.w("SigurScan", "orchestrated status refresh failed: ${statusError.javaClass.simpleName}")
                     try {
-                        scanPollApi.getOrchestratedScan(response.scanId)
+                        scanPollApi.getOrchestratedScan(response.scanId).also {
+                            refreshFailures = 0
+                        }
                     } catch (pollError: Exception) {
+                        refreshFailures += 1
                         Log.w("SigurScan", "orchestrated preview refresh failed: ${pollError.javaClass.simpleName}")
-                        return@launch
+                        if (refreshFailures >= 3) {
+                            return@launch
+                        }
+                        continue
                     }
                 }
                 publishOrchestratedResponse(response, rawInput, urls, existingScanId, resultCacheKey)
             }
-            if (shouldRefreshFinalOrchestratedPreview(response)) {
-                publishFinalOrchestratedPreviewTimeout(response, rawInput, urls, existingScanId)
-            }
         }
-    }
-
-    private suspend fun publishFinalOrchestratedPreviewTimeout(
-        response: OrchestratedScanResponse,
-        rawInput: String,
-        urls: List<String>,
-        existingScanId: String?
-    ) {
-        val timeoutPreview = response.preview?.copy(
-            status = "unavailable",
-            reason = "android_final_preview_refresh_timeout",
-            details = response.preview.details
-                ?: "Preview-ul securizat nu a fost gata la timp. Verdictul final rămâne afișat; rescanează pentru o captură proaspătă."
-        ) ?: OrchestratedPreview(
-            status = "unavailable",
-            reason = "android_final_preview_refresh_timeout",
-            details = "Preview-ul securizat nu a fost gata la timp. Verdictul final rămâne afișat; rescanează pentru o captură proaspătă.",
-            finalUrl = urls.firstOrNull()
-        )
-        publishOrchestratedResponse(
-            response.copy(preview = timeoutPreview),
-            rawInput,
-            urls,
-            existingScanId,
-            resultCacheKey = null
-        )
     }
 
     private fun buildDegradedAssessmentFromBackendScanResponse(
