@@ -326,6 +326,51 @@ def test_android_native_bare_clean_established_public_url_is_safe():
     assert result["reason_codes"] == ["clean_public_navigation_url"]
 
 
+def test_visible_text_link_label_clean_established_public_url_is_safe():
+    bundle = {
+        "schema": "sigurscan_evidence_bundle_v2",
+        "input": {
+            "type": "visible_text",
+            "redacted_text": "Link: https://www.smart-menu.ro/qr/vbiwmbouhu",
+        },
+        "resolution": {"status": "resolved", "completeness": True, "final_url": "https://www.smart-menu.ro/qr/vbiwmbouhu"},
+        "providers": {
+            "verdict": "clean",
+            "hits": ["google_web_risk", "phishing_database", "urlhaus", "urlscan", "infra_dns"],
+            "completeness": True,
+        },
+        "identity": {
+            "claimed_brand": None,
+            "status": "unknown",
+            "tld_suspicious": False,
+            "domain_age_days": 2193,
+            "domain_reputation": "established",
+            "completeness": True,
+        },
+        "request": {"sensitive": "none", "channel": "unofficial_site", "completeness": True},
+        "context": {
+            "urgency": False,
+            "passive_payment": False,
+            "apk_or_remote_mention": False,
+        },
+        "semantic_review": {
+            "status": "done",
+            "claim_matches_known_scam_family": False,
+            "matched_family": None,
+            "claim_matches_legit_template": False,
+            "matched_template": None,
+            "reason_codes": ["semantic:unknown"],
+            "risk_class": "unknown",
+            "completeness": True,
+        },
+    }
+
+    result = verdict(bundle)
+
+    assert result["label"] == "SAFE"
+    assert result["reason_codes"] == ["clean_public_navigation_url"]
+
+
 def test_android_native_contextual_unknown_clean_domain_stays_unverified():
     bundle = {
         "schema": "sigurscan_evidence_bundle_v2",

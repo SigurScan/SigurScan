@@ -28,7 +28,7 @@ PUBLIC_NAVIGATION_INPUT_TYPES = {
     "android_url_scan",
     "manual_url_scan",
 }
-ANDROID_BARE_URL_INPUT_TYPES = {"android_native", "text"}
+PUBLIC_URL_TEXT_INPUT_TYPES = {"android_native", "text", "visible_text", "share_text"}
 
 
 def _section(bundle: Dict[str, Any], name: str) -> Dict[str, Any]:
@@ -162,9 +162,16 @@ def _domain_is_young(identity: Dict[str, Any]) -> bool:
 
 def _looks_like_bare_public_url_text(value: Any) -> bool:
     text = str(value or "").strip()
-    if not text or any(char.isspace() for char in text):
+    if not text:
         return False
     lowered = text.lower()
+    for prefix in ("link:", "url:"):
+        if lowered.startswith(prefix):
+            text = text[len(prefix):].strip()
+            lowered = text.lower()
+            break
+    if not text or any(char.isspace() for char in text):
+        return False
     return lowered.startswith(("https://", "http://", "hxxps://", "hxxp://", "www."))
 
 
@@ -270,7 +277,7 @@ def _is_low_risk_public_navigation(
     claimed_brand = _norm(identity.get("claimed_brand"))
     is_public_navigation_input = input_type in PUBLIC_NAVIGATION_INPUT_TYPES
     is_android_bare_url_input = (
-        input_type in ANDROID_BARE_URL_INPUT_TYPES
+        input_type in PUBLIC_URL_TEXT_INPUT_TYPES
         and _looks_like_bare_public_url_text(input_section.get("redacted_text"))
     )
     if not (is_public_navigation_input or is_android_bare_url_input):
