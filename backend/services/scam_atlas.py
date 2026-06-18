@@ -794,6 +794,54 @@ _loaded_aliases = _merge_aliases(_loaded_aliases)
 BRAND_MENTION_PATTERNS = _build_brand_mention_patterns(BRAND_REGISTRY, _loaded_aliases)
 
 
+def _known_brand_names() -> List[str]:
+    return _dedupe_preserve_order(
+        list(BRAND_REGISTRY.keys())
+        + list(BRAND_DOMAIN_EXCEPTIONS.keys())
+        + list(OFFICIAL_REGISTRY_POLICIES_BY_BRAND.keys())
+        + list(OFFICIAL_REGISTRY_ALIASES_BY_BRAND.keys())
+    )
+
+
+def _canonical_brand_candidates(claimed_brand: Optional[str]) -> List[str]:
+    raw = str(claimed_brand or "").strip()
+    if not raw:
+        return []
+
+    raw_lower = raw.lower()
+    compact = _compact_token(raw)
+    candidates: List[str] = []
+
+    def add(brand_name: Optional[str]) -> None:
+        if brand_name and brand_name not in candidates:
+            candidates.append(brand_name)
+
+    for brand_name in _known_brand_names():
+        if brand_name == raw or brand_name.lower() == raw_lower:
+            add(brand_name)
+
+    for base_name, brand_name in TRUSTED_BASE_NAMES.items():
+        if compact and compact == _compact_token(base_name):
+            add(brand_name)
+
+    for brand_id, display_name in BRAND_ID_TO_DISPLAY_NAME.items():
+        if compact and compact == _compact_token(brand_id):
+            add(display_name)
+
+    for brand_name in _known_brand_names():
+        aliases = _dedupe_preserve_order(
+            _loaded_aliases.get(brand_name, [])
+            + OFFICIAL_REGISTRY_ALIASES_BY_BRAND.get(brand_name, [])
+            + [brand_name]
+        )
+        for alias in aliases:
+            if compact and compact == _compact_token(alias):
+                add(brand_name)
+                break
+
+    return candidates
+
+
 def _get_registrable_domain(extracted: "tldextract.ExtractResult") -> str:
     domain = getattr(extracted, "top_domain_under_public_suffix", "")
     if isinstance(domain, str) and domain.strip():
@@ -924,20 +972,21 @@ class ScamAtlasEngine:
         if not claimed_brand:
             return False
 
-        allowed_domains = set(BRAND_REGISTRY.get(claimed_brand, []))
-        allowed_domains.update(BRAND_DOMAIN_EXCEPTIONS.get(claimed_brand, []))
         candidates = _candidate_domain_values(reg_domain, hostname)
-        for allowed_domain in allowed_domains:
-            allowed = _normalise_host(allowed_domain)
-            if not allowed:
-                continue
-            for candidate in candidates:
-                if _host_matches_domain(candidate, allowed):
-                    return True
+        for canonical_brand in _canonical_brand_candidates(claimed_brand):
+            allowed_domains = set(BRAND_REGISTRY.get(canonical_brand, []))
+            allowed_domains.update(BRAND_DOMAIN_EXCEPTIONS.get(canonical_brand, []))
+            for allowed_domain in allowed_domains:
+                allowed = _normalise_host(allowed_domain)
+                if not allowed:
+                    continue
+                for candidate in candidates:
+                    if _host_matches_domain(candidate, allowed):
+                        return True
 
-        for entry in OFFICIAL_REGISTRY_POLICIES_BY_BRAND.get(claimed_brand, []):
-            if _official_policy_allows_url(entry, reg_domain, hostname=hostname, url=url, path=path):
-                return True
+            for entry in OFFICIAL_REGISTRY_POLICIES_BY_BRAND.get(canonical_brand, []):
+                if _official_policy_allows_url(entry, reg_domain, hostname=hostname, url=url, path=path):
+                    return True
         return False
 
     def _is_brand_delegated_deeplink(
@@ -955,8 +1004,11 @@ class ScamAtlasEngine:
         if not subdomain:
             return False
         brand_tokens = {str(claimed_brand).strip().lower().replace(" ", ""), str(claimed_brand).strip().lower()}
-        brand_tokens.update(self._claimed_brand_base_candidates(claimed_brand))
-        brand_tokens.update(alias.replace(" ", "") for alias in _loaded_aliases.get(claimed_brand, []))
+        for canonical_brand in _canonical_brand_candidates(claimed_brand):
+            brand_tokens.add(canonical_brand.strip().lower().replace(" ", ""))
+            brand_tokens.add(canonical_brand.strip().lower())
+            brand_tokens.update(self._claimed_brand_base_candidates(canonical_brand))
+            brand_tokens.update(alias.replace(" ", "") for alias in _loaded_aliases.get(canonical_brand, []))
         return subdomain.replace("-", "").replace("_", "") in {
             token.replace("-", "").replace("_", "")
             for token in brand_tokens
@@ -993,7 +1045,8 @@ class ScamAtlasEngine:
     def _claimed_brand_base_candidates(self, claimed_brand: Optional[str]) -> List[str]:
         if not claimed_brand:
             return []
-        return [base for base, brand in TRUSTED_BASE_NAMES.items() if brand == claimed_brand]
+        canonical_brands = set(_canonical_brand_candidates(claimed_brand))
+        return [base for base, brand in TRUSTED_BASE_NAMES.items() if brand in canonical_brands]
 
     def detect_claimed_brand(self, text: str) -> Optional[str]:
         """
@@ -1029,10 +1082,7 @@ class ScamAtlasEngine:
         to its official domain(s).
         Returns (has_mismatch, offending_registered_domain)
         """
-        if not claimed_brand or (
-            claimed_brand not in BRAND_REGISTRY
-            and claimed_brand not in OFFICIAL_REGISTRY_POLICIES_BY_BRAND
-        ):
+        if not claimed_brand or not _canonical_brand_candidates(claimed_brand):
             return False, None
 
         for url_info in urls:

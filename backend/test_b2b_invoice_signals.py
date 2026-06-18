@@ -1,4 +1,6 @@
 import pytest
+import signal
+import time
 
 from services.b2b_invoice_signals import evaluate_b2b_invoice_signals
 from services.cross_scan_knowledge import evaluate_cross_scan_knowledge
@@ -30,6 +32,37 @@ def test_b2b_signal_detector_finds_reply_to_mismatch_and_bec_combo():
     assert "BEC_REPLY_TO_ACCOUNT_CHANGE" in result.flags
     assert result.metadata["from_domain"] == "furnizor-real.ro"
     assert result.metadata["reply_to_domain"] == "gmail.com"
+
+
+def test_b2b_signal_detector_does_not_backtrack_on_long_non_bec_tax_text():
+    text = (
+        "From: ANAF RO <noreply@anaf-ro.test> Subject: ANAF rambursare taxe. "
+        "Stimate contribuabil, în evidența noastră apare o notificare privind rambursare taxe. "
+        "Pentru continuarea procesului este necesară validarea datelor în termen de 24 de ore. "
+        "Accesează butonul de mai jos și confirmă CNP-ul, telefonul și cardul pe care se virează suma. "
+    ) * 4
+
+    class RegexTimeout(Exception):
+        pass
+
+    def _timeout(_signum, _frame):
+        raise RegexTimeout
+
+    previous_handler = signal.signal(signal.SIGALRM, _timeout)
+    start = time.perf_counter()
+    try:
+        signal.setitimer(signal.ITIMER_REAL, 0.2)
+        result = evaluate_b2b_invoice_signals(text)
+        elapsed = time.perf_counter() - start
+    except RegexTimeout:
+        pytest.fail("B2B signal detector timed out on long non-BEC tax text")
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, previous_handler)
+
+    assert elapsed < 0.2
+    assert "BEC_EXCLUSIVE_NEW_IBAN_WITH_OLD_DETAILS_SUPPRESSION" not in result.flags
+    assert "TAX_AUTHORITY_SENSITIVE_DATA_REQUEST" in result.flags
 
 
 @pytest.mark.asyncio

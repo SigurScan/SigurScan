@@ -84,6 +84,18 @@ def test_live_smoke_runner_waits_for_preview_after_final_verdict(monkeypatch):
     assert result["timings"]["time_to_preview_screenshot_sec"] is not None
 
 
+def test_live_smoke_runner_accepts_romanian_expected_label_aliases():
+    module = _load_module(
+        BACKEND_DIR / "eval" / "live_provider_smoke_runner.py",
+        "live_provider_smoke_runner_label_aliases_test",
+    )
+
+    assert module._label_matches_expected("SAFE", ["SIGUR"])
+    assert module._label_matches_expected("DANGEROUS", ["PERICULOS"])
+    assert module._label_matches_expected("UNVERIFIED", ["NEVERIFICAT"])
+    assert not module._label_matches_expected("SAFE", ["PERICULOS"])
+
+
 def test_e2e_fixture_runner_treats_unverified_info_as_suspect():
     module = _load_module(
         BACKEND_DIR / "eval" / "e2e_fixture_runner.py",
