@@ -11,6 +11,15 @@ class TestDetectClaimedBrand:
     def test_detect_anaf_from_text(self):
         assert detect_claimed_brand("Ministerul Finantelor", "ANAF notificare", []) == "anaf"
 
+    def test_efactura_anaf_reference_is_not_issuer_brand(self):
+        text = (
+            "Buna ziua,\n"
+            "Factura nr. 1122/15.06.2026 emisa in sistemul e-Factura "
+            "a fost acceptata de ANAF cu numarul de inregistrare 123456789."
+        )
+
+        assert detect_claimed_brand(None, text, []) is None
+
     def test_detect_from_link(self):
         assert detect_claimed_brand(None, "", ["https://www.enel.ro/factura"]) == "enel"
 
@@ -75,6 +84,22 @@ class TestMatchBrand:
         result = match_brand("Digi Romania", "Digi Romania S.A.", [], "5888716", validate_iban("RO51INGB0001000000018827"), "RO51INGB0001000000018827")
         assert result.claimed_brand == "digi"
         assert result.cui_matches is True
+        assert result.iban_matches is None
+        assert result.impersonation_risk is False
+
+    def test_known_brand_missing_cui_is_unknown_not_impersonation(self):
+        result = match_brand(
+            "ENEL Energie",
+            "Factura de utilitati fara CUI extras",
+            [],
+            None,
+            validate_iban("RO33BRDE450SV12345678900"),
+            "RO33BRDE450SV12345678900",
+        )
+
+        assert result.claimed_brand == "enel"
+        assert result.domain_matches is None
+        assert result.cui_matches is None
         assert result.iban_matches is None
         assert result.impersonation_risk is False
 

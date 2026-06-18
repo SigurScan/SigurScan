@@ -121,6 +121,14 @@ def _semantic_risk(semantic: Dict[str, Any]) -> str:
     return "unknown"
 
 
+def _is_safety_education_semantic(semantic: Dict[str, Any]) -> bool:
+    matched_template = _norm(semantic.get("matched_template"))
+    reason_codes = semantic.get("reason_codes") if isinstance(semantic.get("reason_codes"), list) else []
+    return matched_template == "safety_education" or "semantic:safety_education_scope" in {
+        _norm(code) for code in reason_codes
+    }
+
+
 def _domain_age_days(identity: Dict[str, Any]) -> int | None:
     try:
         value = identity.get("domain_age_days")
@@ -273,6 +281,12 @@ def verdict(bundle: Dict[str, Any]) -> Dict[str, Any]:
     if provider_verdict in PROVIDER_MALICIOUS:
         return _result("DANGEROUS", ["provider_malicious"], confidence=95)
 
+    # ─── Rule 1b: Safety education is not an action request ─────────────────
+    if _is_safety_education_semantic(semantic) and not hard_sensitive and not value_sensitive:
+        if has_provenance and provider_verdict in PROVIDER_CLEAN:
+            return _result("SAFE", ["positive_provenance_clean", "safety_education_not_action_request"], confidence=92)
+        return _result("UNVERIFIED", ["safety_education_not_action_request"], confidence=0, is_final=True)
+
     # ─── Rule 2: BTR mismatch + sensitive request ───────────────────────────
     if identity_status in BAD_IDENTITY and (hard_sensitive or value_sensitive or tld_suspicious):
         return _result("DANGEROUS", ["identity_spoof"], confidence=90)
@@ -336,10 +350,6 @@ def verdict(bundle: Dict[str, Any]) -> Dict[str, Any]:
             return _result("UNVERIFIED", ["provider_error"], confidence=0, is_final=True)
         return _result("SUSPECT", ["provider_error"], confidence=55)
 
-    # ─── Rule 6: Weighted provider warning → SUSPECT, not DANGEROUS ────────
-    if provider_verdict in PROVIDER_SUSPICIOUS:
-        return _result("SUSPECT", ["provider_suspicious"], confidence=70)
-
     # ─── Rule 7: Campaign fingerprint match solo → max SUSPECT ────────────
     if campaign_high and not has_provenance:
         return _result("SUSPECT", ["campaign_match_only"], confidence=68)
@@ -347,6 +357,10 @@ def verdict(bundle: Dict[str, Any]) -> Dict[str, Any]:
     # ─── Rule 8: Semantic high + sensitive combo ───────────────────────────
     if semantic_risk == "high" and (hard_sensitive or value_sensitive or identity_status in BAD_IDENTITY):
         return _result("DANGEROUS", ["semantic_high_risk_match"], confidence=86)
+
+    # ─── Rule 6: Weighted provider warning → SUSPECT, not DANGEROUS ────────
+    if provider_verdict in PROVIDER_SUSPICIOUS:
+        return _result("SUSPECT", ["provider_suspicious"], confidence=70)
 
     # ─── Rule 8b: Raport comunitar singular → max SUSPECT ──────────────────
     # Doar dacă e singurul semnal (fără proveniență pozitivă). Niciodată DANGEROUS solo.
@@ -357,10 +371,6 @@ def verdict(bundle: Dict[str, Any]) -> Dict[str, Any]:
     if (
         value_sensitive
         and has_provenance
-        and (
-            _has_checked_payment_destination(providers)
-            or identity_status != "coherent"
-        )
         and not _has_trusted_payment_destination(providers)
     ):
         return _result("SUSPECT", ["value_request_needs_verification"], confidence=70)

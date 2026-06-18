@@ -298,6 +298,38 @@ def test_orchestrated_urlscan_does_not_submit_origin_only_privacy_target(monkeyp
     assert refreshed["preview"]["reason"] == "privacy_protected_url"
 
 
+def test_orchestrated_urlscan_submit_error_marks_preview_unavailable(monkeypatch):
+    job = {
+        "scan_id": "orch_urlscan_unconfigured",
+        "pipeline_stage": "analysis_ready",
+        "input_type": "invoice",
+        "source_channel": "email_invoice",
+        "primary_final_url": "https://www.papetarie.ro/",
+        "primary_url_privacy": {"preview_allowed": True},
+        "urlscan": {"status": "queued"},
+        "preview": {"status": "pending", "final_url": "https://www.papetarie.ro/"},
+        "sandbox_options": {},
+        "orchestration_metrics": {"poll_count": 0, "stage_sequence": [], "stage_durations_ms": {}},
+    }
+
+    async def fake_submit(*args, **kwargs):
+        return {
+            "status": "error",
+            "details": "urlscan.io nu este configurat pe backend.",
+            "submitted_url": "https://www.papetarie.ro/",
+        }
+
+    with monkeypatch.context() as patched:
+        patched.setattr(app_main, "_submit_orchestrated_urlscan", fake_submit)
+        patched.setattr(app_main, "_persist_orchestrated_job", lambda candidate: candidate)
+        patched.setattr(app_main, "_emit_orchestrated_telemetry", lambda *args, **kwargs: None)
+        refreshed = asyncio.run(app_main._submit_orchestrated_urlscan_preview_once(job, None))
+
+    assert refreshed["urlscan"]["status"] == "error"
+    assert refreshed["preview"]["status"] == "unavailable"
+    assert refreshed["preview"]["reason"] == "preview_unavailable"
+
+
 def test_safe_scan_url_list_sanitizes_redirect_output_before_provider_use(monkeypatch):
     token = "0123456789abcdef0123456789abcdef"
     final_url = f"https://destination.example/pay?session={token}&ref=public"
@@ -1848,6 +1880,195 @@ def test_investment_deposit_and_withdrawal_fee_are_sensitive_transfer_request():
     assert sensitive == "transfer"
 
 
+def test_safety_education_scope_does_not_turn_warnings_into_sensitive_requests():
+    from services.brand_never_asks import evaluate_brand_never_asks
+
+    safe_warnings = [
+        "Acest email este o informare: banca nu îți va cere să faci transfer preventiv.",
+        "Nu pune datele cardului în conversația asta. Verifică furnizorul în portalul oficial.",
+        "Dacă un broker cere control la distanță, oprește conversația.",
+        "Nu permitem suport prin control la distanță pentru facturi. Deschide tichet în portal.",
+        "Nu depune bani la crypto ATM pentru a-ți proteja contul. Banca nu cere așa ceva.",
+        "Nu plăti taxe de retragere ca să primești profitul dintr-o platformă crypto.",
+        "Factura nu conține schimbare de IBAN. Dacă primești un cont nou, confirmă telefonic pe numărul deja cunoscut.",
+        "Nu folosi IBAN-uri din email până nu confirmi cu furnizorul pe canalul deja cunoscut.",
+        "Nu răspunde cu codul de verificare pentru petiții sau concursuri.",
+        "Nu trimite copie CI înainte de verificarea firmei.",
+        "Confirmă schimbarea IBAN printr-un apel la numărul deja cunoscut al furnizorului.",
+        "Mesajele de tip «transferă banii în cont sigur» sunt frauduloase; nu le urma.",
+        "Exemplu de fraudă: «introdu datele cardului». Dacă vezi așa ceva, nu continua.",
+        "Niciun suport legitim nu cere carduri cadou pentru repararea calculatorului.",
+        "Avertizare: Microsoft nu cere să suni la un număr din pop-up și nu cere carduri cadou.",
+        "BCR: nu îți cerem autentificare bancară sau card prin link din email.",
+        "ING: nu te loga în Home’Bank prin link primit pe SMS/e-mail.",
+        "Nu se solicită actualizarea parolei. Ignoră orice link care cere logare.",
+        "Nu se modifică datele bancare ale furnizorului în această lună.",
+    ]
+
+    for text in safe_warnings:
+        normalized = app_main._normalise_obfuscated_text(text).lower()
+        assert app_main._looks_like_official_safety_education(normalized), text
+        sensitive = app_main._request_sensitivity_from_signals(
+            raw_text=text,
+            brand_warning={},
+            direct_sensitive_request=app_main._has_direct_sensitive_request(text),
+            sensitive_url_path=False,
+            official_destination=False,
+            resolved_urls=[],
+        )
+        assert sensitive == "none", text
+
+    ghiseul_warning = evaluate_brand_never_asks(
+        claimed_brand="Ghișeul.ro",
+        text="Ghișeul.ro nu anunță obligații de plată prin SMS/e-mail.",
+        source_channel="sms",
+    )
+    assert ghiseul_warning["violated_never_asks"] == []
+
+
+def test_sensitive_request_extraction_handles_short_real_world_phrases():
+    cases = [
+        ("Trimite codul WhatsApp primit prin SMS ca să confirmăm identitatea ta.", "otp"),
+        ("Pentru verificarea facturii, răspunde cu codul de autorizare primit prin SMS.", "otp"),
+        ("Pentru anularea transferului, comunică acum codul de autentificare operatorului nostru.", "otp"),
+        ("Introduceți datele cardului pentru continuarea plății.", "card"),
+        ("Factura este blocată. Loghează-te aici pentru descărcare: https://factura-client.test/session", "password"),
+        ("Pentru factura restantă, agentul va intra remote pe calculator. Descarcă tool-ul de aici.", "remote"),
+        ("Nu avem nevoie de multe acte, doar copie CI față-verso și selfie pentru contract.", "id_document"),
+    ]
+
+    for text, expected in cases:
+        sensitive = app_main._request_sensitivity_from_signals(
+            raw_text=text,
+            brand_warning={},
+            direct_sensitive_request=app_main._has_direct_sensitive_request(text),
+            sensitive_url_path=bool("https://" in text),
+            official_destination=False,
+            resolved_urls=[],
+        )
+        assert sensitive == expected, text
+
+
+def test_session_url_path_is_sensitive_for_login_flows():
+    assert app_main._has_sensitive_url_path(
+        [{"final_url": "https://factura-client.test/session"}]
+    )
+
+
+def test_high_risk_local_semantic_patterns_drive_request_sensitivity():
+    cases = [
+        ("Rămâneți la telefon și faceți transferul acum; nu închideți până terminăm.", "transfer"),
+        ("Nu suna banca pe numărul oficial; agentul nostru confirmă totul aici.", "password"),
+        ("IBAN nou pentru toate facturile. Nu face callback, contul vechi nu mai este valid.", "transfer"),
+    ]
+
+    for text, expected in cases:
+        sensitive = app_main._request_sensitivity_from_signals(
+            raw_text=text,
+            brand_warning={},
+            direct_sensitive_request=app_main._has_direct_sensitive_request(text),
+            sensitive_url_path=False,
+            official_destination=False,
+            resolved_urls=[],
+        )
+        assert sensitive == expected, text
+
+
+def test_safety_education_overrides_scam_family_semantic_match():
+    review = app_main._semantic_review_for_decision_bundle(
+        {
+            "detected_family_id": "RO_SCN_017_GHISEUL_PAYMENT_OBLIGATION",
+            "detected_family": "Ghișeul payment obligation phishing",
+            "evidence": {
+                "scam_family": {
+                    "id": "RO_SCN_017_GHISEUL_PAYMENT_OBLIGATION",
+                    "family": "Ghișeul payment obligation phishing",
+                },
+                "family_confidence": 0.8,
+                "family_high_risk_text_only": True,
+            },
+        },
+        raw_text="Ghișeul.ro nu anunță obligații de plată prin SMS/e-mail.",
+        official_destination=False,
+        provider_verdict="unknown",
+    )
+
+    assert review["risk_class"] != "high"
+    assert review["claim_matches_known_scam_family"] is False
+    assert review["matched_template"] == "safety_education"
+
+
+def test_safety_education_gate_does_not_escalate_identity_spoof_without_action_request():
+    from services.verdict_gate import verdict
+
+    result = verdict(
+        {
+            "resolution": {"status": "resolved", "completeness": True},
+            "providers": {"verdict": "clean", "completeness": True},
+            "identity": {
+                "status": "unrelated",
+                "tld_suspicious": True,
+                "completeness": True,
+            },
+            "request": {"sensitive": "none", "channel": "unofficial_site", "completeness": True},
+            "provenance": {},
+            "semantic_review": {
+                "status": "done",
+                "risk_class": "benign",
+                "matched_template": "safety_education",
+                "completeness": True,
+            },
+        }
+    )
+
+    assert result["label"] != "DANGEROUS"
+    assert "safety_education_not_action_request" in result["reason_codes"]
+
+
+def test_local_high_risk_semantics_cover_general_social_engineering_value_requests():
+    cases = [
+        "Contul tău e compromis. Transferă toți banii în contul sigur RO00TEST0000000000000000.",
+        "Transfer preventiv necesar: achită suma într-un cont temporar până la finalizarea verificărilor.",
+        "Cumpără carduri cadou de 500 lei și citește codurile pentru deblocarea licenței.",
+        "Achită penalizarea cumpărând voucher și răspunde cu codul pentru validare.",
+        "Nu pierde coletul: plătește în linkul acesta și nu verifica altundeva.",
+        "Plată urgentă confidențială: aprobă transferul fără tichet, directorul e în ședință.",
+        "Factura este protejată; descarcă viewer-ul .exe pentru vizualizare.",
+        "Brokerul garantează profit. Trimite depunerea inițială în contul de activare.",
+        "ANAF nu răspunde, deci factura este sigură și trebuie plătită urgent.",
+        "Tracking colet: introdu date bancare pentru status și redirecționare.",
+        "Trebuie să achiți taxa de livrare prin linkul de mai jos.",
+        "Plata se face exclusiv în IBAN nou, trimis în această factură.",
+        "Proforma trebuie achitată integral în contul nou înainte de livrare; oferta expiră azi.",
+        "Sunt la spital, trebuie cauțiune imediat. Nu suna pe nimeni, trimite banii acum.",
+        "Microsoft Security: sună acum la numărul afișat și cumpără carduri cadou pentru deblocare.",
+        "Nu există timp de pierdut: plătește pe linkul acesta în 10 minute.",
+        "ING: loghează-te în Home’Bank prin acest link pentru actualizarea datelor.",
+        "Factura este plătibilă doar după completarea cardului, CVV și OTP pe linkul extern.",
+        "Autorizează plata chiar dacă beneficiarul afișat diferă; este contul nou al departamentului financiar.",
+        "Se solicită actualizarea parolei. Accesează linkul și autentifică-te.",
+        "Se modifică datele bancare ale furnizorului începând de azi.",
+        "Nu suna banca pe numărul oficial; agentul nostru confirmă totul aici.",
+        "Rămâneți la telefon și faceți transferul acum; nu închideți până terminăm.",
+        "IBAN nou pentru toate facturile. Nu face callback, contul vechi nu mai este valid.",
+    ]
+
+    for text in cases:
+        review = app_main._local_high_risk_semantic_review(text)
+        assert review is not None, text
+        assert review["risk_class"] == "high"
+
+
+def test_scope_tricks_with_negation_are_not_treated_as_safety_education():
+    scams = [
+        "Nu plăti în IBAN-ul vechi; folosește noul cont atașat pentru a evita penalizări.",
+        "Nu cerem parola completă, doar primele 6 caractere pentru confirmare.",
+    ]
+
+    for text in scams:
+        assert not app_main._looks_like_official_safety_education(text), text
+
+
 def test_provider_gate_projection_is_pure_and_matches_apply():
     analysis = {
         "claimed_brand": "YOXO",
@@ -2331,6 +2552,168 @@ def test_provider_gate_bank_safety_education_immediate_sensitive_terms_are_not_f
     assert result["risk_level"] == "low"
     assert result["detected_family_id"] == "provider-gate-official-clean"
     assert result["evidence"]["provider_gate"]["official_safety_education"] is True
+
+
+def test_provider_gate_text_only_safety_education_is_not_sensitive_request():
+    text = (
+        "Banca ta: nu introdu datele cardului sau CVV-ul pe linkuri primite prin SMS. "
+        "Sună banca pe numărul oficial."
+    )
+    analysis = {
+        "claimed_brand": "Banca Transilvania",
+        "risk_level": "high",
+        "risk_score": 90,
+        "detected_family": "impersonation/marketplace_buyer_seller",
+        "detected_family_id": "IMP-08",
+        "reasons": ["Context bancar cu termeni sensibili."],
+        "evidence": {
+            "source_channel": "sms",
+            "has_domain_mismatch": False,
+            "external_intel_summary": {},
+        },
+    }
+
+    result = _apply_provider_gate_verdict(analysis, [], raw_text=text)
+
+    assert result["evidence"]["provider_gate"]["official_safety_education"] is True
+    assert result["evidence"]["provider_gate"]["direct_sensitive_request"] is False
+    assert "brand_warning_corpus" not in result["evidence"]["external_intel_summary"]
+    assert result["evidence"]["decision_bundle"]["request"]["sensitive"] == "none"
+    assert result["evidence"]["decision_bundle"]["identity"].get("violated_never_asks") in (None, [])
+    assert result["evidence"]["verdict_gate"]["label"] != "DANGEROUS"
+
+
+def test_provider_gate_remote_access_safety_education_is_not_sensitive_request():
+    text = "Suport tehnic: nu instala AnyDesk/TeamViewer la cererea cuiva care te sună."
+    analysis = {
+        "claimed_brand": "Nespecificat",
+        "risk_level": "high",
+        "risk_score": 90,
+        "detected_family": "remote access scam",
+        "detected_family_id": "IMP-04",
+        "reasons": ["Mențiune AnyDesk."],
+        "evidence": {
+            "source_channel": "phone",
+            "has_domain_mismatch": False,
+            "external_intel_summary": {},
+        },
+    }
+
+    result = _apply_provider_gate_verdict(analysis, [], raw_text=text)
+
+    assert result["evidence"]["provider_gate"]["official_safety_education"] is True
+    assert result["evidence"]["provider_gate"]["direct_sensitive_request"] is False
+    assert result["evidence"]["decision_bundle"]["request"]["sensitive"] == "none"
+    assert result["evidence"]["verdict_gate"]["label"] != "DANGEROUS"
+
+
+@pytest.mark.parametrize(
+    "text,expected_sensitive",
+    [
+        (
+            "Bună mamă, mi s-a stricat telefonul și acesta e numărul meu nou. "
+            "Am nevoie urgent de 1.800 lei până diseară. Îți trimit IBAN-ul acum.",
+            "transfer",
+        ),
+        (
+            "Te rog semnează petiția. Îți vine un cod pe SMS, trimite-mi-l ca să confirm semnătura.",
+            "otp",
+        ),
+        (
+            "Sunt de la Poliție. Sunteți într-un dosar de fraudă. Vă pun în legătură cu BNR, "
+            "faceți exact ce spun ei și transferați fondurile.",
+            "transfer",
+        ),
+        (
+            "ALERTĂ Microsoft: sistem infectat. Instalează aplicația de asistență la distanță. "
+            "Plata se face prin gift card.",
+            "remote",
+        ),
+        (
+            "Lucrezi de acasă: dai like/review la produse și câștigi 300-500 lei/zi. "
+            "Pentru nivel VIP trebuie să faci top-up 150 lei.",
+            "transfer",
+        ),
+    ],
+)
+def test_provider_gate_text_only_social_engineering_patterns_are_dangerous(text, expected_sensitive):
+    analysis = {
+        "claimed_brand": "Nespecificat",
+        "risk_level": "info",
+        "risk_score": 25,
+        "detected_family": "Necunoscut",
+        "detected_family_id": "unknown",
+        "reasons": [],
+        "evidence": {"source_channel": "whatsapp", "external_intel_summary": {}},
+    }
+
+    result = _apply_provider_gate_verdict(analysis, [], raw_text=text)
+
+    assert result["evidence"]["decision_bundle"]["semantic_review"]["risk_class"] == "high"
+    assert result["evidence"]["decision_bundle"]["request"]["sensitive"] == expected_sensitive
+    assert result["evidence"]["verdict_gate"]["label"] == "DANGEROUS"
+
+
+def test_disabled_runtime_url_providers_do_not_block_orchestrated_pillars(monkeypatch):
+    with monkeypatch.context() as patched:
+        patched.setattr(app_main, "PRIVACY_SAFE_MODE", True)
+        pillars = app_main._build_orchestrated_pillars(
+            {
+                "urls": ["https://fan-curier-plata.test/card"],
+                "primary_final_url": "https://fan-curier-plata.test/card",
+                "resolved_urls": [
+                    {
+                        "url": "https://fan-curier-plata.test/card",
+                        "final_url": "https://fan-curier-plata.test/card",
+                    }
+                ],
+                "analysis": {"evidence": {"external_intel_summary": {}, "semantic_review": {"status": "done"}}},
+                "urlscan": {"status": "skipped", "details": "privacy safe"},
+            }
+        )
+
+    assert pillars["google_web_risk"]["status"] == "not_required"
+    assert pillars["google_web_risk"]["required"] is False
+    assert pillars["phishing_database"]["status"] == "not_required"
+    assert pillars["phishing_database"]["required"] is False
+
+
+def test_nonconsulted_disabled_provider_summary_does_not_block_pillars(monkeypatch):
+    summary = {
+        "google_web_risk": {
+            "status": "clean",
+            "verdict": "clean",
+            "consulted": False,
+            "details": {"status": "no_match", "provider": "google_web_risk"},
+        }
+    }
+
+    with monkeypatch.context() as patched:
+        patched.setattr(app_main, "_provider_required_for_runtime", lambda source_name: False)
+        pillar = app_main._provider_pillar_from_summary(summary, "google_web_risk")
+
+    assert pillar["status"] == "not_required"
+    assert pillar["required"] is False
+
+
+def test_invoice_unverified_with_terminal_url_context_is_final():
+    job = {
+        "input_type": "invoice",
+        "urls": ["https://papetarie.ro/"],
+        "resolved_urls": [{"final_url": "https://www.papetarie.ro/"}],
+        "urlscan": {"status": "error"},
+    }
+    analysis = {
+        "evidence": {
+            "decision_bundle": {"input": {"type": "invoice"}},
+            "verdict_gate": {
+                "label": "UNVERIFIED",
+                "reason_codes": ["insufficient_evidence"],
+            },
+        },
+    }
+
+    assert app_main._orchestrated_result_is_final(job, analysis) is True
 
 
 def test_provider_gate_sensitive_url_path_on_unofficial_domain_is_high_risk():
@@ -3016,6 +3399,7 @@ def test_orchestrated_post_accepts_without_running_providers(monkeypatch):
     with monkeypatch.context() as patched:
         patched.setattr(app_main, "PRIVACY_SAFE_MODE", False)
         patched.setattr(app_main, "URLSCAN_API_KEY", "server-only-key")
+        patched.setenv("GOOGLE_WEB_RISK_API_KEY", "server-only-key")
         patched.setattr(
             app_main,
             "_safe_scan_url_list",
@@ -4226,6 +4610,41 @@ def test_orchestrated_invoice_uses_unredacted_text_for_payment_destination(monke
     assert payload["result"]["is_final"] is True
 
 
+def test_invoice_client_payment_destination_promotes_official_document_chain():
+    class Result:
+        payment_destination = {
+            "matched": False,
+            "trust_tier": "T4_STRUCTURALLY_VALID_UNKNOWN",
+            "can_contribute_to_safe": False,
+        }
+
+    invoice_gate = {
+        "bundle": {
+            "providers": {
+                "payment_destination": {
+                    "status": "clean",
+                    "verdict": "clean",
+                    "trust_tier": "T2_OFFICIAL_DOCUMENT_CHAIN",
+                    "source_kind": "official_efactura_xml",
+                    "matched": True,
+                    "cui_matches": True,
+                    "can_contribute_to_safe": True,
+                    "reasons": ["IBAN-ul, CUI-ul și totalul se potrivesc cu XML-ul e-Factura furnizat."],
+                    "iban_masked_for_client": "RO42...2622",
+                }
+            }
+        }
+    }
+
+    payload = app_main._invoice_payment_destination_for_client(Result(), invoice_gate)
+
+    assert payload["matched"] is True
+    assert payload["can_contribute_to_safe"] is True
+    assert payload["trust_tier"] == "T2_OFFICIAL_DOCUMENT_CHAIN"
+    assert payload["source_kind"] == "official_efactura_xml"
+    assert payload["display"] == "IBAN confirmat prin document oficial"
+
+
 def test_orchestrated_scan_finalizes_when_urlscan_report_exists_but_screenshot_is_not_ready(monkeypatch):
     client = TestClient(app_main.app)
     message = (
@@ -4886,6 +5305,42 @@ def test_save_urlscan_preview_cache_allows_report_only_entry(monkeypatch):
     assert cached["report_url"] == "https://urlscan.io/result/preview-no-shot-1/"
     assert cached["screenshot_url"] == ""
     assert cached["screenshot_ready"] is False
+
+
+def test_urlscan_preview_cache_eviction_is_lru(monkeypatch):
+    app_main._URLSCAN_PREVIEW_CACHE.clear()
+    saved = []
+
+    with monkeypatch.context() as patched:
+        patched.setattr(app_main, "URLSCAN_PREVIEW_CACHE_MAX_ENTRIES", 2)
+        patched.setattr(app_main.supabase_store, "save_urlscan_preview_cache", lambda entry: saved.append(dict(entry)))
+        patched.setattr(app_main.supabase_store, "load_urlscan_preview_cache", lambda url_hash: None)
+
+        for final_url in (
+            "https://example.org/one",
+            "https://example.org/two",
+        ):
+            app_main._save_urlscan_preview_cache(
+                {
+                    "final_url": final_url,
+                    "submitted_url": final_url,
+                    "report_url": f"https://urlscan.io/result/{final_url.rsplit('/', 1)[-1]}/",
+                }
+            )
+
+        assert app_main._load_urlscan_preview_cache("https://example.org/one") is not None
+
+        app_main._save_urlscan_preview_cache(
+            {
+                "final_url": "https://example.org/three",
+                "submitted_url": "https://example.org/three",
+                "report_url": "https://urlscan.io/result/three/",
+            }
+        )
+
+    assert app_main._urlscan_preview_cache_key("https://example.org/one") in app_main._URLSCAN_PREVIEW_CACHE
+    assert app_main._urlscan_preview_cache_key("https://example.org/two") not in app_main._URLSCAN_PREVIEW_CACHE
+    assert app_main._urlscan_preview_cache_key("https://example.org/three") in app_main._URLSCAN_PREVIEW_CACHE
 
 
 def test_apply_urlscan_preview_cache_hit_reports_pending_when_no_screenshot():
@@ -6991,6 +7446,33 @@ def test_privacy_policy_is_public_and_discloses_user_initiated_scans(monkeypatch
     assert "nudaclick" not in body
 
 
+def test_terms_of_service_is_public_and_disclaims_liability(monkeypatch):
+    original_require_api_key = app_main.REQUIRE_API_KEY
+    app_main.REQUIRE_API_KEY = True
+    try:
+        client = TestClient(app_main.app)
+        response = client.get("/terms")
+        alias_response = client.get("/terms-of-service")
+    finally:
+        app_main.REQUIRE_API_KEY = original_require_api_key
+
+    assert response.status_code == 200
+    assert alias_response.status_code == 200
+    assert alias_response.text == response.text
+    assert "text/html" in response.headers["content-type"]
+    body = response.text.lower()
+    assert "nu este" in body
+    assert "politie" in body
+    assert "parchet" in body
+    assert "instanta" in body
+    assert "judecata" in body
+    assert "nu luati niciodata" in body
+    assert "pe propriul risc" in body
+    assert "nu constituie o plangere oficiala" in body
+    assert "romania" in body
+    assert "api.sigurscan.com/terms" in body
+
+
 def test_build_ai_explanation_uses_fallback_in_safe_mode(monkeypatch):
     original_mode = app_main.PRIVACY_SAFE_MODE
     app_main.PRIVACY_SAFE_MODE = True
@@ -7853,6 +8335,88 @@ def test_supabase_reputation_cache_uses_single_batch_upsert(monkeypatch):
     assert "resolution=merge-duplicates" in posted[0]["headers"]["Prefer"]
 
 
+def test_supabase_vendor_iban_memory_uses_atomic_rpc(monkeypatch):
+    posted = []
+
+    class FakeResponse:
+        content = b""
+
+        @staticmethod
+        def raise_for_status():
+            return None
+
+    def fake_post(url, *, headers, json, timeout):
+        posted.append({"url": url, "headers": headers, "json": json, "timeout": timeout})
+        return FakeResponse()
+
+    monkeypatch.setattr(supabase_store, "SUPABASE_URL", "https://example.supabase.co")
+    monkeypatch.setattr(supabase_store, "SUPABASE_SERVICE_ROLE_KEY", "service-role")
+    monkeypatch.setattr(supabase_store.requests, "post", fake_post)
+
+    supabase_store.save_vendor_iban("12345678", "RO33RNCB1234567890123456")
+
+    assert len(posted) == 1
+    assert posted[0]["url"] == "https://example.supabase.co/rest/v1/rpc/remember_vendor_iban"
+    assert posted[0]["json"] == {
+        "p_cui": "12345678",
+        "p_iban": "RO33RNCB1234567890123456",
+    }
+
+
+def test_supabase_provider_budget_uses_atomic_rpc(monkeypatch):
+    posted = []
+
+    class FakeResponse:
+        content = b"true"
+
+        @staticmethod
+        def raise_for_status():
+            return None
+
+        @staticmethod
+        def json():
+            return True
+
+    def fake_post(url, *, headers, json, timeout):
+        posted.append({"url": url, "headers": headers, "json": json, "timeout": timeout})
+        return FakeResponse()
+
+    monkeypatch.setattr(supabase_store, "SUPABASE_URL", "https://example.supabase.co")
+    monkeypatch.setattr(supabase_store, "SUPABASE_SERVICE_ROLE_KEY", "service-role")
+    monkeypatch.setattr(supabase_store.requests, "post", fake_post)
+
+    allowed = supabase_store.try_consume_provider_budget("openapi_ro", "2026-06", 100)
+
+    assert allowed is True
+    assert len(posted) == 1
+    assert posted[0]["url"] == "https://example.supabase.co/rest/v1/rpc/try_consume_provider_budget"
+    assert posted[0]["json"] == {
+        "p_provider": "openapi_ro",
+        "p_month_key": "2026-06",
+        "p_monthly_limit": 100,
+    }
+
+
+def test_provider_budget_fails_closed_when_supabase_rpc_unavailable(monkeypatch):
+    from services import provider_budget
+
+    provider_budget._LOCAL_USAGE.clear()
+    monkeypatch.setenv("OPENAPI_RO_MONTHLY_BUDGET", "100")
+    monkeypatch.setattr(supabase_store, "SUPABASE_URL", "https://example.supabase.co")
+    monkeypatch.setattr(supabase_store, "SUPABASE_SERVICE_ROLE_KEY", "service-role")
+    monkeypatch.setattr(supabase_store, "try_consume_provider_budget", lambda *args, **kwargs: None)
+
+    allowed = provider_budget.try_consume_monthly_budget(
+        "openapi_ro",
+        env_name="OPENAPI_RO_MONTHLY_BUDGET",
+        default_limit=100,
+        month_key="2026-06",
+    )
+
+    assert allowed is False
+    assert provider_budget._LOCAL_USAGE == {}
+
+
 def test_phishing_database_marks_active_domain_malicious(monkeypatch):
     monkeypatch.setattr(
         url_reputation,
@@ -8003,7 +8567,7 @@ def test_extract_image_endpoint_returns_ocr_evidence_without_verdict(monkeypatch
     response = client.post(
         "/v1/extract/image",
         data={"source_channel": "android_test"},
-        files={"image_file": ("screenshot.png", b"not-a-real-image-but-valid-for-contract", "image/png")},
+        files={"image_file": ("screenshot.png", b"\x89PNG\r\n\x1a\nnot-a-real-image-but-valid-for-contract", "image/png")},
     )
 
     assert response.status_code == 200

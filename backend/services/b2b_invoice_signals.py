@@ -81,8 +81,10 @@ PAYMENT_OR_INVOICE_CONTEXT_RE = re.compile(
 )
 COMPANY_MARKER_RE = re.compile(r"\b(?:s\.?\s?r\.?\s?l|s\.?\s?a|pfa|i\.?\s?i|cui|cif|factur[ăa])\b", re.IGNORECASE)
 OSIM_TRADEMARK_RE = re.compile(
-    r"\b(?:osim|tmview|marc[ăa]|m[ăa]rci|trademark|proprietate\s+industrial[ăa])\b"
-    r".{0,120}\b(?:tax[ăa]|plat[ăa]|achita(?:re|[țt]i)?|inregistrare|înregistrare)\b",
+    r"(?=.*\b(?:osim|tmview|m[ăa]rc(?:a|[ăa]|ii|i)?|trademark|proprietate\s+industrial[ăa]|"
+    r"catalog(?:ul)?\s+interna[țt]ional|registr(?:u|ul)\s+online)\b)"
+    r"(?=.*\b(?:factur[ăa]|tax[ăa]|plat[ăa]|achita(?:re|[țt]i)?|scadent[ăa]?|neplata|"
+    r"publicare|operator(?:ul)?\s+privat|confirmare)\b)",
     re.IGNORECASE | re.DOTALL,
 )
 LEGAL_DEMAND_RE = re.compile(
@@ -96,18 +98,24 @@ DOMAIN_RENEWAL_RE = re.compile(
     re.IGNORECASE | re.DOTALL,
 )
 GRANT_CONSULTING_RE = re.compile(
-    r"\b(?:fonduri|grant|subven[țt]ie|program\s+ue|pnrr)\b"
-    r".{0,160}\b(?:tax[ăa]\s+dosar|garan[țt]ie|analiz[ăa]|avans)\b",
+    r"\b(?:fonduri|grant|subven[țt]ie|program\s+ue|pnrr|finan[țt]are)\b"
+    r".{0,220}\b(?:tax[ăa]\s+(?:de\s+)?dosar|garan[țt]ie|analiz[ăa]|avans|rezervarea\s+liniei|"
+    r"achita[țt]i\s+taxa)\b",
     re.IGNORECASE | re.DOTALL,
 )
 SAAS_LICENSE_AUDIT_RE = re.compile(
     r"\b(?:audit\s+licen[țt]e|software\s+compliance|cloud\s+subscription|microsoft\s*365|google\s+workspace|adobe)\b"
-    r".{0,160}\b(?:plat[ăa]\s+urgent[ăa]|regularizare|suspendare)\b",
+    r".{0,180}\b(?:plat[ăa]\s+urgent[ăa]|pl[ăa]ti[țt]i|tax[ăa]\s+(?:de\s+)?audit|regularizare|"
+    r"suspendare|instala[țt]i\s+aplica[țt]ia\s+de\s+suport)\b",
     re.IGNORECASE | re.DOTALL,
 )
 OVERPAYMENT_RETURN_RE = re.compile(
-    r"\b(?:supraplat[ăa]|eroare\s+plat[ăa]|returna[țt]i\s+diferen[țt]a|p[ăa]stra[țt]i\s+comisionul|purchase\s+order|\bpo[-\s]?\d*)\b"
-    r".{0,180}\b(?:returna[țt]i|diferen[țt]a|comision|iban|cont)\b",
+    r"\b(?:supraplat[ăa]|eroare\s+plat[ăa]|returna[țt]i\s+diferen[țt]a|p[ăa]stra[țt]i\s+comisionul)\b"
+    r".{0,180}\b(?:returna[țt]i|diferen[țt]a|comision|iban|cont)\b|"
+    r"\b(?:ordin\s+de\s+plat[ăa]|plat[ăa])\b.{0,100}\b(?:mai\s+mare|supraplat[ăa]|overpayment)\b"
+    r".{0,180}\b(?:vira[țt]i|returna[țt]i|diferen[țt]a|transportator|ter[țt])\b|"
+    r"\b(?:purchase\s+order|\bpo[-\s]?\d+)\b"
+    r".{0,180}\b(?:supraplat[ăa]|overpayment|returna[țt]i|refund|diferen[țt]a|comision)\b",
     re.IGNORECASE | re.DOTALL,
 )
 PROCUREMENT_FEE_RE = re.compile(
@@ -116,10 +124,74 @@ PROCUREMENT_FEE_RE = re.compile(
     re.IGNORECASE | re.DOTALL,
 )
 PAYROLL_DATA_RE = re.compile(
-    r"\b(?:stat\s+de\s+plat[ăa]|salarii|cnp|cont\s+salariu|iban\s+salariu|date\s+angaja[țt]i)\b"
-    r".{0,180}\b(?:actualizare|transmite[țt]i|confirmare|trimite[țt]i)\b|"
-    r"\b(?:actualizare|transmite[țt]i|confirmare|trimite[țt]i)\b"
-    r".{0,180}\b(?:stat\s+de\s+plat[ăa]|salarii|cnp|cont\s+salariu|iban\s+salariu|date\s+angaja[țt]i)\b",
+    r"\b(?:stat\s+de\s+plat[ăa]|salarii|cnp|cont(?:uri(?:lor)?)?\s+(?:noi\s+de\s+)?salarii|"
+    r"iban\s+salariu|date\s+angaja[țt]i|payroll\s+cutoff)\b"
+    r".{0,180}\b(?:actualizare|transmite[țt]i|confirma[țt]i|confirmare|trimite[țt]i)\b|"
+    r"\b(?:actualizare|transmite[țt]i|confirma[țt]i|confirmare|trimite[țt]i)\b"
+    r".{0,180}\b(?:stat\s+de\s+plat[ăa]|salarii|cnp|cont(?:uri(?:lor)?)?\s+(?:noi\s+de\s+)?salarii|"
+    r"iban\s+salariu|date\s+angaja[țt]i|payroll\s+cutoff)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+REGULATED_FINANCE_ADVANCE_FEE_RE = re.compile(
+    r"(?=.*\b(?:credit|linie\s+de\s+credit|capital\s+de\s+lucru|refinan[țt]are|finan[țt]are|"
+    r"factoring|leasing|investi[țt]ii|trading|dashboard(?:-ul)?\s+de\s+trading|bnr|asf|ifn|profit)\b)"
+    r"(?=.*\b(?:tax[ăa]\s+(?:de\s+)?analiz[ăa]|comision(?:ul)?\s+(?:de\s+)?(?:activare|platform[ăa]|accesare)|"
+    r"depuner(?:e|ea)\s+ini[țt]ial[ăa]|usdt|crypto|ci\s+administrator|certificat\s+onrc|dosar(?:ul)?\s+a\s+fost\s+aprobat|"
+    r"instalarea\s+aplica[țt]iei\s+de\s+suport|verificarea\s+conturilor\s+bancare|factur[ăa]\s+de\s+activare|"
+    r"profit\s+estimat\s+\d+%|cont(?:ul)?\s+de\s+procesare|pentru\s+deblocare|oferta\s+final[ăa])\b)",
+    re.IGNORECASE | re.DOTALL,
+)
+COURIER_CUSTOMS_OR_ADDRESS_FEE_RE = re.compile(
+    r"(?=.*\b(?:dhl|cargus|fan\s*courier|\bfan\b|sameday|dpd|po[șs]ta|selfawb|awb|colet|livrare|vamal[ăa]|vam[ăa])\b)"
+    r"(?=.*(?:"
+    r"\b(?:factur[ăa]\s+)?vamal[ăa]\b.{0,100}\b(?:card|achita[țt]i|plata|plat[ăa])\b|"
+    r"\b(?:valida[țt]i|actualiza[țt]i)\s+adresa\b.{0,120}\b(?:achita[țt]i|tax[ăa]|\d+[,.]\d{2}\s*ron)\b|"
+    r"\b(?:achita[țt]i|pl[ăa]te[șs]te)\b.{0,40}\b\d+[,.]\d{2}\s*ron\b|"
+    r"\btax[ăa]\s+livrare\b.{0,120}\bplata\s+online\s+este\s+obligatorie\b"
+    r"))",
+    re.IGNORECASE | re.DOTALL,
+)
+COURIER_OTP_OR_WHATSAPP_CODE_RE = re.compile(
+    r"(?=.*\b(?:fan|selfawb|awb|locker|colet|po[șs]ta|dhl|cargus|sameday|dpd)\b)"
+    r"(?=.*\b(?:cod(?:ul)?\s+whatsapp|whatsapp\s+primit|cod(?:ul)?\s+primit\s+prin\s+sms|"
+    r"introduce[țt]i\s+cod(?:ul)?|trimite[țt]i\s+cod(?:ul)?)\b)",
+    re.IGNORECASE | re.DOTALL,
+)
+COURIER_OTP_NEGATION_RE = re.compile(
+    r"\b(?:f[ăa]r[ăa]\s+cerere\s+de|nu\s+(?:cere|solicit[ăa]))\b"
+    r".{0,100}\b(?:cod(?:ul)?\s+whatsapp|whatsapp|card|cvc|cvv)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+BEC_EXCLUSIVE_NEW_IBAN_RE = re.compile(
+    r"(?=.*\b(?:cont(?:ul)?\s+(?:bancar\s+)?s-?a\s+schimbat|cont(?:ul)?\s+(?:nou|vechi)|"
+    r"iban(?:-?ul)?\s+(?:nou|vechi)|noul\s+iban)\b)"
+    r"(?=.*\b(?:folosi[țt]i\s+exclusiv|exclusiv\s+noul|ignora[țt]i\s+datele\s+vechi|"
+    r"nu\s+folosi[țt]i\s+(?:datele|contul|iban(?:-?ul)?)\s+vechi)\b)",
+    re.IGNORECASE | re.DOTALL,
+)
+BEC_THREAD_IBAN_CHANGE_RE = re.compile(
+    r"(?=.*\b(?:re:|fw:|fwd:|comanda\s+\d+|proform[ăa]|trimis[ăa]\s+anterior|thread(?:ul)?)\b)"
+    r"(?=.*\b(?:cont(?:ul)?\s+vechi|iban(?:-?ul)?\s+nou|contabilitatea\s+solicit[ăa]|"
+    r"restul\s+datelor\s+r[ăa]m[âa]n\s+neschimbate)\b)",
+    re.IGNORECASE | re.DOTALL,
+)
+TAX_AUTHORITY_PAYMENT_REQUEST_RE = re.compile(
+    r"(?=.*\b(?:anaf|ministerul\s+finan[țt]elor|popriri|facturi\s+respinse|penalizare|reactivare|"
+    r"regularizare|amend[ăa]|desc[ăa]rca[țt]i\s+notificarea|login)\b)"
+    r"(?=.*\b(?:achita[țt]i|pl[ăa]ti[țt]i|tax[ăa]\s+de\s+reactivare|regularizare|"
+    r"amend[ăa]|penalizare|poprirea|iban(?:-?ul)?\s+indicat|login|desc[ăa]rca[țt]i\s+notificarea)\b)",
+    re.IGNORECASE | re.DOTALL,
+)
+TAX_AUTHORITY_SENSITIVE_DATA_RE = re.compile(
+    r"(?=.*\b(?:anaf|spv|e[-\s]?factura|ministerul\s+finan[țt]elor|popriri)\b)"
+    r"(?=.*\b(?:cnp|date\s+card|card|cui|administrator|parol[ăa]|otp|cod\s+sms|completa[țt]i)\b)"
+    r"(?=.*\b(?:suspendat|reactivare|deblocare|validare|actualizare|verificare)\b)",
+    re.IGNORECASE | re.DOTALL,
+)
+TAX_AUTHORITY_APPROVES_UPDATED_IBAN_RE = re.compile(
+    r"(?=.*\b(?:anaf|spv|e[-\s]?factura|factura\s+electronic[ăa])\b)"
+    r"(?=.*\b(?:aprobat[ăa]?\s+de\s+anaf|validat[ăa]?|validare)\b)"
+    r"(?=.*\b(?:cont(?:ul)?\s+nou|iban(?:-?ul)?\s+actualizat|iban(?:-?ul)?\s+nou|datele\s+bancare\s+actualizate)\b)",
     re.IGNORECASE | re.DOTALL,
 )
 OFFICIAL_REGISTRY_CLAIM_RE = re.compile(
@@ -263,6 +335,62 @@ def evaluate_b2b_invoice_signals(text: str, *, claimed_vendor: Optional[str] = N
             result,
             "REMOTE_ACCESS_REQUEST",
             "Factura/mesajul cere acces la distanță; nu instala și nu permite controlul dispozitivului.",
+        )
+
+    if REGULATED_FINANCE_ADVANCE_FEE_RE.search(raw):
+        _add(
+            result,
+            "REGULATED_FINANCE_ADVANCE_FEE_OR_ID_REQUEST",
+            "Serviciu financiar/investițional cere comision, depunere, cripto sau documente înainte de verificare/autorizare.",
+        )
+
+    if COURIER_CUSTOMS_OR_ADDRESS_FEE_RE.search(raw):
+        _add(
+            result,
+            "COURIER_CUSTOMS_OR_ADDRESS_FEE_PAYMENT",
+            "Mesaj de curier/vamă cere taxă, card sau validare adresă pe canal neconfirmat.",
+        )
+
+    if COURIER_OTP_OR_WHATSAPP_CODE_RE.search(raw) and not COURIER_OTP_NEGATION_RE.search(raw):
+        _add(
+            result,
+            "COURIER_OTP_OR_WHATSAPP_CODE_REQUEST",
+            "Mesaj de curier/locker cere cod WhatsApp/SMS sau cod de acces pe canal neconfirmat.",
+        )
+
+    if BEC_EXCLUSIVE_NEW_IBAN_RE.search(raw):
+        _add(
+            result,
+            "BEC_EXCLUSIVE_NEW_IBAN_WITH_OLD_DETAILS_SUPPRESSION",
+            "Mesajul impune folosirea exclusivă a unui IBAN nou și ignorarea datelor bancare vechi.",
+        )
+
+    if BEC_THREAD_IBAN_CHANGE_RE.search(raw):
+        _add(
+            result,
+            "BEC_INVOICE_THREAD_IBAN_CHANGE",
+            "Reply/thread de factură schimbă IBAN-ul față de proforma/contul anterior.",
+        )
+
+    if TAX_AUTHORITY_PAYMENT_REQUEST_RE.search(raw):
+        _add(
+            result,
+            "TAX_AUTHORITY_PAYMENT_REQUEST_UNOFFICIAL_CHANNEL",
+            "Mesaj ANAF/Ministerul Finanțelor/e-Factura cere plată, regularizare sau IBAN pe canal neconfirmat.",
+        )
+
+    if TAX_AUTHORITY_SENSITIVE_DATA_RE.search(raw):
+        _add(
+            result,
+            "TAX_AUTHORITY_SENSITIVE_DATA_REQUEST",
+            "Mesaj ANAF/SPV/e-Factura cere CNP, date card, cod sau date de administrator pe canal neconfirmat.",
+        )
+
+    if TAX_AUTHORITY_APPROVES_UPDATED_IBAN_RE.search(raw):
+        _add(
+            result,
+            "TAX_AUTHORITY_APPROVES_UPDATED_IBAN",
+            "Mesajul pretinde că ANAF/e-Factura aprobă un IBAN sau cont bancar nou al furnizorului.",
         )
 
     if EF_ACTURA_CLAIM_RE.search(raw) and not EF_ACTURA_PROOF_RE.search(raw):

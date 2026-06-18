@@ -8,6 +8,7 @@ import json
 import urllib.parse
 import hmac
 import base64
+import secrets
 from pathlib import Path
 from collections import Counter, defaultdict, deque
 import hashlib
@@ -91,10 +92,20 @@ from services.google_vision_ocr import (
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("main")
 
+EXPOSE_API_DOCS = os.getenv("EXPOSE_API_DOCS", "false").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+
 app = FastAPI(
     title="SigurScan API",
     description="Anti-scam detection engine localized for Romania (2025-2026)",
-    version="1.0"
+    version="1.0",
+    docs_url="/docs" if EXPOSE_API_DOCS else None,
+    redoc_url="/redoc" if EXPOSE_API_DOCS else None,
+    openapi_url="/openapi.json" if EXPOSE_API_DOCS else None,
 )
 
 MAX_IMAGE_BYTES = 10 * 1024 * 1024
@@ -186,9 +197,8 @@ PUBLIC_PATHS = {
     "/health/security",
     "/privacy",
     "/privacy-policy",
-    "/docs",
-    "/openapi.json",
-    "/redoc",
+    "/terms",
+    "/terms-of-service",
 }
 
 # GET-only screenshot proxy consumed by image loaders (Coil) that cannot attach
@@ -197,6 +207,8 @@ _SCREENSHOT_PROXY_PATH_RE = re.compile(r"^/v1/sandbox/urlscan/[^/]+/screenshot$"
 
 # Scan intake routes covered by Play Integrity once it leaves "off" mode.
 _INTEGRITY_GUARDED_PREFIXES = ("/v1/scan/", "/v1/extract/", "/v1/sandbox/urlscan")
+PLAY_INTEGRITY_NONCE_PATH = "/v1/security/play-integrity/nonce"
+CLIENT_INSTANCE_HEADER = "X-SigurScan-Client-Instance"
 
 ENABLE_RATE_LIMIT = os.getenv("ENABLE_RATE_LIMIT", "true").strip().lower() in {"1", "true", "yes", "on"}
 # Pilon DNS reputation (gratis, fără cheie). Free-first: OPT-IN, implicit OFF — nu
@@ -268,6 +280,14 @@ ALLOWED_ORIGINS = [
 ]
 if not ALLOWED_ORIGINS:
     ALLOWED_ORIGINS = DEFAULT_ALLOWED_ORIGINS.split(",")
+ALLOWED_CORS_METHODS = ["GET", "POST", "OPTIONS"]
+ALLOWED_CORS_HEADERS = [
+    "Authorization",
+    "Content-Type",
+    "X-API-KEY",
+    "X-Play-Integrity-Token",
+    "X-SigurScan-Client-Instance",
+]
 SIGURSCAN_PUBLIC_API_BASE_URL = (
     os.getenv("SIGURSCAN_PUBLIC_API_BASE_URL", "https://api.sigurscan.com").strip().rstrip("/")
 )
@@ -434,8 +454,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials="*" not in ALLOWED_ORIGINS,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=ALLOWED_CORS_METHODS,
+    allow_headers=ALLOWED_CORS_HEADERS,
 )
 
 
@@ -446,6 +466,19 @@ def _extract_api_key(request: Request) -> str:
         if candidate.lower().startswith("bearer "):
             api_key = candidate.split(" ", 1)[1]
     return api_key.strip()
+
+
+def _extract_client_instance_id(request: Request) -> str:
+    value = (request.headers.get(CLIENT_INSTANCE_HEADER) or "").strip()
+    if not value or len(value) > 128:
+        return ""
+    if not re.fullmatch(r"[A-Za-z0-9._:-]{8,128}", value):
+        return ""
+    return value
+
+
+def _play_integrity_client_binding(request: Request, api_key: str = "") -> str:
+    return _extract_client_instance_id(request) or api_key.strip()
 
 
 def _internal_worker_token_matches(request: Request) -> bool:
@@ -462,9 +495,6 @@ def _internal_worker_token_matches(request: Request) -> bool:
 def _require_internal_worker_auth(request: Request) -> None:
     if _internal_worker_token_matches(request):
         return
-    api_key = _extract_api_key(request)
-    if api_key and api_key in (ALLOWED_API_KEYS | ADMIN_API_KEYS):
-        return
     raise HTTPException(status_code=401, detail="Missing or invalid internal worker token.")
 
 
@@ -476,6 +506,10 @@ def _is_integrity_guarded_path(path: str) -> bool:
     return path.startswith(_INTEGRITY_GUARDED_PREFIXES)
 
 
+def _is_play_integrity_nonce_path(path: str) -> bool:
+    return path == PLAY_INTEGRITY_NONCE_PATH
+
+
 @app.middleware("http")
 async def security_guard(request: Request, call_next):
     path = request.url.path
@@ -484,6 +518,23 @@ async def security_guard(request: Request, call_next):
 
     api_key = _extract_api_key(request)
     internal_worker_authorized = path.startswith("/internal/") and _internal_worker_token_matches(request)
+    integrity_verdict = None
+    integrity_can_authorize_client = False
+    should_check_integrity = (
+        play_integrity.mode() != "off"
+        and request.method == "POST"
+        and _is_integrity_guarded_path(path)
+    )
+    if should_check_integrity:
+        integrity_verdict = play_integrity.evaluate_request_token(
+            request.headers.get(play_integrity.INTEGRITY_TOKEN_HEADER, ""),
+            _play_integrity_client_binding(request, api_key),
+        )
+        integrity_can_authorize_client = (
+            play_integrity.mode() == "enforce"
+            and not integrity_verdict["block"]
+            and (integrity_verdict.get("result") or {}).get("status") == "valid"
+        )
 
     # Operator endpoints: separate admin keys, fail closed when unconfigured.
     if internal_worker_authorized:
@@ -499,18 +550,16 @@ async def security_guard(request: Request, call_next):
     elif REQUIRE_API_KEY and not (request.method == "GET" and _is_screenshot_proxy_path(path)):
         # Fail closed: requiring a key while configuring none is a deployment
         # error and must not silently open the API.
-        if not api_key or api_key not in (ALLOWED_API_KEYS | ADMIN_API_KEYS):
+        nonce_request_allowed = _is_play_integrity_nonce_path(path) and play_integrity.mode() != "off"
+        api_key_authorized = bool(api_key and api_key in ALLOWED_API_KEYS)
+        if not api_key_authorized and not integrity_can_authorize_client and not nonce_request_allowed:
             return JSONResponse(status_code=401, content={"detail": "Missing or invalid API key."})
 
-    if play_integrity.mode() != "off" and request.method == "POST" and _is_integrity_guarded_path(path):
-        verdict = play_integrity.evaluate_request_token(
-            request.headers.get(play_integrity.INTEGRITY_TOKEN_HEADER, ""),
-            api_key,
-        )
-        if verdict["block"]:
+    if integrity_verdict is not None:
+        if integrity_verdict["block"]:
             return JSONResponse(
                 status_code=401,
-                content={"detail": "Play Integrity verification failed.", "integrity": verdict["result"]},
+                content={"detail": "Play Integrity verification failed.", "integrity": integrity_verdict["result"]},
             )
 
     if ENABLE_RATE_LIMIT:
@@ -520,7 +569,7 @@ async def security_guard(request: Request, call_next):
             request.client.host if request.client else "anonymous",
             path,
             RATE_LIMIT_PER_MINUTE,
-            api_key in ADMIN_API_KEYS,
+            path in ADMIN_ONLY_PATHS and api_key in ADMIN_API_KEYS,
         )
         if not decision.allowed:
             return JSONResponse(
@@ -2663,7 +2712,7 @@ def _brand_warning_matches_text(claimed_brand: str, raw_text: str) -> Dict[str, 
         "password": lambda: "parola" in combined or "parolă" in combined or "password" in combined,
         "cnp": lambda: "cnp" in combined,
         "iban": lambda: "iban" in combined,
-        "remote_access": lambda: any(token in combined for token in ("anydesk", "teamviewer", "rustdesk", "control la distanta", "control la distanță", "remote access")),
+        "remote_access": lambda: any(token in combined for token in ("anydesk", "teamviewer", "rustdesk", "control la distanta", "control la distanță", "asistenta la distanta", "asistență la distanță", "remote access")),
         "apk_install": lambda: "apk" in combined or ("instale" in combined and "aplic" in combined) or ("descarca" in combined and "aplic" in combined) or ("descarcă" in combined and "aplic" in combined),
         "safe_account_transfer": lambda: "cont sigur" in combined or "transfer sigur" in combined,
         "crypto_atm_deposit": lambda: any(token in combined for token in ("crypto atm", "bitcoin atm", "depunere crypto")),
@@ -2691,35 +2740,129 @@ def _looks_like_official_safety_education(raw_text: str) -> bool:
     normalized = _normalise_obfuscated_text(raw_text or "").lower()
     if not normalized:
         return False
-    sensitive_terms = r"(?:cnp|pin|cvv|cvc|otp|cod(?:ul|uri?)?(?:\s+sms)?|parol[ăa]|date\s+de\s+card|date\s+bancare)"
+    scope_trick = (
+        r"\b("
+        r"doar\s+(?:aici|acest(?:ui)?\s+agent|codul)|"
+        r"doar\s+(?:primele|ultimele|\d+)|"
+        r"(?:[îi]n|in)\s+afar[ăa]\s+de|"
+        r"folose[șs]te\s+noul\s+cont|"
+        r"nu\s+(?:suna|sun[aă]|verifica|accesa|face\s+callback|[îi]nchide|inchide)|"
+        r"r[ăa]m[aâ]ne[țt]i\s+la\s+telefon"
+        r")\b"
+    )
+    if re.search(scope_trick, normalized, re.IGNORECASE):
+        return False
+    sensitive_terms = (
+        r"(?:cnp|pin|cvv|cvc|otp|cod(?:ul|uri?)?(?:\s+sms)?|parol[ăa]|date\s+de\s+card|date(?:le)?\s+bancare|"
+        r"datele\s+cardului|num[aă]r(?:ul)?\s+(?:de\s+)?card|iban|cont\s+(?:nou|sigur|temporar|seif)|"
+        r"transfer(?:[ăa]|a)?\s+bani|transfer\s+preventiv|bani|crypto\s+atm|usdt|tax(?:[ăa]|e)\s+de\s+retragere|profit\s+garantat|"
+        r"obliga[țt]ii?\s+de\s+plat[ăa]|schimbare\s+de\s+iban|"
+        r"copie\s+(?:ci|act)|ci\s+fa[țt][ăa][-\s]?verso|act(?:ul)?\s+(?:de\s+)?identitate|"
+        r"carduri?\s+cadou|gift\s*card|voucher|autentificare\s+bancar[ăa]|actualizarea\s+parolei|link\s+primit|home.?bank|logare|login|"
+        r"anydesk|teamviewer|rustdesk|control\s+la\s+distan[țt][ăa]|asisten[țt][ăa]\s+la\s+distan[țt][ăa]|remote\s+access|"
+        r"aplica[țt]i[ei]?\s+(?:de\s+)?(?:(?:acces|asisten[țt][ăa])\s+la\s+distan[țt][ăa]|remote))"
+    )
     ask_verbs = r"(?:cer(?:e|em)|solicit(?:[ăa]|[aă]m)|trimitem|pretindem)"
     negative_claim = (
-        rf"(?:nu\s+(?:iti|îți|va|vă|iti\s+)?\s*{ask_verbs}"
+        rf"(?:nu\s+(?:iti|îți|va|vă|iti\s+|vom\s+|vei\s+|veți\s+|veti\s+)?\s*{ask_verbs}"
         r"|nu\s+(?:ti|ți|vi|vă)?\s*se\s+solicit[aă]"
-        r"|nu\s+introduc\w*"
+        r"|nu\s+exist[ăa]"
+        r"|nu\s+con[țt]ine"
+        r"|nu\s+anun[țt][ăa]"
+        r"|nu\s+se\s+modific[ăa]"
+        r"|nu\s+pune"
+        r"|nu\s+permitem"
+        r"|nu\s+r[ăa]spunde"
+        r"|nu\s+te\s+loga"
+        r"|nu\s+introdu\w*"
+        r"|nu\s+instal\w*"
+        r"|nu\s+desc[aă]rc\w*"
+        r"|nu\s+folos\w*"
+        r"|nu\s+pl[ăa]t\w*"
+        r"|nu\s+depun\w*"
         r"|nu\s+(?:(?:il|îl|le)\s+)?comunic\w*"
         r"|nu\s+(?:(?:il|îl|le)\s+)?trimite\w*"
         rf"|nu\s+{ask_verbs}"
         rf"|niciodat[aă]\s+nu\s+{ask_verbs})"
     )
     window = r"(?:\W+\w+){0,12}\W*"
-    return bool(
+    if (
         re.search(negative_claim + window + sensitive_terms, normalized, re.IGNORECASE)
         or re.search(sensitive_terms + window + negative_claim, normalized, re.IGNORECASE)
-    )
+    ):
+        return True
+    if re.search(
+        r"nu\s+(?:îți|[îi]ti|iti)\s+va\s+cere\b(?=.{0,160}\b(?:transfer\s+preventiv|cont\s+sigur|iban|bani|datele\s+cardului|otp|cod|parol[ăa])\b)",
+        normalized,
+        re.IGNORECASE,
+    ):
+        return True
+    if re.search(
+        r"(?:niciun|niciun\s+suport|avertizare).{0,120}\bnu\s+cere\b(?=.{0,160}\b(?:carduri?\s+cadou|gift\s*card|voucher|sun[ăa]|num[ăa]r\s+din\s+pop-up)\b)",
+        normalized,
+        re.IGNORECASE,
+    ):
+        return True
+    if re.search(
+        r"nu\s+se\s+solicit[ăa]\b(?=.{0,160}\b(?:actualizarea\s+parolei|parol[ăa]|link|logare)\b)",
+        normalized,
+        re.IGNORECASE,
+    ):
+        return True
+    if (
+        re.search(r"\bdac[ăa]\b", normalized, re.IGNORECASE)
+        and re.search(r"\b(?:cere|prime[șs]ti|solicit[ăa])\b", normalized, re.IGNORECASE)
+        and re.search(sensitive_terms, normalized, re.IGNORECASE)
+        and re.search(
+            r"(?:opre[șs]te|nu\s+(?:trimite|pl[ăa]ti|continua|introdu)|sun[ăa]|confirm[ăa])",
+            normalized,
+            re.IGNORECASE,
+        )
+    ):
+        return True
+    if re.search(
+        r"\bconfirm[ăa]\b(?=.{0,120}\b(?:iban|cont|schimbare)\b)"
+        r"(?=.{0,180}\b(?:num[ăa]rul\s+deja\s+cunoscut|canalul\s+oficial|telefonic|apel)\b)",
+        normalized,
+        re.IGNORECASE,
+    ):
+        return True
+    if re.search(
+        r"\bmesaj(?:ele|e)?\s+de\s+tip\b(?=.{0,180}\b(?:fraud|nu\s+le\s+urma|nu\s+r[ăa]spunde)\b)",
+        normalized,
+        re.IGNORECASE,
+    ):
+        return True
+    if re.search(
+        r"\bexemplu\s+de\s+fraud[ăa]\b(?=.{0,180}\b(?:nu\s+continua|nu\s+r[ăa]spunde|nu\s+urma|dac[ăa]\s+vezi)\b)",
+        normalized,
+        re.IGNORECASE,
+    ):
+        return True
+    if re.search(
+        r"\bdocument(?:ul)?\s+educa[țt]ional\b(?=.{0,180}\b(?:nu|fraud|neoficial)\b)",
+        normalized,
+        re.IGNORECASE,
+    ):
+        return True
+    return False
 
 
 def _has_direct_sensitive_request(raw_text: str) -> bool:
     normalized = _normalise_obfuscated_text(raw_text or "").lower()
     if not normalized or _looks_like_official_safety_education(normalized):
         return False
-    verbs = r"(?:introdu\w*|completeaz\w*|trimite\w*|spune\w*|comunic\w*|confirm\w*|valideaz\w*|verific\w*)"
+    verbs = (
+        r"(?:introdu\w*|completeaz\w*|trimite\w*|r[ăa]spunde\w*|spune\w*|comunic\w*|"
+        r"confirm\w*|valideaz\w*|verific\w*|logheaz[ăa][-\s]?te|autentific[ăa][-\s]?te)"
+    )
     sensitive = (
-        r"(?:parol[ăa]|password|otp|cod(?:ul)?(?:\s+sms|\s+de\s+verificare|\s+de\s+confirmare)?|"
-        r"pin(?:-ul|ul)?|cvv|cvc|date(?:le)?\s+(?:de\s+)?card(?:ului)?|"
+        r"(?:parol[ăa]|password|otp|cod(?:ul)?(?:\s+(?:pe\s+)?(?:sms|whatsapp)|"
+        r"\s+de\s+(?:verificare|confirmare|autorizare|autentificare)|\s+3ds)?|"
+        r"pin(?:-ul|ul)?|cvv|cvc|date(?:le)?\s+(?:de\s+)?card(?:ului)?|datele\s+cardului|"
         r"num[aă]r(?:ul)?\s+(?:de\s+)?card(?:ului)?|"
         r"ultimele\s+\d+\s+cifre\s+(?:ale\s+)?card(?:ului)?|"
-        r"cnp|iban|copie\s+act|act(?:ul)?\s+(?:de\s+)?identitate)"
+        r"cnp|iban|copie\s+(?:ci|act)|act(?:ul)?\s+(?:de\s+)?identitate)"
     )
     return bool(
         re.search(verbs + r"(?:\W+\w+){0,8}\W+" + sensitive, normalized, re.IGNORECASE)
@@ -2832,6 +2975,7 @@ def _has_sensitive_url_path(resolved_urls: List[Dict[str, Any]]) -> bool:
         "identitate",
         "confirmare",
         "validare",
+        "session",
     )
     for entry in resolved_urls or []:
         url = str(entry.get("final_url") or entry.get("url") or "")
@@ -3157,10 +3301,51 @@ def _request_sensitivity_from_signals(
     resolved_urls: List[Dict[str, Any]],
 ) -> str:
     normalized = _normalise_obfuscated_text(raw_text or "").lower()
-    if _looks_like_official_safety_education(normalized):
+    official_safety_education = _looks_like_official_safety_education(normalized)
+    if official_safety_education:
         direct_sensitive_request = False
         brand_warning = {"triggered": False, "matched_assets": []}
     matched_assets = set(brand_warning.get("matched_assets") or []) if isinstance(brand_warning, dict) else set()
+    local_high_risk = _local_high_risk_semantic_review(normalized)
+    if local_high_risk:
+        matched_family = str(local_high_risk.get("matched_family") or "")
+        if matched_family == "otp_code_exfiltration":
+            return "otp"
+        if matched_family == "remote_access_install_request":
+            return "remote"
+        if matched_family in {
+            "family_emergency_money_request",
+            "fake_authority_safe_account",
+            "gift_card_payment",
+            "job_task_topup",
+            "domain_or_trademark_scare_payment",
+            "safe_account_or_protective_transfer",
+            "new_iban_callback_suppression",
+            "voucher_code_payment",
+            "courier_payment_link_pressure",
+            "bec_urgent_confidential_transfer",
+            "investment_guaranteed_deposit",
+            "authority_unavailable_payment_pressure",
+            "courier_fee_payment_link",
+            "exclusive_new_iban_payment",
+            "supplier_bank_details_change",
+            "proforma_new_account_before_delivery",
+            "hospital_bail_no_call_money_request",
+            "tech_support_gift_card_payment",
+            "urgent_payment_link_pressure",
+            "beneficiary_mismatch_new_account",
+        }:
+            return "transfer"
+        if matched_family in {"bank_data_collection", "external_card_cvv_otp_collection"}:
+            return "card"
+        if matched_family in {"brand_login_update_link", "password_update_link"}:
+            return "password"
+        if matched_family == "executable_invoice_attachment":
+            return "remote"
+        if matched_family == "anti_verification_pressure":
+            if re.search(r"\b(transfer\w*|iban|cont\w*|pl[ăa]t\w*|achit\w*|bani|lei|ron)\b", normalized):
+                return "transfer"
+            return "password"
 
     logistics_pin_context = official_destination and bool(
         re.search(r"\b(pin|cod)\b", normalized)
@@ -3179,16 +3364,32 @@ def _request_sensitivity_from_signals(
     if matched_assets.intersection({"safe_account_transfer", "iban", "crypto_atm_deposit"}):
         return "crypto" if "crypto_atm_deposit" in matched_assets else "transfer"
 
-    if re.search(r"\b(anydesk|teamviewer|rustdesk|apk|control la distan[țt][ăa]|remote access)\b", normalized):
+    if official_safety_education:
+        return "none"
+
+    if re.search(r"\b(anydesk|teamviewer|rustdesk|apk|control la distan[țt][ăa]|asisten[țt][ăa] la distan[țt][ăa]|remote access)\b", normalized):
+        return "remote"
+    if re.search(r"\bremote\b", normalized) and re.search(r"\b(agent|calculator|descarc[ăa]|tool|intra|intr[ăa])\b", normalized):
         return "remote"
     if re.search(r"\b(crypto|bitcoin|usdt|binance|wallet|seed phrase)\b", normalized):
         return "crypto"
     if re.search(r"\b(parol[ăa]|password)\b", normalized) and direct_sensitive_request:
         return "password"
-    if re.search(r"\b(otp|cod sms|cod whatsapp|codul de verificare|2fa)\b", normalized) and direct_sensitive_request:
+    if re.search(
+        r"\b(otp|cod(?:ul)?\s+(?:sms|whatsapp|de\s+(?:verificare|confirmare|autorizare|autentificare)|3ds)|2fa)\b",
+        normalized,
+    ) and direct_sensitive_request:
         return "otp"
-    if re.search(r"\b(cvv|cvc|date(?:le)? de card|num[aă]r(?:ul)? de card)\b", normalized) and direct_sensitive_request:
+    if re.search(r"\b(cvv|cvc|date(?:le)?\s+(?:de\s+)?card(?:ului)?|datele\s+cardului|num[aă]r(?:ul)?\s+(?:de\s+)?card(?:ului)?)\b", normalized) and direct_sensitive_request:
         return "card"
+    if re.search(r"\b(logheaz[ăa][-\s]?te|autentific[ăa][-\s]?te|login|session)\b", normalized) and (
+        direct_sensitive_request or (sensitive_url_path and not official_destination)
+    ):
+        return "password"
+    if re.search(r"\b(copie\s+(?:ci|act)|ci\s+fa[țt][ăa][-\s]?verso|selfie|act(?:ul)?\s+(?:de\s+)?identitate|buletin)\b", normalized):
+        return "id_document"
+    if re.search(r"\b(gift\s*card|carduri?\s+cadou|voucher)\b", normalized) and re.search(r"\b(cump[ăa]r|cite[șs]te|cod|pl[ăa]t|achit)\b", normalized):
+        return "transfer"
     if _has_investment_money_risk(normalized):
         return "transfer"
 
@@ -3250,15 +3451,239 @@ def _request_channel_for_decision_bundle(
     return "reply"
 
 
+def _local_high_risk_semantic_review(raw_text: str) -> Optional[Dict[str, Any]]:
+    normalized = _normalise_obfuscated_text(raw_text or "").lower()
+    if not normalized or _looks_like_official_safety_education(normalized):
+        return None
+
+    checks: List[Tuple[str, str, str]] = [
+        (
+            "semantic:family_emergency_money_request",
+            "family_emergency_money_request",
+            r"\b(mam[ăa]|tata|tat[ăa]|fiule|fiica|copilul)\b"
+            r"(?=.{0,220}\b(telefon|num[ăa]r(?:ul)?\s+nou|stricat|pierdut)\b)"
+            r"(?=.{0,260}\b(urgent|acum|disear[ăa]|azi)\b)"
+            r"(?=.{0,300}\b(iban|bani|lei|ron|transfer)\b)",
+        ),
+        (
+            "semantic:otp_code_exfiltration",
+            "otp_code_exfiltration",
+            r"(\b(cod|otp)\b.{0,80}\b(sms|whatsapp|verificare|confirmare)\b.{0,100}\b(trimite|spune|comunic[ăa]|d[ăa][-\s]?mi|da[-\s]?mi)\b)"
+            r"|(\b(trimite|spune|comunic[ăa]|d[ăa][-\s]?mi|da[-\s]?mi)\b.{0,100}\b(cod|otp)\b.{0,80}\b(sms|whatsapp|verificare|confirmare)\b)",
+        ),
+        (
+            "semantic:fake_authority_safe_account",
+            "fake_authority_safe_account",
+            r"\b(poli[țt]i[ae]|bnr|antifraud[ăa]|dosar\s+de\s+fraud[ăa]|fraud[ăa]\s+bancar[ăa])\b"
+            r"(?=.{0,260}\b(cont\s+(?:sigur|seif)|transfer|nu\s+[îi]nchide|exact\s+ce\s+spun)\b)",
+        ),
+        (
+            "semantic:remote_access_install_request",
+            "remote_access_install_request",
+            r"\b(instaleaz[ăa]|descarc[ăa]|ruleaz[ăa]|porne[șs]te)\b"
+            r"(?=.{0,180}\b(anydesk|teamviewer|rustdesk|control\s+la\s+distan[țt][ăa]|asisten[țt][ăa]\s+la\s+distan[țt][ăa]|remote\s+access)\b)",
+        ),
+        (
+            "semantic:gift_card_payment",
+            "gift_card_payment",
+            r"\b(gift\s*card|carduri?\s+cadou|voucher)\b(?=.{0,140}\b(pl[ăa]t|achit|cump[ăa]r|cite[șs]te|cod\w*)\b)",
+        ),
+        (
+            "semantic:voucher_code_payment",
+            "voucher_code_payment",
+            r"(?=.{0,180}\b(?:voucher|carduri?\s+cadou|gift\s*card)\b)"
+            r"(?=.{0,180}\b(?:achit|pl[ăa]t|cump[ăa]r|penalizare)\b)"
+            r"(?=.{0,180}\b(?:cod\w*|validare|r[ăa]spunde)\b)",
+        ),
+        (
+            "semantic:safe_account_or_protective_transfer",
+            "safe_account_or_protective_transfer",
+            r"(?=.{0,220}\b(?:cont(?:ul)?\s+(?:sigur|temporar|seif)|transfer\s+preventiv|banii\s+[îi]n\s+siguran[țt][ăa])\b)"
+            r"(?=.{0,240}\b(?:compromis|proteja|verific[ăa]ri|transfer[ăa]?|achit[ăa]?|trimite|mut[ăa])\b)",
+        ),
+        (
+            "semantic:anti_verification_pressure",
+            "anti_verification_pressure",
+            r"\b(?:nu\s+(?:suna|sun[ăa]|verifica|face\s+callback|[îi]nchide|inchide)|r[ăa]m[aâ]ne[țt]i\s+la\s+telefon)\b"
+            r"(?=.{0,220}\b(?:agent|aici|confirm|transfer|pl[ăa]t|iban|banc[ăa]|cont|termin[ăa]m)\b)",
+        ),
+        (
+            "semantic:new_iban_callback_suppression",
+            "new_iban_callback_suppression",
+            r"(?=.{0,160}\b(?:(?:iban|cont)\s+nou|cont\s+bancar\s+nou)\b)"
+            r"(?=.{0,220}\b(?:nu\s+(?:face\s+callback|suna|sun[ăa]|verifica|mai\s+folosi)|contul\s+vechi\s+nu\s+mai\s+este\s+valid)\b)",
+        ),
+        (
+            "semantic:courier_payment_link_pressure",
+            "courier_payment_link_pressure",
+            r"(?=.{0,180}\b(?:colet\w*|livrare|tracking|curier)\b)"
+            r"(?=.{0,180}\b(?:pl[ăa]te[șs]te|achit[ăa]|tax[ăa])\b)"
+            r"(?=.{0,180}\b(?:link|nu\s+verifica|10\s+minute|pierde)\b)",
+        ),
+        (
+            "semantic:bec_urgent_confidential_transfer",
+            "bec_urgent_confidential_transfer",
+            r"(?=.{0,180}\b(?:plat[ăa]|aprob[ăa]|transfer)\b)"
+            r"(?=.{0,220}\b(?:urgent|confiden[țt]ial|f[ăa]r[ăa]\s+tichet|director|[șs]edin[țt][ăa])\b)",
+        ),
+        (
+            "semantic:executable_invoice_attachment",
+            "executable_invoice_attachment",
+            r"(?=.{0,180}\b(?:factur[ăa]|viewer|fi[șs]ier)\b)"
+            r"(?=.{0,180}\b(?:\\.exe|executabil|ata[șs]at[ăa]?|descarc[ăa])\b)",
+        ),
+        (
+            "semantic:investment_guaranteed_deposit",
+            "investment_guaranteed_deposit",
+            r"(?=.{0,220}\b(?:broker|profit|randament|investi[țt]ii?)\b)"
+            r"(?=.{0,220}\b(?:garanteaz[ăa]|garantat)\b)"
+            r"(?=.{0,220}\b(?:depunere|depun[ei]|trimite|cont\s+de\s+activare)\b)",
+        ),
+        (
+            "semantic:authority_unavailable_payment_pressure",
+            "authority_unavailable_payment_pressure",
+            r"(?=.{0,160}\b(?:anaf|autoritate|fisc)\b)"
+            r"(?=.{0,180}\b(?:nu\s+r[ăa]spunde|indisponibil|nu\s+poate\s+fi\s+contactat)\b)"
+            r"(?=.{0,180}\b(?:pl[ăa]tit[ăa]|pl[ăa]te[șs]te|urgent)\b)",
+        ),
+        (
+            "semantic:bank_data_collection",
+            "bank_data_collection",
+            r"(?=.{0,140}\b(?:introdu|completeaz[ăa]|trimite)\b)"
+            r"(?=.{0,140}\b(?:date\s+bancare|date\s+financiare|conturi?\s+bancare)\b)",
+        ),
+        (
+            "semantic:courier_fee_payment_link",
+            "courier_fee_payment_link",
+            r"(?=.{0,160}\b(?:tax[ăa]\s+de\s+livrare|taxa\s+de\s+livrare|colet\w*|livrare)\b)"
+            r"(?=.{0,160}\b(?:achit\w*|achi[țt]\w*|pl[ăa]t\w*)\b)"
+            r"(?=.{0,160}\blink\w*\b)",
+        ),
+        (
+            "semantic:exclusive_new_iban_payment",
+            "exclusive_new_iban_payment",
+            r"(?=.{0,160}\b(?:plat[ăa]|factur[ăa])\b)"
+            r"(?=.{0,160}\b(?:exclusiv|doar)\b)"
+            r"(?=.{0,160}\b(?:iban\s+nou|cont\s+nou)\b)",
+        ),
+        (
+            "semantic:supplier_bank_details_change",
+            "supplier_bank_details_change",
+            r"(?=.{0,160}\b(?:se\s+modific[ăa]|modificare)\b)"
+            r"(?=.{0,160}\b(?:datele\s+bancare|iban|cont)\b)"
+            r"(?=.{0,160}\b(?:furnizor\w*|factur)\b)",
+        ),
+        (
+            "semantic:proforma_new_account_before_delivery",
+            "proforma_new_account_before_delivery",
+            r"(?=.{0,180}\b(?:proform[ăa]|ofert[ăa]|factur[ăa])\b)"
+            r"(?=.{0,180}\b(?:achitat[ăa]?|pl[ăa]tit[ăa]?|contul\s+nou|cont\s+nou)\b)"
+            r"(?=.{0,180}\b(?:[îi]nainte\s+de\s+livrare|expir[ăa]|azi)\b)",
+        ),
+        (
+            "semantic:hospital_bail_no_call_money_request",
+            "hospital_bail_no_call_money_request",
+            r"(?=.{0,180}\b(?:spital|cau[țt]iune|cautiune|accident)\b)"
+            r"(?=.{0,180}\b(?:nu\s+suna|nu\s+sun[ăa]|nu\s+spune)\b)"
+            r"(?=.{0,180}\b(?:trimite|transfer[ăa]?|banii|bani|imediat)\b)",
+        ),
+        (
+            "semantic:tech_support_gift_card_payment",
+            "tech_support_gift_card_payment",
+            r"(?=.{0,180}\b(?:microsoft|security|suport|deblocare|virus)\b)"
+            r"(?=.{0,180}\b(?:carduri?\s+cadou|gift\s*card|voucher)\b)",
+        ),
+        (
+            "semantic:urgent_payment_link_pressure",
+            "urgent_payment_link_pressure",
+            r"(?=.{0,180}\b(?:nu\s+exist[ăa]\s+timp|10\s+minute|urgent|expir[ăa])\b)"
+            r"(?=.{0,180}\b(?:pl[ăa]te[șs]te|achit[ăa]|plata|tax[ăa])\b)"
+            r"(?=.{0,180}\blink\w*\b)",
+        ),
+        (
+            "semantic:brand_login_update_link",
+            "brand_login_update_link",
+            r"(?=.{0,180}\b(?:ing|bcr|brd|bt|banca|home.?bank)\b)"
+            r"(?=.{0,180}\b(?:logheaz[ăa]|autentific[ăa]|actualizarea\s+datelor|link)\b)",
+        ),
+        (
+            "semantic:external_card_cvv_otp_collection",
+            "external_card_cvv_otp_collection",
+            r"(?=.{0,180}\b(?:completarea|completeaz[ăa]|introdu)\b)"
+            r"(?=.{0,180}\b(?:card|cvv|cvc|otp)\b)"
+            r"(?=.{0,180}\b(?:link|extern)\b)",
+        ),
+        (
+            "semantic:beneficiary_mismatch_new_account",
+            "beneficiary_mismatch_new_account",
+            r"(?=.{0,180}\b(?:beneficiar\w*)\b)"
+            r"(?=.{0,180}\b(?:difer[ăa]|diferit|afi[șs]at)\b)"
+            r"(?=.{0,180}\b(?:cont(?:ul)?\s+nou|iban\s+nou|departamentul\s+financiar)\b)",
+        ),
+        (
+            "semantic:password_update_link",
+            "password_update_link",
+            r"(?=.{0,180}\b(?:actualizarea\s+parolei|parol[ăa])\b)"
+            r"(?=.{0,180}\b(?:link|autentific[ăa]|acceseaz[ăa])\b)",
+        ),
+        (
+            "semantic:job_task_topup",
+            "job_task_topup",
+            r"\b(like|review|recenzi[ei]|task|lucrezi\s+de\s+acas[ăa])\b"
+            r"(?=.{0,240}\b(top[-\s]?up|vip|depun[ei]|transfer|lei|ron|c[âa]știg|castig)\b)",
+        ),
+        (
+            "semantic:domain_or_trademark_scare_payment",
+            "domain_or_trademark_scare_payment",
+            r"\b(osim|tmview|marc[ăa]|marca|domeniul|domeniu)\b"
+            r"(?=.{0,260}\b(achit|pl[ăa]t|tax[ăa]|pierde[țt]i|competitor|v[âa]ndut|vandut)\b)",
+        ),
+    ]
+    for reason_code, family_id, pattern in checks:
+        if re.search(pattern, normalized, re.IGNORECASE):
+            return {
+                "status": "done",
+                "claim_matches_known_scam_family": True,
+                "matched_family": family_id,
+                "claim_matches_legit_template": False,
+                "matched_template": None,
+                "reason_codes": [reason_code, "semantic:local_high_risk_pattern"],
+                "risk_class": "high",
+                "confidence_class": "high",
+                "family_confidence": 0.86,
+                "completeness": True,
+                "source": "local_high_risk_semantic_patterns",
+            }
+    return None
+
+
 def _semantic_review_for_decision_bundle(
     analysis: Dict[str, Any],
     *,
+    raw_text: str,
     official_destination: bool,
     provider_verdict: str,
 ) -> Dict[str, Any]:
     evidence = analysis.get("evidence", {}) if isinstance(analysis.get("evidence"), dict) else {}
+    if _looks_like_official_safety_education(raw_text) and provider_verdict != "malicious":
+        return {
+            "status": "done",
+            "claim_matches_known_scam_family": False,
+            "matched_family": None,
+            "claim_matches_legit_template": True,
+            "matched_template": "safety_education",
+            "reason_codes": ["semantic:benign", "semantic:safety_education_scope"],
+            "risk_class": "benign",
+            "confidence_class": "high",
+            "family_confidence": 0.0,
+            "completeness": True,
+            "source": "safety_education_scope_guard",
+        }
     existing = evidence.get("semantic_review")
+    local_high_risk = _local_high_risk_semantic_review(raw_text)
     if isinstance(existing, dict) and existing.get("status"):
+        if local_high_risk and _semantic_risk_rank(existing.get("risk_class")) < _semantic_risk_rank("high"):
+            return local_high_risk
         return existing
 
     family = evidence.get("scam_family") if isinstance(evidence.get("scam_family"), dict) else {}
@@ -3300,6 +3725,8 @@ def _semantic_review_for_decision_bundle(
             "completeness": True,
             "source": "provider_decisive_no_semantic_needed",
         }
+    if local_high_risk:
+        return local_high_risk
 
     if known and confidence >= 0.35 and supports_high_text_only:
         risk_class = "high"
@@ -3689,6 +4116,7 @@ def _build_decision_evidence_bundle(
     )
     semantic_review = _semantic_review_for_decision_bundle(
         analysis,
+        raw_text=raw_text,
         official_destination=official_destination,
         provider_verdict=str(provider_section.get("verdict") or "unknown"),
     )
@@ -3697,9 +4125,10 @@ def _build_decision_evidence_bundle(
     cross_never_asks = cross_scan.get("brand_never_asks") if isinstance(cross_scan.get("brand_never_asks"), dict) else {}
     cross_violated_never_asks = list(cross_never_asks.get("violated_never_asks") or [])
     fraud_flags = set(cross_scan.get("fraud_flags") or [])
-    if provenance_proto.get("violated_never_asks"):
+    official_safety_education = _looks_like_official_safety_education(raw_text)
+    if provenance_proto.get("violated_never_asks") and not official_safety_education:
         identity_section["violated_never_asks"] = provenance_proto["violated_never_asks"]
-    if cross_violated_never_asks and not official_destination:
+    if cross_violated_never_asks and not official_destination and not official_safety_education:
         merged = list(identity_section.get("violated_never_asks") or [])
         for item in cross_violated_never_asks:
             if item not in merged:
@@ -3913,6 +4342,8 @@ def _apply_provider_gate_verdict(
     brand_warning = _brand_warning_matches_text(claimed_brand, raw_text)
     official_safety_education = _looks_like_official_safety_education(raw_text)
     direct_sensitive_request = _has_direct_sensitive_request(raw_text)
+    if official_safety_education:
+        brand_warning = {"triggered": False, "matched_assets": []}
     evidence["brand_warning"] = brand_warning
     _attach_brand_warning_summary(summary, brand_warning)
     claim_required = _claim_verifier_required(analysis)
@@ -4624,7 +5055,7 @@ def _validate_text_input(field_name: str, value: str, max_chars: int) -> None:
 
 
 def _new_scan_id(prefix: str) -> str:
-    return f"{prefix}_{int(time.time())}_{os.urandom(4).hex()}"
+    return f"{prefix}_{secrets.token_urlsafe(24)}"
 
 
 def _normalize_user_facing_risk_level(risk_level: Optional[str]) -> str:
@@ -4972,6 +5403,7 @@ def _validate_file_upload(
     max_bytes: int,
     allowed_exts: set[str],
     allowed_mime_types: set[str],
+    magic_validator: Optional[Callable[[bytes], bool]] = None,
 ) -> None:
     if len(file_bytes) > max_bytes:
         raise HTTPException(
@@ -4988,6 +5420,19 @@ def _validate_file_upload(
                 f"Extensii permise: {', '.join(sorted(allowed_exts))}"
             )
         )
+    if magic_validator is not None and not magic_validator(file_bytes):
+        raise HTTPException(
+            status_code=400,
+            detail="Fișierul nu pare să fie un format valid pentru tipul declarat.",
+        )
+
+
+def _is_allowed_image_bytes(file_bytes: bytes) -> bool:
+    if file_bytes.startswith(b"\xff\xd8\xff"):
+        return True
+    if file_bytes.startswith(b"\x89PNG\r\n\x1a\n"):
+        return True
+    return len(file_bytes) >= 12 and file_bytes[:4] == b"RIFF" and file_bytes[8:12] == b"WEBP"
 
 
 async def extract_text_for_scan(
@@ -5220,7 +5665,7 @@ def read_root():
         "project": "SigurScan",
         "status": "active",
         "version": "1.0",
-        "api_docs": "/docs",
+        "api_docs": "/docs" if EXPOSE_API_DOCS else None,
         "privacy_policy": "/privacy",
     }
 
@@ -5328,6 +5773,105 @@ def privacy_policy() -> HTMLResponse:
     return HTMLResponse(content=PRIVACY_POLICY_HTML)
 
 
+TERMS_OF_SERVICE_HTML = """<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Termeni si conditii SigurScan</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.6; margin: 0; color: #172033; background: #f7f9fc; }
+    main { max-width: 860px; margin: 0 auto; padding: 40px 20px 64px; }
+    section { background: #fff; border: 1px solid #dfe7f3; border-radius: 12px; padding: 24px; margin: 18px 0; }
+    h1, h2 { line-height: 1.2; }
+    h1 { font-size: 2rem; margin-bottom: 8px; }
+    h2 { font-size: 1.2rem; margin-top: 0; }
+    .muted { color: #647089; }
+    li { margin: 8px 0; }
+    code { background: #eef3ff; border-radius: 6px; padding: 2px 6px; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Termeni si conditii de utilizare SigurScan</h1>
+  <p class="muted">Ultima actualizare: 17 iunie 2026. URL public: <code>https://api.sigurscan.com/terms</code>.</p>
+
+  <section>
+    <h2>1. Natura aplicatiei</h2>
+    <p>SigurScan este un <strong>asistent digital de informare si prevenire a fraudelor</strong>. Aplicatia analizeaza continut pe care utilizatorul il furnizeaza explicit (text, linkuri, fisiere, imagini, facturi etc.) si emite un <strong>verdict automat de risc</strong> pe baza datelor disponibile in acel moment.</p>
+    <p><strong>SigurScan NU este:</strong></p>
+    <ul>
+      <li>institutie de ordine publica, politie, parchet sau organ de ancheta;</li>
+      <li>instanta de judecata sau arbitru cu autoritate legala;</li>
+      <li>consilier financiar, juridic sau de investitii;</li>
+      <li>entitate care poate confirma cu certitudine absoluta intentiile unei terte parti.</li>
+    </ul>
+    <p>Verdictul emis de SigurScan (de exemplu: SAFE, UNVERIFIED, SUSPECT, DANGEROUS) este <strong>o indicatie automata</strong>, nu o constatare legala sau o condamnare.</p>
+  </section>
+
+  <section>
+    <h2>2. Obligatia utilizatorului de a verifica</h2>
+    <p>In cazul in care SigurScan indica un risc sau in orice situatie de suspiciune, <strong>utilizatorul are obligatia de a verifica independent datele reale</strong> inainte de a actiona. Recomandam:</p>
+    <ul>
+      <li>contactarea directa a entitatii pretinse prin canale oficiale verificate;</li>
+      <li>verificarea identitatii apelantului/expeditorului prin mijloace proprii;</li>
+      <li>consultarea unei institutii abilitate (Politie, banca, ANAF, ANPC, DNSC) atunci cand exista pierderi financiare sau suspiciuni grave.</li>
+    </ul>
+    <p><strong>Nu luati niciodata o decizie financiara, legala sau de securitate personala doar pe baza verdictului SigurScan.</strong></p>
+  </section>
+
+  <section>
+    <h2>3. Ce face si ce nu face SigurScan</h2>
+    <p>SigurScan poate analiza URL-uri, texte, fisiere, facturi si alte continuturi pe care utilizatorul alege sa le scaneze; poate compara informatiile cu baze de date de reputatie, feed-uri publice de phishing, liste de IBAN-uri raportate si cunostinte despre modul de operare al scammerilor; poate emite un verdict de risc si explicatii orientative.</p>
+    <p>SigurScan <strong>nu poate</strong> accesa sau verifica conturi bancare, identitati reale sau situatii juridice ale tertilor; nu poate garanta ca un continut „SAFE" este in siguranta absoluta; nu poate garanta detectarea tuturor fraudelor; nu poate substitui verificarea umana sau interventia autoritatilor.</p>
+  </section>
+
+  <section>
+    <h2>4. Limitarea raspunderii</h2>
+    <p>In masura permisa de lege, dezvoltatorul SigurScan nu isi asuma raspunderea pentru daune directe, indirecte, accidentale sau consecutive rezultate din utilizarea sau incapacitatea de a utiliza aplicatia; pentru decizii luate de utilizator pe baza verdictelor emise de SigurScan; pentru pierderi financiare, de date, de timp sau de reputatie; pentru erori, omisiuni, intarzieri sau rezultate incorecte ale algoritmilor sau providerilor terti.</p>
+    <p>Utilizatorul foloseste SigurScan <strong>pe propriul risc</strong>.</p>
+  </section>
+
+  <section>
+    <h2>5. Rapoarte comunitare</h2>
+    <p>Rapoartele trimise prin functiile de feedback sau raportare comunitara sunt anonimizate si agregate. Transmiterea unui raport prin aplicatie <strong>nu constituie o plangere oficiala</strong>. Pentru sesizari catre autoritati, utilizatorul trebuie sa foloseasca canalele oficiale (Politie, ANPC, banca etc.).</p>
+  </section>
+
+  <section>
+    <h2>6. Abonamente si plati</h2>
+    <p>Daca SigurScan ofera functii contra cost, acestea sunt gestionate prin platformele oficiale (Google Play, Stripe etc.). Anularea si rambursarea se fac conform politicilor platformei respective.</p>
+  </section>
+
+  <section>
+    <h2>7. Modificari ale termenilor</h2>
+    <p>Termenii pot fi actualizati. Utilizatorul va fi informat la deschiderea aplicatiei daca modificarile sunt substantiale. Continuarea utilizarii dupa notificare inseamna acceptarea noilor termeni.</p>
+  </section>
+
+  <section>
+    <h2>8. Legea aplicabila si jurisdictia</h2>
+    <p>Prezentul acord este guvernat de legislatia din <strong>Romania</strong>. Orice disputa derivata din sau in legatura cu utilizarea SigurScan va fi solutionata de instantele competente din Romania.</p>
+  </section>
+
+  <section>
+    <h2>9. Acceptarea termenilor</h2>
+    <p>Prin descarcarea, instalarea si utilizarea SigurScan, utilizatorul confirma ca a citit, inteles si acceptat Termenii si conditiile si Politica de confidentialitate. Daca nu sunteti de acord, nu utilizati aplicatia.</p>
+  </section>
+
+  <section>
+    <h2>10. Contact</h2>
+    <p>Pentru intrebari legate de termeni: <code>legal@sigurscan.ro</code>.</p>
+  </section>
+</main>
+</body>
+</html>"""
+
+
+@app.get("/terms", response_class=HTMLResponse)
+@app.get("/terms-of-service", response_class=HTMLResponse)
+def terms_of_service() -> HTMLResponse:
+    return HTMLResponse(content=TERMS_OF_SERVICE_HTML)
+
+
 @app.get("/health")
 @app.get("/healthz")
 def read_health():
@@ -5347,8 +5891,15 @@ def read_security_health():
 
 @app.post("/v1/security/play-integrity/nonce")
 def issue_play_integrity_nonce(request: Request):
-    result = play_integrity_nonce.issue_nonce(_extract_api_key(request))
+    result = play_integrity_nonce.issue_nonce(
+        _play_integrity_client_binding(request, _extract_api_key(request))
+    )
     if result.get("status") != "issued":
+        if result.get("status") in {"invalid_client", "invalid_request"}:
+            raise HTTPException(
+                status_code=400,
+                detail="Missing Play Integrity client binding.",
+            )
         raise HTTPException(
             status_code=503,
             detail="Play Integrity nonce service is unavailable.",
@@ -5656,6 +6207,40 @@ def _urlscan_preview_cache_is_fresh(entry: Dict[str, Any]) -> bool:
     return not expires_at or expires_at > int(time.time())
 
 
+def _trim_preview_cache(cache: Dict[str, Dict[str, Any]], max_entries: int) -> None:
+    try:
+        limit = max(0, int(max_entries))
+    except Exception:
+        limit = 0
+
+    for cache_key, entry in list(cache.items()):
+        if not isinstance(entry, dict) or not _urlscan_preview_cache_is_fresh(entry):
+            cache.pop(cache_key, None)
+
+    if limit <= 0:
+        cache.clear()
+        return
+
+    while len(cache) > limit:
+        oldest_key = next(iter(cache), None)
+        if oldest_key is None:
+            break
+        cache.pop(oldest_key, None)
+
+
+def _remember_preview_cache_entry(
+    cache: Dict[str, Dict[str, Any]],
+    cache_key: str,
+    entry: Dict[str, Any],
+    max_entries: int,
+) -> None:
+    if not cache_key or not isinstance(entry, dict):
+        return
+    cache.pop(cache_key, None)
+    cache[cache_key] = entry
+    _trim_preview_cache(cache, max_entries)
+
+
 def _normalize_screenshot_proxy_url(raw_url: Any) -> str:
     value = str(raw_url or "").strip()
     if not value:
@@ -5820,10 +6405,21 @@ def _load_urlscan_preview_cache(final_url: Any) -> Optional[Dict[str, Any]]:
         return None
     cached = _normalize_urlscan_preview_cache_entry(_URLSCAN_PREVIEW_CACHE.get(cache_key))
     if cached:
+        _remember_preview_cache_entry(
+            _URLSCAN_PREVIEW_CACHE,
+            cache_key,
+            cached,
+            URLSCAN_PREVIEW_CACHE_MAX_ENTRIES,
+        )
         return cached
     persisted = _normalize_urlscan_preview_cache_entry(supabase_store.load_urlscan_preview_cache(cache_key))
     if persisted:
-        _URLSCAN_PREVIEW_CACHE[cache_key] = persisted
+        _remember_preview_cache_entry(
+            _URLSCAN_PREVIEW_CACHE,
+            cache_key,
+            persisted,
+            URLSCAN_PREVIEW_CACHE_MAX_ENTRIES,
+        )
     return persisted
 
 
@@ -5885,6 +6481,12 @@ def _load_fast_preview_cache(final_url: Any) -> Optional[Dict[str, Any]]:
     for cache_key in cache_keys:
         cached = _normalize_fast_preview_cache_entry(_FAST_PREVIEW_CACHE.get(cache_key))
         if cached:
+            _remember_preview_cache_entry(
+                _FAST_PREVIEW_CACHE,
+                cache_key,
+                cached,
+                FAST_PREVIEW_CACHE_MAX_ENTRIES,
+            )
             return cached
 
     persisted = None
@@ -5902,12 +6504,19 @@ def _load_fast_preview_cache(final_url: Any) -> Optional[Dict[str, Any]]:
             break
 
     if persisted:
-        _FAST_PREVIEW_CACHE[cache_keys[0]] = persisted
+        _remember_preview_cache_entry(
+            _FAST_PREVIEW_CACHE,
+            cache_keys[0],
+            persisted,
+            FAST_PREVIEW_CACHE_MAX_ENTRIES,
+        )
         if persisted_key:
-            _FAST_PREVIEW_CACHE[persisted_key] = persisted
-        if len(_FAST_PREVIEW_CACHE) > FAST_PREVIEW_CACHE_MAX_ENTRIES:
-            oldest_key = next(iter(_FAST_PREVIEW_CACHE))
-            _FAST_PREVIEW_CACHE.pop(oldest_key, None)
+            _remember_preview_cache_entry(
+                _FAST_PREVIEW_CACHE,
+                persisted_key,
+                persisted,
+                FAST_PREVIEW_CACHE_MAX_ENTRIES,
+            )
     return persisted
 
 
@@ -6000,10 +6609,12 @@ def _save_urlscan_preview_cache(entry: Dict[str, Any]) -> None:
             "brands": entry.get("brands") or [],
             "expires_at": int(time.time()) + URLSCAN_PREVIEW_CACHE_TTL_SECONDS,
         }
-        _URLSCAN_PREVIEW_CACHE[cache_key] = cache_entry
-        if len(_URLSCAN_PREVIEW_CACHE) > URLSCAN_PREVIEW_CACHE_MAX_ENTRIES:
-            oldest_key = next(iter(_URLSCAN_PREVIEW_CACHE))
-            _URLSCAN_PREVIEW_CACHE.pop(oldest_key, None)
+        _remember_preview_cache_entry(
+            _URLSCAN_PREVIEW_CACHE,
+            cache_key,
+            cache_entry,
+            URLSCAN_PREVIEW_CACHE_MAX_ENTRIES,
+        )
         supabase_store.save_urlscan_preview_cache(cache_entry)
 
 
@@ -6527,14 +7138,31 @@ def _pillar(status: str, *, required: bool = True, details: str = "", ref: Optio
 def _provider_pillar_from_summary(summary: Dict[str, Any], source_name: str) -> Dict[str, Any]:
     raw = summary.get(source_name)
     if not isinstance(raw, dict):
+        if not _provider_required_for_runtime(source_name):
+            return _pillar("not_required", required=False, details=f"{source_name} dezactivat sau neconfigurat.")
         return _pillar("pending", details=f"{source_name} asteapta scanarea.")
     status = _source_status(summary, source_name)
     consulted = bool(raw.get("consulted", False))
+    if not consulted and not _provider_required_for_runtime(source_name):
+        return _pillar("not_required", required=False, details=f"{source_name} dezactivat sau neconfigurat.")
     if consulted and status not in {"missing", "unknown", "error"}:
         return _pillar("ok", details=status)
     if status == "error":
         return _pillar("error", details=str(raw.get("error") or raw.get("details") or "provider error"))
     return _pillar("pending" if not consulted else "error", details=status or "unknown")
+
+
+def _provider_required_for_runtime(source_name: str) -> bool:
+    if PRIVACY_SAFE_MODE:
+        return False
+    normalized = str(source_name or "").strip().lower()
+    if normalized == "google_web_risk":
+        return _env_present("GOOGLE_WEB_RISK_API_KEY")
+    if normalized == "phishing_database":
+        return os.getenv("ENABLE_PHISHING_DATABASE", "true").strip().lower() in {"1", "true", "yes", "on"}
+    if normalized == "asf_investor_alerts":
+        return os.getenv("ENABLE_ASF_INVESTOR_ALERTS", "true").strip().lower() in {"1", "true", "yes", "on"}
+    return True
 
 
 def _urlscan_scan_prevented(details: Any) -> bool:
@@ -7389,6 +8017,10 @@ def _orchestrated_result_is_final(job: Dict[str, Any], analysis: Dict[str, Any])
         return True
     if label != "UNVERIFIED":
         return False
+    decision_bundle = evidence.get("decision_bundle") if isinstance(evidence.get("decision_bundle"), dict) else {}
+    bundle_input = decision_bundle.get("input") if isinstance(decision_bundle.get("input"), dict) else {}
+    if bundle_input.get("type") == "invoice":
+        return True
     has_url_context = bool(job.get("urls")) or bool(job.get("resolved_urls"))
     if not has_url_context:
         provider_gate = evidence.get("provider_gate") if isinstance(evidence.get("provider_gate"), dict) else {}
@@ -7634,7 +8266,15 @@ async def _submit_orchestrated_urlscan_preview_once(job: Dict[str, Any], request
         has_ready_visual = preview.get("status") == "ready" and bool(
             preview.get("image_url") or preview.get("screenshot_url")
         )
-        if not has_ready_visual:
+        submitted_status = str(submitted_urlscan.get("status") or "").strip().lower()
+        if submitted_status in {"error", "timeout", "rate_limited", "skipped"} and not has_ready_visual:
+            preview["status"] = "unavailable"
+            preview["source"] = None
+            preview["screenshot_url"] = None
+            preview["image_url"] = None
+            preview["reason"] = "preview_unavailable"
+            preview["details"] = str(submitted_urlscan.get("details") or submitted_status)
+        elif not has_ready_visual:
             preview["status"] = "pending"
             preview["source"] = "urlscan"
             preview["screenshot_url"] = None
@@ -8029,6 +8669,44 @@ async def _run_orchestrated_fast_lane(job: Dict[str, Any], request: Request) -> 
     return job
 
 
+def _invoice_payment_destination_for_client(
+    result: Any,
+    invoice_gate: Optional[Dict[str, Any]] = None,
+) -> Optional[Dict[str, Any]]:
+    raw = getattr(result, "payment_destination", None) if result else None
+    payload = dict(raw) if isinstance(raw, dict) else None
+    bundle = invoice_gate.get("bundle") if isinstance(invoice_gate, dict) else None
+    providers = bundle.get("providers") if isinstance(bundle, dict) else {}
+    evidence_payment = providers.get("payment_destination") if isinstance(providers, dict) else None
+    if isinstance(evidence_payment, dict):
+        promotes_destination = bool(
+            evidence_payment.get("matched") is True
+            or evidence_payment.get("can_contribute_to_safe") is True
+            or evidence_payment.get("trust_tier") == "T2_OFFICIAL_DOCUMENT_CHAIN"
+        )
+        if promotes_destination or payload is None:
+            payload = {**(payload or {}), **evidence_payment}
+    if not isinstance(payload, dict):
+        return None
+
+    trust_tier = str(payload.get("trust_tier") or "")
+    if not payload.get("display"):
+        if payload.get("can_contribute_to_safe") is True:
+            if trust_tier == "T2_OFFICIAL_DOCUMENT_CHAIN":
+                payload["display"] = "IBAN confirmat prin document oficial"
+            elif trust_tier in {"T0_PARTNER_SIGNED", "T1_PUBLIC_OFFICIAL"}:
+                payload["display"] = "IBAN publicat de furnizor într-o sursă oficială"
+            else:
+                payload["display"] = "Destinație de plată confirmată"
+        elif payload.get("brand_matches") is False or payload.get("cui_matches") is False:
+            payload["display"] = "IBAN asociat altei entități"
+        elif payload.get("matched") is False:
+            payload["display"] = "IBAN valid, dar destinație neconfirmată"
+        else:
+            payload["display"] = "Destinație verificată parțial"
+    return payload
+
+
 async def _run_orchestrated_invoice_fast_lane(job: Dict[str, Any], request: Request) -> Dict[str, Any]:
     from services.invoice_orchestrator import evaluate_invoice_verdict, scan_invoice
     from services.verdict_gate import verdict as reduce_verdict
@@ -8036,6 +8714,42 @@ async def _run_orchestrated_invoice_fast_lane(job: Dict[str, Any], request: Requ
     redacted_text = str(job.get("redacted_text") or "")
     invoice_analysis_text = str(job.get("invoice_analysis_text") or redacted_text)
     urls = job.get("urls") if isinstance(job.get("urls"), list) else []
+    resolved_urls: List[Dict[str, Any]] = []
+    external_intel_summary: Dict[str, Any] = {}
+    if urls:
+        resolved_urls = _timed_orchestrated_component(
+            job,
+            "invoice_fast_lane.resolve_urls",
+            lambda: _safe_scan_url_list([str(url) for url in urls if str(url).strip()]),
+        )
+        resolved_urls = _attach_initial_url_privacy(
+            resolved_urls,
+            job.get("extra_fields", {}).get("url_privacy")
+            if isinstance(job.get("extra_fields"), dict)
+            else None,
+        )
+        job["resolved_urls"] = resolved_urls
+        job.setdefault("extra_fields", {})["resolved_urls"] = resolved_urls
+        primary_entry = _select_primary_resolved_url(resolved_urls, {"claimed_brand": "Nespecificat"})
+        primary_final_url = _apply_primary_resolved_url(job, primary_entry)
+        if primary_final_url:
+            job = _apply_best_preview_cache_hit(job, primary_final_url)
+        threat_intel = _timed_orchestrated_component(
+            job,
+            "invoice_fast_lane.reputation",
+            lambda: _gather_external_intel_safe(
+                resolved_urls,
+                include_phishing_database=True,
+                include_urlhaus=True,
+                persist_partial=False,
+            ),
+        )
+        external_intel_summary = _timed_orchestrated_component(
+            job,
+            "invoice_fast_lane.reputation_summary",
+            lambda: _external_intel_summary_from_threat_intel(threat_intel),
+        )
+        job["threat_intel"] = threat_intel
     _set_orchestrated_stage(job, "invoice_parse")
     try:
         result = await _timed_orchestrated_component(
@@ -8190,6 +8904,19 @@ async def _run_orchestrated_invoice_fast_lane(job: Dict[str, Any], request: Requ
         semantic_section = bundle.get("semantic_review") or semantic_section
     except Exception:
         gate_result = reduce_verdict(bundle)
+    if _has_bad_provider_verdict(external_intel_summary) and str(gate_result.get("label") or "").upper() != "DANGEROUS":
+        gate_result = {
+            "label": "DANGEROUS",
+            "risk_level": "high",
+            "risk_score": 90,
+            "reason_codes": ["provider_malicious"],
+            "confidence": 95,
+            "is_final": True,
+        }
+    invoice_client_payment_destination = _invoice_payment_destination_for_client(
+        result,
+        {"bundle": bundle, "gate": gate_result},
+    )
 
     # Build analysis dict compatible with the existing contract.
     analysis: Dict[str, Any] = {
@@ -8223,7 +8950,7 @@ async def _run_orchestrated_invoice_fast_lane(job: Dict[str, Any], request: Requ
                     "iban_matches": iban_matches,
                     "impersonation_risk": impersonation_risk,
                 },
-                "payment_destination": getattr(result, "payment_destination", None) if result else None,
+                "payment_destination": invoice_client_payment_destination,
                 "beneficiary_name_check": getattr(result, "beneficiary_name_check", None) if result else None,
                 "anaf": {
                     "checked": anaf.get("checked"),
@@ -8254,6 +8981,8 @@ async def _run_orchestrated_invoice_fast_lane(job: Dict[str, Any], request: Requ
             },
         },
     }
+    if external_intel_summary:
+        analysis.setdefault("evidence", {})["external_intel_summary"] = external_intel_summary
 
     provider_gate = {
         "version": "verdict_gate_v2",
@@ -9318,6 +10047,7 @@ async def extract_image_for_orchestration(
         max_bytes=MAX_IMAGE_BYTES,
         allowed_exts=ALLOWED_IMAGE_EXTS,
         allowed_mime_types=ALLOWED_IMAGE_MIME_TYPES,
+        magic_validator=_is_allowed_image_bytes,
     )
 
     ocr_text, ocr_warning = await extract_text_for_scan(
@@ -9706,6 +10436,7 @@ async def scan_invoice_endpoint(
             max_bytes=MAX_IMAGE_BYTES,
             allowed_exts=ALLOWED_IMAGE_EXTS,
             allowed_mime_types=ALLOWED_IMAGE_MIME_TYPES,
+            magic_validator=_is_allowed_image_bytes,
         )
         ocr_text, ocr_warning = await extract_text_for_scan(
             filename=filename,
@@ -9745,6 +10476,7 @@ async def scan_invoice_endpoint(
             }
         result = with_official_document_check(result, official_document_check)
     invoice_gate = evaluate_invoice_verdict(result, result.raw_text, source_channel=source_channel)
+    client_payment_destination = _invoice_payment_destination_for_client(result, invoice_gate)
 
     response = {
         "source_type": source_type,
@@ -9789,7 +10521,7 @@ async def scan_invoice_endpoint(
             "iban_matches": result.brand_match.iban_matches,
             "impersonation_risk": result.brand_match.impersonation_risk,
         } if result.brand_match else None,
-        "payment_destination": result.payment_destination,
+        "payment_destination": client_payment_destination,
         "beneficiary_name_check": result.beneficiary_name_check,
         "official_document_check": official_document_check,
         "anaf": result.anaf_cui_check,

@@ -116,6 +116,37 @@ def test_cloud_run_deploy_enables_play_integrity_monitor_rollout():
 
     assert "PLAY_INTEGRITY_MODE=monitor" in script
     assert "PLAY_INTEGRITY_MODE=enforce" not in script
+    assert "PLAY_INTEGRITY_CREDENTIALS_JSON=play-integrity-credentials-json:latest" in script
+    assert "UPSTASH_REDIS_REST_URL=upstash-redis-rest-url:latest" in script
+    assert "UPSTASH_REDIS_REST_TOKEN=upstash-redis-rest-token:latest" in script
+
+
+def test_cloud_run_deploy_fails_closed_on_rate_limit_backend_errors():
+    script = (ROOT_DIR / "tools" / "deploy_cloud_run_backend.sh").read_text(encoding="utf-8")
+
+    assert "ENABLE_RATE_LIMIT=true" in script
+    assert "RATE_LIMIT_FAIL_CLOSED=true" in script
+
+
+def test_cloud_run_deploy_enables_asf_investor_alerts_provider():
+    script = (ROOT_DIR / "tools" / "deploy_cloud_run_backend.sh").read_text(encoding="utf-8")
+
+    assert "ENABLE_ASF_INVESTOR_ALERTS=true" in script
+
+
+def test_cloud_run_deploy_preserves_paid_intel_budget_guards():
+    script = (ROOT_DIR / "tools" / "deploy_cloud_run_backend.sh").read_text(encoding="utf-8")
+
+    assert "OPENAPI_RO_MONTHLY_BUDGET=100" in script
+    assert "HUNTER_IO_MONTHLY_BUDGET=50" in script
+    assert "HUNTER_IO_API_KEY=hunter-io-api-key:latest" in script
+
+
+def test_env_example_documents_paid_intel_budget_guards():
+    env_example = (ROOT_DIR / "backend" / ".env.example").read_text(encoding="utf-8")
+
+    assert "OPENAPI_RO_MONTHLY_BUDGET=100" in env_example
+    assert "HUNTER_IO_MONTHLY_BUDGET=50" in env_example
 
 
 def test_cloud_run_deploy_enables_asf_investor_alerts_provider():
@@ -172,6 +203,32 @@ def test_backend_ci_installs_pytest_before_running_backend_tests():
     assert "python -m pip install -r requirements.txt" in install_block
     assert "python -m pip install pytest pytest-asyncio" in install_block
     assert "python -m pytest -q" in workflow
+
+
+def test_backend_ci_guards_tracked_local_secrets_before_tests():
+    workflow = (ROOT_DIR / ".github" / "workflows" / "backend-ci.yml").read_text(
+        encoding="utf-8"
+    )
+    guard_index = workflow.index("python tools/guard_no_tracked_secrets.py")
+    install_index = workflow.index("- name: Install backend dependencies")
+
+    assert guard_index < install_index
+
+
+def test_tracked_secret_guard_blocks_local_secret_filenames():
+    module = _load_module(
+        ROOT_DIR / "tools" / "guard_no_tracked_secrets.py",
+        "guard_no_tracked_secrets_test",
+    )
+
+    assert module._is_denied_tracked_path("backend/.env.vercel")
+    assert module._is_denied_tracked_path("local.properties")
+    assert module._is_denied_tracked_path("keystore.properties")
+    assert module._is_denied_tracked_path("release/upload.jks")
+    assert module._is_denied_tracked_path("google-service-account.json")
+    assert not module._is_denied_tracked_path("backend/.env.example")
+    assert not module._is_denied_tracked_path("workers/precapture/.env.example")
+    assert not module._is_denied_tracked_path("tools/audit_android_release_secrets.py")
 
 
 def test_supabase_logical_backup_workflow_is_scheduled_and_private_artifact():

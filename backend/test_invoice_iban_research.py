@@ -159,6 +159,16 @@ class TestNegativeIbanRegistry:
 
 
 class TestInvoiceFraudSignals:
+    def test_purchase_order_reference_is_not_overpayment_return_signal(self):
+        from services.b2b_invoice_signals import evaluate_b2b_invoice_signals
+
+        result = evaluate_b2b_invoice_signals(
+            "Va rugam sa regasiti factura pentru livrarea de materiale conform comenzii dvs. "
+            "nr. PO-778. IBAN: RO75RNCB0000000000000001."
+        )
+
+        assert "PO_OR_OVERPAYMENT_RETURN_REQUEST" not in result.flags
+
     @pytest.mark.asyncio
     async def test_person_beneficiary_on_company_invoice_is_flagged(self):
         result = await scan_invoice(
@@ -187,11 +197,219 @@ class TestInvoiceFraudSignals:
         assert verdict["gate"]["label"] == "DANGEROUS"
 
     @pytest.mark.asyncio
+    async def test_account_change_plus_urgent_new_iban_is_dangerous_without_foreign_iban(self):
+        from services.invoice_orchestrator import evaluate_invoice_verdict
+
+        result = await scan_invoice(
+            "Bună ziua, atașăm factura actualizată pentru comanda curentă. "
+            "Contul nostru bancar s-a schimbat din cauza migrării la noua bancă. "
+            "Vă rugăm folosiți exclusiv noul IBAN RO00TEST0000000000000001 și ignorați datele vechi. "
+            "Plata trebuie făcută în 24h."
+        )
+        verdict = evaluate_invoice_verdict(result, result.raw_text, source_channel="email_invoice")
+
+        assert {"ACCOUNT_CHANGE_LANGUAGE", "PAYMENT_PRESSURE"} <= set(result.fraud_flags)
+        assert verdict["bundle"]["semantic_review"]["risk_class"] == "high"
+        assert verdict["gate"]["label"] == "DANGEROUS"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("text", "expected_flag"),
+        [
+            (
+                "Factura pentru publicarea mărcii în catalogul internațional al proprietății industriale. "
+                "Plata trebuie făcută către operatorul privat; OSIM va actualiza dosarul după confirmare.",
+                "OSIM_TRADEMARK_FEE_UNOFFICIAL_SENDER",
+            ),
+            (
+                "Oferim linie de credit rapidă pentru IMM. Dosarul a fost aprobat, dar trebuie achitată "
+                "taxa de analiză 450 lei în contul consultantului. Trimiteți CI administrator și certificat ONRC.",
+                "REGULATED_FINANCE_ADVANCE_FEE_OR_ID_REQUEST",
+            ),
+            (
+                "Pannonix: cont corporate activat pentru investiții. Atașăm proforma pentru depunerea inițială "
+                "și comisionul de platformă. După plată primiți acces la dashboard-ul de trading.",
+                "REGULATED_FINANCE_ADVANCE_FEE_OR_ID_REQUEST",
+            ),
+            (
+                "DHL România: factura vamală este disponibilă, dar plata se face doar prin card aici.",
+                "COURIER_CUSTOMS_OR_ADDRESS_FEE_PAYMENT",
+            ),
+            (
+                "Ați fost selectat pentru grant nerambursabil IMM. Pentru rezervarea liniei de finanțare "
+                "achitați taxa de dosar 690 lei în 24h.",
+                "GRANT_CONSULTING_FEE_BEFORE_CONTRACT",
+            ),
+            (
+                "Cumpărătorul corporate a trimis ordin de plată mai mare decât proforma. "
+                "Vă rugăm virați diferența către transportator.",
+                "PO_OR_OVERPAYMENT_RETURN_REQUEST",
+            ),
+            (
+                "HR: atașat lista conturilor noi de salarii pentru angajați. "
+                "Confirmați modificarea până la payroll cutoff.",
+                "PAYROLL_OR_EMPLOYEE_DATA_REQUEST_VIA_INVOICE_THREAD",
+            ),
+            (
+                "Microsoft 365 Audit: licențele firmei sunt neconforme. "
+                "Plătiți taxa de audit și instalați aplicația de suport.",
+                "SAAS_LICENSE_AUDIT_URGENT_PAYMENT",
+            ),
+        ],
+    )
+    async def test_high_risk_b2b_text_patterns_are_dangerous(self, text, expected_flag):
+        from services.invoice_orchestrator import evaluate_invoice_verdict
+
+        result = await scan_invoice(text)
+        verdict = evaluate_invoice_verdict(result, result.raw_text, source_channel="email_invoice")
+
+        assert expected_flag in result.fraud_flags
+        assert verdict["bundle"]["semantic_review"]["risk_class"] == "high"
+        assert verdict["gate"]["label"] == "DANGEROUS"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("text", "expected_flag"),
+        [
+            (
+                "Bună ziua, atașăm factura actualizată pentru comanda curentă. "
+                "Contul nostru bancar s-a schimbat din cauza migrării la noua bancă. "
+                "Vă rugăm folosiți exclusiv noul IBAN RO00TEST0000000000000002 și ignorați datele vechi. "
+                "Plata trebuie făcută înainte de închiderea lunii.",
+                "BEC_EXCLUSIVE_NEW_IBAN_WITH_OLD_DETAILS_SUPPRESSION",
+            ),
+            (
+                "Re: Comanda 1201/2026 — am atașat factura finală. Am observat că în proforma trimisă anterior "
+                "era contul vechi. Contabilitatea solicită plata în IBAN-ul nou RO00TESTTHREAD0001. "
+                "Restul datelor rămân neschimbate.",
+                "BEC_INVOICE_THREAD_IBAN_CHANGE",
+            ),
+            (
+                "ANAF e-Factura: aveți facturi respinse și penalizare iminentă. Descărcați notificarea "
+                "și achitați taxa de reactivare aici: https://anaf-efactura-spv.test/login",
+                "TAX_AUTHORITY_PAYMENT_REQUEST_UNOFFICIAL_CHANNEL",
+            ),
+            (
+                "Ministerul Finanțelor: factura electronică nu a fost transmisă. "
+                "Plătiți regularizarea în 6 ore pentru a evita amendă.",
+                "TAX_AUTHORITY_PAYMENT_REQUEST_UNOFFICIAL_CHANNEL",
+            ),
+            (
+                "ANAF Popriri: evitați poprirea contului firmei prin plata urgentă a sumei către IBAN-ul indicat în PDF.",
+                "TAX_AUTHORITY_PAYMENT_REQUEST_UNOFFICIAL_CHANNEL",
+            ),
+        ],
+    )
+    async def test_high_risk_bec_and_tax_authority_patterns_are_dangerous(self, text, expected_flag):
+        from services.invoice_orchestrator import evaluate_invoice_verdict
+
+        result = await scan_invoice(text)
+        verdict = evaluate_invoice_verdict(result, result.raw_text, source_channel="email_invoice")
+
+        assert expected_flag in result.fraud_flags
+        assert verdict["bundle"]["semantic_review"]["risk_class"] == "high"
+        assert verdict["gate"]["label"] == "DANGEROUS"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("text", "expected_flag"),
+        [
+            (
+                "ANAF: contul SPV al firmei este suspendat. Pentru reactivare completați CUI, CNP administrator și date card.",
+                "TAX_AUTHORITY_SENSITIVE_DATA_REQUEST",
+            ),
+            (
+                "Ofertă credit capital de lucru: primul pas este instalarea aplicației de suport pentru verificarea conturilor bancare.",
+                "REGULATED_FINANCE_ADVANCE_FEE_OR_ID_REQUEST",
+            ),
+            (
+                "Platformă investiții pentru firme: factura de activare cont corporate este scadentă azi, profit estimat 8% lunar.",
+                "REGULATED_FINANCE_ADVANCE_FEE_OR_ID_REQUEST",
+            ),
+            (
+                "Refinanțare facturi restante: pentru deblocare transferați 990 lei către contul de procesare, apoi primiți oferta finală.",
+                "REGULATED_FINANCE_ADVANCE_FEE_OR_ID_REQUEST",
+            ),
+            (
+                "FAN: pentru recuperare acces selfAWB introduceți codul WhatsApp primit prin SMS.",
+                "COURIER_OTP_OR_WHATSAPP_CODE_REQUEST",
+            ),
+            (
+                "Poșta: taxă livrare firmă — plata online este obligatorie pentru ridicare.",
+                "COURIER_CUSTOMS_OR_ADDRESS_FEE_PAYMENT",
+            ),
+            (
+                "FAN: cod ridicare locker business. Dacă nu introduceți codul WhatsApp, coletul se returnează.",
+                "COURIER_OTP_OR_WHATSAPP_CODE_REQUEST",
+            ),
+        ],
+    )
+    async def test_remaining_round3_b2b_scam_patterns_are_dangerous(self, text, expected_flag):
+        from services.invoice_orchestrator import evaluate_invoice_verdict
+
+        result = await scan_invoice(text)
+        verdict = evaluate_invoice_verdict(result, result.raw_text, source_channel="email_invoice")
+
+        assert expected_flag in result.fraud_flags
+        assert verdict["bundle"]["semantic_review"]["risk_class"] == "high"
+        assert verdict["gate"]["label"] == "DANGEROUS"
+
+    @pytest.mark.asyncio
+    async def test_efactura_claim_approving_updated_iban_is_dangerous(self):
+        from services.invoice_orchestrator import evaluate_invoice_verdict
+
+        result = await scan_invoice(
+            "e-Factura validată: plata către contul nou al furnizorului este aprobată de ANAF, "
+            "folosiți IBAN-ul actualizat din PDF."
+        )
+        verdict = evaluate_invoice_verdict(result, result.raw_text, source_channel="email_invoice")
+
+        assert "TAX_AUTHORITY_APPROVES_UPDATED_IBAN" in result.fraud_flags
+        assert verdict["gate"]["label"] == "DANGEROUS"
+
+    @pytest.mark.asyncio
+    async def test_courier_official_tracking_warning_does_not_request_whatsapp_code(self):
+        from services.invoice_orchestrator import evaluate_invoice_verdict
+
+        result = await scan_invoice(
+            "FAN tracking oficial accesat manual pe fancourier.ro/awb-tracking, "
+            "fără cerere de card, CVC sau cod WhatsApp."
+        )
+        verdict = evaluate_invoice_verdict(result, result.raw_text, source_channel="android_native")
+
+        assert "COURIER_OTP_OR_WHATSAPP_CODE_REQUEST" not in result.fraud_flags
+        assert verdict["gate"]["label"] != "DANGEROUS"
+
+    @pytest.mark.asyncio
+    async def test_known_brand_without_payment_identity_is_not_automatic_dangerous(self):
+        from services.invoice_orchestrator import evaluate_invoice_verdict
+
+        result = await scan_invoice(
+            "FAN Courier: Coletul cu AWB 9876543210 a fost predat. Livrare cu plata ramburs 45 RON. "
+            "Nu accesati linkuri false care solicita date bancare in numele FAN Courier. "
+            "Verificati statusul doar pe fancourier.ro sau in aplicatia oficiala."
+        )
+        verdict = evaluate_invoice_verdict(result, result.raw_text, source_channel="email_invoice")
+
+        assert verdict["gate"]["label"] != "DANGEROUS"
+
+    @pytest.mark.asyncio
     async def test_clean_card_payment_phrase_is_not_sensitive_data_request(self):
         result = await scan_invoice(
             "Factura fiscala SC REAL SRL CUI RO12345678\n"
             "IBAN RO49AAAA1B31007593840000\n"
             "Total 119 RON. Plata cu cardul pe portal sau virament bancar."
+        )
+
+        assert "SENSITIVE_DATA_REQUESTED" not in result.fraud_flags
+
+    @pytest.mark.asyncio
+    async def test_negated_card_data_warning_is_not_sensitive_data_request(self):
+        result = await scan_invoice(
+            "Buna ziua,\n"
+            "Factura nr. 6677/20.06.2026 in valoare de 3.330 RON pentru servicii de audit financiar.\n"
+            "IBAN: RO11UNIR0000000000000001\n"
+            "Nu da datele cardului la telefon."
         )
 
         assert "SENSITIVE_DATA_REQUESTED" not in result.fraud_flags
@@ -344,7 +562,7 @@ class TestInvoiceChannelProvenance:
         assert whatsapp["gate"]["label"] != "DANGEROUS"
 
     @pytest.mark.asyncio
-    async def test_active_company_with_unconfirmed_payment_iban_is_safe_with_bank_check_guidance(self):
+    async def test_active_company_with_unconfirmed_payment_iban_is_suspect_with_bank_check_guidance(self):
         from services.anaf_cui import CuiResult
         from services.invoice_orchestrator import evaluate_invoice_verdict
 
@@ -377,5 +595,5 @@ class TestInvoiceChannelProvenance:
         assert verdict["bundle"]["identity"]["status"] == "coherent"
         assert result.beneficiary_name_check is not None
         assert result.beneficiary_name_check["recommended"] is True
-        assert verdict["gate"]["label"] == "SAFE"
-        assert verdict["gate"]["reason_codes"] == ["positive_provenance_clean"]
+        assert verdict["gate"]["label"] == "SUSPECT"
+        assert "value_request_needs_verification" in verdict["gate"]["reason_codes"]

@@ -13,6 +13,7 @@ UPSTASH_TIMEOUT_SECONDS = float(os.getenv("UPSTASH_TIMEOUT_SECONDS", "1.5"))
 
 _memory_lock = threading.Lock()
 _memory_counts: dict[tuple[str, str], int] = {}
+_LOCAL_USAGE = _memory_counts
 
 
 @dataclass(frozen=True)
@@ -42,13 +43,46 @@ def consume_monthly_budget(
     limit: int,
     now: Optional[datetime] = None,
 ) -> ProviderBudgetDecision:
+    return _consume_budget_for_period(provider, _monthly_period(now), limit, now=now)
+
+
+def try_consume_monthly_budget(
+    provider: str,
+    *,
+    env_name: str,
+    default_limit: int,
+    month_key: Optional[str] = None,
+) -> bool:
+    decision = _consume_budget_for_period(
+        provider,
+        month_key or _monthly_period(),
+        monthly_limit_from_env(env_name, default_limit),
+    )
+    return decision.allowed
+
+
+def reset_memory_budgets() -> None:
+    with _memory_lock:
+        _memory_counts.clear()
+
+
+def _consume_budget_for_period(
+    provider: str,
+    period: str,
+    limit: int,
+    *,
+    now: Optional[datetime] = None,
+) -> ProviderBudgetDecision:
     safe_provider = "".join(ch if ch.isalnum() or ch in {"_", "-"} else "_" for ch in provider.strip().lower())
-    period = _monthly_period(now)
     safe_limit = max(0, int(limit or 0))
     if not safe_provider:
         return ProviderBudgetDecision(False, provider, period, 0, safe_limit, "invalid", "invalid_provider")
     if safe_limit <= 0:
         return ProviderBudgetDecision(False, safe_provider, period, 0, safe_limit, "disabled", "budget_disabled")
+
+    supabase_decision = _consume_supabase_budget(safe_provider, period, safe_limit)
+    if supabase_decision is not None:
+        return supabase_decision
 
     if _upstash_configured():
         try:
@@ -59,16 +93,34 @@ def consume_monthly_budget(
     return _consume_memory_budget(safe_provider, period, safe_limit)
 
 
-def reset_memory_budgets() -> None:
-    with _memory_lock:
-        _memory_counts.clear()
-
-
 def _monthly_period(now: Optional[datetime] = None) -> str:
     candidate = now or datetime.now(timezone.utc)
     if candidate.tzinfo is None:
         candidate = candidate.replace(tzinfo=timezone.utc)
     return candidate.astimezone(timezone.utc).strftime("%Y-%m")
+
+
+def _consume_supabase_budget(provider: str, period: str, limit: int) -> ProviderBudgetDecision | None:
+    try:
+        from services import supabase_store
+
+        if not supabase_store.is_supabase_enabled():
+            return None
+        allowed = supabase_store.try_consume_provider_budget(provider, period, limit)
+        if allowed is True:
+            return ProviderBudgetDecision(True, provider, period, 0, limit, "supabase")
+        if allowed is False:
+            return ProviderBudgetDecision(False, provider, period, limit, limit, "supabase", "budget_exhausted")
+        return ProviderBudgetDecision(False, provider, period, 0, limit, "supabase", "budget_store_error")
+    except Exception:
+        try:
+            from services import supabase_store
+
+            if supabase_store.is_supabase_enabled():
+                return ProviderBudgetDecision(False, provider, period, 0, limit, "supabase", "budget_store_error")
+        except Exception:
+            pass
+        return None
 
 
 def _upstash_configured() -> bool:

@@ -117,7 +117,7 @@ _ACCOUNT_CHANGE_RE = re.compile(
     re.IGNORECASE,
 )
 _PRESSURE_RE = re.compile(
-    r"(astazi|imediat|in\s*24\s*(de\s*)?ore|ultima\s+zi|chiar\s+acum|de\s+urgenta|"
+    r"(astazi|imediat|(?:in|în)\s*24\s*(?:h|ore|de\s*ore)?|\b24\s*h\b|ultima\s+zi|chiar\s+acum|de\s+urgenta|"
     r"altfel\s+(se\s+)?(suspend|debrans|deconect|pierde|anuleaz|sista)|debransare|"
     r"deconectare|executare\s+silita|poprire|pierdeti\s+comanda|risc(ati)?\s+(suspendare|debransare)|"
     r"evita(?:ti)?\s+(?:suspendarea|deconectarea|debransarea|penalizarile|blocarea))",
@@ -139,6 +139,15 @@ B2B_HIGH_RISK_FLAGS = {
     "EFACTURA_OFFICIAL_DOCUMENT_MISMATCH",
     "PAYMENT_DIVERSION_HOLD_INSTRUCTIONS",
     "IP_OFFICE_PAYMENT_REQUEST_UNOFFICIAL_CHANNEL",
+    "REGULATED_FINANCE_ADVANCE_FEE_OR_ID_REQUEST",
+    "COURIER_CUSTOMS_OR_ADDRESS_FEE_PAYMENT",
+    "GRANT_CONSULTING_FEE_BEFORE_CONTRACT",
+    "BEC_EXCLUSIVE_NEW_IBAN_WITH_OLD_DETAILS_SUPPRESSION",
+    "BEC_INVOICE_THREAD_IBAN_CHANGE",
+    "TAX_AUTHORITY_PAYMENT_REQUEST_UNOFFICIAL_CHANNEL",
+    "TAX_AUTHORITY_SENSITIVE_DATA_REQUEST",
+    "COURIER_OTP_OR_WHATSAPP_CODE_REQUEST",
+    "TAX_AUTHORITY_APPROVES_UPDATED_IBAN",
 }
 B2B_MEDIUM_RISK_FLAGS = {
     "REPLY_TO_MISMATCH",
@@ -147,10 +156,13 @@ B2B_MEDIUM_RISK_FLAGS = {
     "EFACTURA_OFFICIAL_DOCUMENT_UNREADABLE",
     "PAYMENT_LINK_UNKNOWN_PSP",
     "DOMAIN_RENEWAL_INVOICE_NO_EXISTING_VENDOR",
-    "GRANT_CONSULTING_FEE_BEFORE_CONTRACT",
     "NEW_VENDOR_PUBLIC_PROCUREMENT_FEE",
     "OFFICIAL_REGISTRY_CLAIM_BUT_NO_PROVENANCE",
 }
+_SENSITIVE_NEGATION_RE = re.compile(
+    r"\b(nu|niciodata|niciodată|fara|fără|nici\s+un)\b",
+    re.IGNORECASE,
+)
 
 
 def _txt_norm(text: str) -> str:
@@ -270,6 +282,17 @@ async def _check_cui_for_invoice(cui: str, *, allow_paid_fallback: bool):
         return await check_cui(cui)
 
 
+def _all_sensitive_hits_are_negated(text: str, pattern: re.Pattern) -> bool:
+    matches = list(pattern.finditer(text or ""))
+    if not matches:
+        return False
+    for match in matches:
+        window = (text or "")[max(0, match.start() - 90) : min(len(text or ""), match.end() + 20)]
+        if not _SENSITIVE_NEGATION_RE.search(window):
+            return False
+    return True
+
+
 def _detect_textual_b2b_flags(text: str, *, claimed_vendor: Optional[str] = None) -> tuple[list[str], list[str]]:
     flags: list[str] = []
     warnings: list[str] = []
@@ -284,7 +307,11 @@ def _detect_textual_b2b_flags(text: str, *, claimed_vendor: Optional[str] = None
     try:
         from services.offer_signals import CARD_CVV_OTP
 
-        if CARD_CVV_OTP.search(text or "") and "SENSITIVE_DATA_REQUESTED" not in flags:
+        if (
+            CARD_CVV_OTP.search(text or "")
+            and not _all_sensitive_hits_are_negated(text or "", CARD_CVV_OTP)
+            and "SENSITIVE_DATA_REQUESTED" not in flags
+        ):
             flags.append("SENSITIVE_DATA_REQUESTED")
             warnings.append("Factura cere date de card/CVV/OTP; nu completa și nu plăti.")
     except Exception:
@@ -379,6 +406,24 @@ def _build_beneficiary_name_check(
     }
 
 
+def _official_document_confirms_payment(check: Optional[dict]) -> bool:
+    if not check or check.get("provided") is not True:
+        return False
+    if check.get("status") != "match" or check.get("risk_flag"):
+        return False
+    matched_fields = set(check.get("matched_fields") or [])
+    high_value_fields = {"cui", "iban", "total"}
+    invoice_context_fields = {"nr_factura", "data_emitere", "scadenta"}
+    return high_value_fields <= matched_fields and bool(invoice_context_fields & matched_fields)
+
+
+def _mask_invoice_iban(value: Optional[str]) -> Optional[str]:
+    text = str(value or "").replace(" ", "").strip().upper()
+    if len(text) <= 8:
+        return text or None
+    return f"{text[:4]}...{text[-4:]}"
+
+
 def with_official_document_check(result: InvoiceScanResult, check: Optional[dict]) -> InvoiceScanResult:
     if not check or check.get("provided") is not True:
         return result
@@ -407,6 +452,7 @@ def with_official_document_check(result: InvoiceScanResult, check: Optional[dict
     return replace(
         result,
         official_document_check=check,
+        beneficiary_name_check=None if _official_document_confirms_payment(check) else result.beneficiary_name_check,
         fraud_flags=fraud_flags,
         warnings=warnings,
     )
@@ -769,6 +815,7 @@ def build_invoice_evidence_bundle(
     payment_destination = getattr(result, "payment_destination", None) or {}
     official_document_check = getattr(result, "official_document_check", None) or None
     email_domain_intel = getattr(result, "email_domain_intel", None) or None
+    official_document_confirms_payment = _official_document_confirms_payment(official_document_check)
     never_asks_result = {
         "brand_ids": [],
         "violated_never_asks": [],
@@ -789,12 +836,13 @@ def build_invoice_evidence_bundle(
     except Exception:
         pass
     violated_never_asks = list(never_asks_result.get("violated_never_asks") or [])
-    destination_trusted = bool(
+    registry_destination_trusted = bool(
         payment_destination.get("matched")
         and (payment_destination.get("brand_matches") is True or payment_destination.get("cui_matches") is True)
         and payment_destination.get("can_contribute_to_safe") is True
         and payment_destination.get("trust_tier") in {"T0_PARTNER_SIGNED", "T1_PUBLIC_OFFICIAL", "T2_OFFICIAL_DOCUMENT_CHAIN"}
     )
+    destination_trusted = bool(registry_destination_trusted or official_document_confirms_payment)
     destination_required = bool(
         getattr(result.fields, "iban", None)
         and payment_destination.get("registry_has_brand_destinations") is True
@@ -831,7 +879,36 @@ def build_invoice_evidence_bundle(
     )
     sensitive_requested = "SENSITIVE_DATA_REQUESTED" in fraud_flags
     remote_access_requested = "REMOTE_ACCESS_REQUEST" in fraud_flags
-    strong_bec_combo = "FOREIGN_IBAN" in fraud_flags and "ACCOUNT_CHANGE_LANGUAGE" in fraud_flags
+    has_identity_evidence = bool(
+        getattr(result.fields, "cui", None)
+        or getattr(result.fields, "iban", None)
+        or getattr(result.fields, "all_ibans", None)
+        or payment_destination
+    )
+    actionable_impersonation_risk = bool(
+        impersonation_risk
+        and (
+            has_identity_evidence
+            or beneficiary_mismatch
+            or destination_mismatch
+            or destination_required
+            or official_document_mismatch
+        )
+    )
+    has_iban_evidence = bool(getattr(result.fields, "iban", None) or getattr(result.fields, "all_ibans", None))
+    strong_bec_combo = (
+        "ACCOUNT_CHANGE_LANGUAGE" in fraud_flags
+        and has_iban_evidence
+        and not destination_trusted
+        and (
+            "FOREIGN_IBAN" in fraud_flags
+            or "PAYMENT_PRESSURE" in fraud_flags
+            or "REPLY_TO_MISMATCH" in fraud_flags
+            or "IBAN_CHANGED_VS_HISTORY" in fraud_flags
+            or "UNKNOWN_PAYMENT_DESTINATION" in fraud_flags
+            or (unknown_destination and not benign_unknown_destination)
+        )
+    )
     b2b_high_risk = bool(B2B_HIGH_RISK_FLAGS & set(fraud_flags)) or (
         "REPLY_TO_MISMATCH" in fraud_flags
         and ("ACCOUNT_CHANGE_LANGUAGE" in fraud_flags or "IBAN_CHANGED_VS_HISTORY" in fraud_flags)
@@ -918,7 +995,7 @@ def build_invoice_evidence_bundle(
                 "reasons": ["IBAN oficial pentru alt furnizor"],
                 "iban_masked_for_client": payment_destination.get("iban_masked_for_client"),
             }
-        elif destination_trusted:
+        elif registry_destination_trusted:
             provider_section["payment_destination"] = {
                 "status": "clean",
                 "verdict": "clean",
@@ -948,6 +1025,24 @@ def build_invoice_evidence_bundle(
             "matched_fields": official_document_check.get("matched_fields") or [],
             "mismatches": official_document_check.get("mismatches") or [],
         }
+    if official_document_confirms_payment:
+        matched_fields = set(official_document_check.get("matched_fields") or [])
+        provider_section["payment_destination"] = {
+            "status": "clean",
+            "verdict": "clean",
+            "trust_tier": "T2_OFFICIAL_DOCUMENT_CHAIN",
+            "source_kind": "official_efactura_xml",
+            "matched": True,
+            "brand_matches": None,
+            "cui_matches": "cui" in matched_fields,
+            "can_contribute_to_safe": True,
+            "reasons": ["IBAN-ul, CUI-ul și totalul se potrivesc cu XML-ul e-Factura furnizat."],
+            "iban_masked_for_client": (
+                payment_destination.get("iban_masked_for_client")
+                or _mask_invoice_iban(getattr(result.fields, "iban", None))
+            ),
+            "matched_fields": sorted(matched_fields),
+        }
 
     if beneficiary_mismatch:
         identity_status = "lookalike"
@@ -955,9 +1050,12 @@ def build_invoice_evidence_bundle(
     elif destination_mismatch:
         identity_status = "lookalike"
         identity_reason = "Destinația de plată aparține altui furnizor"
-    elif impersonation_risk:
+    elif actionable_impersonation_risk:
         identity_status = "lookalike"
         identity_reason = "CUI/IBAN nealiniat cu brandul declarat"
+    elif official_document_confirms_payment:
+        identity_status = "official"
+        identity_reason = "Factura scanată se potrivește cu XML-ul e-Factura furnizat explicit"
     elif destination_trusted and (
         payment_destination.get("brand_matches") is True
         or payment_destination.get("cui_matches") is True
@@ -1032,7 +1130,7 @@ def build_invoice_evidence_bundle(
         semantic_risk = "medium"
         semantic_reasons.append("Semnal de fraudă pe destinația plății")
     if (
-        impersonation_risk
+        actionable_impersonation_risk
         or beneficiary_mismatch
         or destination_mismatch
         or strong_bec_combo

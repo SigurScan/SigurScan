@@ -31,6 +31,9 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Guard tracked local secrets
+        run: python tools/guard_no_tracked_secrets.py
+
       - name: Install backend dependencies
         working-directory: backend
         run: |
