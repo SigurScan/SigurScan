@@ -4890,7 +4890,23 @@ def _social_engineering_signal_for_decision_bundle(
     elif sensitive == "transfer":
         add_ask("transfer")
 
-    if _se_pattern(text, r"\b(suna(?:ti|ți)?[-\s]?ne|suna(?:ti|ți)?\s+(?:urgent|acum|la)|reveni(?:ti|ți)\s+telefonic|r[ăa]m(?:a|â)ne(?:ti|ți)?\s+pe\s+(?:linie|fir)|nu\s+[îi]nchide(?:ti|ți)?)\b"):
+    # Attacker-directed callback always counts; a generic "suna la <numar>" counts
+    # only when it is NOT self-directed legitimate verification ("suna la numarul
+    # de pe spatele cardului", "deschide aplicatia", "numarul oficial / din
+    # contract") — that guidance is the X2 twin discriminator for real bank alerts.
+    strong_callback = _se_pattern(
+        text,
+        r"\b(suna(?:ti|ți)?[-\s]?ne|suna(?:ti|ți)?\s+(?:urgent|acum)|reveni(?:ti|ți)\s+telefonic|"
+        r"r[ăa]m(?:a|â)ne(?:ti|ți)?\s+pe\s+(?:linie|fir)|nu\s+[îi]nchide(?:ti|ți)?)\b",
+    )
+    generic_callback = _se_pattern(text, r"\bsuna(?:ti|ți)?\s+la\b")
+    self_directed_verification = _se_pattern(
+        text,
+        r"\b(num[ăa]r(?:ul)?\s+(?:de\s+pe\s+(?:spatele\s+)?card(?:ului)?|oficial|din\s+contract)|"
+        r"de\s+pe\s+spatele\s+card(?:ului)?|de\s+pe\s+site-?ul\s+oficial|"
+        r"deschide(?:ti|ți)?\s+aplica[țt]ia|din\s+aplica[țt]ia)\b",
+    )
+    if strong_callback or (generic_callback and not self_directed_verification):
         add_ask("callback")
     if _se_pattern(text, r"\b(anydesk|teamviewer|rustdesk|remote\s+access|control\s+la\s+distan[țt][ăa]|instaleaz[ăa].{0,30}(?:aplica[țt]ia|apk))\b"):
         add_ask("remote_install")
