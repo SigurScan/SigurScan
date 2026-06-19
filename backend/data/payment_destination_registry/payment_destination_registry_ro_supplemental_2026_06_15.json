@@ -1275,11 +1275,8 @@
     {
       "brand_id": "groupama",
       "display_name": "Groupama Asigurări",
-      "legal_name": "Groupama Asigurări",
-      "cui": {
-        "value": null,
-        "source_url": null
-      },
+      "legal_name": "Groupama Asigurări S.A.",
+      "cui": "6291812",
       "category": "insurance",
       "collects_via": "fixed_public_ibans|online_card|numar_polita|cod_referinta",
       "source_report": "raport-cercetare-aprofundată (7).md",

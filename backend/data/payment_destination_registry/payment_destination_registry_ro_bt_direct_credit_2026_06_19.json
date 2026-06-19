@@ -1,0 +1,23 @@
+{
+  "version": "pdr-ro-bt-direct-credit-2026.06.19",
+  "generated_at": "2026-06-19T00:00:00Z",
+  "purpose": "Banca Transilvania BT Direct credit payment IBAN from official FAQ",
+  "rules": { "entry_lifetime_days": 365, "reverify_interval_days": 180, "min_confidence_to_contribute_to_safe": "high" },
+  "trust_tiers": { "T1_PUBLIC_OFFICIAL": "IBAN published on official company FAQ" },
+  "entries": [
+    {
+      "brand_id": "banca_transilvania",
+      "display_name": "Banca Transilvania S.A.",
+      "legal_name": "Banca Transilvania S.A.",
+      "cui": "5022670",
+      "category": "banking",
+      "official_payment_channels": [{"type": "bank_transfer", "confidence": "high", "source_refs": [{"url": "https://intreb.bancatransilvania.ro/cum-pot-plati-ratele-pentru-creditul-bt-direct/", "publisher": "Banca Transilvania", "accessed_at": "2026-06-19", "confidence": "high"}]}],
+      "payment_destinations": [
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_website", "scope": "bt_direct_credit_repayment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "Banca Transilvania", "scope_notes": "BT Direct credit payments from other banks", "source_refs": [{"url": "https://intreb.bancatransilvania.ro/cum-pot-plati-ratele-pentru-creditul-bt-direct/", "publisher": "Banca Transilvania", "accessed_at": "2026-06-19", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO52BTRL01301202925681XX", "iban_display_official": "RO52 BTRL 0130 1202 9256 81XX", "iban_masked_for_client": "RO52 BTRL **** **** **** 81XX"}
+      ],
+      "source_refs": [{"url": "https://intreb.bancatransilvania.ro/cum-pot-plati-ratele-pentru-creditul-bt-direct/", "publisher": "Banca Transilvania", "accessed_at": "2026-06-19", "confidence": "high"}],
+      "review_status": "active"
+    }
+  ],
+  "summary": { "brands": 1, "entries": 1, "destinations": 1, "notes": "BT Direct credit repayment IBAN - singurul IBAN bancar public din cele 7 banci mari verificate" }
+}

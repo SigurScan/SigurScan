@@ -1,0 +1,111 @@
+{
+  "version": "pdr-ro-omv-petrom-2026.06.19",
+  "generated_at": "2026-06-19T00:00:00Z",
+  "purpose": "OMV Petrom S.A. payment destinations from official PDF",
+  "rules": {
+    "entry_lifetime_days": 365,
+    "reverify_interval_days": 180,
+    "min_confidence_to_contribute_to_safe": "high"
+  },
+  "trust_tiers": {
+    "T1_PUBLIC_OFFICIAL": "IBANs published on official company website/PDF"
+  },
+  "entries": [
+    {
+      "brand_id": "omv_petrom",
+      "display_name": "OMV Petrom S.A.",
+      "legal_name": "OMV Petrom S.A.",
+      "cui": "1590082",
+      "category": "utility_energy",
+      "official_payment_channels": [
+        {
+          "type": "bank_transfer",
+          "confidence": "high",
+          "source_refs": [{"url": "https://www.omvpetrom.com/", "publisher": "OMV Petrom", "accessed_at": "2026-06-19", "confidence": "high"}]
+        }
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_pdf",
+          "scope": "utility_bill_payment",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "currency": "RON",
+          "bank_name": "BCR",
+          "source_refs": [{"url": "https://www.omvpetrom.com/", "publisher": "OMV Petrom", "accessed_at": "2026-06-19", "confidence": "high"}],
+          "iban_normalized_backend_seed_only": "RO83RNCB0067000494180030",
+          "iban_display_official": "RO83 RNCB 0067 0004 9418 0030",
+          "iban_masked_for_client": "RO83 RNCB **** **** **** 0030"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_pdf",
+          "scope": "utility_bill_payment",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "currency": "EUR",
+          "bank_name": "BCR",
+          "source_refs": [{"url": "https://www.omvpetrom.com/", "publisher": "OMV Petrom", "accessed_at": "2026-06-19", "confidence": "high"}],
+          "iban_normalized_backend_seed_only": "RO84RNCB0067000494180012",
+          "iban_display_official": "RO84 RNCB 0067 0004 9418 0012",
+          "iban_masked_for_client": "RO84 RNCB **** **** **** 0012"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_pdf",
+          "scope": "utility_bill_payment_government",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Trezorerie",
+          "scope_notes": "Pentru institutii bugetare",
+          "source_refs": [{"url": "https://www.omvpetrom.com/", "publisher": "OMV Petrom", "accessed_at": "2026-06-19", "confidence": "high"}],
+          "iban_normalized_backend_seed_only": "RO09TREZ7005069XXX00488",
+          "iban_display_official": "RO09 TREZ 7005 069X XX00 0488",
+          "iban_masked_for_client": "RO09 TREZ **** **** **** 0488"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_pdf",
+          "scope": "fuel_voucher_payment",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BCR",
+          "scope_notes": "OMV Petrom Marketing SRL - tichete de carburant/fuel vouchers",
+          "source_refs": [{"url": "https://www.omvpetrom.com/", "publisher": "OMV Petrom", "accessed_at": "2026-06-19", "confidence": "high"}],
+          "iban_normalized_backend_seed_only": "RO80RNCB0067054355890004",
+          "iban_display_official": "RO80 RNCB 0067 0543 5589 0004",
+          "iban_masked_for_client": "RO80 RNCB **** **** **** 0004"
+        }
+      ],
+      "source_refs": [{"url": "https://www.omvpetrom.com/", "publisher": "OMV Petrom", "accessed_at": "2026-06-19", "confidence": "high"}],
+      "review_status": "active"
+    }
+  ],
+  "summary": {
+    "brands": 1,
+    "entries": 1,
+    "destinations": 4,
+    "notes": "OMV Petrom S.A. - 4 IBANs (RON, EUR, Trezorerie, OMV Petrom Marketing) from official payment PDF"
+  }
+}

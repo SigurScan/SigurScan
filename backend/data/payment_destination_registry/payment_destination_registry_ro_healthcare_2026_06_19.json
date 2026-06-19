@@ -1,0 +1,50 @@
+{
+  "version": "pdr-ro-healthcare-2026.06.19",
+  "generated_at": "2026-06-19T00:00:00Z",
+  "purpose": "Romanian private healthcare providers payment destinations from official websites",
+  "rules": { "entry_lifetime_days": 365, "reverify_interval_days": 180, "min_confidence_to_contribute_to_safe": "high" },
+  "trust_tiers": { "T1_PUBLIC_OFFICIAL": "IBANs published on official company website" },
+  "entries": [
+    {
+      "brand_id": "regina_maria",
+      "display_name": "Centrul Medical Unirea S.R.L. (Regina Maria)",
+      "legal_name": "Centrul Medical Unirea S.R.L.",
+      "cui": "5919324",
+      "category": "healthcare",
+      "official_payment_channels": [{"type": "bank_transfer", "confidence": "high", "source_refs": [{"url": "https://shop.reginamaria.ro/cum-cumpar", "publisher": "Regina Maria", "accessed_at": "2026-06-19", "confidence": "high"}]}],
+      "payment_destinations": [
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_website", "scope": "subscription_payment_ron", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "Raiffeisen Bank", "source_refs": [{"url": "https://shop.reginamaria.ro/cum-cumpar", "publisher": "Regina Maria", "accessed_at": "2026-06-19", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO33RZBR0000060013094217", "iban_display_official": "RO33 RZBR 0000 0600 1309 4217", "iban_masked_for_client": "RO33 RZBR **** **** **** 4217"}
+      ],
+      "source_refs": [{"url": "https://shop.reginamaria.ro/cum-cumpar", "publisher": "Regina Maria", "accessed_at": "2026-06-19", "confidence": "high"}],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "sanador",
+      "display_name": "Sanador S.R.L.",
+      "legal_name": "Sanador S.R.L.",
+      "cui": "12530000",
+      "category": "healthcare",
+      "official_payment_channels": [{"type": "bank_transfer", "confidence": "high", "source_refs": [{"url": "https://www.sanador.ro/download/editorial/Pr/el/13547/Prelucrarea-datelor-cu-caracter-personal_Nota-de-informare_01.12.2024.pdf", "publisher": "Sanador", "accessed_at": "2026-06-19", "confidence": "high"}]}],
+      "payment_destinations": [
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_website_pdf", "scope": "invoice_payment_ron", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "BRD", "source_refs": [{"url": "https://www.sanador.ro/download/editorial/Pr/el/13547/Prelucrarea-datelor-cu-caracter-personal_Nota-de-informare_01.12.2024.pdf", "publisher": "Sanador", "accessed_at": "2026-06-19", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO41BRDE410SV05889804100", "iban_display_official": "RO41 BRDE 410S V058 8980 4100", "iban_masked_for_client": "RO41 BRDE **** **** **** 4100"}
+      ],
+      "source_refs": [{"url": "https://www.sanador.ro/download/editorial/Pr/el/13547/Prelucrarea-datelor-cu-caracter-personal_Nota-de-informare_01.12.2024.pdf", "publisher": "Sanador", "accessed_at": "2026-06-19", "confidence": "high"}],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "synevo_romania",
+      "display_name": "Synevo România S.R.L.",
+      "legal_name": "Synevo România S.R.L.",
+      "cui": "6479639",
+      "category": "healthcare_laboratory",
+      "official_payment_channels": [{"type": "bank_transfer", "confidence": "high", "source_refs": [{"url": "https://www.synevo.ro/contact/", "publisher": "Synevo Romania", "accessed_at": "2026-06-19", "confidence": "high"}]}],
+      "payment_destinations": [
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_website", "scope": "invoice_payment_ron", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "ING Bank", "source_refs": [{"url": "https://www.synevo.ro/contact/", "publisher": "Synevo Romania", "accessed_at": "2026-06-19", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO45INGB0001000122368915", "iban_display_official": "RO45 INGB 0001 0001 2236 8915", "iban_masked_for_client": "RO45 INGB **** **** **** 8915"},
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_website", "scope": "invoice_payment_ron_treasury", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "Trezorerie", "source_refs": [{"url": "https://www.synevo.ro/contact/", "publisher": "Synevo Romania", "accessed_at": "2026-06-19", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO95TREZ7005069XX001656", "iban_display_official": "RO95 TREZ 7005 069X XX00 1656", "iban_masked_for_client": "RO95 TREZ **** **** **** 1656"}
+      ],
+      "source_refs": [{"url": "https://www.synevo.ro/contact/", "publisher": "Synevo Romania", "accessed_at": "2026-06-19", "confidence": "high"}],
+      "review_status": "active"
+    }
+  ],
+  "summary": { "brands": 3, "entries": 3, "destinations": 4, "notes": "Regina Maria (Raiffeisen), Sanador (BRD), Synevo (ING + Trezorerie)" }
+}

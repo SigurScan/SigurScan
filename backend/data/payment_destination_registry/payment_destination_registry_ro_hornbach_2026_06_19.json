@@ -1,0 +1,24 @@
+{
+  "version": "pdr-ro-hornbach-2026.06.19",
+  "generated_at": "2026-06-19T00:00:00Z",
+  "purpose": "Hornbach Centrala SRL payment destinations from official website",
+  "rules": { "entry_lifetime_days": 365, "reverify_interval_days": 180, "min_confidence_to_contribute_to_safe": "high" },
+  "trust_tiers": { "T1_PUBLIC_OFFICIAL": "IBANs published on official company website" },
+  "entries": [
+    {
+      "brand_id": "hornbach_romania",
+      "display_name": "Hornbach Centrala S.R.L.",
+      "legal_name": "Hornbach Centrala S.R.L.",
+      "cui": "17777320",
+      "category": "retail_diy",
+      "official_payment_channels": [{"type": "bank_transfer", "confidence": "high", "source_refs": [{"url": "https://www.hornbach.ro/despre-noi/despre-hornbach/", "publisher": "Hornbach Romania", "accessed_at": "2026-06-19", "confidence": "high"}]}],
+      "payment_destinations": [
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_website", "scope": "invoice_payment_ron", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "UniCredit Bank", "source_refs": [{"url": "https://www.hornbach.ro/despre-noi/despre-hornbach/", "publisher": "Hornbach Romania", "accessed_at": "2026-06-19", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO53BACX0000000070426310", "iban_display_official": "RO53 BACX 0000 0000 7042 6310", "iban_masked_for_client": "RO53 BACX **** **** **** 6310"},
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_website", "scope": "invoice_payment_ron_government", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "Trezoreria Statului", "source_refs": [{"url": "https://www.hornbach.ro/despre-noi/despre-hornbach/", "publisher": "Hornbach Romania", "accessed_at": "2026-06-19", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO85TREZ7005069XXXX004455", "iban_display_official": "RO85 TREZ 7005 069X XXX0 04455", "iban_masked_for_client": "RO85 TREZ **** **** **** 4455"}
+      ],
+      "source_refs": [{"url": "https://www.hornbach.ro/despre-noi/despre-hornbach/", "publisher": "Hornbach Romania", "accessed_at": "2026-06-19", "confidence": "high"}],
+      "review_status": "active"
+    }
+  ],
+  "summary": { "brands": 1, "entries": 1, "destinations": 2, "notes": "Hornbach Centrala SRL - 1 UniCredit + 1 Trezorerie" }
+}

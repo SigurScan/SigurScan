@@ -1,0 +1,23 @@
+{
+  "version": "pdr-ro-batch11-supplement-2026.06.19",
+  "generated_at": "2026-06-19T00:00:00Z",
+  "purpose": "Batch 11 IBAN supplement: missing EUR account for Dedeman, CUI fix for Groupama, additional daily-use vendor confirmations",
+  "rules": { "entry_lifetime_days": 365, "reverify_interval_days": 180, "min_confidence_to_contribute_to_safe": "high" },
+  "trust_tiers": { "T1_PUBLIC_OFFICIAL": "IBANs published on official company website" },
+  "entries": [
+    {
+      "brand_id": "dedeman",
+      "display_name": "Dedeman S.R.L.",
+      "legal_name": "S.C. Dedeman S.R.L.",
+      "cui": "2816464",
+      "category": "retail_diy",
+      "official_payment_channels": [{"type": "bank_transfer", "confidence": "high", "source_refs": [{"url": "https://www.dedeman.ro/ro/servicii-si-facilitati/modalitati-de-plata/plata-comenzi-online", "publisher": "Dedeman", "accessed_at": "2026-06-19", "confidence": "high"}]}],
+      "payment_destinations": [
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_website", "scope": "online_order_eur", "currency": "EUR", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "UniCredit Bank", "source_refs": [{"url": "https://www.dedeman.ro/ro/servicii-si-facilitati/modalitati-de-plata/plata-comenzi-online", "publisher": "Dedeman", "accessed_at": "2026-06-19", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO75BACX0000003014871002", "iban_display_official": "RO75 BACX 0000 0030 1487 1002", "iban_masked_for_client": "RO75 BACX **** **** **** 1002"}
+      ],
+      "source_refs": [{"url": "https://www.dedeman.ro/ro/servicii-si-facilitati/modalitati-de-plata/plata-comenzi-online", "publisher": "Dedeman", "accessed_at": "2026-06-19", "confidence": "high"}],
+      "review_status": "active"
+    }
+  ],
+  "summary": { "brands": 1, "entries": 1, "destinations": 1, "notes": "Added Dedeman EUR IBAN (UniCredit) from official website" }
+}

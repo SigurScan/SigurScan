@@ -1,0 +1,203 @@
+{
+  "version": "pdr-ro-garanta-2026.06.19",
+  "generated_at": "2026-06-19T00:00:00Z",
+  "purpose": "Garanta Asigurari S.A. payment destinations from official website",
+  "rules": {
+    "entry_lifetime_days": 365,
+    "reverify_interval_days": 180,
+    "min_confidence_to_contribute_to_safe": "high"
+  },
+  "trust_tiers": {
+    "T1_PUBLIC_OFFICIAL": "IBANs published on official company website"
+  },
+  "entries": [
+    {
+      "brand_id": "garanta_asigurari",
+      "display_name": "Garanta Asigurari S.A.",
+      "legal_name": "Garanta Asigurari S.A.",
+      "cui": null,
+      "category": "insurance",
+      "official_payment_channels": [
+        {
+          "type": "bank_transfer",
+          "confidence": "high",
+          "source_refs": [
+            {
+              "url": "https://garanta.ro/serviciul-clienti/modalitati-plata/",
+              "publisher": "Garanta Asigurari",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ]
+        }
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "insurance_premium_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "EXIMBANK",
+          "source_refs": [
+            {
+              "url": "https://garanta.ro/serviciul-clienti/modalitati-plata/",
+              "publisher": "Garanta Asigurari",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO04BRMA0730073850300000",
+          "iban_display_official": "RO04 BRMA 0730 0738 5030 0000",
+          "iban_masked_for_client": "RO04BRMA **** **** **** 0000"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "insurance_premium_payment",
+          "currency": "EUR",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "EXIMBANK",
+          "source_refs": [
+            {
+              "url": "https://garanta.ro/serviciul-clienti/modalitati-plata/",
+              "publisher": "Garanta Asigurari",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO39BRMA0730073850395400",
+          "iban_display_official": "RO39 BRMA 0730 0738 5039 5400",
+          "iban_masked_for_client": "RO39BRMA **** **** **** 5400"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "insurance_premium_payment",
+          "currency": "USD",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "EXIMBANK",
+          "source_refs": [
+            {
+              "url": "https://garanta.ro/serviciul-clienti/modalitati-plata/",
+              "publisher": "Garanta Asigurari",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO51BRMA0730073850330000",
+          "iban_display_official": "RO51 BRMA 0730 0738 5033 0000",
+          "iban_masked_for_client": "RO51BRMA **** **** **** 0000"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "insurance_premium_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "UniCredit Bank",
+          "source_refs": [
+            {
+              "url": "https://garanta.ro/serviciul-clienti/modalitati-plata/",
+              "publisher": "Garanta Asigurari",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO62BACX0000003023072004",
+          "iban_display_official": "RO62 BACX 0000 0030 2307 2004",
+          "iban_masked_for_client": "RO62BACX **** **** **** 2004"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "insurance_premium_payment",
+          "currency": "EUR",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "UniCredit Bank",
+          "source_refs": [
+            {
+              "url": "https://garanta.ro/serviciul-clienti/modalitati-plata/",
+              "publisher": "Garanta Asigurari",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO24BACX0000003023072009",
+          "iban_display_official": "RO24 BACX 0000 0030 2307 2009",
+          "iban_masked_for_client": "RO24BACX **** **** **** 2009"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "insurance_premium_payment",
+          "currency": "USD",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "UniCredit Bank",
+          "source_refs": [
+            {
+              "url": "https://garanta.ro/serviciul-clienti/modalitati-plata/",
+              "publisher": "Garanta Asigurari",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO94BACX0000003023072010",
+          "iban_display_official": "RO94 BACX 0000 0030 2307 2010",
+          "iban_masked_for_client": "RO94BACX **** **** **** 2010"
+        }
+      ],
+      "source_refs": [
+        {
+          "url": "https://garanta.ro/serviciul-clienti/modalitati-plata/",
+          "publisher": "Garanta Asigurari",
+          "accessed_at": "2026-06-19",
+          "confidence": "high"
+        }
+      ],
+      "review_status": "active"
+    }
+  ],
+  "summary": {
+    "brands": 1,
+    "entries": 1,
+    "destinations": 6,
+    "notes": "Garanta Asigurari - insurance IBANs from official payment page"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "version": "pdr-ro-rompetrol-2026.06.19",
+  "generated_at": "2026-06-19T00:00:00Z",
+  "purpose": "Rompetrol (KMG International) payment destinations from official websites",
+  "rules": { "entry_lifetime_days": 365, "reverify_interval_days": 180, "min_confidence_to_contribute_to_safe": "high" },
+  "trust_tiers": { "T1_PUBLIC_OFFICIAL": "IBANs published on official company website" },
+  "entries": [
+    {
+      "brand_id": "rompetrol_downstream",
+      "display_name": "Rompetrol Downstream S.R.L.",
+      "legal_name": "Rompetrol Downstream S.R.L.",
+      "cui": "1860712",
+      "category": "gas_station",
+      "official_payment_channels": [{"type": "bank_transfer", "confidence": "high", "source_refs": [{"url": "https://www.rompetrol.ro/en/personal/rompetrol-go/rompetrol-go-credit", "publisher": "Rompetrol Romania", "accessed_at": "2026-06-19", "confidence": "high"}]}],
+      "payment_destinations": [
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_website", "scope": "fill_go_invoice_ron", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "BCR", "source_refs": [{"url": "https://www.rompetrol.ro/en/personal/rompetrol-go/rompetrol-go-credit", "publisher": "Rompetrol Romania", "accessed_at": "2026-06-19", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO06RNCB0072001339140018", "iban_display_official": "RO06 RNCB 0072 0013 3914 0018", "iban_masked_for_client": "RO06 RNCB **** **** **** 0018"},
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_website", "scope": "fill_go_invoice_ron", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "Raiffeisen Bank", "source_refs": [{"url": "https://www.rompetrol.ro/en/personal/rompetrol-go/rompetrol-go-credit", "publisher": "Rompetrol Romania", "accessed_at": "2026-06-19", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO41RZBR0000060018290169", "iban_display_official": "RO41 RZBR 0000 0600 1829 0169", "iban_masked_for_client": "RO41 RZBR **** **** **** 0169"},
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_website", "scope": "fill_go_invoice_ron", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "ING Bank", "source_refs": [{"url": "https://www.rompetrol.ro/en/personal/rompetrol-go/rompetrol-go-credit", "publisher": "Rompetrol Romania", "accessed_at": "2026-06-19", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO83INGB0001008194578930", "iban_display_official": "RO83 INGB 0001 0081 9457 8930", "iban_masked_for_client": "RO83 INGB **** **** **** 8930"}
+      ],
+      "source_refs": [{"url": "https://www.rompetrol.ro/en/personal/rompetrol-go/rompetrol-go-credit", "publisher": "Rompetrol Romania", "accessed_at": "2026-06-19", "confidence": "high"}],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "rompetrol_rafinare",
+      "display_name": "Rompetrol Rafinare S.A.",
+      "legal_name": "Rompetrol Rafinare S.A.",
+      "cui": "1860712",
+      "category": "gas_station_refinery",
+      "official_payment_channels": [{"type": "bank_transfer", "confidence": "high", "source_refs": [{"url": "https://rompetrol-rafinare.kmginternational.com/", "publisher": "Rompetrol Rafinare", "accessed_at": "2026-06-19", "confidence": "high"}]}],
+      "payment_destinations": [
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_website", "scope": "product_purchase_ron", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "UniCredit Bank", "source_refs": [{"url": "https://rompetrol-rafinare.kmginternational.com/", "publisher": "Rompetrol Rafinare", "accessed_at": "2026-06-19", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO22BACX0000000030500310", "iban_display_official": "RO22 BACX 0000 0000 3050 0310", "iban_masked_for_client": "RO22 BACX **** **** **** 0310"},
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_website", "scope": "product_purchase_ron", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "Raiffeisen Bank", "source_refs": [{"url": "https://rompetrol-rafinare.kmginternational.com/", "publisher": "Rompetrol Rafinare", "accessed_at": "2026-06-19", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO39RZBR0000060006471666", "iban_display_official": "RO39 RZBR 0000 0600 0647 1666", "iban_masked_for_client": "RO39 RZBR **** **** **** 1666"}
+      ],
+      "source_refs": [{"url": "https://rompetrol-rafinare.kmginternational.com/", "publisher": "Rompetrol Rafinare", "accessed_at": "2026-06-19", "confidence": "high"}],
+      "review_status": "active"
+    }
+  ],
+  "summary": { "brands": 2, "entries": 2, "destinations": 5, "notes": "Rompetrol Downstream (BCR, Raiffeisen, ING) + Rompetrol Rafinare (UniCredit, Raiffeisen)" }
+}

@@ -1,0 +1,129 @@
+{
+  "version": "pdr-ro-casomes-cluj-2026.06.19",
+  "generated_at": "2026-06-19T00:00:00Z",
+  "purpose": "Compania de Apă Someș Cluj-Napoca payment destinations from official PDF",
+  "rules": {
+    "entry_lifetime_days": 365,
+    "reverify_interval_days": 180,
+    "min_confidence_to_contribute_to_safe": "high"
+  },
+  "trust_tiers": {
+    "T1_PUBLIC_OFFICIAL": "IBANs published on official company website"
+  },
+  "entries": [
+    {
+      "brand_id": "compania_apa_somes",
+      "display_name": "Compania de Apă Someș S.A.",
+      "legal_name": "Compania de Apă Someș S.A.",
+      "cui": "6733008",
+      "category": "utility_water",
+      "official_payment_channels": [
+        {
+          "type": "bank_transfer",
+          "confidence": "high",
+          "source_refs": [{"url": "https://www.casomes.ro/wp-content/uploads/2022/10/Modalitati-de-plata.pdf", "publisher": "Compania de Apă Someș", "accessed_at": "2026-06-19", "confidence": "high"}]
+        }
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website_pdf",
+          "scope": "water_bill_ron",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [{"url": "https://www.casomes.ro/wp-content/uploads/2022/10/Modalitati-de-plata.pdf", "publisher": "Compania de Apă Someș", "accessed_at": "2026-06-19", "confidence": "high"}],
+          "iban_normalized_backend_seed_only": "RO67BTRL01301202990350XX",
+          "iban_display_official": "RO67 BTRL 0130 1202 9903 50XX",
+          "iban_masked_for_client": "RO67 BTRL **** **** **** 50XX"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website_pdf",
+          "scope": "water_bill_ron",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BCR Cluj",
+          "source_refs": [{"url": "https://www.casomes.ro/wp-content/uploads/2022/10/Modalitati-de-plata.pdf", "publisher": "Compania de Apă Someș", "accessed_at": "2026-06-19", "confidence": "high"}],
+          "iban_normalized_backend_seed_only": "RO28RNCB0106000767440001",
+          "iban_display_official": "RO28 RNCB 0106 0007 6744 0001",
+          "iban_masked_for_client": "RO28 RNCB **** **** **** 0001"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website_pdf",
+          "scope": "water_bill_ron",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BRD Cluj",
+          "source_refs": [{"url": "https://www.casomes.ro/wp-content/uploads/2022/10/Modalitati-de-plata.pdf", "publisher": "Compania de Apă Someș", "accessed_at": "2026-06-19", "confidence": "high"}],
+          "iban_normalized_backend_seed_only": "RO16BRDE130SV07833401300",
+          "iban_display_official": "RO16 BRDE 130S V078 3340 1300",
+          "iban_masked_for_client": "RO16 BRDE **** **** **** 1300"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website_pdf",
+          "scope": "water_bill_ron",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Bancpost Cluj",
+          "source_refs": [{"url": "https://www.casomes.ro/wp-content/uploads/2022/10/Modalitati-de-plata.pdf", "publisher": "Compania de Apă Someș", "accessed_at": "2026-06-19", "confidence": "high"}],
+          "iban_normalized_backend_seed_only": "RO61BPOS13003091142ROL01",
+          "iban_display_official": "RO61 BPOS 1300 3091 142R OL01",
+          "iban_masked_for_client": "RO61 BPOS **** **** **** OL01"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website_pdf",
+          "scope": "water_bill_ron",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "UniCredit Cluj",
+          "source_refs": [{"url": "https://www.casomes.ro/wp-content/uploads/2022/10/Modalitati-de-plata.pdf", "publisher": "Compania de Apă Someș", "accessed_at": "2026-06-19", "confidence": "high"}],
+          "iban_normalized_backend_seed_only": "RO27BACX0000003005853000",
+          "iban_display_official": "RO27 BACX 0000 0030 0585 3000",
+          "iban_masked_for_client": "RO27 BACX **** **** **** 3000"
+        }
+      ],
+      "source_refs": [{"url": "https://www.casomes.ro/wp-content/uploads/2022/10/Modalitati-de-plata.pdf", "publisher": "Compania de Apă Someș", "accessed_at": "2026-06-19", "confidence": "high"}],
+      "review_status": "active"
+    }
+  ],
+  "summary": {
+    "brands": 1,
+    "entries": 1,
+    "destinations": 5,
+    "notes": "Compania de Apă Someș S.A. Cluj-Napoca - 5 IBANs (BT, BCR, BRD, Bancpost, UniCredit)"
+  }
+}

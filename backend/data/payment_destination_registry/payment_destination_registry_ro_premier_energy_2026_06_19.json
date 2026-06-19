@@ -1,0 +1,166 @@
+{
+  "version": "pdr-ro-premier-energy-2026.06.19",
+  "generated_at": "2026-06-19T00:00:00Z",
+  "purpose": "Premier Energy S.A. payment destinations from official website",
+  "rules": {
+    "entry_lifetime_days": 365,
+    "reverify_interval_days": 180,
+    "min_confidence_to_contribute_to_safe": "high"
+  },
+  "trust_tiers": {
+    "T1_PUBLIC_OFFICIAL": "IBANs published on official company website"
+  },
+  "entries": [
+    {
+      "brand_id": "premier_energy",
+      "display_name": "Premier Energy S.A.",
+      "legal_name": "Premier Energy S.A.",
+      "cui": "51081808",
+      "category": "utility_gas",
+      "official_payment_channels": [
+        {
+          "type": "bank_transfer",
+          "confidence": "high",
+          "source_refs": [{"url": "https://premierenergy.ro/modalitati-de-plata", "publisher": "Premier Energy", "accessed_at": "2026-06-19", "confidence": "high"}]
+        }
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "gas_bill_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Vista Bank",
+          "source_refs": [{"url": "https://premierenergy.ro/modalitati-de-plata", "publisher": "Premier Energy", "accessed_at": "2026-06-19", "confidence": "high"}],
+          "iban_normalized_backend_seed_only": "RO23EGNA1010000001533638",
+          "iban_display_official": "RO23 EGNA 1010 0000 0153 3638",
+          "iban_masked_for_client": "RO23 EGNA **** **** **** 3638"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "gas_bill_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "UniCredit Bank",
+          "source_refs": [{"url": "https://premierenergy.ro/modalitati-de-plata", "publisher": "Premier Energy", "accessed_at": "2026-06-19", "confidence": "high"}],
+          "iban_normalized_backend_seed_only": "RO46BACX0000001876975000",
+          "iban_display_official": "RO46 BACX 0000 0018 7697 5000",
+          "iban_masked_for_client": "RO46 BACX **** **** **** 5000"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "gas_bill_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [{"url": "https://premierenergy.ro/modalitati-de-plata", "publisher": "Premier Energy", "accessed_at": "2026-06-19", "confidence": "high"}],
+          "iban_normalized_backend_seed_only": "RO67BTRLRONCRT0668178101",
+          "iban_display_official": "RO67 BTRL RONC RT06 6817 8101",
+          "iban_masked_for_client": "RO67 BTRL **** **** **** 8101"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "gas_bill_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BCR",
+          "source_refs": [{"url": "https://premierenergy.ro/modalitati-de-plata", "publisher": "Premier Energy", "accessed_at": "2026-06-19", "confidence": "high"}],
+          "iban_normalized_backend_seed_only": "RO66RNCB0072146686950012",
+          "iban_display_official": "RO66 RNCB 0072 1466 8695 0012",
+          "iban_masked_for_client": "RO66 RNCB **** **** **** 0012"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "gas_bill_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BRD",
+          "source_refs": [{"url": "https://premierenergy.ro/modalitati-de-plata", "publisher": "Premier Energy", "accessed_at": "2026-06-19", "confidence": "high"}],
+          "iban_normalized_backend_seed_only": "RO69BRDE320SV09182073200",
+          "iban_display_official": "RO69 BRDE 320S V091 8207 3200",
+          "iban_masked_for_client": "RO69 BRDE **** **** **** 3200"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "gas_bill_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Exim Bank",
+          "source_refs": [{"url": "https://premierenergy.ro/modalitati-de-plata", "publisher": "Premier Energy", "accessed_at": "2026-06-19", "confidence": "high"}],
+          "iban_normalized_backend_seed_only": "RO11BRMA0999100091230921",
+          "iban_display_official": "RO11 BRMA 0999 1000 9123 0921",
+          "iban_masked_for_client": "RO11 BRMA **** **** **** 0921"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "gas_bill_payment_government",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Trezorerie",
+          "scope_notes": "Pentru institutii bugetare",
+          "source_refs": [{"url": "https://premierenergy.ro/modalitati-de-plata", "publisher": "Premier Energy", "accessed_at": "2026-06-19", "confidence": "high"}],
+          "iban_normalized_backend_seed_only": "RO18TREZ7005069XXX017592",
+          "iban_display_official": "RO18 TREZ 7005 069X XX01 7592",
+          "iban_masked_for_client": "RO18 TREZ **** **** **** 7592"
+        }
+      ],
+      "source_refs": [{"url": "https://premierenergy.ro/modalitati-de-plata", "publisher": "Premier Energy", "accessed_at": "2026-06-19", "confidence": "high"}],
+      "review_status": "active"
+    }
+  ],
+  "summary": {
+    "brands": 1,
+    "entries": 1,
+    "destinations": 7,
+    "notes": "Premier Energy S.A. (gaze naturale) - 7 IBANs from official website modalitati de plata page"
+  }
+}

@@ -1,0 +1,166 @@
+{
+  "version": "pdr-ro-government-admin-2026.06.19",
+  "generated_at": "2026-06-19T00:00:00Z",
+  "purpose": "Romanian government institutions IBAN patterns (reference only - IBAN varies per taxpayer)",
+  "rules": { "entry_lifetime_days": 365, "reverify_interval_days": 180, "min_confidence_to_contribute_to_safe": "high" },
+  "trust_tiers": { "T1_PUBLIC_OFFICIAL": "IBANs published on official government websites" },
+  "entries": [
+    {
+      "brand_id": "anaf",
+      "display_name": "Agenția Națională de Administrare Fiscală",
+      "legal_name": "Agenția Națională de Administrare Fiscală",
+      "cui": "0",
+      "category": "government_tax",
+      "official_payment_channels": [{"type": "bank_transfer", "confidence": "high", "source_refs": [{"url": "https://www.anaf.ro/anaf/internet/ANAF/asistenta_contribuabili/plata_oblig_fiscale/coduri_iban", "publisher": "ANAF", "accessed_at": "2026-06-19", "confidence": "high"}]}],
+      "payment_destinations": [
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_website", "scope": "tax_payment_unic_5504_ron", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": false, "match_policy": "reference_only_not_exact_match", "can_contribute_to_safe": false, "bank_name": "Trezoreria Statului", "scope_notes": "Cont Unic 55.04 - IBAN per sector/judet. Prefix: RO..TREZ..5504..XXX (sufixul variaza dupa CNP/CIF). Bank code TREZ only.", "source_refs": [{"url": "https://www.anaf.ro/anaf/internet/ANAF/asistenta_contribuabili/plata_oblig_fiscale/coduri_iban", "publisher": "ANAF", "accessed_at": "2026-06-19", "confidence": "high"}]}
+      ],
+      "source_refs": [{"url": "https://www.anaf.ro/anaf/internet/ANAF/asistenta_contribuabili/plata_oblig_fiscale/coduri_iban", "publisher": "ANAF", "accessed_at": "2026-06-19", "confidence": "high"}],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "politia_romana",
+      "display_name": "Poliția Română / Ministerul Afacerilor Interne",
+      "legal_name": "Ministerul Afacerilor Interne",
+      "cui": "0",
+      "category": "government_fines",
+      "official_payment_channels": [{"type": "bank_transfer", "confidence": "high", "source_refs": [{"url": "https://legislatie.just.ro/Public/DetaliiDocument/304127", "publisher": "Ministerul Finantelor", "accessed_at": "2026-06-19", "confidence": "high"}]}],
+      "payment_destinations": [
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_website", "scope": "fines_unified_account_ron", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": false, "match_policy": "reference_only_not_exact_match", "can_contribute_to_safe": false, "bank_name": "Trezoreria Operativa Centrala", "scope_notes": "Cont unic amenzi persoane fizice (Ordin MF 1823/2025). Prefix: RO76TREZ9995.. (sufixul variaza). Bank code TREZ only. Legal entities pay to local treasure.", "source_refs": [{"url": "https://legislatie.just.ro/Public/DetaliiDocument/304127", "publisher": "Ministerul Finantelor", "accessed_at": "2026-06-19", "confidence": "high"}]}
+      ],
+      "source_refs": [{"url": "https://legislatie.just.ro/Public/DetaliiDocument/304127", "publisher": "Ministerul Finantelor", "accessed_at": "2026-06-19", "confidence": "high"}],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "primaria_sector_1",
+      "display_name": "Primăria Sectorului 1 București",
+      "legal_name": "Sectorul 1 al Municipiului București",
+      "cui": "4505359",
+      "category": "government_local_tax",
+      "official_payment_channels": [{"type": "bank_transfer", "confidence": "high", "source_refs": [{"url": "https://www.impozitelocale1.ro/persoane-fizice-2/lista-conturi-iban/", "publisher": "DGITL Sector 1", "accessed_at": "2026-06-19", "confidence": "high"}]}],
+      "payment_destinations": [
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_website", "scope": "local_taxes_ron", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": false, "match_policy": "reference_only_not_exact_match", "can_contribute_to_safe": false, "bank_name": "Trezoreria Sector 1", "scope_notes": "IBAN prefix TREZ701. Bank code TREZ only.", "source_refs": [{"url": "https://www.impozitelocale1.ro/persoane-fizice-2/lista-conturi-iban/", "publisher": "DGITL Sector 1", "accessed_at": "2026-06-19", "confidence": "high"}]}
+      ],
+      "source_refs": [{"url": "https://www.impozitelocale1.ro/persoane-fizice-2/lista-conturi-iban/", "publisher": "DGITL Sector 1", "accessed_at": "2026-06-19", "confidence": "high"}],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "primaria_sector_2",
+      "display_name": "Primăria Sectorului 2 București",
+      "legal_name": "Sectorul 2 al Municipiului București",
+      "cui": "4204038",
+      "category": "government_local_tax",
+      "official_payment_channels": [{"type": "bank_transfer", "confidence": "high", "source_refs": [{"url": "https://www.impozitelocale2.ro/iban/pf/", "publisher": "DGITL Sector 2", "accessed_at": "2026-06-19", "confidence": "high"}]}],
+      "payment_destinations": [
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_website", "scope": "local_taxes_ron", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": false, "match_policy": "reference_only_not_exact_match", "can_contribute_to_safe": false, "bank_name": "Trezoreria Sector 2", "scope_notes": "IBAN prefix TREZ702. Bank code TREZ only.", "source_refs": [{"url": "https://www.impozitelocale2.ro/iban/pf/", "publisher": "DGITL Sector 2", "accessed_at": "2026-06-19", "confidence": "high"}]}
+      ],
+      "source_refs": [{"url": "https://www.impozitelocale2.ro/iban/pf/", "publisher": "DGITL Sector 2", "accessed_at": "2026-06-19", "confidence": "high"}],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "primaria_sector_3",
+      "display_name": "Primăria Sectorului 3 București",
+      "legal_name": "Sectorul 3 al Municipiului București",
+      "cui": "4420465",
+      "category": "government_local_tax",
+      "official_payment_channels": [{"type": "bank_transfer", "confidence": "high", "source_refs": [{"url": "https://www.ditl3.ro/modalitati-de-plata/conturi-iban-persoane-fizice.aspx", "publisher": "DGITL Sector 3", "accessed_at": "2026-06-19", "confidence": "high"}]}],
+      "payment_destinations": [
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_website", "scope": "local_taxes_ron", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": false, "match_policy": "reference_only_not_exact_match", "can_contribute_to_safe": false, "bank_name": "Trezoreria Sector 3", "scope_notes": "IBAN prefix TREZ703. Bank code TREZ only.", "source_refs": [{"url": "https://www.ditl3.ro/modalitati-de-plata/conturi-iban-persoane-fizice.aspx", "publisher": "DGITL Sector 3", "accessed_at": "2026-06-19", "confidence": "high"}]}
+      ],
+      "source_refs": [{"url": "https://www.ditl3.ro/modalitati-de-plata/conturi-iban-persoane-fizice.aspx", "publisher": "DGITL Sector 3", "accessed_at": "2026-06-19", "confidence": "high"}],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "primaria_sector_4",
+      "display_name": "Primăria Sectorului 4 București",
+      "legal_name": "Sectorul 4 al Municipiului București",
+      "cui": "4316422",
+      "category": "government_local_tax",
+      "official_payment_channels": [{"type": "bank_transfer", "confidence": "high", "source_refs": [{"url": "https://www.taxeimpozite4.ro/persoane-fizice/taxe-incasate-de-d-g-i-t-l-sector-4/", "publisher": "DGITL Sector 4", "accessed_at": "2026-06-19", "confidence": "high"}]}],
+      "payment_destinations": [
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_website", "scope": "local_taxes_ron", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": false, "match_policy": "reference_only_not_exact_match", "can_contribute_to_safe": false, "bank_name": "Trezoreria Sector 4", "scope_notes": "IBAN prefix TREZ704. Bank code TREZ only.", "source_refs": [{"url": "https://www.taxeimpozite4.ro/persoane-fizice/taxe-incasate-de-d-g-i-t-l-sector-4/", "publisher": "DGITL Sector 4", "accessed_at": "2026-06-19", "confidence": "high"}]}
+      ],
+      "source_refs": [{"url": "https://www.taxeimpozite4.ro/persoane-fizice/taxe-incasate-de-d-g-i-t-l-sector-4/", "publisher": "DGITL Sector 4", "accessed_at": "2026-06-19", "confidence": "high"}],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "primaria_sector_5",
+      "display_name": "Primăria Sectorului 5 București",
+      "legal_name": "Sectorul 5 al Municipiului București",
+      "cui": "38320436",
+      "category": "government_local_tax",
+      "official_payment_channels": [{"type": "bank_transfer", "confidence": "high", "source_refs": [{"url": "https://ditl5.ro/wp-content/uploads/2020/10/CONTURI-IBAN-PFPJ.pdf", "publisher": "DITL Sector 5", "accessed_at": "2026-06-19", "confidence": "high"}]}],
+      "payment_destinations": [
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_website", "scope": "local_taxes_ron", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": false, "match_policy": "reference_only_not_exact_match", "can_contribute_to_safe": false, "bank_name": "Trezoreria Sector 5", "scope_notes": "IBAN prefix TREZ705. Bank code TREZ only.", "source_refs": [{"url": "https://ditl5.ro/wp-content/uploads/2020/10/CONTURI-IBAN-PFPJ.pdf", "publisher": "DITL Sector 5", "accessed_at": "2026-06-19", "confidence": "high"}]}
+      ],
+      "source_refs": [{"url": "https://ditl5.ro/wp-content/uploads/2020/10/CONTURI-IBAN-PFPJ.pdf", "publisher": "DITL Sector 5", "accessed_at": "2026-06-19", "confidence": "high"}],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "primaria_sector_6",
+      "display_name": "Primăria Sectorului 6 București",
+      "legal_name": "Sectorul 6 al Municipiului București",
+      "cui": "12380248",
+      "category": "government_local_tax",
+      "official_payment_channels": [{"type": "bank_transfer", "confidence": "high", "source_refs": [{"url": "https://taxelocale6.ro/", "publisher": "DGITL Sector 6", "accessed_at": "2026-06-19", "confidence": "high"}]}],
+      "payment_destinations": [
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_website", "scope": "local_taxes_ron", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": false, "match_policy": "reference_only_not_exact_match", "can_contribute_to_safe": false, "bank_name": "Trezoreria Sector 6", "scope_notes": "IBAN prefix TREZ706. Bank code TREZ only.", "source_refs": [{"url": "https://taxelocale6.ro/", "publisher": "DGITL Sector 6", "accessed_at": "2026-06-19", "confidence": "high"}]}
+      ],
+      "source_refs": [{"url": "https://taxelocale6.ro/", "publisher": "DGITL Sector 6", "accessed_at": "2026-06-19", "confidence": "high"}],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "primaria_bucuresti",
+      "display_name": "Primăria Municipiului București",
+      "legal_name": "Municipiul București",
+      "cui": "4267117",
+      "category": "government_local_tax",
+      "official_payment_channels": [{"type": "bank_transfer", "confidence": "high", "source_refs": [{"url": "https://www2.pmb.ro/institutii/primaria/directii/directia_venituri/directia_venituri.php", "publisher": "PMB", "accessed_at": "2026-06-19", "confidence": "high"}]}],
+      "payment_destinations": [
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_website", "scope": "city_taxes_ron", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": false, "match_policy": "reference_only_not_exact_match", "can_contribute_to_safe": false, "bank_name": "Trezoreria Municipiului București", "scope_notes": "IBAN prefix TREZ700. SWIFT TREZROBU. Bank code TREZ only.", "source_refs": [{"url": "https://www2.pmb.ro/institutii/primaria/directii/directia_venituri/directia_venituri.php", "publisher": "PMB", "accessed_at": "2026-06-19", "confidence": "high"}]}
+      ],
+      "source_refs": [{"url": "https://www2.pmb.ro/institutii/primaria/directii/directia_venituri/directia_venituri.php", "publisher": "PMB", "accessed_at": "2026-06-19", "confidence": "high"}],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "primaria_cluj_napoca",
+      "display_name": "Primăria Municipiului Cluj-Napoca",
+      "legal_name": "Municipiul Cluj-Napoca",
+      "cui": "4305857",
+      "category": "government_local_tax",
+      "official_payment_channels": [{"type": "bank_transfer", "confidence": "high", "source_refs": [{"url": "https://www.e-primariaclujnapoca.ro/taxe/Cont_IBAN_2006.html", "publisher": "Primaria Cluj-Napoca", "accessed_at": "2026-06-19", "confidence": "high"}]}],
+      "payment_destinations": [
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_website", "scope": "local_taxes_ron", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": false, "match_policy": "reference_only_not_exact_match", "can_contribute_to_safe": false, "bank_name": "Trezoreria Cluj-Napoca", "scope_notes": "IBAN prefix TREZ216. Bank code TREZ only.", "source_refs": [{"url": "https://www.e-primariaclujnapoca.ro/taxe/Cont_IBAN_2006.html", "publisher": "Primaria Cluj-Napoca", "accessed_at": "2026-06-19", "confidence": "high"}]}
+      ],
+      "source_refs": [{"url": "https://www.e-primariaclujnapoca.ro/taxe/Cont_IBAN_2006.html", "publisher": "Primaria Cluj-Napoca", "accessed_at": "2026-06-19", "confidence": "high"}],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "primaria_timisoara",
+      "display_name": "Primăria Municipiului Timișoara",
+      "legal_name": "Municipiul Timișoara",
+      "cui": "14628033",
+      "category": "government_local_tax",
+      "official_payment_channels": [{"type": "bank_transfer", "confidence": "high", "source_refs": [{"url": "https://dfmt.ro/", "publisher": "Directia Fiscala Timisoara", "accessed_at": "2026-06-19", "confidence": "high"}]}],
+      "payment_destinations": [
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_website", "scope": "local_taxes_ron", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": false, "match_policy": "reference_only_not_exact_match", "can_contribute_to_safe": false, "bank_name": "Trezoreria Timișoara", "scope_notes": "IBAN prefix TREZ621. Bank code TREZ only.", "source_refs": [{"url": "https://dfmt.ro/", "publisher": "Directia Fiscala Timisoara", "accessed_at": "2026-06-19", "confidence": "high"}]}
+      ],
+      "source_refs": [{"url": "https://dfmt.ro/", "publisher": "Directia Fiscala Timisoara", "accessed_at": "2026-06-19", "confidence": "high"}],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "primaria_iasi",
+      "display_name": "Primăria Municipiului Iași",
+      "legal_name": "Municipiul Iași",
+      "cui": "4544954",
+      "category": "government_local_tax",
+      "official_payment_channels": [{"type": "bank_transfer", "confidence": "high", "source_refs": [{"url": "https://www.anaf.ro/anaf/internet/ANAF/asistenta_contribuabili/plata_oblig_fiscale/coduri_iban", "publisher": "ANAF Coduri IBAN", "accessed_at": "2026-06-19", "confidence": "high"}]}],
+      "payment_destinations": [
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_website", "scope": "local_taxes_ron", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": false, "match_policy": "reference_only_not_exact_match", "can_contribute_to_safe": false, "bank_name": "Trezoreria Iași", "scope_notes": "IBAN prefix TREZ405. Bank code TREZ only.", "source_refs": [{"url": "https://www.anaf.ro/anaf/internet/ANAF/asistenta_contribuabili/plata_oblig_fiscale/coduri_iban", "publisher": "ANAF Coduri IBAN", "accessed_at": "2026-06-19", "confidence": "high"}]}
+      ],
+      "source_refs": [{"url": "https://www.anaf.ro/anaf/internet/ANAF/asistenta_contribuabili/plata_oblig_fiscale/coduri_iban", "publisher": "ANAF Coduri IBAN", "accessed_at": "2026-06-19", "confidence": "high"}],
+      "review_status": "active"
+    }
+  ],
+  "summary": { "brands": 12, "entries": 12, "destinations": 12, "notes": "Government institutions - reference only (IBAN suffixes vary per taxpayer). All payments go to Trezoreria Statului (TREZ bank code). ANAF, Politia Romana, 6 sectoare Bucuresti, PMB, Cluj-Napoca, Timisoara, Iasi." }
+}

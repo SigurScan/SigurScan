@@ -1,0 +1,222 @@
+{
+  "version": "pdr-ro-orange-2026.06.19",
+  "generated_at": "2026-06-19T00:00:00Z",
+  "purpose": "Orange Romania SA payment destinations from official help page",
+  "rules": {
+    "entry_lifetime_days": 365,
+    "reverify_interval_days": 180,
+    "min_confidence_to_contribute_to_safe": "high"
+  },
+  "trust_tiers": {
+    "T1_PUBLIC_OFFICIAL": "IBANs published on official company website/help page"
+  },
+  "entries": [
+    {
+      "brand_id": "orange_romania",
+      "display_name": "Orange Romania S.A.",
+      "legal_name": "Orange Romania S.A.",
+      "cui": "9010105",
+      "category": "telecom",
+      "official_payment_channels": [
+        {
+          "type": "bank_transfer",
+          "confidence": "high",
+          "source_refs": [
+            {
+              "url": "https://www.orange.ro/help/care-sunt-conturile-n-care-pot-face-plata-facturii-prin-virament-bancar-5568",
+              "publisher": "Orange Romania",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ]
+        }
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_help_page",
+          "scope": "telecom_bill_payment",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "ING Bank Romania",
+          "source_refs": [
+            {
+              "url": "https://www.orange.ro/help/care-sunt-conturile-n-care-pot-face-plata-facturii-prin-virament-bancar-5568",
+              "publisher": "Orange Romania",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO91INGB0001000000011511",
+          "iban_display_official": "RO91 INGB 0001 0000 0000 1151 1",
+          "iban_masked_for_client": "RO91 INGB **** **** **** 1511"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_help_page",
+          "scope": "telecom_bill_payment",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BRD GSG",
+          "source_refs": [
+            {
+              "url": "https://www.orange.ro/help/care-sunt-conturile-n-care-pot-face-plata-facturii-prin-virament-bancar-5568",
+              "publisher": "Orange Romania",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO33BRDE450SV01035364500",
+          "iban_display_official": "RO33 BRDE 450S V010 3536 4500",
+          "iban_masked_for_client": "RO33 BRDE **** **** **** 4500"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_help_page",
+          "scope": "telecom_bill_payment",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://www.orange.ro/help/care-sunt-conturile-n-care-pot-face-plata-facturii-prin-virament-bancar-5568",
+              "publisher": "Orange Romania",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO91BTRL0000160106816100",
+          "iban_display_official": "RO91 BTRL 0000 1601 0681 6100",
+          "iban_masked_for_client": "RO91 BTRL **** **** **** 6100"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_help_page",
+          "scope": "telecom_bill_payment",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Raiffeisen Bank",
+          "source_refs": [
+            {
+              "url": "https://www.orange.ro/help/care-sunt-conturile-n-care-pot-face-plata-facturii-prin-virament-bancar-5568",
+              "publisher": "Orange Romania",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO20RZBR0000060003074933",
+          "iban_display_official": "RO20 RZBR 0000 0600 0307 4933",
+          "iban_masked_for_client": "RO20 RZBR **** **** **** 4933"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_help_page",
+          "scope": "telecom_bill_payment",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "CEC Bank",
+          "source_refs": [
+            {
+              "url": "https://www.orange.ro/help/care-sunt-conturile-n-care-pot-face-plata-facturii-prin-virament-bancar-5568",
+              "publisher": "Orange Romania",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO45CECEB10046RON0403003",
+          "iban_display_official": "RO45 CECE B100 46RO N040 3003",
+          "iban_masked_for_client": "RO45 CECE **** **** **** 3003"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_help_page",
+          "scope": "telecom_bill_payment",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "UniCredit Bank",
+          "source_refs": [
+            {
+              "url": "https://www.orange.ro/help/care-sunt-conturile-n-care-pot-face-plata-facturii-prin-virament-bancar-5568",
+              "publisher": "Orange Romania",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO08BACX0000000030877310",
+          "iban_display_official": "RO08 BACX 0000 0000 3087 7310",
+          "iban_masked_for_client": "RO08 BACX **** **** **** 7310"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_help_page",
+          "scope": "telecom_bill_payment_government",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Trezorerie",
+          "source_refs": [
+            {
+              "url": "https://www.orange.ro/help/care-sunt-conturile-n-care-pot-face-plata-facturii-prin-virament-bancar-5568",
+              "publisher": "Orange Romania",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO02TREZ7005069XXX000711",
+          "iban_display_official": "RO02 TREZ 7005 069X XX00 0711",
+          "iban_masked_for_client": "RO02 TREZ **** **** **** 0711",
+          "scope_notes": "pentru institutii bugetare"
+        }
+      ],
+      "source_refs": [
+        {
+          "url": "https://www.orange.ro/help/care-sunt-conturile-n-care-pot-face-plata-facturii-prin-virament-bancar-5568",
+          "publisher": "Orange Romania",
+          "accessed_at": "2026-06-19",
+          "confidence": "high"
+        }
+      ],
+      "review_status": "active"
+    }
+  ],
+  "summary": {
+    "brands": 1,
+    "entries": 1,
+    "destinations": 7,
+    "notes": "Orange Romania SA - 7 IBAN-uri for telecom bill payment from official help page"
+  }
+}
