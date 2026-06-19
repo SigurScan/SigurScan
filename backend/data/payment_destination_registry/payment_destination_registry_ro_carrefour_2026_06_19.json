@@ -1,0 +1,23 @@
+{
+  "version": "pdr-ro-carrefour-2026.06.19",
+  "generated_at": "2026-06-19T00:00:00Z",
+  "purpose": "Carrefour Romania SA payment destinations from official corporate page",
+  "rules": { "entry_lifetime_days": 365, "reverify_interval_days": 180, "min_confidence_to_contribute_to_safe": "high" },
+  "trust_tiers": { "T1_PUBLIC_OFFICIAL": "IBAN published on official company website" },
+  "entries": [
+    {
+      "brand_id": "carrefour_romania",
+      "display_name": "Carrefour România S.A.",
+      "legal_name": "Carrefour România S.A.",
+      "cui": "11588780",
+      "category": "retail_hypermarket",
+      "official_payment_channels": [{"type": "bank_transfer", "confidence": "high", "source_refs": [{"url": "https://carrefour.ro/corporate/despre-magazine/hipermarket", "publisher": "Carrefour Romania", "accessed_at": "2026-06-19", "confidence": "high"}]}],
+      "payment_destinations": [
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_website", "scope": "invoice_payment_ron", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "BRD", "source_refs": [{"url": "https://carrefour.ro/corporate/despre-magazine/hipermarket", "publisher": "Carrefour Romania", "accessed_at": "2026-06-19", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO74BRDE450SV00997684500", "iban_display_official": "RO74 BRDE 450S V009 9768 4500", "iban_masked_for_client": "RO74 BRDE **** **** **** 4500"}
+      ],
+      "source_refs": [{"url": "https://carrefour.ro/corporate/despre-magazine/hipermarket", "publisher": "Carrefour Romania", "accessed_at": "2026-06-19", "confidence": "high"}],
+      "review_status": "active"
+    }
+  ],
+  "summary": { "brands": 1, "entries": 1, "destinations": 1, "notes": "Carrefour Romania SA - 1 IBAN BRD" }
+}

@@ -1,0 +1,76 @@
+{
+  "batch_id": "batch_15",
+  "country": "RO",
+  "research_date_iso": "2026-06-19",
+  "last_reviewed_iso": "2026-06-19",
+  "review_status": "active",
+  "brands": [
+    {
+      "brand_id": "osim",
+      "display_name": "OSIM",
+      "legal_name": "Oficiul de Stat pentru Invenții și Mărci",
+      "cui": "4266081",
+      "category": "government_industrial_property_office",
+      "collects_via": "bank_transfer",
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_company_contact_page",
+          "scope": "tax_and_fee_collection",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "currency": "RON",
+          "bank_name": "Trezoreria Sector 3",
+          "bic": "TREZROBU",
+          "source_refs": [
+            {
+              "url": "https://osim.ro/despre-osim/interes-public/conturi-osim",
+              "publisher": "OSIM",
+              "accessed_at": "2026-06-19",
+              "confidence": "high",
+              "source_lines": "Contul pentru plata taxelor in Lei: RO05 TREZ 7032 0F33 5000 XXXX, BIC TREZROBU, cod fiscal 4266081, Trezoreria Sector 3"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO05TREZ70320F335000XXXX",
+          "iban_masked_for_client": "RO05 TREZ **** **** **** XXXX"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_company_contact_page",
+          "scope": "tax_and_fee_collection_foreign_currency",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "currency": "EUR",
+          "bank_name": "BCR S.A.",
+          "bic": "RNCBROBU",
+          "source_refs": [
+            {
+              "url": "https://osim.ro/despre-osim/interes-public/conturi-osim",
+              "publisher": "OSIM",
+              "accessed_at": "2026-06-19",
+              "confidence": "high",
+              "source_lines": "Contul pentru plata taxelor in valuta (EUR): RO38 RNCB 0080 0056 3032 0005, SWIFT RNCBROBU, cod fiscal 4266081, BCR S.A."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO38RNCB0080005630320005",
+          "iban_masked_for_client": "RO38 RNCB **** **** **** 0005"
+        }
+      ],
+      "domains": ["osim.ro"],
+      "aliases": [
+        "Oficiul de Stat pentru Invenții și Mărci",
+        "OSIM"
+      ]
+    }
+  ]
+}

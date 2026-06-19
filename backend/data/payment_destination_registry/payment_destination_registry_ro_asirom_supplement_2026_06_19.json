@@ -1,0 +1,113 @@
+{
+  "version": "pdr-ro-asirom-supplement-2026.06.19",
+  "generated_at": "2026-06-19T00:00:00Z",
+  "purpose": "Additional ASIROM VIG IBANs missing from supplemental (BT RON, UniCredit RON, Trezorerie, UniCredit Viata)",
+  "rules": {
+    "entry_lifetime_days": 365,
+    "reverify_interval_days": 180,
+    "min_confidence_to_contribute_to_safe": "high"
+  },
+  "trust_tiers": {
+    "T1_PUBLIC_OFFICIAL": "IBANs published on official company website"
+  },
+  "entries": [
+    {
+      "brand_id": "asirom",
+      "display_name": "ASIROM Vienna Insurance Group S.A.",
+      "legal_name": "ASIROM Vienna Insurance Group S.A.",
+      "cui": "1875650",
+      "category": "insurance_general",
+      "official_payment_channels": [
+        {
+          "type": "bank_transfer",
+          "confidence": "high",
+          "source_refs": [{"url": "https://asirom.ro/modalitati-de-plata", "publisher": "ASIROM VIG", "accessed_at": "2026-06-19", "confidence": "high"}]
+        }
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "insurance_premium_ron",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [{"url": "https://asirom.ro/modalitati-de-plata", "publisher": "ASIROM VIG", "accessed_at": "2026-06-19", "confidence": "high"}],
+          "iban_normalized_backend_seed_only": "RO77BTRLRONCRT0331106607",
+          "iban_display_official": "RO77 BTRL RONC RT03 3110 6607",
+          "iban_masked_for_client": "RO77 BTRL **** **** **** 6607"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "insurance_premium_ron",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "UniCredit Bank",
+          "source_refs": [{"url": "https://asirom.ro/modalitati-de-plata", "publisher": "ASIROM VIG", "accessed_at": "2026-06-19", "confidence": "high"}],
+          "iban_normalized_backend_seed_only": "RO95BACX0000001106788007",
+          "iban_display_official": "RO95 BACX 0000 0011 0678 8007",
+          "iban_masked_for_client": "RO95 BACX **** **** **** 8007"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "insurance_premium_ron_government",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Trezorerie",
+          "scope_notes": "Doar pentru institutii de stat",
+          "source_refs": [{"url": "https://asirom.ro/modalitati-de-plata", "publisher": "ASIROM VIG", "accessed_at": "2026-06-19", "confidence": "high"}],
+          "iban_normalized_backend_seed_only": "RO15TREZ7005069XXX000574",
+          "iban_display_official": "RO15 TREZ 7005 069X XX00 0574",
+          "iban_masked_for_client": "RO15 TREZ **** **** **** 0574"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "insurance_premium_viată_ron",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "UniCredit Bank",
+          "scope_notes": "Asigurari de viata (prin parteneriat Alpha Bank/UniCredit)",
+          "source_refs": [{"url": "https://www.unicredit.ro/ro/persoane-fizice/asigurari/asigurari-clienti-alpha-bank.html", "publisher": "UniCredit Bank / ASIROM VIG", "accessed_at": "2026-06-19", "confidence": "high"}],
+          "iban_normalized_backend_seed_only": "RO61BACX0000001106788037",
+          "iban_display_official": "RO61 BACX 0000 0011 0678 8037",
+          "iban_masked_for_client": "RO61 BACX **** **** **** 8037"
+        }
+      ],
+      "source_refs": [{"url": "https://asirom.ro/modalitati-de-plata", "publisher": "ASIROM VIG", "accessed_at": "2026-06-19", "confidence": "high"}],
+      "review_status": "active"
+    }
+  ],
+  "summary": {
+    "brands": 1,
+    "entries": 1,
+    "destinations": 4,
+    "notes": "ASIROM VIG - 4 IBAN-uri suplimentare (BT, UniCredit, Trezorerie, UniCredit Viata) care lipseau din supplemental"
+  }
+}

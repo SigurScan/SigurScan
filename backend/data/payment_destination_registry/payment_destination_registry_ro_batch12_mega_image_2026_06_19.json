@@ -1,0 +1,70 @@
+{
+  "version": "pdr-ro-batch12-mega-image-2026.06.19",
+  "generated_at": "2026-06-19T00:00:00Z",
+  "purpose": "Batch 12: Mega Image SRL — retailer zilnic important pentru consumatori",
+  "rules": { "entry_lifetime_days": 365, "reverify_interval_days": 180, "min_confidence_to_contribute_to_safe": "high" },
+  "trust_tiers": { "T1_PUBLIC_OFFICIAL": "IBANs published on official company website or verified marketplace" },
+  "entries": [
+    {
+      "brand_id": "mega_image",
+      "display_name": "Mega Image S.R.L.",
+      "legal_name": "S.C. Mega Image S.R.L.",
+      "cui": "6719278",
+      "category": "retail_supermarket",
+      "aliases": ["mega image", "mega-image", "mega image srl", "mega image romania"],
+      "official_payment_channels": [
+        {
+          "type": "online_payment",
+          "domain": "mega-image.ro",
+          "confidence": "high",
+          "source_refs": [
+            {
+              "url": "https://www.mega-image.ro/",
+              "publisher": "Mega Image",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ]
+        }
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "verified_marketplace",
+          "scope": "both",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "ING Bank",
+          "source_refs": [
+            {
+              "url": "https://www.emag.ro/megaimage/77/v",
+              "publisher": "eMAG Marketplace (verified seller data)",
+              "accessed_at": "2026-06-19",
+              "confidence": "high",
+              "source_lines": "Mega Image SRL, CUI RO6719278, IBAN: RO69INGB0001008191108910, Banca: ING BANK N.V., BUCHAREST BRANCH"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO69INGB0001008191108910",
+          "iban_display_official": "RO69 INGB 0001 0081 9110 8910",
+          "iban_masked_for_client": "RO69 INGB **** **** **** 8910"
+        }
+      ],
+      "source_refs": [
+        {
+          "url": "https://www.emag.ro/megaimage/77/v",
+          "publisher": "eMAG Marketplace",
+          "accessed_at": "2026-06-19",
+          "confidence": "high"
+        }
+      ],
+      "review_status": "active"
+    }
+  ],
+  "summary": { "brands": 1, "entries": 1, "destinations": 1, "notes": "Added Mega Image SRL IBAN (ING Bank) from eMAG verified seller page. CUI: 6719278." }
+}

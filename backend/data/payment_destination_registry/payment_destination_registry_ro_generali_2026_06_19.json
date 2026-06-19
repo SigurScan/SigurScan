@@ -1,0 +1,604 @@
+{
+  "version": "pdr-ro-generali-2026.06.19",
+  "generated_at": "2026-06-19T00:00:00Z",
+  "purpose": "Generali Romania Asigurare Reasigurare S.A. payment destinations from official website",
+  "rules": {
+    "entry_lifetime_days": 365,
+    "reverify_interval_days": 180,
+    "min_confidence_to_contribute_to_safe": "high"
+  },
+  "trust_tiers": {
+    "T1_PUBLIC_OFFICIAL": "IBANs published on official company website"
+  },
+  "entries": [
+    {
+      "brand_id": "generali_romania",
+      "display_name": "Generali Romania Asigurare Reasigurare S.A.",
+      "legal_name": "Generali Romania Asigurare Reasigurare S.A.",
+      "cui": "2886621",
+      "category": "insurance",
+      "official_payment_channels": [
+        {
+          "type": "bank_transfer",
+          "confidence": "high",
+          "source_refs": [
+            {
+              "url": "https://www.generali.ro/asigurari/alte-modalitati-de-plata/",
+              "publisher": "Generali Romania",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ]
+        }
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "life_insurance_coupon",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://www.generali.ro/asigurari/alte-modalitati-de-plata/",
+              "publisher": "Generali Romania",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO28BTRLRONINCS000778401",
+          "iban_display_official": "RO28 BTRL RONI NCS0 0077 8401",
+          "iban_masked_for_client": "RO28BTRL **** **** **** 8401"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "life_insurance_coupon",
+          "currency": "EUR",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://www.generali.ro/asigurari/alte-modalitati-de-plata/",
+              "publisher": "Generali Romania",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO13BTRLEURINCS000778401",
+          "iban_display_official": "RO13 BTRL EURI NCS0 0077 8401",
+          "iban_masked_for_client": "RO13BTRL **** **** **** 8401"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "life_insurance_coupon",
+          "currency": "USD",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://www.generali.ro/asigurari/alte-modalitati-de-plata/",
+              "publisher": "Generali Romania",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO53BTRLUSDINCS000778401",
+          "iban_display_official": "RO53 BTRL USDI NCS0 0077 8401",
+          "iban_masked_for_client": "RO53BTRL **** **** **** 8401"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "life_insurance_transfer",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Raiffeisen Bank",
+          "source_refs": [
+            {
+              "url": "https://www.generali.ro/asigurari/alte-modalitati-de-plata/",
+              "publisher": "Generali Romania",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO89RZBR0000060002937891",
+          "iban_display_official": "RO89 RZBR 0000 0600 0293 7891",
+          "iban_masked_for_client": "RO89RZBR **** **** **** 7891"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "life_insurance_transfer",
+          "currency": "EUR",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Raiffeisen Bank",
+          "source_refs": [
+            {
+              "url": "https://www.generali.ro/asigurari/alte-modalitati-de-plata/",
+              "publisher": "Generali Romania",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO72RZBR0000060002937906",
+          "iban_display_official": "RO72 RZBR 0000 0600 0293 7906",
+          "iban_masked_for_client": "RO72RZBR **** **** **** 7906"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "life_insurance_transfer",
+          "currency": "USD",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Raiffeisen Bank",
+          "source_refs": [
+            {
+              "url": "https://www.generali.ro/asigurari/alte-modalitati-de-plata/",
+              "publisher": "Generali Romania",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO18RZBR0000060002937908",
+          "iban_display_official": "RO18 RZBR 0000 0600 0293 7908",
+          "iban_masked_for_client": "RO18RZBR **** **** **** 7908"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "life_insurance_transfer",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://www.generali.ro/asigurari/alte-modalitati-de-plata/",
+              "publisher": "Generali Romania",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO78BTRLRONCRT0072336003",
+          "iban_display_official": "RO78 BTRL RONC RT00 7233 6003",
+          "iban_masked_for_client": "RO78BTRL **** **** **** 6003",
+          "scope_notes": "shared between life and general insurance"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "life_insurance_transfer",
+          "currency": "EUR",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://www.generali.ro/asigurari/alte-modalitati-de-plata/",
+              "publisher": "Generali Romania",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO55BTRLEURCRT0072336002",
+          "iban_display_official": "RO55 BTRL EURC RT00 7233 6002",
+          "iban_masked_for_client": "RO55BTRL **** **** **** 6002"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "life_insurance_transfer",
+          "currency": "CHF",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://www.generali.ro/asigurari/alte-modalitati-de-plata/",
+              "publisher": "Generali Romania",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO61BTRLCHFCRT0072336001",
+          "iban_display_official": "RO61 BTRL CHFC RT00 7233 6001",
+          "iban_masked_for_client": "RO61BTRL **** **** **** 6001"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "life_insurance_transfer",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BRD",
+          "source_refs": [
+            {
+              "url": "https://www.generali.ro/asigurari/alte-modalitati-de-plata/",
+              "publisher": "Generali Romania",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO54BRDE450SV22882254500",
+          "iban_display_official": "RO54 BRDE 450S V228 8225 4500",
+          "iban_masked_for_client": "RO54BRDE **** **** **** 4500"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "life_insurance_transfer",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "ING Bank",
+          "source_refs": [
+            {
+              "url": "https://www.generali.ro/asigurari/alte-modalitati-de-plata/",
+              "publisher": "Generali Romania",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO55INGB0001008173248940",
+          "iban_display_official": "RO55 INGB 0001 0081 7324 8940",
+          "iban_masked_for_client": "RO55INGB **** **** **** 8940"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "general_insurance",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Raiffeisen Bank",
+          "source_refs": [
+            {
+              "url": "https://www.generali.ro/asigurari/alte-modalitati-de-plata/",
+              "publisher": "Generali Romania",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO27RZBR0000060002407350",
+          "iban_display_official": "RO27 RZBR 0000 0600 0240 7350",
+          "iban_masked_for_client": "RO27RZBR **** **** **** 7350"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "general_insurance",
+          "currency": "EUR",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Raiffeisen Bank",
+          "source_refs": [
+            {
+              "url": "https://www.generali.ro/asigurari/alte-modalitati-de-plata/",
+              "publisher": "Generali Romania",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO54RZBR0000060002407349",
+          "iban_display_official": "RO54 RZBR 0000 0600 0240 7349",
+          "iban_masked_for_client": "RO54RZBR **** **** **** 7349"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "general_insurance",
+          "currency": "USD",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Raiffeisen Bank",
+          "source_refs": [
+            {
+              "url": "https://www.generali.ro/asigurari/alte-modalitati-de-plata/",
+              "publisher": "Generali Romania",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO81RZBR0000060002407348",
+          "iban_display_official": "RO81 RZBR 0000 0600 0240 7348",
+          "iban_masked_for_client": "RO81RZBR **** **** **** 7348"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "general_insurance",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "UniCredit Bank",
+          "source_refs": [
+            {
+              "url": "https://www.generali.ro/asigurari/alte-modalitati-de-plata/",
+              "publisher": "Generali Romania",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO04BACX0000000030278310",
+          "iban_display_official": "RO04 BACX 0000 0000 3027 8310",
+          "iban_masked_for_client": "RO04BACX **** **** **** 8310"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "general_insurance",
+          "currency": "EUR",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "UniCredit Bank",
+          "source_refs": [
+            {
+              "url": "https://www.generali.ro/asigurari/alte-modalitati-de-plata/",
+              "publisher": "Generali Romania",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO25BACX0000000030278320",
+          "iban_display_official": "RO25 BACX 0000 0000 3027 8320",
+          "iban_masked_for_client": "RO25BACX **** **** **** 8320"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "general_insurance",
+          "currency": "USD",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "UniCredit Bank",
+          "source_refs": [
+            {
+              "url": "https://www.generali.ro/asigurari/alte-modalitati-de-plata/",
+              "publisher": "Generali Romania",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO74BACX0000000030278020",
+          "iban_display_official": "RO74 BACX 0000 0000 3027 8020",
+          "iban_masked_for_client": "RO74BACX **** **** **** 8020"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "general_insurance",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BRD",
+          "source_refs": [
+            {
+              "url": "https://www.generali.ro/asigurari/alte-modalitati-de-plata/",
+              "publisher": "Generali Romania",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO08BRDE450SV08026654500",
+          "iban_display_official": "RO08 BRDE 450S V080 2665 4500",
+          "iban_masked_for_client": "RO08BRDE **** **** **** 4500"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "general_insurance",
+          "currency": "EUR",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BRD",
+          "source_refs": [
+            {
+              "url": "https://www.generali.ro/asigurari/alte-modalitati-de-plata/",
+              "publisher": "Generali Romania",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO04BRDE450SV08026734500",
+          "iban_display_official": "RO04 BRDE 450S V080 2673 4500",
+          "iban_masked_for_client": "RO04BRDE **** **** **** 4500"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "general_insurance",
+          "currency": "USD",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BRD",
+          "source_refs": [
+            {
+              "url": "https://www.generali.ro/asigurari/alte-modalitati-de-plata/",
+              "publisher": "Generali Romania",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO43BRDE450SV09881564500",
+          "iban_display_official": "RO43 BRDE 450S V098 8156 4500",
+          "iban_masked_for_client": "RO43BRDE **** **** **** 4500"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "general_insurance",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "ING Bank",
+          "source_refs": [
+            {
+              "url": "https://www.generali.ro/asigurari/alte-modalitati-de-plata/",
+              "publisher": "Generali Romania",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO89INGB0001008173248910",
+          "iban_display_official": "RO89 INGB 0001 0081 7324 8910",
+          "iban_masked_for_client": "RO89INGB **** **** **** 8910"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "general_insurance",
+          "currency": "EUR",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "ING Bank",
+          "source_refs": [
+            {
+              "url": "https://www.generali.ro/asigurari/alte-modalitati-de-plata/",
+              "publisher": "Generali Romania",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO38INGB0001008173240710",
+          "iban_display_official": "RO38 INGB 0001 0081 7324 0710",
+          "iban_masked_for_client": "RO38INGB **** **** **** 0710"
+        }
+      ],
+      "source_refs": [
+        {
+          "url": "https://www.generali.ro/asigurari/alte-modalitati-de-plata/",
+          "publisher": "Generali Romania",
+          "accessed_at": "2026-06-19",
+          "confidence": "high"
+        }
+      ],
+      "review_status": "active"
+    }
+  ],
+  "summary": {
+    "brands": 1,
+    "entries": 1,
+    "destinations": 22,
+    "notes": "Generali Romania - insurance IBANs from official payment page"
+  }
+}

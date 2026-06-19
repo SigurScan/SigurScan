@@ -1,0 +1,111 @@
+{
+  "version": "pdr-ro-apa-canal-2000-pitesti-2026.06.19",
+  "generated_at": "2026-06-19T00:00:00Z",
+  "purpose": "SC Apa Canal 2000 SA Pitești payment destinations from Primăria Pitești official notice",
+  "rules": {
+    "entry_lifetime_days": 365,
+    "reverify_interval_days": 180,
+    "min_confidence_to_contribute_to_safe": "high"
+  },
+  "trust_tiers": {
+    "T1_PUBLIC_OFFICIAL": "IBANs published on official company notice via Primăria Pitești"
+  },
+  "entries": [
+    {
+      "brand_id": "apa_canal_2000_pitesti",
+      "display_name": "SC Apa Canal 2000 S.A. Pitești",
+      "legal_name": "SC Apa Canal 2000 S.A.",
+      "cui": "2641670",
+      "category": "utility_water",
+      "official_payment_channels": [
+        {
+          "type": "bank_transfer",
+          "confidence": "high",
+          "source_refs": [{"url": "https://www.primariapitesti.ro/apa-canal-2000-sa-noi-modalitai-de-plata-a-facturilor-articol710", "publisher": "Primăria Pitești (Apa Canal 2000)", "accessed_at": "2026-06-19", "confidence": "high"}]
+        }
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "water_bill_ron",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BRD Pitești",
+          "source_refs": [{"url": "https://www.primariapitesti.ro/apa-canal-2000-sa-noi-modalitai-de-plata-a-facturilor-articol710", "publisher": "Primăria Pitești (Apa Canal 2000)", "accessed_at": "2026-06-19", "confidence": "high"}],
+          "iban_normalized_backend_seed_only": "RO93BRDE030SV05734580300",
+          "iban_display_official": "RO93 BRDE 030S V057 3458 0300",
+          "iban_masked_for_client": "RO93 BRDE **** **** **** 0300"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "water_bill_ron",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Garanti Bank Pitești",
+          "source_refs": [{"url": "https://www.primariapitesti.ro/apa-canal-2000-sa-noi-modalitai-de-plata-a-facturilor-articol710", "publisher": "Primăria Pitești (Apa Canal 2000)", "accessed_at": "2026-06-19", "confidence": "high"}],
+          "iban_normalized_backend_seed_only": "RO96UGBI0000512009978RON",
+          "iban_display_official": "RO96 UGBI 0000 5120 0997 8RON",
+          "iban_masked_for_client": "RO96 UGBI **** **** **** 8RON"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "water_bill_ron",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BCR Pitești",
+          "source_refs": [{"url": "https://www.primariapitesti.ro/apa-canal-2000-sa-noi-modalitai-de-plata-a-facturilor-articol710", "publisher": "Primăria Pitești (Apa Canal 2000)", "accessed_at": "2026-06-19", "confidence": "high"}],
+          "iban_normalized_backend_seed_only": "RO07RNCB0022146935360001",
+          "iban_display_official": "RO07 RNCB 0022 1469 3536 0001",
+          "iban_masked_for_client": "RO07 RNCB **** **** **** 0001"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "water_bill_ron",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "CEC Bank",
+          "source_refs": [{"url": "https://www.primariapitesti.ro/apa-canal-2000-sa-noi-modalitai-de-plata-a-facturilor-articol710", "publisher": "Primăria Pitești (Apa Canal 2000)", "accessed_at": "2026-06-19", "confidence": "high"}],
+          "iban_normalized_backend_seed_only": "RO92CECEB00030RON0789756",
+          "iban_display_official": "RO92 CECE B000 30RO N078 9756",
+          "iban_masked_for_client": "RO92 CECE **** **** **** 9756"
+        }
+      ],
+      "source_refs": [{"url": "https://www.primariapitesti.ro/apa-canal-2000-sa-noi-modalitai-de-plata-a-facturilor-articol710", "publisher": "Primăria Pitești (Apa Canal 2000)", "accessed_at": "2026-06-19", "confidence": "high"}],
+      "review_status": "active"
+    }
+  ],
+  "summary": {
+    "brands": 1,
+    "entries": 1,
+    "destinations": 4,
+    "notes": "SC Apa Canal 2000 SA Pitești - 4 IBANs (BRD, Garanti, BCR, CEC)"
+  }
+}

@@ -164,6 +164,65 @@ def test_registry_duplicate_same_entity_iban_still_flags_other_issuer_mismatch(t
     assert mismatch["can_contribute_to_safe"] is False
 
 
+def test_registry_loads_brands_schema_and_skips_masked_iban_seeds(tmp_path, monkeypatch):
+    from services import payment_destination_registry as registry
+    from services.payment_destination_registry import match_payment_destination
+
+    seed = {
+        "brands": [
+            {
+                "brand_id": "osim",
+                "display_name": "OSIM",
+                "legal_name": "Oficiul de Stat pentru Invenții și Mărci",
+                "cui": "4266081",
+                "payment_destinations": [
+                    {
+                        "kind": "iban",
+                        "trust_tier": "T1_PUBLIC_OFFICIAL",
+                        "source_kind": "official_company_contact_page",
+                        "scope": "tax_and_fee_collection",
+                        "confidence": "high",
+                        "review_status": "active",
+                        "client_distribution_allowed": False,
+                        "match_policy": "exact_hmac_match_required",
+                        "can_contribute_to_safe": True,
+                        "iban_normalized_backend_seed_only": "RO05TREZ70320F335000XXXX",
+                        "iban_masked_for_client": "RO05 TREZ **** **** **** XXXX",
+                    },
+                    {
+                        "kind": "iban",
+                        "trust_tier": "T1_PUBLIC_OFFICIAL",
+                        "source_kind": "official_company_contact_page",
+                        "scope": "tax_and_fee_collection_foreign_currency",
+                        "confidence": "high",
+                        "review_status": "active",
+                        "client_distribution_allowed": False,
+                        "match_policy": "exact_hmac_match_required",
+                        "can_contribute_to_safe": True,
+                        "iban_normalized_backend_seed_only": "RO38RNCB0080005630320005",
+                        "iban_masked_for_client": "RO38 RNCB **** **** **** 0005",
+                    },
+                ],
+            }
+        ]
+    }
+    seed_path = tmp_path / "payment_registry_brands.json"
+    seed_path.write_text(json.dumps(seed), encoding="utf-8")
+    monkeypatch.setenv("PAYMENT_DESTINATION_REGISTRY_PATHS", str(seed_path))
+    registry.reload_registry()
+    try:
+        exact = match_payment_destination("RO38 RNCB 0080 0056 3032 0005", claimed_brand="OSIM", cui="4266081")
+        masked = match_payment_destination("RO05 TREZ 7032 0F33 5000 XXXX", claimed_brand="OSIM", cui="4266081")
+    finally:
+        registry.reload_registry()
+
+    assert exact["matched"] is True
+    assert exact["brand_id"] == "osim"
+    assert exact["can_contribute_to_safe"] is True
+    assert masked["matched"] is False
+    assert masked["registry_has_brand_destinations"] is True
+
+
 def test_registry_loads_supplemental_hidroelectrica_destination():
     from services.payment_destination_registry import match_payment_destination
 

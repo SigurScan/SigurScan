@@ -1,0 +1,57 @@
+{
+  "version": "pdr-ro-termoenergetica-2026.06.19",
+  "generated_at": "2026-06-19T00:00:00Z",
+  "purpose": "CMTEB Termoenergetica Bucuresti payment destinations from official website",
+  "rules": {
+    "entry_lifetime_days": 365,
+    "reverify_interval_days": 180,
+    "min_confidence_to_contribute_to_safe": "high"
+  },
+  "trust_tiers": {
+    "T1_PUBLIC_OFFICIAL": "IBAN published on official company website"
+  },
+  "entries": [
+    {
+      "brand_id": "termoenergetica_bucuresti",
+      "display_name": "CMTEB Termoenergetica București",
+      "legal_name": "Compania Municipală Termoenergetica București S.A.",
+      "cui": "15081141",
+      "category": "utility_heating",
+      "official_payment_channels": [
+        {
+          "type": "bank_transfer",
+          "confidence": "high",
+          "source_refs": [{"url": "https://www.cmteb.ro/factura-energie-termica.php", "publisher": "CMTEB", "accessed_at": "2026-06-19", "confidence": "high"}]
+        }
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "utility_bill_payment",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BCR",
+          "scope_notes": "Cont escrow obligatoriu conform OUG 115/2001 pentru plata facturii de energie termică",
+          "source_refs": [{"url": "https://www.cmteb.ro/factura-energie-termica.php", "publisher": "CMTEB", "accessed_at": "2026-06-19", "confidence": "high"}],
+          "iban_normalized_backend_seed_only": "RO02RNCB0074164350320003",
+          "iban_display_official": "RO02 RNCB 0074 1643 5032 0003",
+          "iban_masked_for_client": "RO02 RNCB **** **** **** 0003"
+        }
+      ],
+      "source_refs": [{"url": "https://www.cmteb.ro/factura-energie-termica.php", "publisher": "CMTEB", "accessed_at": "2026-06-19", "confidence": "high"}],
+      "review_status": "active"
+    }
+  ],
+  "summary": {
+    "brands": 1,
+    "entries": 1,
+    "destinations": 1,
+    "notes": "CMTEB Termoenergetica Bucuresti - 1 escrow IBAN at BCR from official website"
+  }
+}

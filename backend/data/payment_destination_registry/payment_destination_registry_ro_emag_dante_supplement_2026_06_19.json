@@ -1,0 +1,58 @@
+{
+  "version": "pdr-ro-emag-dante-supplement-2026.06.19",
+  "generated_at": "2026-06-19T00:00:00Z",
+  "purpose": "Additional eMAG/Dante International IBAN (BRD) missing from existing registry",
+  "rules": {
+    "entry_lifetime_days": 365,
+    "reverify_interval_days": 180,
+    "min_confidence_to_contribute_to_safe": "high"
+  },
+  "trust_tiers": {
+    "T1_PUBLIC_OFFICIAL": "IBANs published on official company website"
+  },
+  "entries": [
+    {
+      "brand_id": "emag_ads_dante",
+      "display_name": "Dante International S.A. (eMAG / Fashion Days)",
+      "legal_name": "Dante International S.A.",
+      "cui": "14399840",
+      "category": "ecommerce",
+      "official_payment_channels": [
+        {
+          "type": "bank_transfer",
+          "confidence": "high",
+          "source_refs": [{"url": "https://www.fashiondays.ro/company/contact-us/", "publisher": "Fashion Days (Dante International)", "accessed_at": "2026-06-19", "confidence": "high"}]
+        }
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "invoice_payment_ron",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BRD",
+          "scope_notes": "Fashion Days contact page - aceeasi entitate Dante International",
+          "source_refs": [{"url": "https://www.fashiondays.ro/company/contact-us/", "publisher": "Fashion Days (Dante International)", "accessed_at": "2026-06-19", "confidence": "high"}],
+          "iban_normalized_backend_seed_only": "RO38BRDE450SV88376004500",
+          "iban_display_official": "RO38 BRDE 450S V883 7600 4500",
+          "iban_masked_for_client": "RO38 BRDE **** **** **** 4500"
+        }
+      ],
+      "source_refs": [{"url": "https://www.fashiondays.ro/company/contact-us/", "publisher": "Fashion Days (Dante International)", "accessed_at": "2026-06-19", "confidence": "high"}],
+      "review_status": "active"
+    }
+  ],
+  "summary": {
+    "brands": 1,
+    "entries": 1,
+    "destinations": 1,
+    "notes": "Dante International (eMAG/Fashion Days) - 1 IBAN BRD suplimentar. Exista deja RO02BTRLRONCRT00W6717503 in research_delta_utilities."
+  }
+}

@@ -1,0 +1,133 @@
+{
+  "version": "pdr-ro-hydrokov-covasna-2026.06.19",
+  "generated_at": "2026-06-19T00:00:00Z",
+  "purpose": "Hydrokov SA (AquaCovas, Covasna) payment destinations from official website",
+  "rules": {
+    "entry_lifetime_days": 365,
+    "reverify_interval_days": 180,
+    "min_confidence_to_contribute_to_safe": "high"
+  },
+  "trust_tiers": {
+    "T1_PUBLIC_OFFICIAL": "IBANs published on official company website"
+  },
+  "entries": [
+    {
+      "brand_id": "hydrokov_covasna",
+      "display_name": "Hydrokov S.A. (AquaCovas)",
+      "legal_name": "Hydrokov S.A.",
+      "cui": "21923370",
+      "category": "utility_water",
+      "official_payment_channels": [
+        {
+          "type": "bank_transfer",
+          "confidence": "high",
+          "source_refs": [{"url": "https://hydrokov.ro/ro/informatii-utile/", "publisher": "Hydrokov SA", "accessed_at": "2026-06-19", "confidence": "high"}]
+        }
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "water_bill_ron",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BCR Sfântu Gheorghe",
+          "scope_notes": "Sediu Central",
+          "source_refs": [{"url": "https://hydrokov.ro/ro/informatii-utile/", "publisher": "Hydrokov SA", "accessed_at": "2026-06-19", "confidence": "high"}],
+          "iban_normalized_backend_seed_only": "RO44RNCB0124038021880001",
+          "iban_display_official": "RO44 RNCB 0124 0380 2188 0001",
+          "iban_masked_for_client": "RO44 RNCB **** **** **** 0001"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "water_bill_ron",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BCR Târgu Secuiesc",
+          "scope_notes": "Sucursala Tirgu Secuiesc",
+          "source_refs": [{"url": "https://hydrokov.ro/ro/informatii-utile/", "publisher": "Hydrokov SA", "accessed_at": "2026-06-19", "confidence": "high"}],
+          "iban_normalized_backend_seed_only": "RO63RNCB0124038021880241",
+          "iban_display_official": "RO63 RNCB 0124 0380 2188 0241",
+          "iban_masked_for_client": "RO63 RNCB **** **** **** 0241"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "water_bill_ron",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BCR Covasna",
+          "scope_notes": "Sucursala Covasna",
+          "source_refs": [{"url": "https://hydrokov.ro/ro/informatii-utile/", "publisher": "Hydrokov SA", "accessed_at": "2026-06-19", "confidence": "high"}],
+          "iban_normalized_backend_seed_only": "RO09RNCB0124038021880243",
+          "iban_display_official": "RO09 RNCB 0124 0380 2188 0243",
+          "iban_masked_for_client": "RO09 RNCB **** **** **** 0243"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "water_bill_ron",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BCR Întorsura Buzăului",
+          "scope_notes": "Sucursala Intorsura Buzaului",
+          "source_refs": [{"url": "https://hydrokov.ro/ro/informatii-utile/", "publisher": "Hydrokov SA", "accessed_at": "2026-06-19", "confidence": "high"}],
+          "iban_normalized_backend_seed_only": "RO36RNCB0124038021880243",
+          "iban_display_official": "RO36 RNCB 0124 0380 2188 0243",
+          "iban_masked_for_client": "RO36 RNCB **** **** **** 0243"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "public_administration",
+          "scope": "water_bill_ron",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [{"url": "https://primariacovasna.ro/", "publisher": "Primaria Covasna (HCL 188/2022)", "accessed_at": "2026-06-19", "confidence": "high"}],
+          "iban_normalized_backend_seed_only": "RO62BTRLO1501202K16637XX",
+          "iban_display_official": "RO62 BTRL O150 1202 K166 37XX",
+          "iban_masked_for_client": "RO62 BTRL **** **** **** 37XX"
+        }
+      ],
+      "source_refs": [{"url": "https://hydrokov.ro/ro/informatii-utile/", "publisher": "Hydrokov SA", "accessed_at": "2026-06-19", "confidence": "high"}],
+      "review_status": "active"
+    }
+  ],
+  "summary": {
+    "brands": 1,
+    "entries": 1,
+    "destinations": 5,
+    "notes": "Hydrokov SA (AquaCovas, jud. Covasna) - 5 IBANs (BCR 4 sucursale + BT)"
+  }
+}

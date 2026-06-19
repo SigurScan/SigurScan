@@ -1,0 +1,76 @@
+{
+  "version": "pdr-ro-altex-2026.06.19",
+  "generated_at": "2026-06-19T00:00:00Z",
+  "purpose": "Altex Romania SRL payment destinations from official sources",
+  "rules": {
+    "entry_lifetime_days": 365,
+    "reverify_interval_days": 180,
+    "min_confidence_to_contribute_to_safe": "high"
+  },
+  "trust_tiers": {
+    "T1_PUBLIC_OFFICIAL": "IBANs from official company website or published invoices"
+  },
+  "entries": [
+    {
+      "brand_id": "altex_romania",
+      "display_name": "Altex Romania S.R.L.",
+      "legal_name": "Altex Romania S.R.L.",
+      "cui": "13831166",
+      "category": "retail_electronics",
+      "official_payment_channels": [
+        {
+          "type": "bank_transfer",
+          "confidence": "high",
+          "source_refs": [{"url": "https://altex.ro/regulament-dublul-diferentei-online/pag/", "publisher": "Altex Romania", "accessed_at": "2026-06-19", "confidence": "high"}]
+        }
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "invoice_payment_ron",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BRD",
+          "source_refs": [{"url": "https://altex.ro/regulament-dublul-diferentei-online/pag/", "publisher": "Altex Romania", "accessed_at": "2026-06-19", "confidence": "high"}],
+          "iban_normalized_backend_seed_only": "RO53BRDE450SV01797384500",
+          "iban_display_official": "RO53 BRDE 450S V017 9738 4500",
+          "iban_masked_for_client": "RO53 BRDE **** **** **** 4500"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "invoice_payment_ron_government",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Trezorerie",
+          "scope_notes": "Pentru institutii publice",
+          "source_refs": [{"url": "https://altex.ro/ajutor/pag/", "publisher": "Altex Romania", "accessed_at": "2026-06-19", "confidence": "high"}],
+          "iban_normalized_backend_seed_only": "RO67TREZ7005069XXX008077",
+          "iban_display_official": "RO67 TREZ 7005 069X XX00 8077",
+          "iban_masked_for_client": "RO67 TREZ **** **** **** 8077"
+        }
+      ],
+      "source_refs": [{"url": "https://altex.ro/regulament-dublul-diferentei-online/pag/", "publisher": "Altex Romania", "accessed_at": "2026-06-19", "confidence": "high"}],
+      "review_status": "active"
+    }
+  ],
+  "summary": {
+    "brands": 1,
+    "entries": 1,
+    "destinations": 2,
+    "notes": "Altex Romania SRL - 1 BRD + 1 Trezorerie. IBAN confirmat pe site oficial regulament 2x diferenta"
+  }
+}
