@@ -162,6 +162,45 @@ def test_scan_invoice_pdf_merges_embedded_text_when_ocr_misses_cui(monkeypatch):
     )
 
 
+def test_scan_invoice_consumes_sanb_no_match_attestation(monkeypatch):
+    from services.anaf_cui import CuiResult
+
+    async def fake_extract_text_for_scan(filename, file_bytes, extract_fn):
+        return MGH_PDF_TEXT, None
+
+    async def fake_check_cui(cui: str):
+        assert cui == "45758405"
+        return CuiResult(
+            exists=True,
+            checked=True,
+            denumire="MARKETING GROWTH HUB S.R.L.",
+            activ=True,
+            data_inactivare=None,
+            platitor_tva=False,
+            enrolled_efactura=False,
+            raw=None,
+        )
+
+    monkeypatch.setattr(app_main, "extract_text_for_scan", fake_extract_text_for_scan)
+    monkeypatch.setattr("services.invoice_orchestrator.check_cui", fake_check_cui)
+    client = TestClient(app_main.app)
+
+    response = client.post(
+        "/v1/scan/invoice",
+        files={"pdf_file": ("mgh.pdf", b"%PDF-1.4\n%%EOF", "application/pdf")},
+        data={
+            "source_channel": "android_native",
+            "sanb_attestation": "no_match",
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["invoice_truth"]["verdict"] == "NU_PLATI"
+    assert payload["invoice_truth"]["primary_reason_code"] == "PRIMARY_PAYMENT_DESTINATION_BELONGS_ELSEWHERE"
+    assert payload["verdict_gate"]["label"] == "DANGEROUS"
+
+
 def test_scan_invoice_pdf_qr_payload_participates_in_payment_destination_verdict(monkeypatch):
     from services.anaf_cui import CuiResult
 

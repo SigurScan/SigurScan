@@ -432,6 +432,10 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
         val extractedText: String,
         val extractedLinks: Set<String> = emptySet()
     )
+    private data class PendingInvoiceScanSource(
+        val uri: Uri,
+        val officialXmlUri: Uri? = null
+    )
     private data class CachedThreatIntelResult(
         val result: ThreatIntelSourceResult,
         val expiresAtMillis: Long
@@ -470,6 +474,8 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
     var loadingMsg by mutableStateOf("")
     var assessment by mutableStateOf<OfflineAssessment?>(null)
     var invoiceResult by mutableStateOf<InvoiceScanResponse?>(null)
+    var invoiceSanbStatus by mutableStateOf<String?>(null)
+    private var lastInvoiceScanSource: PendingInvoiceScanSource? = null
     var pendingOfferConfirmation by mutableStateOf<PendingOfferConfirmation?>(null)
     var pendingSharedInput by mutableStateOf<String?>(null)
     var pendingSharedSourceLabel by mutableStateOf("Conținut partajat")
@@ -3052,10 +3058,23 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
         publishAssessmentResult(null, result)
     }
 
-    fun scanInvoiceFromDocument(uri: Uri, context: Context, officialXmlUri: Uri? = null) {
+    fun scanInvoiceFromDocument(
+        uri: Uri,
+        context: Context,
+        officialXmlUri: Uri? = null,
+        sanbAttestation: String? = null
+    ) {
         loading = true
-        loadingMsg = if (officialXmlUri != null) "Comparăm factura cu XML-ul e-Factura..." else "Scanăm factura prin OCR..."
-        invoiceResult = null
+        loadingMsg = when {
+            sanbAttestation != null -> "Actualizăm verdictul după verificarea beneficiarului..."
+            officialXmlUri != null -> "Comparăm factura cu XML-ul e-Factura..."
+            else -> "Scanăm factura prin OCR..."
+        }
+        invoiceSanbStatus = null
+        if (sanbAttestation == null) {
+            invoiceResult = null
+        }
+        lastInvoiceScanSource = PendingInvoiceScanSource(uri = uri, officialXmlUri = officialXmlUri)
 
         viewModelScope.launch {
             var file: File? = null
@@ -3081,6 +3100,9 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                 val requestFile = file.asRequestBody(mediaType.toMediaTypeOrNull())
                 val body = MultipartBody.Part.createFormData(partName, fileName, requestFile)
                 val source = "android_native".toRequestBody("text/plain".toMediaTypeOrNull())
+                val sanbPart = sanbAttestation?.let {
+                    it.toRequestBody("text/plain".toMediaTypeOrNull())
+                }
                 val officialPart = officialXmlUri?.let { xmlUri ->
                     val xmlFileName = getFileName(xmlUri, context)
                     val xmlMimeType = context.contentResolver.getType(xmlUri).orEmpty().lowercase(Locale.ROOT)
@@ -3099,7 +3121,13 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                     MultipartBody.Part.createFormData("official_xml_file", xmlFileName, xmlRequest)
                 }
 
-                invoiceResult = uploadApi.scanInvoice(body, source, officialPart)
+                invoiceResult = uploadApi.scanInvoice(body, source, officialPart, sanbPart)
+                invoiceSanbStatus = when (sanbAttestation) {
+                    "match", "close_match" -> "Ai confirmat în bancă faptul că beneficiarul se potrivește."
+                    "no_match" -> "Ai confirmat în bancă faptul că beneficiarul nu se potrivește."
+                    "not_shown" -> "Banca nu a afișat numele beneficiarului; verifică furnizorul pe canal oficial."
+                    else -> null
+                }
             } catch (e: Exception) {
                 invoiceResult = InvoiceScanResponse(
                     error = "Eroare la scanarea facturii: ${e.localizedMessage ?: "conexiune eșuată"}"
@@ -3111,6 +3139,24 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
                 loadingMsg = ""
             }
         }
+    }
+
+    fun submitInvoiceBeneficiaryAttestation(attestation: String, context: Context) {
+        val normalized = when (attestation.trim().lowercase(Locale.ROOT)) {
+            "match", "close_match", "no_match", "not_shown" -> attestation.trim().lowercase(Locale.ROOT)
+            else -> return
+        }
+        val source = lastInvoiceScanSource
+        if (source == null) {
+            invoiceSanbStatus = "Nu mai avem documentul în sesiune. Reîncarcă factura și repetă verificarea."
+            return
+        }
+        scanInvoiceFromDocument(
+            uri = source.uri,
+            context = context,
+            officialXmlUri = source.officialXmlUri,
+            sanbAttestation = normalized
+        )
     }
 
     fun scanOfferFromDocument(uri: Uri, context: Context) {
@@ -4691,6 +4737,8 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
     fun reset() {
         assessment = null
         invoiceResult = null
+        invoiceSanbStatus = null
+        lastInvoiceScanSource = null
         pendingOfferConfirmation = null
         officialReportPackage = null
         officialReportStatus = null

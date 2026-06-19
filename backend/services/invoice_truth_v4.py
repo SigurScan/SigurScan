@@ -123,7 +123,12 @@ def evaluate_invoice_truth_v4(
     elif destination_state == "INVALID_STRUCTURE":
         unconfirmed_items.append(_item("PAYMENT_IBAN_INVALID", "Contul de plată nu are format valid"))
     elif getattr(fields, "iban", None):
-        unconfirmed_items.append(_item("PAYMENT_BENEFICIARY_UNCONFIRMED", "Beneficiarul plății nu este confirmat automat"))
+        unconfirmed_items.append(
+            _item(
+                "PAYMENT_BENEFICIARY_UNCONFIRMED",
+                "Verifică numele beneficiarului afișat de bancă înainte să autorizezi plata",
+            )
+        )
 
     obligation_state = _invoice_obligation_state(
         source_channel=source_channel,
@@ -205,8 +210,9 @@ def evaluate_invoice_truth_v4(
             display = {
                 "title": "Verifică înainte să plătești",
                 "message": (
-                    "Factura nu pare fraudă, dar nu putem confirma automat contul de plată "
-                    "sau că datorezi suma. Verifică înainte să plătești."
+                    "Factura nu pare fraudă după verificările disponibile. "
+                    "Înainte să plătești, verifică în aplicația bancară că numele "
+                    "beneficiarului afișat corespunde furnizorului."
                 ),
                 "tone": "pending",
             }

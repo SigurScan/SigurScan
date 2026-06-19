@@ -1693,6 +1693,33 @@ def _merge_ocr_and_embedded_text(ocr_text: str, embedded_text: str) -> str:
     return f"{ocr}\n\n--- PDF embedded text ---\n{embedded}"
 
 
+def _normalize_sanb_attestation(value: Optional[str]) -> Optional[str]:
+    normalized = str(value or "").strip().lower()
+    if not normalized:
+        return None
+    aliases = {
+        "matches": "match",
+        "matched": "match",
+        "same": "match",
+        "close": "close_match",
+        "close-match": "close_match",
+        "close match": "close_match",
+        "similar": "close_match",
+        "mismatch": "no_match",
+        "no-match": "no_match",
+        "no match": "no_match",
+        "different": "no_match",
+        "not-shown": "not_shown",
+        "not shown": "not_shown",
+        "not_displayed": "not_shown",
+        "unavailable": "not_shown",
+    }
+    normalized = aliases.get(normalized, normalized)
+    if normalized not in {"match", "close_match", "no_match", "not_shown"}:
+        raise HTTPException(status_code=400, detail="Răspuns SANB invalid.")
+    return normalized
+
+
 def _extract_button_text(node: Any) -> str:
     """
     Extract an actionable label for a clickable node, using the most likely
@@ -12118,6 +12145,7 @@ async def scan_invoice_endpoint(
     pdf_file: Optional[UploadFile] = File(None),
     official_xml_file: Optional[UploadFile] = File(None),
     source_channel: Optional[str] = Form("android_native"),
+    sanb_attestation: Optional[str] = Form(None),
 ):
     """
     Invoice-specific scan endpoint.
@@ -12224,7 +12252,13 @@ async def scan_invoice_endpoint(
                 "error": str(exc),
             }
         result = with_official_document_check(result, official_document_check)
-    invoice_gate = evaluate_invoice_verdict(result, result.raw_text, source_channel=source_channel)
+    normalized_sanb_attestation = _normalize_sanb_attestation(sanb_attestation)
+    invoice_gate = evaluate_invoice_verdict(
+        result,
+        result.raw_text,
+        source_channel=source_channel,
+        sanb_attestation=normalized_sanb_attestation,
+    )
     client_payment_destination = _invoice_payment_destination_for_client(result, invoice_gate)
 
     response = {
@@ -12278,6 +12312,7 @@ async def scan_invoice_endpoint(
         "evidence_bundle": invoice_gate["bundle"],
         "verdict_gate": invoice_gate["gate"],
         "invoice_truth": invoice_gate.get("invoice_truth"),
+        "sanb_attestation": normalized_sanb_attestation,
         "warnings": result.warnings,
         "error": result.error,
         "ocr_warning": ocr_warning,

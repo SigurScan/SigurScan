@@ -568,6 +568,7 @@ data class InvoiceScanResponse(
     @SerializedName("fraud_flags") val fraudFlags: List<String>? = null,
     @SerializedName("verdict_gate") val verdictGate: InvoiceVerdictGateResponse? = null,
     @SerializedName("invoice_truth") val invoiceTruth: InvoiceTruthResponse? = null,
+    @SerializedName("sanb_attestation") val sanbAttestation: String? = null,
     val warnings: List<String>? = null,
     val error: String? = null,
     @SerializedName("ocr_warning") val ocrWarning: String? = null,
@@ -619,6 +620,7 @@ interface SigurScanApi {
         @retrofit2.http.Part file: okhttp3.MultipartBody.Part,
         @retrofit2.http.Part("source_channel") sourceChannel: okhttp3.RequestBody,
         @retrofit2.http.Part officialXmlFile: okhttp3.MultipartBody.Part? = null,
+        @retrofit2.http.Part("sanb_attestation") sanbAttestation: okhttp3.RequestBody? = null,
     ): InvoiceScanResponse
 
     @POST("v1/community/report")

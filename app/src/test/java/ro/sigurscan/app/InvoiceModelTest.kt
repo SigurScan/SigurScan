@@ -160,6 +160,7 @@ class InvoiceModelTest {
     fun invoiceResponseParsesHumanInvoiceTruthContract() {
         val json = """
             {
+              "sanb_attestation": "no_match",
               "invoice_truth": {
                 "schema": "sigurscan_invoice_truth_v4",
                 "verdict": "VERIFY_BEFORE_PAYING",
@@ -191,6 +192,7 @@ class InvoiceModelTest {
 
         val response = Gson().fromJson(json, InvoiceScanResponse::class.java)
 
+        assertEquals("no_match", response.sanbAttestation)
         assertEquals("VERIFY_BEFORE_PAYING", response.invoiceTruth?.verdict)
         assertEquals("ACTION_REQUIRED", response.invoiceTruth?.decisionStatus)
         assertEquals(false, response.invoiceTruth?.safeToPay)

@@ -544,6 +544,7 @@ fun ScanTab(
     onScanInvoice: () -> Unit = {},
     onScanOffer: () -> Unit = {}
 ) {
+    val context = LocalContext.current
     val hasActiveScanContext = viewModel.loading ||
         viewModel.assessment != null ||
         viewModel.invoiceResult != null ||
@@ -583,6 +584,10 @@ fun ScanTab(
                 )
                 invoiceResult != null -> InvoiceResultCard(
                     result = invoiceResult,
+                    sanbStatus = viewModel.invoiceSanbStatus,
+                    onSanbAttestation = { attestation ->
+                        viewModel.submitInvoiceBeneficiaryAttestation(attestation, context)
+                    },
                     onBack = { viewModel.reset() }
                 )
                 assessment != null -> ResultCard(
@@ -5479,7 +5484,12 @@ fun DSChip(text: String, tone: DSChipTone = DSChipTone.Neutral, modifier: Modifi
 }
 
 @Composable
-fun InvoiceResultCard(result: InvoiceScanResponse, onBack: () -> Unit) {
+fun InvoiceResultCard(
+    result: InvoiceScanResponse,
+    sanbStatus: String? = null,
+    onSanbAttestation: (String) -> Unit = {},
+    onBack: () -> Unit
+) {
     val readinessState = result.readiness?.state ?: "unknown"
     val isReady = readinessState == "ready_for_analysis"
     val isError = result.error != null
@@ -5670,7 +5680,15 @@ fun InvoiceResultCard(result: InvoiceScanResponse, onBack: () -> Unit) {
             }
 
             result.beneficiaryNameCheck?.takeIf { it.recommended }?.let { check ->
-                InvoiceBeneficiaryNameCheck(check)
+                InvoiceBeneficiaryNameCheck(
+                    check = check,
+                    onAttestation = onSanbAttestation
+                )
+            }
+
+            sanbStatus?.takeIf { it.isNotBlank() }?.let { status ->
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(status, fontSize = 12.sp, color = SigurColors.TextSecondary, lineHeight = 16.sp)
             }
 
             result.officialDocumentCheck?.takeIf { it.provided }?.let { check ->
@@ -5997,13 +6015,16 @@ private fun formatOfferAmount(value: Double?, currency: String): String {
 }
 
 @Composable
-private fun InvoiceBeneficiaryNameCheck(check: BeneficiaryNameCheckResponse) {
+private fun InvoiceBeneficiaryNameCheck(
+    check: BeneficiaryNameCheckResponse,
+    onAttestation: (String) -> Unit
+) {
     Spacer(modifier = Modifier.height(12.dp))
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, SigurColors.Suspect.copy(alpha = 0.35f), RoundedCornerShape(10.dp))
-            .background(SigurColors.Suspect.copy(alpha = 0.08f), RoundedCornerShape(10.dp))
+            .border(1.dp, SigurColors.Pending.copy(alpha = 0.35f), RoundedCornerShape(10.dp))
+            .background(SigurColors.PendingLight, RoundedCornerShape(10.dp))
             .padding(12.dp)
     ) {
         Text(
@@ -6047,6 +6068,46 @@ private fun InvoiceBeneficiaryNameCheck(check: BeneficiaryNameCheckResponse) {
         check.steps.take(4).forEachIndexed { index, step ->
             Spacer(modifier = Modifier.height(6.dp))
             Text("${index + 1}. $step", fontSize = 12.sp, color = SigurColors.TextPrimary)
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            "După ce banca îți afișează numele beneficiarului:",
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = SigurColors.TextPrimary
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Button(
+            onClick = { onAttestation("match") },
+            modifier = Modifier.fillMaxWidth().height(44.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = SigurColors.Safe),
+            shape = DSPillShape
+        ) {
+            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Numele se potrivește", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Button(
+            onClick = { onAttestation("no_match") },
+            modifier = Modifier.fillMaxWidth().height(44.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = SigurColors.Dangerous),
+            shape = DSPillShape
+        ) {
+            Icon(Icons.Default.ReportProblem, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Nu se potrivește", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedButton(
+            onClick = { onAttestation("not_shown") },
+            modifier = Modifier.fillMaxWidth().height(44.dp),
+            border = BorderStroke(1.dp, SigurColors.Pending.copy(alpha = 0.45f)),
+            shape = DSPillShape
+        ) {
+            Icon(Icons.Default.Info, contentDescription = null, tint = SigurColors.Pending, modifier = Modifier.size(16.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Banca nu afișează numele", color = SigurColors.TextPrimary, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
         }
         check.privacyNote?.takeIf { it.isNotBlank() }?.let {
             Spacer(modifier = Modifier.height(8.dp))
