@@ -1,0 +1,233 @@
+{
+  "version": "pdr-ro-batch13-groupama-2026.06.19",
+  "generated_at": "2026-06-19T00:00:00Z",
+  "purpose": "Batch 13: Groupama Asigurări S.A. — top asigurător general + viață (deja în aliases, fără registry file)",
+  "rules": { "entry_lifetime_days": 365, "reverify_interval_days": 180, "min_confidence_to_contribute_to_safe": "high" },
+  "trust_tiers": { "T1_PUBLIC_OFFICIAL": "IBANs published on official company website" },
+  "entries": [
+    {
+      "brand_id": "groupama",
+      "display_name": "Groupama Asigurări S.A.",
+      "legal_name": "GROUPAMA ASIGURĂRI S.A.",
+      "cui": "6291812",
+      "category": "insurance_general",
+      "aliases": ["groupama", "groupama asigurari", "groupama asigurări", "groupama sa"],
+      "official_payment_channels": [
+        {
+          "type": "online_payment",
+          "domain": "groupama.ro",
+          "confidence": "high",
+          "source_refs": [
+            {
+              "url": "https://www.groupama.ro/",
+              "publisher": "Groupama Asigurări",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ]
+        }
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "insurance_premium_general",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "scope_notes": "Asigurări generale RON (non-viață, inclusiv sănătate și accidente)",
+          "source_refs": [
+            {
+              "url": "https://www.groupama.ro/utile/modalitati-de-plata-primelor-de-asigurare",
+              "publisher": "Groupama Asigurări",
+              "accessed_at": "2026-06-19",
+              "confidence": "high",
+              "source_lines": "BT - RO53BTRL0130160100656313 - Asigurări Generale RON"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO53BTRL0130160100656313",
+          "iban_display_official": "RO53 BTRL 0130 1601 0065 6313",
+          "iban_masked_for_client": "RO53 BTRL **** **** **** 6313"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "insurance_premium_general",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BRD Groupe Societe Generale",
+          "scope_notes": "Asigurări generale RON (non-viață)",
+          "source_refs": [
+            {
+              "url": "https://www.groupama.ro/utile/modalitati-de-plata-primelor-de-asigurare",
+              "publisher": "Groupama Asigurări",
+              "accessed_at": "2026-06-19",
+              "confidence": "high",
+              "source_lines": "BRD - RO78BRDE450SV88175384500 - Asigurări Generale RON"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO78BRDE450SV88175384500",
+          "iban_display_official": "RO78 BRDE 450S V881 7538 4500",
+          "iban_masked_for_client": "RO78 BRDE **** **** **** 4500"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "insurance_premium_general",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Comercială Română (BCR)",
+          "scope_notes": "Asigurări generale RON (non-viață)",
+          "source_refs": [
+            {
+              "url": "https://www.groupama.ro/utile/modalitati-de-plata-primelor-de-asigurare",
+              "publisher": "Groupama Asigurări",
+              "accessed_at": "2026-06-19",
+              "confidence": "high",
+              "source_lines": "BCR - RO54RNCB0082000537541809 - Asigurări Generale RON"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO54RNCB0082000537541809",
+          "iban_display_official": "RO54 RNCB 0082 0005 3754 1809",
+          "iban_masked_for_client": "RO54 RNCB **** **** **** 1809"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "insurance_premium_general",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "UniCredit Bank",
+          "scope_notes": "Asigurări generale RON (non-viață)",
+          "source_refs": [
+            {
+              "url": "https://www.groupama.ro/utile/modalitati-de-plata-primelor-de-asigurare",
+              "publisher": "Groupama Asigurări",
+              "accessed_at": "2026-06-19",
+              "confidence": "high",
+              "source_lines": "UniCredit - RO02BACX0000000030262147 - Asigurări Generale RON"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO02BACX0000000030262147",
+          "iban_display_official": "RO02 BACX 0000 0000 3026 2147",
+          "iban_masked_for_client": "RO02 BACX **** **** **** 2147"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "insurance_premium_life",
+          "currency": "EUR",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "scope_notes": "Asigurări de viață EUR",
+          "source_refs": [
+            {
+              "url": "https://www.groupama.ro/utile/modalitati-de-plata-primelor-de-asigurare",
+              "publisher": "Groupama Asigurări",
+              "accessed_at": "2026-06-19",
+              "confidence": "high",
+              "source_lines": "BT - RO31BTRL0130460100727213 - Asigurări Viață EUR"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO31BTRL0130460100727213",
+          "iban_display_official": "RO31 BTRL 0130 4601 0072 7213",
+          "iban_masked_for_client": "RO31 BTRL **** **** **** 7213"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "insurance_premium_life",
+          "currency": "EUR",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BRD Groupe Societe Generale",
+          "scope_notes": "Asigurări de viață EUR",
+          "source_refs": [
+            {
+              "url": "https://www.groupama.ro/utile/modalitati-de-plata-primelor-de-asigurare",
+              "publisher": "Groupama Asigurări",
+              "accessed_at": "2026-06-19",
+              "confidence": "high",
+              "source_lines": "BRD - RO70BRDE450SV31666254500 - Asigurări Viață EUR"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO70BRDE450SV31666254500",
+          "iban_display_official": "RO70 BRDE 450S V316 6625 4500",
+          "iban_masked_for_client": "RO70 BRDE **** **** **** 4500"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "insurance_premium_life",
+          "currency": "USD",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BRD Groupe Societe Generale",
+          "scope_notes": "Asigurări de viață USD",
+          "source_refs": [
+            {
+              "url": "https://www.groupama.ro/utile/modalitati-de-plata-primelor-de-asigurare",
+              "publisher": "Groupama Asigurări",
+              "accessed_at": "2026-06-19",
+              "confidence": "high",
+              "source_lines": "BRD - RO62BRDE450SV31666414500 - Asigurări Viață USD"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO62BRDE450SV31666414500",
+          "iban_display_official": "RO62 BRDE 450S V316 6641 4500",
+          "iban_masked_for_client": "RO62 BRDE **** **** **** 4500"
+        }
+      ],
+      "source_refs": [
+        {
+          "url": "https://www.groupama.ro/utile/modalitati-de-plata-primelor-de-asigurare",
+          "publisher": "Groupama Asigurări",
+          "accessed_at": "2026-06-19",
+          "confidence": "high"
+        }
+      ],
+      "review_status": "active"
+    }
+  ],
+  "summary": { "brands": 1, "entries": 1, "destinations": 7, "notes": "Added Groupama Asigurări S.A. (CUI 6291812) — 7 IBANs from official payment page: 4 RON (BT, BRD, BCR, UniCredit) asigurări generale, 2 EUR (BT, BRD) asigurări viață, 1 USD (BRD) asigurări viață." }
+}

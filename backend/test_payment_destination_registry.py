@@ -424,6 +424,68 @@ def test_registry_loads_contextual_insurance_destinations_without_safe_contribut
     assert allianz["can_contribute_to_safe"] is False
 
 
+def test_registry_loads_groupama_official_insurance_destinations():
+    from services.payment_destination_registry import match_payment_destination
+
+    bt = match_payment_destination(
+        "RO53 BTRL 0130 1601 0065 6313",
+        claimed_brand="groupama",
+        cui="6291812",
+    )
+    brd = match_payment_destination(
+        "RO78 BRDE 450S V881 7538 4500",
+        claimed_brand="Groupama Asigurări",
+        cui="6291812",
+    )
+
+    assert bt["matched"] is True
+    assert bt["brand_matches"] is True
+    assert bt["cui_matches"] is True
+    assert bt["brand_id"] == "groupama"
+    assert bt["trust_tier"] == "T1_PUBLIC_OFFICIAL"
+    assert bt["can_contribute_to_safe"] is True
+    assert brd["matched"] is True
+    assert brd["brand_matches"] is True
+    assert brd["cui_matches"] is True
+    assert brd["can_contribute_to_safe"] is True
+
+
+def test_registry_loads_uniqa_official_insurance_destinations():
+    from services.payment_destination_registry import match_payment_destination
+
+    general = match_payment_destination(
+        "RO84 RZBR 0000 0600 1163 7426",
+        claimed_brand="uniqa",
+        cui="1813613",
+    )
+    life = match_payment_destination(
+        "RO41 RZBR 0000 0600 1273 1196",
+        claimed_brand="uniqa asigurari de viata",
+        cui="16311205",
+    )
+    wrong = match_payment_destination(
+        "RO84 RZBR 0000 0600 1163 7426",
+        claimed_brand="uniqa asigurari de viata",
+        cui="16311205",
+    )
+
+    assert general["matched"] is True
+    assert general["brand_matches"] is True
+    assert general["cui_matches"] is True
+    assert general["brand_id"] == "uniqa_asigurari"
+    assert general["trust_tier"] == "T1_PUBLIC_OFFICIAL"
+    assert general["can_contribute_to_safe"] is True
+    assert life["matched"] is True
+    assert life["brand_matches"] is True
+    assert life["cui_matches"] is True
+    assert life["brand_id"] == "uniqa_asigurari_de_viata"
+    assert life["can_contribute_to_safe"] is True
+    assert wrong["matched"] is True
+    assert wrong["brand_matches"] is False
+    assert wrong["cui_matches"] is False
+    assert wrong["can_contribute_to_safe"] is False
+
+
 def test_registry_loads_vodafone_direct_debit_without_safe_contribution():
     from services.payment_destination_registry import match_payment_destination
 

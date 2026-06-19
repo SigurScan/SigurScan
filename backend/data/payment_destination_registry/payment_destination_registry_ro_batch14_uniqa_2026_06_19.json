@@ -1,0 +1,402 @@
+{
+  "version": "pdr-ro-batch14-uniqa-2026.06.19",
+  "generated_at": "2026-06-19T00:00:00Z",
+  "purpose": "Batch 14: UNIQA Asigurări S.A. + UNIQA Asigurări de Viață S.A. — asigurători uzuali consumatori",
+  "rules": { "entry_lifetime_days": 365, "reverify_interval_days": 180, "min_confidence_to_contribute_to_safe": "high" },
+  "trust_tiers": { "T1_PUBLIC_OFFICIAL": "IBANs published on official company website" },
+  "entries": [
+    {
+      "brand_id": "uniqa_asigurari",
+      "display_name": "UNIQA Asigurări S.A.",
+      "legal_name": "UNIQA Asigurări S.A.",
+      "cui": "1813613",
+      "category": "insurance_general",
+      "aliases": ["uniqa", "uniqa asigurari", "uniqa asigurări", "uniqa sa", "unita asigurari"],
+      "official_payment_channels": [
+        {
+          "type": "online_payment",
+          "domain": "uniqa.ro",
+          "confidence": "high",
+          "source_refs": [
+            {
+              "url": "https://www.uniqa.ro/",
+              "publisher": "UNIQA Asigurări",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ]
+        }
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "insurance_premium_general",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Raiffeisen Bank",
+          "scope_notes": "Asigurări generale RON",
+          "source_refs": [
+            {
+              "url": "https://www.uniqa.ro/plata-polite-asigurare",
+              "publisher": "UNIQA Asigurări",
+              "accessed_at": "2026-06-19",
+              "confidence": "high",
+              "source_lines": "Raiffeisen Bank RON - RO84RZBR0000060011637426"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO84RZBR0000060011637426",
+          "iban_display_official": "RO84 RZBR 0000 0600 1163 7426",
+          "iban_masked_for_client": "RO84 RZBR **** **** **** 7426"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "insurance_premium_general",
+          "currency": "EUR",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Raiffeisen Bank",
+          "scope_notes": "Asigurări generale EUR",
+          "source_refs": [
+            {
+              "url": "https://www.uniqa.ro/plata-polite-asigurare",
+              "publisher": "UNIQA Asigurări",
+              "accessed_at": "2026-06-19",
+              "confidence": "high",
+              "source_lines": "Raiffeisen Bank EUR - RO89RZBR0000060011637433"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO89RZBR0000060011637433",
+          "iban_display_official": "RO89 RZBR 0000 0600 1163 7433",
+          "iban_masked_for_client": "RO89 RZBR **** **** **** 7433"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "insurance_premium_general",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Comercială Română (BCR)",
+          "scope_notes": "Asigurări generale RON",
+          "source_refs": [
+            {
+              "url": "https://www.uniqa.ro/plata-polite-asigurare",
+              "publisher": "UNIQA Asigurări",
+              "accessed_at": "2026-06-19",
+              "confidence": "high",
+              "source_lines": "BCR RON - RO93RNCB0072014631050198"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO93RNCB0072014631050198",
+          "iban_display_official": "RO93 RNCB 0072 0146 3105 0198",
+          "iban_masked_for_client": "RO93 RNCB **** **** **** 0198"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "insurance_premium_general",
+          "currency": "EUR",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Comercială Română (BCR)",
+          "scope_notes": "Asigurări generale EUR",
+          "source_refs": [
+            {
+              "url": "https://www.uniqa.ro/plata-polite-asigurare",
+              "publisher": "UNIQA Asigurări",
+              "accessed_at": "2026-06-19",
+              "confidence": "high",
+              "source_lines": "BCR EUR - RO66RNCB0072014631050199"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO66RNCB0072014631050199",
+          "iban_display_official": "RO66 RNCB 0072 0146 3105 0199",
+          "iban_masked_for_client": "RO66 RNCB **** **** **** 0199"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "insurance_premium_general",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BRD Groupe Societe Generale",
+          "scope_notes": "Asigurări generale RON",
+          "source_refs": [
+            {
+              "url": "https://www.uniqa.ro/plata-polite-asigurare",
+              "publisher": "UNIQA Asigurări",
+              "accessed_at": "2026-06-19",
+              "confidence": "high",
+              "source_lines": "BRD RON - RO64BRDE450SV52377814500"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO64BRDE450SV52377814500",
+          "iban_display_official": "RO64 BRDE 450S V523 7781 4500",
+          "iban_masked_for_client": "RO64 BRDE **** **** **** 4500"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "insurance_premium_general",
+          "currency": "EUR",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BRD Groupe Societe Generale",
+          "scope_notes": "Asigurări generale EUR",
+          "source_refs": [
+            {
+              "url": "https://www.uniqa.ro/plata-polite-asigurare",
+              "publisher": "UNIQA Asigurări",
+              "accessed_at": "2026-06-19",
+              "confidence": "high",
+              "source_lines": "BRD EUR - RO98BRDE450SV52378104500"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO98BRDE450SV52378104500",
+          "iban_display_official": "RO98 BRDE 450S V523 7810 4500",
+          "iban_masked_for_client": "RO98 BRDE **** **** **** 4500"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "insurance_premium_general",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "CEC Bank",
+          "scope_notes": "Asigurări generale RON",
+          "source_refs": [
+            {
+              "url": "https://www.uniqa.ro/plata-polite-asigurare",
+              "publisher": "UNIQA Asigurări",
+              "accessed_at": "2026-06-19",
+              "confidence": "high",
+              "source_lines": "CEC Bank RON - RO70CECEB10044RON2920897"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO70CECEB10044RON2920897",
+          "iban_display_official": "RO70 CECE B100 44RO N292 0897",
+          "iban_masked_for_client": "RO70 CECE **** **** **** 0897"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "insurance_premium_general",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "ING Bank",
+          "scope_notes": "Asigurări generale RON",
+          "source_refs": [
+            {
+              "url": "https://www.uniqa.ro/plata-polite-asigurare",
+              "publisher": "UNIQA Asigurări",
+              "accessed_at": "2026-06-19",
+              "confidence": "high",
+              "source_lines": "ING Bank RON - RO50INGB0001008189548910"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO50INGB0001008189548910",
+          "iban_display_official": "RO50 INGB 0001 0081 8954 8910",
+          "iban_masked_for_client": "RO50 INGB **** **** **** 8910"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "insurance_premium_general",
+          "currency": "EUR",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "ING Bank",
+          "scope_notes": "Asigurări generale EUR",
+          "source_refs": [
+            {
+              "url": "https://www.uniqa.ro/plata-polite-asigurare",
+              "publisher": "UNIQA Asigurări",
+              "accessed_at": "2026-06-19",
+              "confidence": "high",
+              "source_lines": "ING Bank EUR - RO96INGB0001008189540710"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO96INGB0001008189540710",
+          "iban_display_official": "RO96 INGB 0001 0081 8954 0710",
+          "iban_masked_for_client": "RO96 INGB **** **** **** 0710"
+        }
+      ],
+      "source_refs": [
+        {
+          "url": "https://www.uniqa.ro/plata-polite-asigurare",
+          "publisher": "UNIQA Asigurări",
+          "accessed_at": "2026-06-19",
+          "confidence": "high"
+        }
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "uniqa_asigurari_de_viata",
+      "display_name": "UNIQA Asigurări de Viață S.A.",
+      "legal_name": "UNIQA Asigurări de Viață S.A.",
+      "cui": "16311205",
+      "category": "insurance_life",
+      "aliases": ["uniqa viata", "uniqa asigurari de viata", "uniqa asigurări de viață", "uniqa life"],
+      "official_payment_channels": [
+        {
+          "type": "online_payment",
+          "domain": "uniqa.ro",
+          "confidence": "high",
+          "source_refs": [
+            {
+              "url": "https://www.uniqa.ro/",
+              "publisher": "UNIQA Asigurări de Viață",
+              "accessed_at": "2026-06-19",
+              "confidence": "high"
+            }
+          ]
+        }
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "insurance_premium_life",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Raiffeisen Bank",
+          "scope_notes": "Asigurări de viață RON",
+          "source_refs": [
+            {
+              "url": "https://www.uniqa.ro/plata-polite-asigurare",
+              "publisher": "UNIQA Asigurări de Viață",
+              "accessed_at": "2026-06-19",
+              "confidence": "high",
+              "source_lines": "Raiffeisen Bank RON - RO41RZBR0000060012731196"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO41RZBR0000060012731196",
+          "iban_display_official": "RO41 RZBR 0000 0600 1273 1196",
+          "iban_masked_for_client": "RO41 RZBR **** **** **** 1196"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "insurance_premium_life",
+          "currency": "EUR",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Raiffeisen Bank",
+          "scope_notes": "Asigurări de viață EUR",
+          "source_refs": [
+            {
+              "url": "https://www.uniqa.ro/plata-polite-asigurare",
+              "publisher": "UNIQA Asigurări de Viață",
+              "accessed_at": "2026-06-19",
+              "confidence": "high",
+              "source_lines": "Raiffeisen Bank EUR - RO51RZBR0000060012731210"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO51RZBR0000060012731210",
+          "iban_display_official": "RO51 RZBR 0000 0600 1273 1210",
+          "iban_masked_for_client": "RO51 RZBR **** **** **** 1210"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_website",
+          "scope": "insurance_premium_life",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BRD Groupe Societe Generale",
+          "scope_notes": "Asigurări de viață RON",
+          "source_refs": [
+            {
+              "url": "https://www.uniqa.ro/plata-polite-asigurare",
+              "publisher": "UNIQA Asigurări de Viață",
+              "accessed_at": "2026-06-19",
+              "confidence": "high",
+              "source_lines": "BRD RON - RO40BRDE450SV84672504500"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO40BRDE450SV84672504500",
+          "iban_display_official": "RO40 BRDE 450S V846 7250 4500",
+          "iban_masked_for_client": "RO40 BRDE **** **** **** 4500"
+        }
+      ],
+      "source_refs": [
+        {
+          "url": "https://www.uniqa.ro/plata-polite-asigurare",
+          "publisher": "UNIQA Asigurări de Viață",
+          "accessed_at": "2026-06-19",
+          "confidence": "high"
+        }
+      ],
+      "review_status": "active"
+    }
+  ],
+  "summary": { "brands": 2, "entries": 2, "destinations": 12, "notes": "Added UNIQA Asigurări S.A. (CUI 1813613) — 9 IBANs + UNIQA Asigurări de Viață S.A. (CUI 16311205) — 3 IBANs from official payment page. Total 12 IBANs across Raiffeisen, BCR, BRD, CEC, ING." }
+}
