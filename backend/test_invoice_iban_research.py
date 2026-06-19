@@ -257,7 +257,7 @@ class TestInvoiceFraudSignals:
             ),
         ],
     )
-    async def test_high_risk_b2b_text_patterns_are_dangerous(self, text, expected_flag):
+    async def test_high_risk_b2b_text_patterns_route_by_evidence_strength(self, text, expected_flag):
         from services.invoice_orchestrator import evaluate_invoice_verdict
 
         result = await scan_invoice(text)
@@ -265,7 +265,10 @@ class TestInvoiceFraudSignals:
 
         assert expected_flag in result.fraud_flags
         assert verdict["bundle"]["semantic_review"]["risk_class"] == "high"
-        assert verdict["gate"]["label"] == "DANGEROUS"
+        if expected_flag == "PAYROLL_OR_EMPLOYEE_DATA_REQUEST_VIA_INVOICE_THREAD":
+            assert verdict["gate"]["label"] == "DANGEROUS"
+        else:
+            assert verdict["gate"]["label"] == "SUSPECT"
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -300,7 +303,7 @@ class TestInvoiceFraudSignals:
             ),
         ],
     )
-    async def test_high_risk_bec_and_tax_authority_patterns_are_dangerous(self, text, expected_flag):
+    async def test_high_risk_bec_and_tax_authority_patterns_route_by_evidence_strength(self, text, expected_flag):
         from services.invoice_orchestrator import evaluate_invoice_verdict
 
         result = await scan_invoice(text)
@@ -308,7 +311,10 @@ class TestInvoiceFraudSignals:
 
         assert expected_flag in result.fraud_flags
         assert verdict["bundle"]["semantic_review"]["risk_class"] == "high"
-        assert verdict["gate"]["label"] == "DANGEROUS"
+        if expected_flag in {"BEC_EXCLUSIVE_NEW_IBAN_WITH_OLD_DETAILS_SUPPRESSION", "BEC_INVOICE_THREAD_IBAN_CHANGE"}:
+            assert verdict["gate"]["label"] == "DANGEROUS"
+        else:
+            assert verdict["gate"]["label"] == "SUSPECT"
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -344,7 +350,7 @@ class TestInvoiceFraudSignals:
             ),
         ],
     )
-    async def test_remaining_round3_b2b_scam_patterns_are_dangerous(self, text, expected_flag):
+    async def test_remaining_round3_b2b_scam_patterns_route_by_evidence_strength(self, text, expected_flag):
         from services.invoice_orchestrator import evaluate_invoice_verdict
 
         result = await scan_invoice(text)
@@ -352,10 +358,13 @@ class TestInvoiceFraudSignals:
 
         assert expected_flag in result.fraud_flags
         assert verdict["bundle"]["semantic_review"]["risk_class"] == "high"
-        assert verdict["gate"]["label"] == "DANGEROUS"
+        if expected_flag in {"TAX_AUTHORITY_SENSITIVE_DATA_REQUEST", "COURIER_OTP_OR_WHATSAPP_CODE_REQUEST"}:
+            assert verdict["gate"]["label"] == "DANGEROUS"
+        else:
+            assert verdict["gate"]["label"] == "SUSPECT"
 
     @pytest.mark.asyncio
-    async def test_efactura_claim_approving_updated_iban_is_dangerous(self):
+    async def test_efactura_claim_approving_updated_iban_requires_verification_without_official_document(self):
         from services.invoice_orchestrator import evaluate_invoice_verdict
 
         result = await scan_invoice(
@@ -365,7 +374,7 @@ class TestInvoiceFraudSignals:
         verdict = evaluate_invoice_verdict(result, result.raw_text, source_channel="email_invoice")
 
         assert "TAX_AUTHORITY_APPROVES_UPDATED_IBAN" in result.fraud_flags
-        assert verdict["gate"]["label"] == "DANGEROUS"
+        assert verdict["gate"]["label"] == "SUSPECT"
 
     @pytest.mark.asyncio
     async def test_courier_official_tracking_warning_does_not_request_whatsapp_code(self):

@@ -31,6 +31,22 @@ def test_soft_semantic_high_value_does_not_override_invoice_verify():
     assert out["label"] != "DANGEROUS"
 
 
+def test_generic_identity_spoof_does_not_override_invoice_verify_without_invoice_conflict():
+    base = {"label": "DANGEROUS", "risk_score": 91, "reason_codes": ["identity_spoof"]}
+
+    out = gate_from_invoice_truth(_truth("VERIFY_BEFORE_PAYING"), base)
+
+    assert out["label"] != "DANGEROUS"
+
+
+def test_high_risk_b2b_payment_pattern_does_not_override_invoice_verify():
+    base = {"label": "DANGEROUS", "risk_score": 89, "reason_codes": ["HIGH_RISK_B2B_PAYMENT_PATTERN"]}
+
+    out = gate_from_invoice_truth(_truth("VERIFY_BEFORE_PAYING"), base)
+
+    assert out["label"] != "DANGEROUS"
+
+
 def test_decisive_generic_dangerous_still_overrides_invoice_verify():
     for reason in ("provider_malicious", "sensitive_wrong_channel", "never_asks_violated:card_number"):
         base = {"label": "DANGEROUS", "risk_score": 95, "reason_codes": [reason]}
@@ -89,6 +105,24 @@ def test_fragmented_iban_alone_is_not_invoice_hard_conflict():
     verdict = evaluate_invoice_verdict(result, result.raw_text, source_channel="android_native")
 
     assert "FRAGMENTED_IBAN_PAYMENT_TARGET" in result.fraud_flags
+    assert verdict["invoice_truth"]["verdict"] != "NU_PLATI"
+    assert verdict["gate"]["label"] != "DANGEROUS"
+
+
+def test_b2b_high_risk_pattern_alone_is_verify_not_dangerous():
+    text = (
+        "Furnizor: Vendor Example SRL\n"
+        "CUI: RO12345678\n"
+        "IBAN: RO49AAAA1B31007593840000\n"
+        "Total: 1037 RON\n"
+        "Consultant nou promite acces la grant și cere avans mic de analiză; "
+        "firma există în ANAF, dar fără istoric."
+    )
+
+    result = asyncio.run(scan_invoice(text))
+    verdict = evaluate_invoice_verdict(result, result.raw_text, source_channel="email")
+
+    assert "GRANT_CONSULTING_FEE_BEFORE_CONTRACT" in result.fraud_flags
     assert verdict["invoice_truth"]["verdict"] != "NU_PLATI"
     assert verdict["gate"]["label"] != "DANGEROUS"
 

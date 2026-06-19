@@ -164,6 +164,10 @@ def _entry_name_keys(entry: Dict[str, Any], brand_id: str) -> set[str]:
     return keys
 
 
+def _identity_key(candidate: Dict[str, Any]) -> tuple[str, str]:
+    return (str(candidate.get("brand_id") or ""), str(candidate.get("cui") or ""))
+
+
 def _looks_masked_iban_seed(raw: Any) -> bool:
     normalized = str(raw or "").strip().upper().replace(" ", "")
     return "XX" in normalized
@@ -289,17 +293,20 @@ def match_payment_destination(
     best_score = score_entry(ranked[0])
     best_entries = [candidate for candidate in ranked if score_entry(candidate) == best_score]
     if len(best_entries) > 1 and best_score[0] == 0 and best_score[1] == 0:
-        return {
-            **_empty_result(iban, claimed_brand, registry_has_brand_destinations=has_brand_destinations),
-            "matched": True,
-            "brand_matches": None,
-            "cui_matches": None,
-            "trust_tier": "ambiguous_shared_destination",
-            "confidence": "ambiguous",
-            "match_count": len(best_entries),
-            "ambiguous": True,
-        }
-
+        best_identities = {_identity_key(candidate) for candidate in best_entries}
+        if len(best_identities) == 1:
+            best_entries = [best_entries[0]]
+        else:
+            return {
+                **_empty_result(iban, claimed_brand, registry_has_brand_destinations=has_brand_destinations),
+                "matched": True,
+                "brand_matches": None,
+                "cui_matches": None,
+                "trust_tier": "ambiguous_shared_destination",
+                "confidence": "ambiguous",
+                "match_count": len(best_entries),
+                "ambiguous": True,
+            }
     entry = ranked[0]
 
     brand_matches = True
@@ -321,6 +328,7 @@ def match_payment_destination(
         not candidate.get("can_contribute_to_safe")
         for candidate in same_identity_entries
     )
+    distinct_identities = {_identity_key(candidate) for candidate in entries}
 
     return {
         "matched": True,
@@ -343,6 +351,6 @@ def match_payment_destination(
         "scope": entry.get("scope"),
         "bank_name": entry.get("bank_name"),
         "match_count": len(entries),
-        "ambiguous": len(entries) > 1 and best_score[0] == 0 and best_score[1] == 0,
+        "ambiguous": len(distinct_identities) > 1 and best_score[0] == 0 and best_score[1] == 0,
         "conflicting_non_safe_context": has_conflicting_non_safe_context,
     }

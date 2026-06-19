@@ -217,7 +217,7 @@ def test_cross_scan_exports_b2b_invoice_signals_for_non_invoice_text():
 
 
 @pytest.mark.asyncio
-async def test_osim_trademark_fee_from_unofficial_sender_is_dangerous():
+async def test_osim_trademark_fee_from_unofficial_sender_requires_verification():
     result = await scan_invoice(
         "From: taxe@osim-tax-ro.example\n"
         "Factura OSIM/TMview pentru inregistrare marca. Achitati azi taxa in "
@@ -226,7 +226,7 @@ async def test_osim_trademark_fee_from_unofficial_sender_is_dangerous():
     verdict = evaluate_invoice_verdict(result, result.raw_text, source_channel="email")
 
     assert "OSIM_TRADEMARK_FEE_UNOFFICIAL_SENDER" in result.fraud_flags
-    assert verdict["gate"]["label"] == "DANGEROUS"
+    assert verdict["gate"]["label"] == "SUSPECT"
 
 
 def test_osim_trademark_fee_official_portal_is_guarded():
@@ -238,7 +238,7 @@ def test_osim_trademark_fee_official_portal_is_guarded():
 
 
 @pytest.mark.asyncio
-async def test_legal_demand_new_iban_is_dangerous():
+async def test_legal_demand_new_iban_without_verified_mismatch_is_suspect_not_dangerous():
     result = await scan_invoice(
         "Somatie recuperare creante: achitati urgent penalitatile in cont nou "
         "IBAN RO49AAAA1B31007593840000. Total 4200 RON"
@@ -246,7 +246,34 @@ async def test_legal_demand_new_iban_is_dangerous():
     verdict = evaluate_invoice_verdict(result, result.raw_text, source_channel="email")
 
     assert "LEGAL_DEMAND_PAYMENT_TO_NEW_IBAN" in result.fraud_flags
-    assert verdict["gate"]["label"] == "DANGEROUS"
+    assert verdict["gate"]["label"] == "SUSPECT"
+
+
+@pytest.mark.asyncio
+async def test_legal_professional_first_time_invoice_without_demand_is_not_hard_dangerous():
+    result = await scan_invoice(
+        "Furnizor: Cabinet Avocat Test SRL\n"
+        "CUI: RO12345678\n"
+        "IBAN: RO49AAAA1B31007593840000\n"
+        "Total: 1037 RON\n"
+        "Firmă avocat/notar trimite factură legitim-looking; CUI valid, IBAN valid, "
+        "dar first-time vendor."
+    )
+    verdict = evaluate_invoice_verdict(result, result.raw_text, source_channel="email")
+
+    assert verdict["gate"]["label"] != "DANGEROUS"
+
+
+@pytest.mark.asyncio
+async def test_generic_new_supplier_phrase_is_not_person_beneficiary_mismatch():
+    result = await scan_invoice(
+        "Administratorul cere urgent plata catre furnizor nou, fara PO, "
+        "dar de pe email intern valid. IBAN RO49AAAA1B31007593840000 Total 4200 RON"
+    )
+    verdict = evaluate_invoice_verdict(result, result.raw_text, source_channel="email")
+
+    assert "BENEFICIARY_PERSON_MISMATCH" not in result.fraud_flags
+    assert verdict["gate"]["label"] != "DANGEROUS"
 
 
 @pytest.mark.asyncio
@@ -262,7 +289,7 @@ async def test_domain_renewal_unknown_vendor_is_suspect_not_safe():
 
 
 @pytest.mark.asyncio
-async def test_saas_license_audit_urgent_payment_is_dangerous():
+async def test_saas_license_audit_urgent_payment_is_suspect_not_dangerous():
     result = await scan_invoice(
         "Microsoft 365 software compliance audit: plata urgenta pentru regularizare "
         "altfel suspendare. IBAN RO49AAAA1B31007593840000 Total 2500 RON"
@@ -270,11 +297,11 @@ async def test_saas_license_audit_urgent_payment_is_dangerous():
     verdict = evaluate_invoice_verdict(result, result.raw_text, source_channel="email")
 
     assert "SAAS_LICENSE_AUDIT_URGENT_PAYMENT" in result.fraud_flags
-    assert verdict["gate"]["label"] == "DANGEROUS"
+    assert verdict["gate"]["label"] == "SUSPECT"
 
 
 @pytest.mark.asyncio
-async def test_overpayment_return_request_is_dangerous():
+async def test_overpayment_return_request_requires_verification_without_destination_conflict():
     result = await scan_invoice(
         "Purchase order PO-8831 achitat cu eroare plata. Returnati diferenta in "
         "IBAN RO49AAAA1B31007593840000 si pastrati comisionul."
@@ -282,7 +309,7 @@ async def test_overpayment_return_request_is_dangerous():
     verdict = evaluate_invoice_verdict(result, result.raw_text, source_channel="email")
 
     assert "PO_OR_OVERPAYMENT_RETURN_REQUEST" in result.fraud_flags
-    assert verdict["gate"]["label"] == "DANGEROUS"
+    assert verdict["gate"]["label"] == "SUSPECT"
 
 
 @pytest.mark.asyncio
@@ -306,11 +333,11 @@ async def test_procurement_registration_fee_is_suspect():
     verdict = evaluate_invoice_verdict(result, result.raw_text, source_channel="email")
 
     assert "NEW_VENDOR_PUBLIC_PROCUREMENT_FEE" in result.fraud_flags
-    assert verdict["gate"]["label"] in {"SUSPECT", "DANGEROUS"}
+    assert verdict["gate"]["label"] == "SUSPECT"
 
 
 @pytest.mark.asyncio
-async def test_urgent_payment_override_without_ticket_is_dangerous():
+async def test_urgent_payment_override_without_ticket_requires_verification_without_bec_evidence():
     result = await scan_invoice(
         "Urgent azi, nu suna, sunt in sedinta. Fa plata prin transfer in "
         "IBAN RO49AAAA1B31007593840000 fara ticket sau aprobare."
@@ -318,11 +345,11 @@ async def test_urgent_payment_override_without_ticket_is_dangerous():
     verdict = evaluate_invoice_verdict(result, result.raw_text, source_channel="email")
 
     assert "URGENT_PAYMENT_OVERRIDE_NO_TICKET" in result.fraud_flags
-    assert verdict["gate"]["label"] == "DANGEROUS"
+    assert verdict["gate"]["label"] == "SUSPECT"
 
 
 @pytest.mark.asyncio
-async def test_payment_diversion_hold_payments_pending_new_account_is_dangerous():
+async def test_payment_diversion_hold_payments_pending_new_account_requires_verification():
     result = await scan_invoice(
         "From: finance@vendor-real.example\n"
         "Subject: facturi deschise\n"
@@ -332,11 +359,11 @@ async def test_payment_diversion_hold_payments_pending_new_account_is_dangerous(
     verdict = evaluate_invoice_verdict(result, result.raw_text, source_channel="email")
 
     assert "PAYMENT_DIVERSION_HOLD_INSTRUCTIONS" in result.fraud_flags
-    assert verdict["gate"]["label"] == "DANGEROUS"
+    assert verdict["gate"]["label"] == "SUSPECT"
 
 
 @pytest.mark.asyncio
-async def test_wipo_epo_euipo_fee_from_unofficial_channel_is_dangerous():
+async def test_wipo_epo_euipo_fee_from_unofficial_channel_requires_verification():
     result = await scan_invoice(
         "From: admin@wipo-office.com\n"
         "WIPO / EPO administrative protection fee pentru marca dvs. "
@@ -345,4 +372,4 @@ async def test_wipo_epo_euipo_fee_from_unofficial_channel_is_dangerous():
     verdict = evaluate_invoice_verdict(result, result.raw_text, source_channel="email")
 
     assert "IP_OFFICE_PAYMENT_REQUEST_UNOFFICIAL_CHANNEL" in result.fraud_flags
-    assert verdict["gate"]["label"] == "DANGEROUS"
+    assert verdict["gate"]["label"] == "SUSPECT"

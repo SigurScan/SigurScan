@@ -104,6 +104,66 @@ def test_registry_keeps_multiple_entities_for_same_iban_and_filters_by_cui(tmp_p
     assert ambiguous["can_contribute_to_safe"] is False
 
 
+def test_registry_duplicate_same_entity_iban_still_flags_other_issuer_mismatch(tmp_path, monkeypatch):
+    from services import payment_destination_registry as registry
+    from services.payment_destination_registry import match_payment_destination
+
+    shared_iban = "RO53BRDE270SV23904012700"
+    destination = {
+        "kind": "iban",
+        "trust_tier": "T1_PUBLIC_OFFICIAL",
+        "source_kind": "official_webpage",
+        "scope": "invoice_payment",
+        "confidence": "high",
+        "review_status": "active",
+        "client_distribution_allowed": False,
+        "match_policy": "exact_hmac_match_required",
+        "can_contribute_to_safe": True,
+        "bank_name": "BRD",
+        "source_refs": [{"url": "https://example.test/eon", "confidence": "high"}],
+        "iban_normalized_backend_seed_only": shared_iban,
+        "iban_masked_for_client": "RO53 BRDE **** **** **** 2700",
+    }
+    seed = {
+        "entries": [
+            {
+                "brand_id": "eon_energie_romania",
+                "display_name": "E.ON Energie România",
+                "legal_name": "E.ON Energie România S.A.",
+                "cui": "22043010",
+                "payment_destinations": [destination],
+            },
+            {
+                "brand_id": "eon_energie_romania",
+                "display_name": "E.ON Energie România S.A.",
+                "legal_name": "E.ON Energie România S.A.",
+                "cui": "22043010",
+                "payment_destinations": [destination],
+            },
+        ]
+    }
+    seed_path = tmp_path / "payment_registry.json"
+    seed_path.write_text(json.dumps(seed), encoding="utf-8")
+    monkeypatch.setenv("PAYMENT_DESTINATION_REGISTRY_PATHS", str(seed_path))
+    registry.reload_registry()
+    try:
+        mismatch = match_payment_destination(
+            shared_iban,
+            claimed_brand="hidroelectrica",
+            cui="13267213",
+            issuer_name="S.P.E.E.H. HIDROELECTRICA S.A.",
+        )
+    finally:
+        registry.reload_registry()
+
+    assert mismatch["matched"] is True
+    assert mismatch["ambiguous"] is False
+    assert mismatch["brand_id"] == "eon_energie_romania"
+    assert mismatch["brand_matches"] is False
+    assert mismatch["cui_matches"] is False
+    assert mismatch["can_contribute_to_safe"] is False
+
+
 def test_registry_loads_supplemental_hidroelectrica_destination():
     from services.payment_destination_registry import match_payment_destination
 

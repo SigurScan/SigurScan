@@ -22,31 +22,51 @@ HARD_CONFLICT_FLAGS = {
     "SENSITIVE_DATA_REQUESTED": "SENSITIVE_CAPTURE_ON_WRONG_CHANNEL",
     "REMOTE_ACCESS_REQUEST": "SENSITIVE_CAPTURE_ON_WRONG_CHANNEL",
     "FAKE_EFACTURA_RECONCILIATION_PAYMENT": "CLAIMED_PUBLIC_AUTHORITY_PAYMENT_CONTRADICTION",
-    "OSIM_TRADEMARK_FEE_UNOFFICIAL_SENDER": "HIGH_RISK_B2B_PAYMENT_PATTERN",
-    "REGULATED_FINANCE_ADVANCE_FEE_OR_ID_REQUEST": "HIGH_RISK_B2B_PAYMENT_PATTERN",
-    "COURIER_CUSTOMS_OR_ADDRESS_FEE_PAYMENT": "HIGH_RISK_B2B_PAYMENT_PATTERN",
-    "GRANT_CONSULTING_FEE_BEFORE_CONTRACT": "HIGH_RISK_B2B_PAYMENT_PATTERN",
-    "PO_OR_OVERPAYMENT_RETURN_REQUEST": "HIGH_RISK_B2B_PAYMENT_PATTERN",
+    "CEO_CONFIDENTIAL_PAYMENT": "PAYMENT_CONTROL_BYPASS",
     "PAYROLL_OR_EMPLOYEE_DATA_REQUEST_VIA_INVOICE_THREAD": "HIGH_RISK_B2B_PAYMENT_PATTERN",
-    "SAAS_LICENSE_AUDIT_URGENT_PAYMENT": "HIGH_RISK_B2B_PAYMENT_PATTERN",
     "BEC_REPLY_TO_ACCOUNT_CHANGE": "BEC_ACCOUNT_CHANGE_COMBO",
     "BEC_EXCLUSIVE_NEW_IBAN_WITH_OLD_DETAILS_SUPPRESSION": "BEC_ACCOUNT_CHANGE_COMBO",
     "BEC_INVOICE_THREAD_IBAN_CHANGE": "BEC_ACCOUNT_CHANGE_COMBO",
     "UNDISCLOSED_INTERMEDIARY_BENEFICIARY": "UNDISCLOSED_PAYMENT_INTERMEDIARY",
-    "TAX_AUTHORITY_PAYMENT_REQUEST_UNOFFICIAL_CHANNEL": "CLAIMED_PUBLIC_AUTHORITY_PAYMENT_CONTRADICTION",
     "TAX_AUTHORITY_SENSITIVE_DATA_REQUEST": "SENSITIVE_CAPTURE_ON_WRONG_CHANNEL",
     "COURIER_OTP_OR_WHATSAPP_CODE_REQUEST": "SENSITIVE_CAPTURE_ON_WRONG_CHANNEL",
-    "TAX_AUTHORITY_APPROVES_UPDATED_IBAN": "CLAIMED_PUBLIC_AUTHORITY_PAYMENT_CONTRADICTION",
-    "LEGAL_DEMAND_PAYMENT_TO_NEW_IBAN": "HIGH_RISK_B2B_PAYMENT_PATTERN",
-    "URGENT_PAYMENT_OVERRIDE_NO_TICKET": "HIGH_RISK_B2B_PAYMENT_PATTERN",
-    "PAYMENT_DIVERSION_HOLD_INSTRUCTIONS": "HIGH_RISK_B2B_PAYMENT_PATTERN",
-    "IP_OFFICE_PAYMENT_REQUEST_UNOFFICIAL_CHANNEL": "HIGH_RISK_B2B_PAYMENT_PATTERN",
+}
+
+TEXT_ONLY_PAYMENT_PATTERN_FLAGS = {
+    "COURIER_CUSTOMS_OR_ADDRESS_FEE_PAYMENT",
+    "DOMAIN_RENEWAL_INVOICE_NO_EXISTING_VENDOR",
+    "GRANT_CONSULTING_FEE_BEFORE_CONTRACT",
+    "IP_OFFICE_PAYMENT_REQUEST_UNOFFICIAL_CHANNEL",
+    "LEGAL_DEMAND_PAYMENT_TO_NEW_IBAN",
+    "NEW_VENDOR_PUBLIC_PROCUREMENT_FEE",
+    "OFFICIAL_REGISTRY_CLAIM_BUT_NO_PROVENANCE",
+    "OSIM_TRADEMARK_FEE_UNOFFICIAL_SENDER",
+    "PAYMENT_DIVERSION_HOLD_INSTRUCTIONS",
+    "PO_OR_OVERPAYMENT_RETURN_REQUEST",
+    "REGULATED_FINANCE_ADVANCE_FEE_OR_ID_REQUEST",
+    "SAAS_LICENSE_AUDIT_URGENT_PAYMENT",
+    "TAX_AUTHORITY_APPROVES_UPDATED_IBAN",
+    "TAX_AUTHORITY_PAYMENT_REQUEST_UNOFFICIAL_CHANNEL",
+    "URGENT_PAYMENT_OVERRIDE_NO_TICKET",
 }
 
 _SOFT_SEMANTIC_DANGEROUS_REASONS = {
+    "HIGH_RISK_B2B_PAYMENT_PATTERN",
+    "identity_spoof",
+    "scam_family_match",
     "semantic_high_risk_match",
     "semantic_high_value_request",
 }
+
+_DECISIVE_GENERIC_DANGEROUS_PREFIXES = (
+    "never_asks_violated:",
+    "provider_malicious",
+    "reported_fraud_iban",
+    "sensitive_wrong_channel",
+    "urlhaus_malicious",
+    "urlscan_malicious",
+    "webrisk_malicious",
+)
 
 
 def evaluate_invoice_truth_v4(
@@ -115,6 +135,11 @@ def evaluate_invoice_truth_v4(
         verified_items.append(_item("CHANNEL_TRUSTED", "Factura vine dintr-un canal verificat"))
     elif channel_state == "CHANGED":
         unconfirmed_items.append(_item("CHANNEL_OR_PAYMENT_CHANGED", "Canalul sau datele de plată par schimbate"))
+
+    if any(flag in TEXT_ONLY_PAYMENT_PATTERN_FLAGS for flag in fraud_flags):
+        unconfirmed_items.append(
+            _item("HIGH_RISK_PAYMENT_PATTERN_REQUIRES_VERIFICATION", "Tiparul de plată trebuie verificat înainte de autorizare")
+        )
 
     if readiness is not None and getattr(readiness, "blocks_safe_verdict", False):
         unconfirmed_items.append(_item("INSUFFICIENT_DATA", "Documentul nu are suficiente date citibile"))
@@ -292,8 +317,13 @@ def _hard_conflicts_from_flags(flags: list[str]) -> list[dict]:
         and ("ACCOUNT_CHANGE_LANGUAGE" in flags or "PAYMENT_PRESSURE" in flags)
     ):
         conflicts.append(_conflict("BEC_ACCOUNT_CHANGE_COMBO", "IBAN nou, canal schimbat și presiune de plată"))
-    if "ACCOUNT_CHANGE_LANGUAGE" in flags and ("FOREIGN_IBAN" in flags or "PAYMENT_PRESSURE" in flags):
-        conflicts.append(_conflict("BEC_ACCOUNT_CHANGE_COMBO", "Cont bancar schimbat și presiune de plată"))
+    if (
+        "ACCOUNT_CHANGE_LANGUAGE" in flags
+        and ("IBAN_CHANGED_VS_HISTORY" in flags or "REPLY_TO_MISMATCH" in flags or "PAYMENT_DESTINATION_BRAND_MISMATCH" in flags)
+    ):
+        conflicts.append(_conflict("BEC_ACCOUNT_CHANGE_COMBO", "Cont bancar schimbat pe canal sau istoric neobișnuit"))
+    if "ACCOUNT_CHANGE_LANGUAGE" in flags and "FOREIGN_IBAN" in flags and "PAYMENT_PRESSURE" in flags:
+        conflicts.append(_conflict("BEC_ACCOUNT_CHANGE_COMBO", "Cont bancar schimbat, IBAN străin și presiune de plată"))
     return conflicts
 
 
@@ -310,6 +340,7 @@ def _hard_conflict_label(code: str) -> str:
         "HIGH_RISK_B2B_PAYMENT_PATTERN": "Tipar B2B cunoscut de fraudă la plată",
         "BEC_ACCOUNT_CHANGE_COMBO": "Schimbare de cont cu semnale de deturnare plată",
         "UNDISCLOSED_PAYMENT_INTERMEDIARY": "Beneficiar intermediar neconfirmat pentru plata facturii",
+        "PAYMENT_CONTROL_BYPASS": "Instrucțiune de plată care ocolește verificarea normală",
     }
     return labels.get(code, code.replace("_", " ").lower())
 
@@ -317,8 +348,13 @@ def _hard_conflict_label(code: str) -> str:
 def _generic_dangerous_can_override_invoice(fallback_gate: Dict[str, Any]) -> bool:
     reasons = [str(code or "") for code in (fallback_gate.get("reason_codes") or []) if str(code or "")]
     if not reasons:
-        return True
-    return not all(reason in _SOFT_SEMANTIC_DANGEROUS_REASONS for reason in reasons)
+        return False
+    return any(
+        reason in _DECISIVE_GENERIC_DANGEROUS_PREFIXES
+        or any(reason.startswith(prefix) for prefix in _DECISIVE_GENERIC_DANGEROUS_PREFIXES)
+        for reason in reasons
+        if reason not in _SOFT_SEMANTIC_DANGEROUS_REASONS
+    )
 
 
 def _truth_is_inactive_only(truth: Dict[str, Any]) -> bool:

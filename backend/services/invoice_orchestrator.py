@@ -126,6 +126,19 @@ _PRESSURE_RE = re.compile(
     re.IGNORECASE,
 )
 _NAME_STOPWORDS = {"sc", "srl", "sa", "pfa", "ii", "snc", "de", "si"}
+_GENERIC_BENEFICIARY_TERMS = {
+    "beneficiar",
+    "cont",
+    "firma",
+    "furnizor",
+    "nou",
+    "noua",
+    "partener",
+    "plata",
+    "procesator",
+    "societate",
+    "vendor",
+}
 B2B_HIGH_RISK_FLAGS = {
     "BEC_REPLY_TO_ACCOUNT_CHANGE",
     "QR_PRINTED_IBAN_MISMATCH",
@@ -245,6 +258,9 @@ def _beneficiary_is_person(name: Optional[str]) -> bool:
     if not name or _COMPANY_MARKERS.search(name):
         return False
     tokens = re.findall(r"[A-Za-zĂÂÎȘŞȚŢăâîșşțţ]{2,}", name.strip())
+    normalized_tokens = {token.lower().translate(_DIACRITICS) for token in tokens}
+    if normalized_tokens & _GENERIC_BENEFICIARY_TERMS:
+        return False
     return 2 <= len(tokens) <= 4
 
 
