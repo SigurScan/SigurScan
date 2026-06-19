@@ -281,7 +281,7 @@ internal fun orchestratedScanServerInfo(
         return "Preview-ul securizat se generează."
     }
     return if (!isFinal) {
-        statusMessage ?: "Avem un verdict provizoriu. Continuăm verificarea preview-ului securizat."
+        statusMessage ?: "Se verifică destinația și sursele de risc."
     } else {
         "Scanarea completă a fost finalizată."
     }

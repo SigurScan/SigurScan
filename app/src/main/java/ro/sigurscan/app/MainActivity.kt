@@ -3453,15 +3453,18 @@ fun ResultCard(
     var feedbackSent by remember { mutableStateOf(false) }
     var showTechnicalDetails by remember { mutableStateOf(false) }
 
+    val hasRiskVerdict = riskUi.level == "Suspect" || riskUi.level == "Periculos"
     val verdictLightBg = when (riskUi.level) {
         "Sigur" -> SigurColors.SafeLight
         "Periculos" -> SigurColors.DangerousLight
-        else -> SigurColors.SuspectLight
+        "Suspect" -> SigurColors.SuspectLight
+        else -> SigurColors.PendingLight
     }
     val verdictBorder = when (riskUi.level) {
         "Sigur" -> SigurColors.SafeBorder
         "Periculos" -> SigurColors.DangerousBorder
-        else -> SigurColors.SuspectBorder
+        "Suspect" -> SigurColors.SuspectBorder
+        else -> SigurColors.Pending.copy(alpha = 0.32f)
     }
     val isCheckingFurther = assessment.gateResult?.asyncExpected == true ||
         assessment.gateResult?.finality == GateFinality.PROVISIONAL
@@ -3588,7 +3591,7 @@ fun ResultCard(
                 OfferAnalysisSection(assessment.offerAnalysis)
             }
 
-            if (assessment.keyDangers.isNotEmpty() && riskUi.level != "Sigur") {
+            if (assessment.keyDangers.isNotEmpty() && hasRiskVerdict) {
                 ResultSection(title = "Riscuri principale", items = assessment.keyDangers.take(3), icon = Icons.Default.Warning)
             }
 
@@ -3598,7 +3601,7 @@ fun ResultCard(
                 ActionPlanSection(plan)
             }
 
-            if (riskUi.level != "Sigur") {
+            if (hasRiskVerdict) {
                 PostIncidentImpactControls(
                     loading = actionPlanLoading,
                     status = actionPlanStatus,
@@ -3707,7 +3710,7 @@ fun ResultCard(
             }
             Spacer(modifier = Modifier.height(12.dp))
 
-            if (riskUi.level != "Sigur") {
+            if (hasRiskVerdict) {
                 Button(
                     onClick = onOfficialReport,
                     enabled = !officialReportLoading,
@@ -4726,9 +4729,9 @@ private fun mapRiskDisplayState(assessment: OfflineAssessment): RiskDisplayState
 private fun mapGateDisplayState(result: GateResult): RiskDisplayState {
     if (GateResultPresentation.isScanInProgress(result)) {
         return RiskDisplayState(
-            level = "Scanare în curs",
-            label = "Scanare în curs",
-            color = SigurColors.Brand
+            level = "Se verifică...",
+            label = "Se verifică...",
+            color = SigurColors.Pending
         )
     }
     return mapGateDisplayState(result.action)
@@ -4751,6 +4754,11 @@ private fun mapGateDisplayState(action: GateAction): RiskDisplayState = when (ac
         level = "Sigur",
         label = "Sigur",
         color = SigurColors.Safe
+    )
+    GateAction.UNVERIFIED -> RiskDisplayState(
+        level = "Neverificat",
+        label = "Neverificat",
+        color = SigurColors.Pending
     )
     GateAction.INSUFFICIENT_EVIDENCE -> RiskDisplayState(
         level = "Suspect",
@@ -4776,6 +4784,11 @@ private fun mapRiskDisplayState(level: String): RiskDisplayState {
             label = "Suspect",
             color = SigurColors.Suspect
         )
+        "info", "unknown", "unverified" -> RiskDisplayState(
+            level = "Neverificat",
+            label = "Neverificat",
+            color = SigurColors.Pending
+        )
         "low", "safe", "none" -> RiskDisplayState(
             level = "Sigur",
             label = "Sigur",
@@ -4792,19 +4805,20 @@ private fun mapRiskDisplayState(level: String): RiskDisplayState {
 private fun gateStatusText(result: GateResult?): String {
     return when {
         result == null -> "Scanare pregătită"
-        result.asyncExpected || result.finality == GateFinality.PROVISIONAL -> "Scanare în curs"
+        result.asyncExpected || result.finality == GateFinality.PROVISIONAL -> "Se verifică..."
         else -> "Verdict finalizat"
     }
 }
 
 private fun resultIconFor(action: GateAction?, level: String): ImageVector {
-    if (level == "Scanare în curs") return Icons.Default.HourglassEmpty
+    if (level == "Se verifică...") return Icons.Default.HourglassEmpty
     return when (action) {
         GateAction.DO_NOT_CONTINUE,
         GateAction.NO_ENTER_DATA,
         GateAction.NO_REPLY -> Icons.Default.Warning
         GateAction.VERIFY_OFFICIAL -> Icons.Default.Info
         GateAction.CONTINUE_WITH_CAUTION -> Icons.Default.CheckCircle
+        GateAction.UNVERIFIED -> Icons.Default.Info
         GateAction.INSUFFICIENT_EVIDENCE -> Icons.Default.ReportProblem
         null -> when (level) {
             "Periculos" -> Icons.Default.Warning

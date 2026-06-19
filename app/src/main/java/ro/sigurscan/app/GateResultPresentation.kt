@@ -4,8 +4,12 @@ object GateResultPresentation {
     fun isScanInProgress(result: GateResult): Boolean =
         result.asyncExpected || result.finality == GateFinality.PROVISIONAL
 
+    fun isFinalUnverified(result: GateResult): Boolean =
+        result.finality == GateFinality.FINAL &&
+            (result.action == GateAction.UNVERIFIED || result.unknownReason == "BACKEND_UNVERIFIED")
+
     fun userHeadline(result: GateResult): String =
-        if (isScanInProgress(result)) "Scanare în curs" else result.userLabel
+        if (isScanInProgress(result)) "Se verifică..." else result.userLabel
 
     fun legacyRiskLevel(action: GateAction): String = when (action) {
         GateAction.DO_NOT_CONTINUE,
@@ -13,6 +17,7 @@ object GateResultPresentation {
         GateAction.NO_REPLY -> "dangerous"
         GateAction.VERIFY_OFFICIAL -> "medium"
         GateAction.CONTINUE_WITH_CAUTION -> "low"
+        GateAction.UNVERIFIED -> "info"
         GateAction.INSUFFICIENT_EVIDENCE -> "error"
     }
 
@@ -22,6 +27,7 @@ object GateResultPresentation {
         GateAction.NO_REPLY -> 82
         GateAction.VERIFY_OFFICIAL -> 55
         GateAction.CONTINUE_WITH_CAUTION -> 20
+        GateAction.UNVERIFIED -> 0
         GateAction.INSUFFICIENT_EVIDENCE -> 0
     }
 
@@ -31,12 +37,13 @@ object GateResultPresentation {
         GateAction.NO_REPLY -> "Periculos"
         GateAction.VERIFY_OFFICIAL -> "Suspect"
         GateAction.CONTINUE_WITH_CAUTION -> "Sigur"
+        GateAction.UNVERIFIED -> "Neverificat"
         GateAction.INSUFFICIENT_EVIDENCE -> "Suspect"
     }.ifBlank { fallback }
 
     fun supportText(result: GateResult): String = when {
-        isScanInProgress(result) -> "Scanăm linkul și pregătim verdictul după verificare."
-        result.action == GateAction.INSUFFICIENT_EVIDENCE && result.unknownReason == "BACKEND_UNVERIFIED" -> "Nu am găsit semnale clare de risc, dar nu avem confirmare oficială pentru această destinație."
+        isScanInProgress(result) -> "Se verifică destinația și sursele de risc."
+        isFinalUnverified(result) -> "Nu am găsit semnale clare de risc, dar nu avem confirmare oficială pentru această destinație."
         result.action == GateAction.DO_NOT_CONTINUE -> "Scanarea a gasit semnale clare de risc pe destinatie."
         result.action == GateAction.NO_ENTER_DATA -> "Pagina sau mesajul cere date sensibile pe un canal care nu este suficient validat."
         result.action == GateAction.NO_REPLY -> "Mesajul cere raspuns, coduri, bani sau continuarea conversatiei intr-un scenariu riscant."
@@ -46,8 +53,8 @@ object GateResultPresentation {
     }
 
     fun primaryAction(result: GateResult): String = when {
-        isScanInProgress(result) -> "Așteaptă finalizarea scanării."
-        result.action == GateAction.INSUFFICIENT_EVIDENCE && result.unknownReason == "BACKEND_UNVERIFIED" -> "Verifică destinația în contextul oficial înainte de date sau plăți."
+        isScanInProgress(result) -> "Așteaptă verdictul final."
+        isFinalUnverified(result) -> "Verifică destinația în contextul oficial înainte de date sau plăți."
         result.action == GateAction.DO_NOT_CONTINUE -> "Nu apasa linkul si nu continua fluxul."
         result.action == GateAction.NO_ENTER_DATA -> "Nu introduce card, parola, CNP, IBAN sau cod OTP."
         result.action == GateAction.NO_REPLY -> "Nu raspunde si nu trimite coduri sau bani."
@@ -83,6 +90,7 @@ object GateResultPresentation {
             "PROVIDER_REVIEW_REQUIRED" in codes && result.unknownReason == "PROVIDERS_NOT_RUN_FOR_TARGET" -> "Se scaneaza linkul. Revenim cu verdictul dupa verificare."
             "PROVIDER_REVIEW_REQUIRED" in codes && result.unknownReason == "FINAL_URL_NOT_RESOLVED" -> "Urmarim destinatia finala a linkului inainte sa dam verdict."
             "PROVIDER_REVIEW_REQUIRED" in codes && result.unknownReason == "PILLARS_NOT_RUN" -> "Se scaneaza linkul. Revenim cu verdictul dupa verificare."
+            result.action == GateAction.UNVERIFIED -> supportText(result)
             result.action == GateAction.INSUFFICIENT_EVIDENCE && result.unknownReason == "WEBMAIL_SHELL_ONLY" -> "Am primit doar shell-ul webmail, nu corpul complet al mesajului."
             result.action == GateAction.INSUFFICIENT_EVIDENCE && result.unknownReason == "OCR_LOW_CONFIDENCE" -> "OCR-ul nu a extras suficient text verificabil."
             result.action == GateAction.INSUFFICIENT_EVIDENCE && result.unknownReason == "PROVIDERS_UNAVAILABLE" -> "Nu am putut finaliza scanarea. Reincearca."
@@ -97,7 +105,7 @@ object GateResultPresentation {
             "Așteaptă verdictul final.",
             "Nu introduce date până nu se termină scanarea."
         )
-        result.action == GateAction.INSUFFICIENT_EVIDENCE && result.unknownReason == "BACKEND_UNVERIFIED" -> listOf(
+        isFinalUnverified(result) -> listOf(
             "Verifică dacă QR-ul sau linkul vine din locația ori aplicația oficială.",
             "Nu introduce card, parolă sau cod OTP dacă pagina cere date sensibile.",
             "Pentru plăți, caută manual comerciantul sau cere confirmare pe canal oficial."
