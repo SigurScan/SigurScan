@@ -41,3 +41,25 @@ def test_check_rdap_follows_rdap_bootstrap_redirect(monkeypatch):
     assert result["registered"] is True
     assert result["age_days"] is not None
     assert result["registration_date"].startswith("1997-09-15")
+
+
+def test_domain_ssl_parallel_uses_registrable_domain_for_rdap(monkeypatch):
+    calls = {"ssl": [], "rdap": []}
+
+    def fake_check_ssl(hostname, timeout=None):
+        calls["ssl"].append(hostname)
+        return {"valid": True}
+
+    async def fake_check_rdap(domain, timeout=None):
+        calls["rdap"].append(domain)
+        return {"registered": True, "age_days": 100}
+
+    monkeypatch.setattr(whois_ssl_signals, "check_ssl", fake_check_ssl)
+    monkeypatch.setattr(whois_ssl_signals, "check_rdap", fake_check_rdap)
+
+    result = asyncio.run(whois_ssl_signals.check_domain_ssl_parallel("www.smart-menu.ro"))
+
+    assert result["ssl"]["valid"] is True
+    assert result["rdap"]["registered"] is True
+    assert calls["ssl"] == ["www.smart-menu.ro"]
+    assert calls["rdap"] == ["smart-menu.ro"]

@@ -4790,7 +4790,19 @@ def _semantic_risk_rank(value: Any) -> int:
     }.get(str(value or "").strip().lower(), 1)
 
 
+def _unwrap_mistral_semantic_payload(raw: Dict[str, Any]) -> Dict[str, Any]:
+    if isinstance(raw, dict) and isinstance(raw.get("semantic_review"), dict):
+        nested = dict(raw["semantic_review"])
+        if "social_engineering" not in nested and isinstance(raw.get("social_engineering"), dict):
+            nested["social_engineering"] = raw["social_engineering"]
+        if "intent_analysis" not in nested and isinstance(raw.get("intent_analysis"), dict):
+            nested["intent_analysis"] = raw["intent_analysis"]
+        return nested
+    return raw if isinstance(raw, dict) else {}
+
+
 def _normalize_mistral_semantic_review(raw: Dict[str, Any], fallback: Dict[str, Any]) -> Dict[str, Any]:
+    raw = _unwrap_mistral_semantic_payload(raw)
     risk_class = str(raw.get("risk_class") or raw.get("severity") or "unknown").strip().lower()
     if risk_class not in {"high", "medium", "benign", "unknown"}:
         risk_class = "unknown"
@@ -5349,6 +5361,7 @@ async def _enrich_semantic_review_async(
     }
     try:
         raw_review = await run_in_threadpool(_call_mistral_semantic_review, payload)
+        raw_semantic_review = _unwrap_mistral_semantic_payload(raw_review)
         normalized_review = _normalize_mistral_semantic_review(raw_review, fallback)
         evidence["semantic_review"] = _calibrate_semantic_review_with_tier1(
             normalized_review,
@@ -5362,7 +5375,7 @@ async def _enrich_semantic_review_async(
             semantic_review=evidence["semantic_review"],
         )
         evidence["social_engineering"] = _normalize_model_social_engineering_signal(
-            raw_review.get("social_engineering"),
+            raw_semantic_review.get("social_engineering"),
             local_social_engineering,
         )
     except Exception as exc:

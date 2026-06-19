@@ -14,6 +14,28 @@ SSL_CERT_DATE_FMT = "%b %d %H:%M:%S %Y %Z"
 RDAP_TIMEOUT_SECONDS = float(os.getenv("RDAP_TIMEOUT_SECONDS", "2.0"))
 SSL_TIMEOUT_SECONDS = float(os.getenv("SSL_TIMEOUT_SECONDS", "2.0"))
 RO_DOMAIN_SUFFIXES = (".ro",)
+COMMON_SECOND_LEVEL_SUFFIXES = (
+    "co.uk",
+    "org.uk",
+    "gov.uk",
+    "ac.uk",
+    "com.au",
+    "net.au",
+    "org.au",
+)
+
+
+def _rdap_domain_for_lookup(hostname: str) -> str:
+    domain = (hostname or "").strip().lower().rstrip(".")
+    if not domain or domain.replace(".", "").isdigit():
+        return domain
+    labels = [part for part in domain.split(".") if part]
+    if len(labels) <= 2:
+        return domain
+    suffix = ".".join(labels[-2:])
+    if suffix in COMMON_SECOND_LEVEL_SUFFIXES and len(labels) >= 3:
+        return ".".join(labels[-3:])
+    return suffix
 
 
 def check_ssl(hostname: str, timeout: Optional[float] = None) -> Dict[str, Any]:
@@ -96,7 +118,7 @@ async def check_rdap(domain: str, timeout: Optional[float] = None) -> Dict[str, 
 
 async def check_domain_ssl_parallel(domain: str) -> Dict[str, Any]:
     ssl_task = asyncio.to_thread(check_ssl, domain)
-    rdap_task = check_rdap(domain)
+    rdap_task = check_rdap(_rdap_domain_for_lookup(domain))
     ssl_result, rdap_result = await asyncio.gather(ssl_task, rdap_task, return_exceptions=True)
     if isinstance(ssl_result, Exception):
         logger.warning("SSL check failed for %s: %s", domain, ssl_result)

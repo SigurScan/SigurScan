@@ -179,6 +179,34 @@ def test_mistral_semantic_review_preserves_intent_analysis_contract():
     assert normalized["intent_analysis"]["descriptive_context"] is True
 
 
+def test_mistral_semantic_review_accepts_nested_contract_shape():
+    raw = {
+        "semantic_review": {
+            "risk_class": "high",
+            "claim_matches_known_scam_family": False,
+            "claim_matches_legit_template": False,
+            "reason_codes": ["semantic:request_for_otp"],
+            "social_engineering": {
+                "intent": "credential_theft",
+                "ask_present": True,
+                "ask_type": ["otp"],
+                "levers": ["authority"],
+                "confidence": 0.95,
+            },
+            "intent_analysis": {
+                "positive_action_request": True,
+                "negation_scope_resolved": True,
+                "confidence": 0.95,
+            },
+        }
+    }
+
+    normalized = _normalize_mistral_semantic_review(raw, {"risk_class": "unknown"})
+
+    assert normalized["risk_class"] == "high"
+    assert normalized["intent_analysis"]["positive_action_request"] is True
+
+
 def test_mistral_intent_analysis_is_used_by_decision_bundle():
     analysis = {
         "claimed_brand": "Nespecificat",
