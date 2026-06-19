@@ -62,7 +62,7 @@ class GateResultPresentationTest {
     @Test
     fun finalUnverifiedBackendCopyDoesNotSayTheScanIsStillIncomplete() {
         val result = gateResult(
-            GateAction.INSUFFICIENT_EVIDENCE,
+            GateAction.UNVERIFIED,
             reasonCodes = listOf("BACKEND_UNVERIFIED"),
             unknownReason = "BACKEND_UNVERIFIED",
             finality = GateFinality.FINAL
@@ -77,8 +77,12 @@ class GateResultPresentationTest {
             .joinToString(" ")
             .lowercase()
 
+        assertTrue(result.userLabel == "Neverificat")
+        assertTrue(GateResultPresentation.familyLabel(result.action, "fallback") == "Neverificat")
+        assertTrue(GateResultPresentation.legacyRiskLevel(result.action) == "info")
         assertTrue(copy.contains("nu am găsit") || copy.contains("nu am gasit"))
         assertTrue(copy.contains("confirm"))
+        assertFalse(copy.contains("suspect"))
         assertFalse(copy.contains("incomplet"))
         assertFalse(copy.contains("incompletă"))
         assertFalse(copy.contains("inca"))
@@ -129,11 +133,31 @@ class GateResultPresentationTest {
             .lowercase()
 
         assertTrue(copy.contains("scan"))
-        assertTrue(GateResultPresentation.userHeadline(result) == "Scanare în curs")
+        assertTrue(GateResultPresentation.userHeadline(result) == "Se verifică...")
         assertFalse(copy.contains("suspect"))
         listOf("web risk", "virustotal", "urlscan", "sandbox", "provider", "pilon", "tehnic").forEach { jargon ->
             assertFalse("User-facing copy leaked '$jargon': $copy", copy.contains(jargon))
         }
+    }
+
+    @Test
+    fun provisionalBackendResultUsesNeutralPendingCopyInsteadOfRiskVerdict() {
+        val result = backendScanInProgressGateResult()
+        val copy = listOf(
+            GateResultPresentation.userHeadline(result),
+            GateResultPresentation.supportText(result),
+            GateResultPresentation.reasonText(result, null),
+            GateResultPresentation.primaryAction(result)
+        )
+            .plus(GateResultPresentation.recommendedActions(result))
+            .joinToString(" ")
+            .lowercase()
+
+        assertTrue(GateResultPresentation.isScanInProgress(result))
+        assertTrue(GateResultPresentation.userHeadline(result) == "Se verifică...")
+        assertFalse(copy.contains("suspect"))
+        assertFalse(copy.contains("periculos"))
+        assertFalse(copy.contains("preview"))
     }
 
     private fun gateResult(

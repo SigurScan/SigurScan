@@ -11,7 +11,7 @@ internal fun backendGateResult(response: ScanResponse): GateResult {
         "SAFE" -> GateAction.CONTINUE_WITH_CAUTION
         "SUSPECT" -> GateAction.VERIFY_OFFICIAL
         "DANGEROUS" -> GateAction.DO_NOT_CONTINUE
-        "UNVERIFIED" -> GateAction.INSUFFICIENT_EVIDENCE
+        "UNVERIFIED" -> GateAction.UNVERIFIED
         else -> GateAction.INSUFFICIENT_EVIDENCE
     }
     val backendLabel = response.userRiskLabel?.trim()?.uppercase(Locale.ROOT)

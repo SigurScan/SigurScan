@@ -94,6 +94,23 @@ class ScannerViewModelTest {
     }
 
     @Test
+    fun provisionalOrchestratedMessageMentionsRiskSourcesInsteadOfPreview() {
+        val message = orchestratedScanServerInfo(
+            statusMessage = null,
+            preview = OrchestratedPreview(
+                status = "pending",
+                reason = "urlscan_pending",
+                finalUrl = "https://www.smart-menu.ro/qr/menu-demo"
+            ),
+            isFinal = false
+        )
+
+        assertTrue(message.contains("destinația") || message.contains("destinatia"))
+        assertTrue(message.contains("sursele de risc"))
+        assertFalse(message.contains("preview", ignoreCase = true))
+    }
+
+    @Test
     fun finalUrlscanPendingPreviewStopsScanPollingAfterFinalVerdict() {
         val response = OrchestratedScanResponse(
             scanId = "orch-yoxo-preview",

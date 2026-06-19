@@ -6,6 +6,7 @@ enum class GateAction(val userLabel: String) {
     NO_REPLY("Periculos"),
     VERIFY_OFFICIAL("Suspect"),
     CONTINUE_WITH_CAUTION("Sigur"),
+    UNVERIFIED("Neverificat"),
     INSUFFICIENT_EVIDENCE("Suspect")
 }
 
@@ -284,6 +285,7 @@ object EvidenceGatePolicy {
         GateAction.NO_ENTER_DATA -> 80
         GateAction.NO_REPLY -> 75
         GateAction.VERIFY_OFFICIAL -> 45
+        GateAction.UNVERIFIED -> 30
         GateAction.INSUFFICIENT_EVIDENCE -> 30
         GateAction.CONTINUE_WITH_CAUTION -> 20
     }
@@ -916,6 +918,7 @@ class EvidenceGate(private val nowMillis: () -> Long = { System.currentTimeMilli
         GateAction.NO_ENTER_DATA -> 5
         GateAction.NO_REPLY -> 4
         GateAction.VERIFY_OFFICIAL -> 3
+        GateAction.UNVERIFIED -> 2
         GateAction.INSUFFICIENT_EVIDENCE -> 2
         GateAction.CONTINUE_WITH_CAUTION -> 1
     }
