@@ -47,6 +47,73 @@ def test_high_risk_b2b_payment_pattern_does_not_override_invoice_verify():
     assert out["label"] != "DANGEROUS"
 
 
+def test_invoice_verify_blocks_safe_when_required_proof_is_missing():
+    base = {"label": "SAFE", "risk_level": "low", "risk_score": 5, "reason_codes": ["generic_clean"]}
+    truth = {
+        "verdict": "VERIFY_BEFORE_PAYING",
+        "primary_reason_code": "ISSUER_NOT_FOUND",
+        "proofs": {
+            "issuer_identity": {"state": "UNKNOWN"},
+            "payment_destination": {"state": "OFFICIAL_REGISTRY_MATCH"},
+        },
+    }
+
+    out = gate_from_invoice_truth(truth, base)
+
+    assert out["label"] == "UNVERIFIED"
+    assert out["risk_level"] == "unknown"
+    assert out["risk_score"] == 35
+    assert out["reason_codes"] == ["ISSUER_NOT_FOUND"]
+
+
+def test_invoice_verify_preserves_safe_when_core_proofs_are_confirmed():
+    base = {"label": "SAFE", "risk_level": "low", "risk_score": 5, "reason_codes": ["generic_clean"]}
+    truth = {
+        "verdict": "VERIFY_BEFORE_PAYING",
+        "primary_reason_code": "INVOICE_OBLIGATION_UNCONFIRMED",
+        "proofs": {
+            "issuer_identity": {"state": "CONFIRMED"},
+            "payment_destination": {"state": "OFFICIAL_REGISTRY_MATCH"},
+        },
+    }
+
+    out = gate_from_invoice_truth(truth, base)
+
+    assert out["label"] == "SAFE"
+
+
+def test_invoice_verify_keeps_safe_when_weak_inactive_fallback_conflicts_with_official_payment_match():
+    base = {"label": "SAFE", "risk_level": "low", "risk_score": 5, "reason_codes": ["generic_clean"]}
+    truth = {
+        "verdict": "VERIFY_BEFORE_PAYING",
+        "primary_reason_code": "ISSUER_INACTIVE",
+        "proofs": {
+            "issuer_identity": {"state": "INACTIVE", "source": "lista_firme"},
+            "payment_destination": {"state": "OFFICIAL_REGISTRY_MATCH"},
+        },
+    }
+
+    out = gate_from_invoice_truth(truth, base)
+
+    assert out["label"] == "SAFE"
+
+
+def test_invoice_verify_blocks_safe_when_authoritative_registry_says_issuer_inactive():
+    base = {"label": "SAFE", "risk_level": "low", "risk_score": 5, "reason_codes": ["generic_clean"]}
+    truth = {
+        "verdict": "VERIFY_BEFORE_PAYING",
+        "primary_reason_code": "ISSUER_INACTIVE",
+        "proofs": {
+            "issuer_identity": {"state": "INACTIVE", "source": "anaf"},
+            "payment_destination": {"state": "OFFICIAL_REGISTRY_MATCH"},
+        },
+    }
+
+    out = gate_from_invoice_truth(truth, base)
+
+    assert out["label"] == "UNVERIFIED"
+
+
 def test_decisive_generic_dangerous_still_overrides_invoice_verify():
     for reason in ("provider_malicious", "sensitive_wrong_channel", "never_asks_violated:card_number"):
         base = {"label": "DANGEROUS", "risk_score": 95, "reason_codes": [reason]}

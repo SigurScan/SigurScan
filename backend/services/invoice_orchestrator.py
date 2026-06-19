@@ -325,6 +325,25 @@ def _requires_high_value_payment_confirmation(fields: InvoiceFields) -> bool:
     return total >= HIGH_VALUE_UNCONFIRMED_PAYMENT_FOREIGN
 
 
+def _weak_inactive_fallback_has_official_payment_match(
+    anaf_check: Optional[dict],
+    payment_destination: Optional[dict],
+) -> bool:
+    if not isinstance(anaf_check, dict) or not isinstance(payment_destination, dict):
+        return False
+    if anaf_check.get("source") != "lista_firme" or anaf_check.get("activ") is not False:
+        return False
+    return bool(
+        payment_destination.get("matched")
+        and payment_destination.get("can_contribute_to_safe") is True
+        and payment_destination.get("trust_tier") in {"T0_PARTNER_SIGNED", "T1_PUBLIC_OFFICIAL", "T2_OFFICIAL_DOCUMENT_CHAIN"}
+        and (
+            payment_destination.get("brand_matches") is True
+            or payment_destination.get("cui_matches") is True
+        )
+    )
+
+
 def _should_allow_paid_company_registry(
     *,
     fields: InvoiceFields,
@@ -733,6 +752,12 @@ async def scan_invoice(ocr_text: str, links: Optional[list[str]] = None) -> Invo
                     )
         except Exception:
             payment_destination = None
+    if _weak_inactive_fallback_has_official_payment_match(anaf_check, payment_destination):
+        warnings = [
+            warning
+            for warning in warnings
+            if "is inactive" not in str(warning).lower() and "inactiv" not in str(warning).lower()
+        ]
 
     if _ACCOUNT_CHANGE_RE.search(normalized_text):
         fraud_flags.append("ACCOUNT_CHANGE_LANGUAGE")
@@ -1089,8 +1114,11 @@ def build_invoice_evidence_bundle(
             anaf_status = "unknown"
             anaf_reasons.append("CUI negăsit în registru")
         elif not anaf.get("activ"):
-            anaf_status = "malicious"
-            anaf_reasons.append("Firmă inactivă")
+            if _weak_inactive_fallback_has_official_payment_match(anaf, payment_destination):
+                anaf_status = "clean"
+            else:
+                anaf_status = "malicious"
+                anaf_reasons.append("Firmă inactivă")
 
     iban_status = "clean"
     iban_reasons: list = []

@@ -286,7 +286,7 @@
       "brand_id": "uniqa_asigurari_de_viata",
       "display_name": "UNIQA Asigurări de Viață S.A.",
       "legal_name": "UNIQA Asigurări de Viață S.A.",
-      "cui": "16311205",
+      "cui": "1589754",
       "category": "insurance_life",
       "aliases": ["uniqa viata", "uniqa asigurari de viata", "uniqa asigurări de viață", "uniqa life"],
       "official_payment_channels": [
@@ -398,5 +398,5 @@
       "review_status": "active"
     }
   ],
-  "summary": { "brands": 2, "entries": 2, "destinations": 12, "notes": "Added UNIQA Asigurări S.A. (CUI 1813613) — 9 IBANs + UNIQA Asigurări de Viață S.A. (CUI 16311205) — 3 IBANs from official payment page. Total 12 IBANs across Raiffeisen, BCR, BRD, CEC, ING." }
+  "summary": { "brands": 2, "entries": 2, "destinations": 12, "notes": "Added UNIQA Asigurări S.A. (CUI 1813613) — 9 IBANs + UNIQA Asigurări de Viață S.A. (CUI 1589754) — 3 IBANs from official payment page. Total 12 IBANs across Raiffeisen, BCR, BRD, CEC, ING." }
 }

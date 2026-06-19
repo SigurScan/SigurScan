@@ -93,6 +93,9 @@ def evaluate_invoice_truth_v4(
     hard_conflicts = _hard_conflicts_from_flags(fraud_flags)
 
     issuer_state = _issuer_state(anaf)
+    destination_state = _payment_destination_state(payment_destination, official_document_check, sanb_attestation)
+    if _weak_inactive_fallback_has_official_payment_match(anaf, destination_state):
+        issuer_state = "CONFIRMED"
     if issuer_state == "CONFIRMED":
         verified_items.append(_item("ISSUER_CONFIRMED", "Firma este verificată"))
     elif issuer_state == "INACTIVE":
@@ -113,7 +116,6 @@ def evaluate_invoice_truth_v4(
     elif coherence is not None:
         unconfirmed_items.append(_item("DOCUMENT_NOT_FULLY_COHERENT", "Datele facturii nu sunt complet coerente"))
 
-    destination_state = _payment_destination_state(payment_destination, official_document_check, sanb_attestation)
     if destination_state in {"OFFICIAL_REGISTRY_MATCH", "OFFICIAL_DOCUMENT_MATCH", "LOCAL_APPROVED_MATCH", "BANK_MATCH"}:
         verified_items.append(_item("PAYMENT_DESTINATION_CONFIRMED", "Contul de plată este confirmat"))
     elif destination_state == "REPORTED_NEGATIVE":
@@ -231,7 +233,7 @@ def evaluate_invoice_truth_v4(
         "unconfirmed_items": unconfirmed_items,
         "hard_conflicts": hard_conflicts,
         "proofs": {
-            "issuer_identity": {"state": issuer_state, "source": "company_registry"},
+            "issuer_identity": {"state": issuer_state, "source": anaf.get("source") or "company_registry"},
             "invoice_obligation": {"state": obligation_state, "source": _obligation_source(source_channel, official_document_check)},
             "payment_destination": {
                 "state": destination_state,
@@ -282,6 +284,16 @@ def gate_from_invoice_truth(truth: Dict[str, Any], fallback_gate: Optional[Dict[
             "confidence": 92,
             "is_final": True,
         }
+    if verdict == "VERIFY_BEFORE_PAYING" and fallback_label == "SAFE" and _verify_truth_blocks_safe(truth):
+        return {
+            **fallback_gate,
+            "label": "UNVERIFIED",
+            "risk_level": "unknown",
+            "risk_score": 35,
+            "reason_codes": [truth.get("primary_reason_code") or "invoice_payment_needs_verification"],
+            "confidence": 82,
+            "is_final": True,
+        }
     if verdict == "VERIFY_BEFORE_PAYING" and fallback_label in {"SAFE", "SUSPECT", "UNVERIFIED"}:
         return {**fallback_gate, "is_final": True}
     return {
@@ -297,6 +309,29 @@ def gate_from_invoice_truth(truth: Dict[str, Any], fallback_gate: Optional[Dict[
 
 def _item(code: str, label: str) -> Dict[str, str]:
     return {"code": code, "label": label}
+
+
+def _verify_truth_blocks_safe(truth: Dict[str, Any]) -> bool:
+    proofs = truth.get("proofs") if isinstance(truth.get("proofs"), dict) else {}
+    issuer = proofs.get("issuer_identity") if isinstance(proofs.get("issuer_identity"), dict) else {}
+    payment_destination = proofs.get("payment_destination") if isinstance(proofs.get("payment_destination"), dict) else {}
+    issuer_state = str(issuer.get("state") or "")
+    issuer_source = str(issuer.get("source") or "")
+    destination_state = str(payment_destination.get("state") or "")
+    destination_confirmed_states = {
+        "OFFICIAL_REGISTRY_MATCH",
+        "OFFICIAL_DOCUMENT_MATCH",
+        "LOCAL_APPROVED_MATCH",
+        "BANK_MATCH",
+    }
+    destination_confirmed = destination_state in destination_confirmed_states
+    if issuer_state == "INACTIVE" and issuer_source == "lista_firme" and destination_confirmed:
+        return False
+    if issuer_state and issuer_state != "CONFIRMED":
+        return True
+    if destination_state in {"INVALID_STRUCTURE", "MISMATCH", "REPORTED_NEGATIVE"}:
+        return True
+    return False
 
 
 def _conflict(code: str, label: str) -> Dict[str, str]:
@@ -393,6 +428,19 @@ def _issuer_state(anaf: Dict[str, Any]) -> str:
     if anaf.get("activ") is False:
         return "INACTIVE"
     return "CONFIRMED"
+
+
+def _weak_inactive_fallback_has_official_payment_match(anaf: Dict[str, Any], destination_state: str) -> bool:
+    if str(anaf.get("source") or "") != "lista_firme":
+        return False
+    if anaf.get("activ") is not False:
+        return False
+    return destination_state in {
+        "OFFICIAL_REGISTRY_MATCH",
+        "OFFICIAL_DOCUMENT_MATCH",
+        "LOCAL_APPROVED_MATCH",
+        "BANK_MATCH",
+    }
 
 
 def _payment_destination_state(

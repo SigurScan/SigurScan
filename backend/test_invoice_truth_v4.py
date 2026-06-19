@@ -40,6 +40,7 @@ def _cui_result(*, name: str, active: bool = True, exists: bool = True) -> CuiRe
         platitor_tva=False,
         enrolled_efactura=False,
         raw=None,
+        source="anaf",
     )
 
 
@@ -111,6 +112,44 @@ async def test_invoice_truth_inactive_company_is_verify_not_danger_without_hard_
     assert any(item["code"] == "ISSUER_INACTIVE" for item in truth["unconfirmed_items"])
     assert truth["hard_conflicts"] == []
     assert evaluated["gate"]["label"] != "DANGEROUS"
+
+
+@pytest.mark.asyncio
+async def test_invoice_truth_weak_inactive_fallback_does_not_beat_official_payment_destination(monkeypatch):
+    text = """
+Factura G 2001
+Furnizor: GROUPAMA ASIGURARI SA
+CUI: 6291812
+IBAN: RO53 BTRL 0130 1601 0065 6313
+Total plata: 200.00 RON
+"""
+
+    async def fake_check_cui(cui: str):
+        assert cui == "6291812"
+        return CuiResult(
+            exists=True,
+            checked=True,
+            denumire="GROUPAMA ASIGURARI SA",
+            activ=False,
+            data_inactivare=None,
+            platitor_tva=False,
+            enrolled_efactura=False,
+            raw={"status": {"details": {"description": "radiată"}}},
+            source="lista_firme",
+        )
+
+    monkeypatch.setattr("services.invoice_orchestrator.check_cui", fake_check_cui)
+
+    result = await scan_invoice(text)
+    evaluated = evaluate_invoice_verdict(result, result.raw_text, source_channel="android_native")
+    truth = evaluated["invoice_truth"]
+
+    assert not any("inactive" in warning.lower() for warning in result.warnings)
+    assert truth["proofs"]["payment_destination"]["state"] == "OFFICIAL_REGISTRY_MATCH"
+    assert truth["proofs"]["issuer_identity"]["source"] == "lista_firme"
+    assert truth["proofs"]["issuer_identity"]["state"] == "CONFIRMED"
+    assert not any(item["code"] == "ISSUER_INACTIVE" for item in truth["unconfirmed_items"])
+    assert evaluated["gate"]["label"] == "SAFE"
 
 
 @pytest.mark.asyncio

@@ -461,12 +461,12 @@ def test_registry_loads_uniqa_official_insurance_destinations():
     life = match_payment_destination(
         "RO41 RZBR 0000 0600 1273 1196",
         claimed_brand="uniqa asigurari de viata",
-        cui="16311205",
+        cui="1589754",
     )
     wrong = match_payment_destination(
         "RO84 RZBR 0000 0600 1163 7426",
         claimed_brand="uniqa asigurari de viata",
-        cui="16311205",
+        cui="1589754",
     )
 
     assert general["matched"] is True
