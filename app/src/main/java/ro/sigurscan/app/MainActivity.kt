@@ -57,6 +57,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.input.KeyboardType
@@ -5479,7 +5480,14 @@ fun DSChip(text: String, tone: DSChipTone = DSChipTone.Neutral, modifier: Modifi
             .padding(horizontal = 12.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(text, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = fg, maxLines = 1)
+        Text(
+            text,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = fg,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
@@ -5541,9 +5549,21 @@ fun InvoiceResultCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Receipt, contentDescription = null, tint = SigurColors.Brand, modifier = Modifier.size(24.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Scanare Factură", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = SigurColors.TextPrimary)
-                Spacer(modifier = Modifier.weight(1f))
-                DSChip(verdictText, tone = tone)
+                Text(
+                    "Scanare Factură",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = SigurColors.TextPrimary,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                DSChip(
+                    verdictText,
+                    tone = tone,
+                    modifier = Modifier.widthIn(max = 210.dp)
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -6137,13 +6157,27 @@ private fun offerSignalLabel(signal: String): String {
 private fun InvoiceFieldRow(label: String, value: String, valueTone: DSChipTone = DSChipTone.Neutral) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.Top
     ) {
-        Text(label, fontSize = 13.sp, color = SigurColors.TextSecondary)
+        Text(
+            label,
+            fontSize = 13.sp,
+            color = SigurColors.TextSecondary,
+            modifier = Modifier.widthIn(min = 88.dp, max = 138.dp)
+        )
         if (valueTone == DSChipTone.Brand) {
-            DSChip(value, tone = valueTone)
+            DSChip(value, tone = valueTone, modifier = Modifier.weight(1f))
         } else {
-            Text(value, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = SigurColors.TextPrimary)
+            Text(
+                value,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                color = SigurColors.TextPrimary,
+                textAlign = TextAlign.End,
+                lineHeight = 18.sp,
+                modifier = Modifier.weight(1f)
+            )
         }
     }
     HorizontalDivider(color = SigurColors.BorderSubtle, thickness = 0.5.dp)
