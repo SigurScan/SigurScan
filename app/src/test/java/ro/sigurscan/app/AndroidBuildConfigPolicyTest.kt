@@ -8,8 +8,13 @@ import java.io.File
 class AndroidBuildConfigPolicyTest {
     private val gradleFile: String
         get() = File("build.gradle.kts").readText()
+    // The Compose UI was split out of the former MainActivity.kt monolith into cohesive sibling
+    // files in the same package; this guard scans the whole UI layer for the gated audio surface.
     private val mainActivityFile: String
-        get() = File("src/main/java/ro/sigurscan/app/MainActivity.kt").readText()
+        get() = File("src/main/java/ro/sigurscan/app")
+            .walkTopDown()
+            .filter { it.isFile && it.extension == "kt" }
+            .joinToString("\n") { it.readText() }
     private val manifest: String
         get() = File("src/main/AndroidManifest.xml").readText()
 
