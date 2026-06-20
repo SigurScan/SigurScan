@@ -36,6 +36,23 @@ val enableAudioAsr = (
         ?: "false"
     ).trim().lowercase() in setOf("1", "true", "yes", "on")
 
+if (enableAudioAsr) {
+    val whisperCMake = rootProject.file("third_party/whisper.cpp/CMakeLists.txt")
+    val whisperModel = file("src/audioAsr/assets/asr/whispercpp/ggml-model.bin")
+    if (!whisperCMake.isFile) {
+        throw GradleException(
+            "SIGURSCAN_ENABLE_AUDIO_ASR=true requires the whisper.cpp submodule. " +
+                "Run: git submodule update --init --recursive third_party/whisper.cpp"
+        )
+    }
+    if (!whisperModel.isFile) {
+        throw GradleException(
+            "SIGURSCAN_ENABLE_AUDIO_ASR=true requires the bundled Whisper model at " +
+                "app/src/audioAsr/assets/asr/whispercpp/ggml-model.bin"
+        )
+    }
+}
+
 val enablePlayIntegrity = (
     localProperties.getProperty("SIGURSCAN_ENABLE_PLAY_INTEGRITY")
         ?: System.getenv("SIGURSCAN_ENABLE_PLAY_INTEGRITY")
