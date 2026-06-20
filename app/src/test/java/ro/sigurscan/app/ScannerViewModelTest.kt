@@ -6,6 +6,18 @@ import java.io.File
 
 class ScannerViewModelTest {
 
+    /**
+     * Concatenated source of the whole UI package. The Compose UI was split out of the former
+     * MainActivity.kt monolith into cohesive sibling files (ScanScreen.kt, RadarScreen.kt,
+     * ResultCard.kt, SharedIntentHandling.kt, …); these architecture-guard assertions check that
+     * the UI layer contains the expected wiring regardless of which file now holds it.
+     */
+    private fun uiPackageSource(): String =
+        File("src/main/java/ro/sigurscan/app")
+            .walkTopDown()
+            .filter { it.isFile && it.extension == "kt" }
+            .joinToString("\n") { it.readText() }
+
     private fun extractHtmlLinks(content: String): List<String> {
         return HtmlLinkExtractor.extractHtmlLinks(content)
     }
@@ -554,7 +566,7 @@ class ScannerViewModelTest {
 
     @Test
     fun cachedResultUiClearlyOffersRescanWithoutChangingVerdictCopy() {
-        val activitySource = File("src/main/java/ro/sigurscan/app/MainActivity.kt").readText()
+        val activitySource = uiPackageSource()
         assertTrue(
             "Result screen must pass a forced refresh action to bypass cached verdicts.",
             activitySource.contains("onRescan = { viewModel.onScanClick(forceRefresh = true) }")
@@ -598,7 +610,7 @@ class ScannerViewModelTest {
 
     @Test
     fun sharedIntentMixedTextAndFilesKeepsBothEvidencePaths() {
-        val activitySource = File("src/main/java/ro/sigurscan/app/MainActivity.kt").readText()
+        val activitySource = uiPackageSource()
         val plannerSource = File("src/main/java/ro/sigurscan/app/SharedIntentIntakePlanner.kt").readText()
         val viewModelSource = File("src/main/java/ro/sigurscan/app/ScannerViewModel.kt").readText()
 
@@ -628,7 +640,7 @@ class ScannerViewModelTest {
 
     @Test
     fun processTextIntentUsesSharedIntakePipeline() {
-        val activitySource = File("src/main/java/ro/sigurscan/app/MainActivity.kt").readText()
+        val activitySource = uiPackageSource()
         val plannerSource = File("src/main/java/ro/sigurscan/app/SharedIntentIntakePlanner.kt").readText()
 
         assertTrue(
@@ -706,7 +718,7 @@ class ScannerViewModelTest {
 
     @Test
     fun invoiceCanBeCapturedWithCameraAndRoutedToInvoiceEndpoint() {
-        val activitySource = File("src/main/java/ro/sigurscan/app/MainActivity.kt").readText()
+        val activitySource = uiPackageSource()
         val manifestSource = File("src/main/AndroidManifest.xml").readText()
         val viewModelSource = File("src/main/java/ro/sigurscan/app/ScannerViewModel.kt").readText()
         val apiSource = File("src/main/java/ro/sigurscan/app/SigurScanApi.kt").readText()
@@ -824,7 +836,7 @@ class ScannerViewModelTest {
     @Test
     fun audioShareIsAcceptedButFallsBackToTranscriptUntilAsrIsEnabled() {
         val manifestSource = File("src/main/AndroidManifest.xml").readText()
-        val activitySource = File("src/main/java/ro/sigurscan/app/MainActivity.kt").readText()
+        val activitySource = uiPackageSource()
         val classifierSource = File("src/main/java/ro/sigurscan/app/FileImportClassifier.kt").readText()
         val viewModelSource = File("src/main/java/ro/sigurscan/app/ScannerViewModel.kt").readText()
         val fileStart = viewModelSource.indexOf("fun onFilePicked(uri: Uri, context: Context)")
@@ -1196,7 +1208,7 @@ class ScannerViewModelTest {
 
     @Test
     fun bottomNavigationKeepsTabsAboveSystemGestureArea() {
-        val activitySource = File("src/main/java/ro/sigurscan/app/MainActivity.kt").readText()
+        val activitySource = uiPackageSource()
         val bottomNavStart = activitySource.indexOf("fun BottomNavigationBar(activeTab: String, onTabClick: (String) -> Unit)")
         val bottomNavEnd = activitySource.indexOf("// ─────────────────────────────────────────────────────────────", bottomNavStart)
         assertTrue("BottomNavigationBar must exist.", bottomNavStart >= 0 && bottomNavEnd > bottomNavStart)
