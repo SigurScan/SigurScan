@@ -43,6 +43,38 @@ def test_check_rdap_follows_rdap_bootstrap_redirect(monkeypatch):
     assert result["registration_date"].startswith("1997-09-15")
 
 
+def test_check_rdap_uses_rotld_fallback_for_ro_domains(monkeypatch):
+    class FakeResponse:
+        status_code = 404
+
+    class FakeAsyncClient:
+        def __init__(self, *, timeout, follow_redirects=False):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return None
+
+        async def get(self, url, headers):
+            return FakeResponse()
+
+    monkeypatch.setattr(whois_ssl_signals.httpx, "AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr(
+        whois_ssl_signals,
+        "query_rotld_whois",
+        lambda domain: "Domain Name: smart-menu.ro\nRegistered On: 2015-03-04\n",
+    )
+
+    result = asyncio.run(whois_ssl_signals.check_rdap("smart-menu.ro", timeout=2.0))
+
+    assert result["registered"] is True
+    assert result["reason"] == "rotld_whois"
+    assert result["age_days"] is not None
+    assert result["registration_date"] == "2015-03-04"
+
+
 def test_domain_ssl_parallel_uses_registrable_domain_for_rdap(monkeypatch):
     calls = {"ssl": [], "rdap": []}
 

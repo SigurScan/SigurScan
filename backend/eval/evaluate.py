@@ -78,6 +78,13 @@ def _load_dataset_records(dataset_path: Path, max_rows: int | None = None) -> Li
     return rows
 
 
+def _expected_is_scam(record: Dict[str, Any]) -> bool | None:
+    for key in ("actual_is_scam", "is_scam", "label"):
+        if key in record:
+            return _coerce_bool(record.get(key))
+    return None
+
+
 def _evaluate_record_core(
     record: Dict[str, Any],
     disable_redirects: bool,
@@ -122,11 +129,7 @@ def _evaluate_record_core(
     risk_level = str(analysis.get("risk_level", "unknown")).lower()
     signal_ids = _collect_signal_ids(analysis)
 
-    expected = record.get("is_scam")
-    if expected is None:
-        expected = _coerce_bool(record.get("label"))
-    elif isinstance(expected, str):
-        expected = _coerce_bool(expected)
+    expected = _expected_is_scam(record)
 
     return {
         "id": record_id,
@@ -349,7 +352,7 @@ def run_evaluation(
                     "id": str(record.get("id") or "unknown"),
                     "error": str(exc),
                     "predicted_is_scam": False,
-                    "actual_is_scam": _coerce_bool(record.get("is_scam") or record.get("label")),
+                    "actual_is_scam": _expected_is_scam(record),
                 }
             )
 
