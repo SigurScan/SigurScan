@@ -7612,6 +7612,10 @@ ORCHESTRATED_REQUIRED_PILLAR_TIMEOUT_SECONDS = int(
 ORCHESTRATED_URLSCAN_SUBMIT_RESERVATION_TIMEOUT_SECONDS = int(
     os.getenv("ORCHESTRATED_URLSCAN_SUBMIT_RESERVATION_TIMEOUT_SECONDS", "30")
 )
+URLSCAN_SCREENSHOT_UNAVAILABLE_DETAILS = (
+    "Raportul de verificare izolata este disponibil, dar captura paginii nu a fost publicata de provider. "
+    "Verdictul final ramane bazat pe sursele de risc."
+)
 # Publish the verdict as soon as the required pillars are terminal, with
 # is_final=false while the urlscan report is still pending. The report can only
 # add severity when it lands (raise-only contract from LAUNCH_ARCHITECTURE_FINAL).
@@ -8718,6 +8722,24 @@ def _urlscan_scan_prevented(details: Any) -> bool:
     return "scan prevented" in normalized or "submission blocked" in normalized
 
 
+def _mark_urlscan_screenshot_unavailable(
+    preview: Dict[str, Any],
+    *,
+    report_url: Any = None,
+    final_url: Any = None,
+) -> None:
+    if report_url and not preview.get("report_url"):
+        preview["report_url"] = report_url
+    if final_url and not preview.get("final_url"):
+        preview["final_url"] = final_url
+    preview["status"] = "unavailable"
+    preview["source"] = None
+    preview["screenshot_url"] = None
+    preview["image_url"] = None
+    preview["reason"] = "urlscan_screenshot_timeout"
+    preview["details"] = URLSCAN_SCREENSHOT_UNAVAILABLE_DETAILS
+
+
 def _claim_verifier_required(analysis: Dict[str, Any]) -> bool:
     claimed = str(analysis.get("claimed_brand") or "").strip().lower()
     if claimed and claimed not in {"nespecificat", "unknown", "none"}:
@@ -8792,7 +8814,14 @@ def _build_orchestrated_pillars(job: Dict[str, Any]) -> Dict[str, Dict[str, Any]
         urlscan_pillar = _pillar("not_required", required=False, details="nu exista URL pentru preview")
     elif urlscan_status in {"error", "timeout", "rate_limited", "skipped"}:
         urlscan_details = str(urlscan_state.get("details") or urlscan_status)
-        if official_destination and _urlscan_scan_prevented(urlscan_details):
+        if urlscan_status == "timeout" and urlscan_state.get("verdict") and urlscan_state.get("report_url"):
+            urlscan_pillar = _pillar(
+                "ok",
+                required=False,
+                details=f"{urlscan_state.get('verdict')}; captura indisponibila la provider",
+                ref=urlscan_state.get("uuid"),
+            )
+        elif official_destination and _urlscan_scan_prevented(urlscan_details):
             urlscan_pillar = _pillar(
                 "ok",
                 required=False,
@@ -11412,9 +11441,11 @@ async def _refresh_orchestrated_job_impl(job: Dict[str, Any], request: Request) 
                     )
                     preview = job.setdefault("preview", {})
                     if not preview.get("image_url"):
-                        preview["status"] = "unavailable"
-                        preview["source"] = None
-                        preview["reason"] = "urlscan_screenshot_timeout"
+                        _mark_urlscan_screenshot_unavailable(
+                            preview,
+                            report_url=urlscan_state.get("report_url"),
+                            final_url=urlscan_state.get("final_url") or job.get("primary_final_url"),
+                        )
                 job["urlscan"] = urlscan_state
                 result = None
             else:
@@ -11451,9 +11482,11 @@ async def _refresh_orchestrated_job_impl(job: Dict[str, Any], request: Request) 
                         preview["report_url"] = result.get("report_url") or urlscan_state.get("report_url")
                     if not preview.get("final_url"):
                         preview["final_url"] = result.get("final_url") or urlscan_state.get("final_url")
-                    preview["status"] = "unavailable"
-                    preview["source"] = None
-                    preview["reason"] = preview.get("reason") or "urlscan_screenshot_timeout"
+                    _mark_urlscan_screenshot_unavailable(
+                        preview,
+                        report_url=result.get("report_url") or urlscan_state.get("report_url"),
+                        final_url=result.get("final_url") or urlscan_state.get("final_url"),
+                    )
                 else:
                     if result_screenshot_url:
                         result["screenshot_url"] = result_screenshot_url
@@ -11505,11 +11538,11 @@ async def _refresh_orchestrated_job_impl(job: Dict[str, Any], request: Request) 
                         preview["image_url"] = result.get("screenshot_url")
                         preview["reason"] = None
                     elif urlscan_status == "timeout" and not urlscan_state["screenshot_ready"]:
-                        preview["status"] = "unavailable"
-                        preview["source"] = None
-                        preview["screenshot_url"] = None
-                        preview["image_url"] = None
-                        preview["reason"] = preview.get("reason") or "urlscan_screenshot_timeout"
+                        _mark_urlscan_screenshot_unavailable(
+                            preview,
+                            report_url=result.get("report_url") or urlscan_state.get("report_url"),
+                            final_url=result.get("final_url") or urlscan_state.get("final_url"),
+                        )
                     elif not has_ready_visual:
                         preview["status"] = "pending"
                         preview["source"] = "urlscan"

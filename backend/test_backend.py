@@ -6720,8 +6720,18 @@ def test_orchestrated_urlscan_timeout_without_screenshot_stays_unavailable(monke
     assert refreshed["urlscan"]["status"] == "timeout"
     assert refreshed["preview"]["status"] == "unavailable"
     assert refreshed["preview"]["reason"] in {"urlscan_screenshot_timeout", "urlscan_timeout"}
+    assert refreshed["preview"]["report_url"] == "https://urlscan.io/result/urlscan-no-shot/"
+    assert refreshed["preview"]["details"] == (
+        "Raportul de verificare izolata este disponibil, dar captura paginii nu a fost publicata de provider. "
+        "Verdictul final ramane bazat pe sursele de risc."
+    )
+    assert "sandbox" not in refreshed["preview"]["details"].lower()
+    assert "http" not in refreshed["preview"]["details"].lower()
     assert not refreshed["preview"].get("screenshot_url")
     assert not refreshed["preview"].get("image_url")
+    payload = app_main._orchestrated_status_payload(refreshed)
+    assert payload["pillars"]["urlscan"]["status"] == "ok"
+    assert "captura" in payload["pillars"]["urlscan"]["details"].lower()
 
 
 def test_orchestrated_urlscan_timeout_late_malicious_report_upgrades_without_screenshot(monkeypatch):
