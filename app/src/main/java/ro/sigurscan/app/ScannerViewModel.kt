@@ -212,9 +212,9 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
         )
     )
     
-    private val prefs: SharedPreferences by lazy { createSecurePrefs(application) }
+    internal val prefs: SharedPreferences by lazy { createSecurePrefs(application) }
     private val clientInstanceId: String by lazy { loadOrCreateClientInstanceId() }
-    private val gson = Gson()
+    internal val gson = Gson()
     private val recognizer by lazy { TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS) }
     private val barcodeScanner by lazy { BarcodeScanning.getClient() }
     private val URLSCAN_API_KEY = BuildConfig.URLSCAN_API_KEY
@@ -285,7 +285,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
             .build()
             .create(SigurScanApi::class.java)
     }
-    private val api: SigurScanApi by lazy {
+    internal val api: SigurScanApi by lazy {
         buildApiClient(
             callTimeoutSeconds = 75,
             readTimeoutSeconds = 75,
@@ -913,155 +913,6 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
 
     fun clearLiveCampaignEvent() {
         liveCampaignEvent = null
-    }
-
-    private fun loadTriageState() {
-        val json = prefs.getString("triage_steps_state", null)
-        if (json == null) return
-
-        val type = object : TypeToken<Map<String, List<Int>>>() {}.type
-        val values: Map<String, List<Int>> = gson.fromJson(json, type)
-        triageStepProgress = values.mapValues { it.value.toSet() }
-    }
-
-    private fun saveTriageState() {
-        val serializable = triageStepProgress.mapValues { it.value.toList() }
-        val type = object : TypeToken<Map<String, List<Int>>>() {}.type
-        prefs.edit().putString("triage_steps_state", gson.toJson(serializable, type)).apply()
-    }
-
-    fun isTriageStepDone(category: String, index: Int): Boolean {
-        return triageStepProgress[category]?.contains(index) == true
-    }
-
-    fun setTriageStep(category: String, index: Int, done: Boolean) {
-        val current = triageStepProgress[category]?.toMutableSet() ?: mutableSetOf()
-        if (done) current.add(index) else current.remove(index)
-        triageStepProgress = triageStepProgress.toMutableMap().apply { this[category] = current }
-        saveTriageState()
-    }
-
-    private fun loadEducationState() {
-        val raw = prefs.getString("education_lessons_done", null)
-        if (raw == null) return
-        val type = object : TypeToken<Set<String>>() {}.type
-        completedLessons = gson.fromJson(raw, type)
-    }
-
-    private fun saveEducationState() {
-        val type = object : TypeToken<Set<String>>() {}.type
-        prefs.edit().putString("education_lessons_done", gson.toJson(completedLessons, type)).apply()
-    }
-
-    fun setLessonCompleted(lessonId: String, completed: Boolean = true) {
-        completedLessons = if (completed) {
-            completedLessons + lessonId
-        } else {
-            completedLessons - lessonId
-        }
-        saveEducationState()
-    }
-
-    private fun loadFamilyState() {
-        val rawMembers = prefs.getString("family_members_state", null)
-        if (rawMembers != null) {
-            val memberType = object : TypeToken<List<FamilyMember>>() {}.type
-            runCatching {
-                val members: List<FamilyMember> = gson.fromJson(rawMembers, memberType)
-                familyMembers.clear()
-                familyMembers.addAll(members)
-            }
-        }
-
-        val rawAlerts = prefs.getString("family_alerts_state", null)
-        if (rawAlerts != null) {
-            val alertType = object : TypeToken<List<FamilyAlert>>() {}.type
-            runCatching {
-                val alerts: List<FamilyAlert> = gson.fromJson(rawAlerts, alertType)
-                familyAlerts.clear()
-                familyAlerts.addAll(alerts)
-            }
-        }
-
-        refreshFamilyResilienceScore()
-    }
-
-    private fun saveFamilyState() {
-        val memberType = object : TypeToken<List<FamilyMember>>() {}.type
-        val alertType = object : TypeToken<List<FamilyAlert>>() {}.type
-        prefs.edit().putString("family_members_state", gson.toJson(familyMembers.toList(), memberType)).apply()
-        prefs.edit().putString("family_alerts_state", gson.toJson(familyAlerts.toList(), alertType)).apply()
-        refreshFamilyResilienceScore()
-    }
-
-    private fun refreshFamilyResilienceScore() {
-        familyResilienceScore = if (familyMembers.isEmpty()) {
-            75
-        } else {
-            val protectedMembers = familyMembers.count { it.isProtected }
-            ((45 + (protectedMembers.toFloat() / familyMembers.size.toFloat()) * 55).roundToInt()).coerceIn(0, 100)
-        }
-    }
-
-    fun addFamilyMember(name: String, contact: String) {
-        if (name.isBlank() || contact.isBlank()) return
-        val normalizedContact = contact.trim()
-        if (familyMembers.any { it.contact.equals(normalizedContact, ignoreCase = true) }) return
-
-        familyMembers.add(0, FamilyMember(name = name.trim(), contact = normalizedContact))
-        saveFamilyState()
-    }
-
-    fun removeFamilyMember(memberId: String) {
-        val removed = familyMembers.removeAll { it.id == memberId }
-        if (removed) {
-            familyAlerts.removeAll { it.memberId == memberId }
-        }
-        saveFamilyState()
-    }
-
-    fun toggleFamilyProtection(memberId: String, isProtected: Boolean) {
-        val updated = familyMembers.map { if (it.id == memberId) it.copy(isProtected = isProtected) else it }
-        familyMembers.clear()
-        familyMembers.addAll(updated)
-        saveFamilyState()
-    }
-
-    fun notifyFamilyForCurrentScan() {
-        val current = assessment ?: return
-        if (familyMembers.isEmpty()) return
-        val enabled = familyMembers.filter { it.isProtected }
-        if (enabled.isEmpty()) return
-        val currentAlerts = familyAlerts.toList()
-
-        val familyName = current.family.ifBlank { "Scam suspect" }
-        val riskLevel = current.riskLevel.ifBlank { "low" }
-        val snapshot = current.reasons.take(1).firstOrNull() ?: "Risc detectat pe mesajul curent."
-
-        familyAlerts.clear()
-        familyAlerts.addAll(
-            enabled.map { member ->
-                FamilyAlert(
-                    memberId = member.id,
-                    memberName = member.name,
-                    triggerLabel = "alerta noua",
-                    family = familyName,
-                    riskLevel = riskLevel,
-                    snapshot = snapshot
-                )
-            } + currentAlerts
-        )
-        if (familyAlerts.size > 12) {
-            while (familyAlerts.size > 12) {
-                familyAlerts.removeAt(familyAlerts.size - 1)
-            }
-        }
-        saveFamilyState()
-    }
-
-    fun clearFamilyAlerts() {
-        familyAlerts.clear()
-        saveFamilyState()
     }
 
     fun submitFeedback(feedback: String) {
