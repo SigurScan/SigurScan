@@ -706,6 +706,7 @@ class ScamAtlasEngine:
         claimed_brand: str,
         reg_domain: str,
         hostname: str | None = None,
+        url: str | None = None,
     ) -> bool:
         if not claimed_brand or claimed_brand not in BRAND_REGISTRY:
             return False
@@ -765,6 +766,7 @@ class ScamAtlasEngine:
         reg_domain: str,
         hostname: str | None = None,
         claimed_brand: Optional[str] = None,
+        url: str | None = None,
     ) -> bool:
         if self._is_whitelisted_domain(reg_domain, hostname=hostname):
             return True

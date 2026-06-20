@@ -28,8 +28,8 @@ def _raw_families() -> list[dict]:
 def test_runtime_seed_has_all_four_atlas_blocks():
     ids = [str(item.get("id") or "") for item in _raw_families()]
 
-    assert len(ids) == 76
-    assert sum(item.startswith("RO_SCN_") for item in ids) == 20
+    assert len(ids) == 78
+    assert sum(item.startswith("RO_SCN_") for item in ids) == 22
     assert sum(item.startswith("F") and item[1:].isdigit() for item in ids) == 25
     assert sum(item.startswith("MINOR_") for item in ids) == 18
     assert sum(item.startswith("IMP-") for item in ids) == 13
@@ -51,7 +51,7 @@ def test_runtime_seed_excludes_verdict_like_oracle_fields():
 def test_runtime_loader_normalizes_every_family_to_semantic_contract():
     families = ScamAtlasEngine().families
 
-    assert len(families) == 76
+    assert len(families) == 78
     for family in families:
         assert family["id"]
         assert family["family"]
