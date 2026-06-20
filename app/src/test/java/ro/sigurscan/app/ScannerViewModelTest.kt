@@ -555,10 +555,13 @@ class ScannerViewModelTest {
             cacheFlow.contains("cachedPreviewNeedsRefresh(cached.assessment)")
         )
 
-        val helperStart = viewModelSource.indexOf("internal fun cachedPreviewNeedsRefresh")
-        val helperEnd = viewModelSource.indexOf("internal fun orchestratedScanServerInfo", helperStart)
+        // Orchestration/cache helper functions were extracted out of the ScannerViewModel monolith
+        // into ScannerOrchestration.kt; the verdict-freshness logic now lives there.
+        val orchestrationSource = File("src/main/java/ro/sigurscan/app/ScannerOrchestration.kt").readText()
+        val helperStart = orchestrationSource.indexOf("internal fun cachedPreviewNeedsRefresh")
+        val helperEnd = orchestrationSource.indexOf("internal fun orchestratedScanServerInfo", helperStart)
         assertTrue("cachedPreviewNeedsRefresh must exist.", helperStart >= 0 && helperEnd > helperStart)
-        val helperFlow = viewModelSource.substring(helperStart, helperEnd)
+        val helperFlow = orchestrationSource.substring(helperStart, helperEnd)
         assertTrue("URL results without screenshots must refresh.", helperFlow.contains("screenshotUrl.isBlank()"))
         assertTrue("Cleartext screenshot URLs must refresh.", helperFlow.contains("startsWith(\"http://\")"))
         assertTrue("Internal Cloud Run screenshot URLs must refresh.", helperFlow.contains("\".run.app/\""))
