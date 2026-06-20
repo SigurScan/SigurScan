@@ -26,6 +26,22 @@ def test_runtime_evaluation_defaults_to_large_dataset():
     assert app_main.EVAL_DATASET_DEFAULT_PATH == EVAL_PATH
 
 
+def test_evaluation_runner_reads_actual_is_scam_field(monkeypatch):
+    monkeypatch.setattr(
+        eval_runner.engine,
+        "analyze",
+        lambda *_args, **_kwargs: {"risk_score": 5, "risk_level": "low", "reasons": []},
+    )
+
+    row = eval_runner._evaluate_record_core(
+        {"id": "actual-field-safe", "text": "Mesaj legitim.", "actual_is_scam": False},
+        disable_redirects=True,
+        disable_reputation=True,
+    )
+
+    assert row["actual_is_scam"] is False
+
+
 def _load_cases():
     with EVAL_PATH.open("r", encoding="utf-8") as f:
         return [json.loads(line) for line in f if line.strip()]

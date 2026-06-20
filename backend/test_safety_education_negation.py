@@ -13,7 +13,9 @@ from main import (
     _normalize_mistral_semantic_review,
     _normalize_model_intent_analysis,
     _normalise_obfuscated_text,
+    _canonicalize_url,
     engine,
+    extract_urls,
 )
 from services.pii_redactor import redact_pii
 
@@ -63,6 +65,40 @@ NON_ACTION_CONTROLS = [
         "IBAN HMAC match cu vendor profile, total coerent."
     ),
     (
+        "Furnizor hosting cunoscut trimite factură de renewal din domeniul obișnuit; "
+        "IBAN HMAC match; DKIM pass."
+    ),
+    (
+        "Reminder plată de la vendor cunoscut, fără schimbare IBAN, fără link extern, "
+        "factură număr deja văzut."
+    ),
+    (
+        "Plată urgentă are ticket intern, two-person approval și vendor/IBAN cunoscut; "
+        "email DKIM pass."
+    ),
+    (
+        "e-Factura XML furnizat de user se potrivește cu PDF-ul primit: CUI emitent, "
+        "număr factură, total și IBAN identice cu vendor registry local."
+    ),
+    (
+        "OSIM: userul intră manual pe portalul oficial și generează taxă oficială; "
+        "documentul vine din portalul oficial, fără link din email și fără cont terț."
+    ),
+    (
+        "Factura nr. 8849 Emitent: Furnizor Confirmat SRL CUI: 00000000 "
+        "Total: 1.200,00 RON IBAN: RO49AAAA1B31007593840000 "
+        "Beneficiar: Furnizor Confirmat SRL"
+    ),
+    (
+        "Factura nr. 8849\n"
+        "Emitent: Furnizor Confirmat SRL\n"
+        "CUI: 00000000\n"
+        "Total: 1.200,00 RON\n"
+        "IBAN: RO49AAAA1B31007593840000\n"
+        "Beneficiar: Furnizor Confirmat SRL"
+    ),
+    "Revolut Pay OTP: 123-456. Nu îl divulga nimănui.",
+    (
         "Factura din e-Factura XML furnizat de user corespunde PDF-ului "
         "si IBAN-ul match vendor local."
     ),
@@ -81,11 +117,16 @@ OTP_PHONE_REQUEST = (
 )
 
 
-def _label(text, channel="email"):
+def _label(text, channel="email", with_urls=False):
     red = redact_pii(_normalise_obfuscated_text(text))
-    a = engine.analyze(red, urls=[], external_threat_intel={})
+    resolved_urls = []
+    if with_urls:
+        for url in extract_urls(red):
+            canonical = _canonicalize_url(url) or url
+            resolved_urls.append({"url": canonical, "input_url": canonical, "final_url": canonical, "success": True, "status_code": 200})
+    a = engine.analyze(red, urls=resolved_urls, external_threat_intel={})
     a.setdefault("evidence", {})["source_channel"] = channel
-    fa = _apply_provider_gate_verdict(a, [], raw_text=red, pillars={})
+    fa = _apply_provider_gate_verdict(a, resolved_urls, raw_text=red, pillars={})
     return fa["evidence"]["verdict_gate"]["label"]
 
 
@@ -106,6 +147,49 @@ def test_protective_negation_controls_are_not_dangerous():
 def test_non_action_status_and_descriptive_controls_are_not_dangerous():
     for text in NON_ACTION_CONTROLS:
         assert _label(text, channel="sms") != "DANGEROUS"
+
+
+def test_bec_account_change_worded_as_vendor_context_stays_dangerous():
+    text = (
+        "Furnizor cunoscut trimite cont bancar nou cu Reply-To diferit "
+        "si cere plata azi in IBAN RO49AAAA1B31007593840000."
+    )
+
+    assert _label(text, channel="email") == "DANGEROUS"
+
+
+def test_invoice_qr_payment_instruction_is_not_calmed_as_static_invoice():
+    text = (
+        "Factura nr. 8842\n"
+        "Total: 980,00 RON\n"
+        "IBAN tipărit: RO49AAAA1B31007593840000\n"
+        "Scanați QR pentru plată rapidă"
+    )
+
+    assert _label(text, channel="invoice") == "DANGEROUS"
+
+
+def test_invoice_payment_beneficiary_mismatch_is_not_calmed_as_static_invoice():
+    text = (
+        "Factura nr. 8844\n"
+        "Emitent: Service Expert SRL\n"
+        "CUI: 00000000\n"
+        "Total: 6.200,00 RON\n"
+        "IBAN: RO06MIDL0000000000000005\n"
+        "Beneficiar plată: Procesator Rapid SRL\n"
+        "Nu este necesar act adițional."
+    )
+
+    assert _label(text, channel="invoice") == "DANGEROUS"
+
+
+def test_non_http_deeplink_without_sensitive_request_is_not_dangerous():
+    text = (
+        "<a href='whatsapp://send?text=cod'>Trimite pe WhatsApp</a>"
+        "<a href='https://sigurantaonline.ro/uniti-impotriva-escrocheriilor/'>Info</a>"
+    )
+
+    assert _label(text, channel="html_email", with_urls=True) != "DANGEROUS"
 
 
 def test_explicit_otp_request_on_wrong_channel_stays_dangerous():

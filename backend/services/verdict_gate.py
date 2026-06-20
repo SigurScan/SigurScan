@@ -144,6 +144,21 @@ def _semantic_risk(semantic: Dict[str, Any]) -> str:
     return "unknown"
 
 
+def _semantic_high_confidence(semantic: Dict[str, Any]) -> bool:
+    confidence_class = _norm(semantic.get("confidence_class"))
+    if confidence_class == "high":
+        return True
+    has_numeric_confidence = semantic.get("confidence") is not None or semantic.get("family_confidence") is not None
+    if confidence_class in {"medium", "low", "benign"} and not has_numeric_confidence:
+        return False
+    if has_numeric_confidence:
+        return max(
+            _float(semantic.get("confidence")),
+            _float(semantic.get("family_confidence")),
+        ) >= 0.68
+    return True
+
+
 def _is_safety_education_semantic(semantic: Dict[str, Any]) -> bool:
     matched_template = _norm(semantic.get("matched_template"))
     reason_codes = semantic.get("reason_codes") if isinstance(semantic.get("reason_codes"), list) else []
@@ -581,7 +596,7 @@ def verdict(bundle: Dict[str, Any]) -> Dict[str, Any]:
     if (
         non_http_deeplink_present
         and not has_provenance
-        and not (hard_sensitive or value_sensitive or semantic_risk == "high")
+        and not (hard_sensitive or value_sensitive or (semantic_risk == "high" and _semantic_high_confidence(semantic)))
     ):
         return _result("SUSPECT", ["non_http_deeplink_unverified"], confidence=66, is_final=True)
 
@@ -609,6 +624,7 @@ def verdict(bundle: Dict[str, Any]) -> Dict[str, Any]:
     matched_family = _norm(semantic.get("matched_family"))
     if (
         semantic_risk == "high"
+        and _semantic_high_confidence(semantic)
         and _bool(semantic.get("claim_matches_known_scam_family"))
         and matched_family
         and "false_positive" not in matched_family

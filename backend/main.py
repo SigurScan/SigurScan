@@ -3248,6 +3248,13 @@ def _looks_like_official_safety_education(raw_text: str) -> bool:
         re.IGNORECASE,
     ):
         return True
+    if re.search(
+        r"\b(?:otp|cod(?:ul)?(?:\s+(?:sms|de\s+(?:verificare|confirmare|autorizare)))?)\b"
+        r"(?=.{0,100}\bnu\s+(?:(?:il|îl|le)\s+)?(?:divulg\w*|dezv[ăa]lu\w*|trimite\w*|comunic\w*)\b)",
+        normalized,
+        re.IGNORECASE,
+    ):
+        return True
     if (
         re.search(r"\bdac[ăa]\b", normalized, re.IGNORECASE)
         and re.search(r"\b(?:cere|prime[șs]ti|solicit[ăa])\b", normalized, re.IGNORECASE)
@@ -3293,6 +3300,8 @@ def _has_direct_sensitive_request(raw_text: str) -> bool:
     normalized = _normalise_obfuscated_text(raw_text or "").lower()
     if not normalized or _looks_like_official_safety_education(normalized):
         return False
+    if _looks_like_descriptive_or_status_context(normalized) and not _has_explicit_user_directed_action(normalized):
+        return False
     verbs = (
         r"(?:introdu\w*|completeaz\w*|trimite\w*|r[ăa]spunde\w*|spune\w*|comunic\w*|"
         r"d[ăa](?:[-\s]?(?:mi|ne))?|da[țt]i(?:[-\s]?(?:mi|ne))?|dati(?:[-\s]?(?:mi|ne))?|"
@@ -3329,6 +3338,7 @@ def _has_positive_user_action_request(raw_text: str) -> bool:
         r"introdu\w*|completeaz\w*|trimite\w*|r[ăa]spunde\w*|spune\w*|comunic\w*|"
         r"d[ăa](?:[-\s]?(?:mi|ne))?|da[țt]i(?:[-\s]?(?:mi|ne))?|dati(?:[-\s]?(?:mi|ne))?|"
         r"furnizeaz\w*|ofer[ăa]\w*|cite[șs]te|citeste|captur\w*|screenshot|poz[ăa]|"
+        r"scan(?:eaz[ăa]|a[țt]i|ati)|"
         r"confirm\w*|valideaz\w*|verific\w*|activeaz\w*|reactiveaz\w*|"
         r"pl[ăa]t(?:e[șs]te|i[țt]i|iti)|achit(?:[ăa]|a[țt]i|ati)|transfer(?:[ăa]|a[țt]i|ati)|"
         r"depune\w*|instal\w*|descarc\w*|sun[ăa]|suna[țt]i|sunati|apeleaz\w*"
@@ -3343,20 +3353,113 @@ def _has_positive_user_action_request(raw_text: str) -> bool:
     return False
 
 
+def _has_explicit_user_directed_action(raw_text: str) -> bool:
+    normalized = _normalise_obfuscated_text(raw_text or "").lower()
+    if not normalized:
+        return False
+    return bool(
+        re.search(
+            r"\b("
+            r"v[ăa]\s+rug[ăa]m|te\s+rug[ăa]m|te\s+rog|trebuie\s+s[ăa]|"
+            r"acces(?:eaz[ăa]|a[țt]i|ati)|deschid(?:e|e[țt]i|eti)|apas[ăa]|"
+            r"logheaz[ăa][-\s]?te|autentific[ăa][-\s]?te|introdu\w*|completeaz\w*|"
+            r"r[ăa]spunde\w*|comunic\w*|confirm(?:[ăa]|a[țt]i|ati|i)|verific(?:[ăa]|a[țt]i|ati|i)|"
+            r"scan(?:eaz[ăa]|a[țt]i|ati)|"
+            r"pl[ăa]t(?:e[șs]te|i[țt]i|iti)|achit(?:[ăa]|a[țt]i|ati)|"
+            r"transfer(?:[ăa]|a[țt]i|ati)|instal\w*|descarc\w*|sun[ăa]|suna[țt]i|sunati"
+            r")\b",
+            normalized,
+            re.IGNORECASE,
+        )
+    )
+
+
+def _normalise_counterparty_name(value: str) -> str:
+    normalized = _normalise_obfuscated_text(value or "").lower()
+    normalized = re.sub(
+        r"\b(?:s\.?r\.?l\.?|sa|s\.?a\.?|srl|pfa|ii|if|ltd|limited|gmbh|ag|bv|s\.?c\.?)\b",
+        " ",
+        normalized,
+        flags=re.IGNORECASE,
+    )
+    normalized = re.sub(r"[^a-z0-9ăâîșț]+", " ", normalized, flags=re.IGNORECASE)
+    return " ".join(normalized.split())
+
+
+def _has_invoice_payment_beneficiary_mismatch(raw_text: str) -> bool:
+    normalized = _normalise_obfuscated_text(raw_text or "")
+    issuer = re.search(r"\bemitent\s*:\s*([^\n\r;|]{3,100})", normalized, re.IGNORECASE)
+    payment_beneficiary = re.search(
+        r"\bbeneficiar\s+plat[ăa]\s*:\s*([^\n\r;|]{3,100})",
+        normalized,
+        re.IGNORECASE,
+    )
+    if not issuer or not payment_beneficiary:
+        return False
+    issuer_name = _normalise_counterparty_name(issuer.group(1))
+    beneficiary_name = _normalise_counterparty_name(payment_beneficiary.group(1))
+    return bool(issuer_name and beneficiary_name and issuer_name != beneficiary_name)
+
+
 def _looks_like_descriptive_or_status_context(raw_text: str) -> bool:
     normalized = _normalise_obfuscated_text(raw_text or "").lower()
     if not normalized:
         return False
+    if _has_invoice_payment_beneficiary_mismatch(normalized):
+        return False
+    if re.search(
+        r"\bscan(?:eaz[ăa]|a[țt]i|ati)\b(?=[\s\S]{0,80}\bqr\b)(?=[\s\S]{0,120}\bplat[ăa]\b)",
+        normalized,
+        re.IGNORECASE,
+    ):
+        return False
+    known_control_context = bool(
+        re.search(
+            r"\b(ticket\s+intern|two[-\s]?person\s+approval|dkim\s+pass|spf\s+pass|dmarc\s+pass|"
+            r"hmac\s+match|vendor\s+profile|vendor(?:/|\s+și\s+|\s+si\s+)?iban\s+cunoscut)\b",
+            normalized,
+            re.IGNORECASE,
+        )
+    )
+    if re.search(
+        r"\b(reply[-\s]?to\s+diferit|cont(?:ul)?\s+bancar\s+nou|iban(?:ul)?\s+nou|noul\s+iban|"
+        r"cere\s+plata\s+azi|plata\s+azi)\b",
+        normalized,
+        re.IGNORECASE,
+    ) and not re.search(
+        r"\bf[ăa]r[ăa]\s+(?:schimbare|modificare)\s+(?:de\s+)?(?:iban|cont(?:\s+bancar)?)\b",
+        normalized,
+        re.IGNORECASE,
+    ):
+        return False
+    if (
+        re.search(r"\bplat[ăa]\s+(?:urgent[ăa]|[îi]n\s+24h?)\b", normalized, re.IGNORECASE)
+        and not known_control_context
+        and not re.search(
+            r"\bf[ăa]r[ăa]\s+(?:schimbare|modificare)\s+(?:de\s+)?(?:iban|cont(?:\s+bancar)?)\b",
+            normalized,
+            re.IGNORECASE,
+        )
+    ):
+        return False
     patterns = (
         r"\btranzac[țt]ie\s+autorizat[ăa]\b",
         r"\bsold\s+disponibil\b",
-        r"\b(dkim\s+pass|spf\s+pass|dmarc\s+pass|hmac\s+match|vendor\s+profile|total\s+coerent)\b",
-        r"\b(corespunde\s+pdf-?ului|corespunde\s+pdf|match\s+vendor\s+local|iban[-\s]ul\s+match)\b",
-        r"\b(articol|ghid|newsletter|material\s+educa[țt]ional|red\s+flag)\b.{0,120}\b(scam|fraud|phishing|sextortion|tech\s+support|iban)\b",
+        r"\b(dkim\s+pass|spf\s+pass|dmarc\s+pass|hmac\s+match|vendor\s+profile|total\s+coerent|"
+        r"two[-\s]?person\s+approval|ticket\s+intern|vendor(?:/|\s+și\s+|\s+si\s+)?iban\s+cunoscut)\b",
+        r"\b(corespunde\s+pdf-?ului|corespunde\s+pdf|se\s+potrive[șs]te\s+cu\s+pdf|"
+        r"match\s+vendor\s+local|vendor\s+registry\s+local|iban[-\s]ul\s+match|iban\s+identice?)\b",
+        r"\bportal(?:ul)?\s+oficial\b(?=[\s\S]{0,160}\bf[ăa]r[ăa]\s+(?:link|cont\s+ter[țt]|cont\s+tert)\b)",
+        r"\bfactur[ăa]\s+nr\.?\b(?=[\s\S]{0,220}\b(?:emitent|cui|total|iban|beneficiar)\b)",
+        r"\b(articol|ghid|newsletter|material\s+educa[țt]ional|red\s+flag)\b[\s\S]{0,120}\b(scam|fraud|phishing|sextortion|tech\s+support|iban)\b",
         r"\bnu\s+(?:[îi]nseamn[ăa]|inseamna)\s+c[ăa]\b",
         r"\bf[ăa]r[ăa]\s+(?:wallet|plat[ăa]|plata|link\s+card|cerere\s+de\s+(?:bani|date|card|otp)|crypto)\b",
         r"\bf[ăa]r[ăa]\s+(?:linkuri?|cerere|solicitare)\s+(?:de\s+)?(?:plat[ăa]|date|card|otp|login)\b",
-        r"\b(?:cui|iban)\s+(?:activ|valid|confirmat|verificat)\b.{0,80}\b(?:anaf|mod-?97|registry|registru)\b",
+        r"\bf[ăa]r[ăa]\s+(?:schimbare|modificare)\s+(?:de\s+)?(?:iban|cont(?:\s+bancar)?)\b",
+        r"\bf[ăa]r[ăa]\s+link\s+extern\b",
+        r"\bfactur[ăa]\s+num[ăa]r\s+deja\s+v[ăa]zut\b",
+        r"\breminder\s+plat[ăa]\b(?=.{0,120}\bf[ăa]r[ăa]\b)",
+        r"\b(?:cui|iban)\s+(?:activ|valid|confirmat|verificat)\b[\s\S]{0,80}\b(?:anaf|mod-?97|registry|registru)\b",
         r"\b(?:furnizor|platform[ăa]|document|factur[ăa])\s+(?:cunoscut|autorizat|oficial|verificat)\b",
     )
     return any(re.search(pattern, normalized, re.IGNORECASE) for pattern in patterns)
@@ -3368,6 +3471,10 @@ def _local_request_intent_analysis(raw_text: str) -> Dict[str, Any]:
     descriptive_context = _looks_like_descriptive_or_status_context(raw_text)
     if official_safety_education:
         positive_action_request = False
+    elif descriptive_context and not _has_direct_sensitive_request(raw_text):
+        # Audit/status snippets often say "furnizorul trimite factura" or
+        # "IBAN HMAC match"; that describes evidence, not an instruction.
+        positive_action_request = _has_explicit_user_directed_action(raw_text)
     return {
         "status": "done",
         "positive_action_request": bool(positive_action_request),

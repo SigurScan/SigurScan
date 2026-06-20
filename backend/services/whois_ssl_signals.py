@@ -1,12 +1,18 @@
 import asyncio
 import logging
 import os
+import re
 import socket
 import ssl
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 import httpx
+
+try:
+    from services.redirect_resolver import query_rotld_whois
+except Exception:  # pragma: no cover - optional fallback dependency
+    query_rotld_whois = None  # type: ignore[assignment]
 
 logger = logging.getLogger("whois_ssl_signals")
 
@@ -23,6 +29,34 @@ COMMON_SECOND_LEVEL_SUFFIXES = (
     "net.au",
     "org.au",
 )
+
+
+def _parse_rotld_registration(response: str) -> Dict[str, Any]:
+    if not response:
+        return {"age_days": None, "reason": "rotld_empty"}
+    match = re.search(r"Registered On:\s*(Before 2001|\d{4}-\d{2}-\d{2})", response, re.IGNORECASE)
+    if not match:
+        return {"age_days": None, "reason": "rotld_no_registration_date"}
+    raw_date = match.group(1).strip()
+    created_date = "2000-01-01" if raw_date.lower() == "before 2001" else raw_date
+    try:
+        created = datetime.strptime(created_date, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    except ValueError:
+        return {"age_days": None, "reason": "rotld_parse_registration_date"}
+    age = (datetime.now(timezone.utc) - created).days
+    return {
+        "age_days": max(0, age),
+        "registered": True,
+        "registration_date": created.date().isoformat(),
+        "reason": "rotld_whois",
+    }
+
+
+async def _check_rotld_whois(domain: str) -> Dict[str, Any]:
+    if query_rotld_whois is None:
+        return {"age_days": None, "reason": "rotld_unavailable"}
+    response = await asyncio.to_thread(query_rotld_whois, domain)
+    return _parse_rotld_registration(response)
 
 
 def _rdap_domain_for_lookup(hostname: str) -> str:
@@ -90,6 +124,9 @@ async def check_rdap(domain: str, timeout: Optional[float] = None) -> Dict[str, 
         # cannot route. ROTLD (.ro) is weakly federated, so a 404 there says
         # nothing about the domain — never emit the inexistent signal for it.
         if domain.lower().rstrip(".").endswith(RO_DOMAIN_SUFFIXES):
+            rotld = await _check_rotld_whois(domain.lower().rstrip("."))
+            if rotld.get("age_days") is not None:
+                return rotld
             return {"age_days": None, "reason": "unsupported_tld_federation"}
         return {"age_days": None, "registered": False, "reason": "inexistent_domain"}
     if r.status_code != 200:
