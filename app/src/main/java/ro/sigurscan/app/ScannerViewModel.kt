@@ -513,7 +513,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
             family = GateResultPresentation.familyLabel(gateResult, current.family),
             riskScore = GateResultPresentation.legacyRiskScore(gateResult),
             riskLevel = GateResultPresentation.legacyRiskLevel(gateResult),
-            reasons = (listOf(reason) + current.reasons).map { it.trim() }.filter { it.isNotBlank() }.distinct(),
+            reasons = listOf(reason).map { it.trim() }.filter { it.isNotBlank() }.distinct(),
             safeActions = (actions + current.safeActions).map { it.trim() }.filter { it.isNotBlank() }.distinct(),
             keyDangers = emptyList(),
             gateResult = gateResult,
