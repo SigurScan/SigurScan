@@ -3410,6 +3410,15 @@ def _looks_like_descriptive_or_status_context(raw_text: str) -> bool:
         return False
     if _has_invoice_payment_beneficiary_mismatch(normalized):
         return False
+    negated_red_flag_explainer = bool(
+        re.search(r"\bnu\s+(?:[îi]nseamn[ăa]|inseamna)\s+c[ăa]\b", normalized, re.IGNORECASE)
+        and re.search(
+            r"\b(?:ghid|articol|newsletter|material\s+educa[țt]ional|red\s+flag)\b"
+            r"(?=[\s\S]{0,180}\b(?:scam|fraud|phishing|iban|cont|plat[ăa]|factur[ăa])\b)",
+            normalized,
+            re.IGNORECASE,
+        )
+    )
     if re.search(
         r"\bscan(?:eaz[ăa]|a[țt]i|ati)\b(?=[\s\S]{0,80}\bqr\b)(?=[\s\S]{0,120}\bplat[ăa]\b)",
         normalized,
@@ -3429,7 +3438,7 @@ def _looks_like_descriptive_or_status_context(raw_text: str) -> bool:
         r"cere\s+plata\s+azi|plata\s+azi)\b",
         normalized,
         re.IGNORECASE,
-    ) and not re.search(
+    ) and not negated_red_flag_explainer and not re.search(
         r"\bf[ăa]r[ăa]\s+(?:schimbare|modificare)\s+(?:de\s+)?(?:iban|cont(?:\s+bancar)?)\b",
         normalized,
         re.IGNORECASE,
@@ -3453,6 +3462,18 @@ def _looks_like_descriptive_or_status_context(raw_text: str) -> bool:
         r"\b(corespunde\s+pdf-?ului|corespunde\s+pdf|se\s+potrive[șs]te\s+cu\s+pdf|"
         r"match\s+vendor\s+local|vendor\s+registry\s+local|iban[-\s]ul\s+match|iban\s+identice?)\b",
         r"\bportal(?:ul)?\s+oficial\b(?=[\s\S]{0,160}\bf[ăa]r[ăa]\s+(?:link|cont\s+ter[țt]|cont\s+tert)\b)",
+        r"\b(?:prima|nou[ăa])\s+factur[ăa]\b(?=[\s\S]{0,220}\b(?:pfa|srl|furnizor|contract|iban|neverificat|neconfirmat)\b)",
+        r"\biban\s+(?:valid|confirmat|verificat)\b"
+        r"(?=[\s\S]{0,160}\bcui\s+(?:valid|confirmat|verificat)\b)"
+        r"(?=[\s\S]{0,220}\b(?:dar|[îi]ns[ăa]|insa|totu[șs]i)\b)"
+        r"(?=[\s\S]{0,240}\b(?:neverificat|neconfirmat|necunoscut|istoric(?:ul)?|banc[ăa]\s+necunoscut[ăa])\b)",
+        r"\b(?:cui|iban)\s+(?:aparent\s+)?valid(?:e)?\b"
+        r"(?=[\s\S]{0,180}\b(?:cui|iban)\s+(?:aparent\s+)?valid(?:e)?\b)"
+        r"(?=[\s\S]{0,260}\b(?:first[-\s]?time\s+vendor|furnizor(?:ul)?(?:\s+nou)?|"
+        r"registry\s+nu\s+are|registr(?:y|ul)\s+nu\s+are|indisponibil(?:[ăa])?)\b)",
+        r"\b(?:cui\s+(?:[șs]i|si)\s+iban|iban\s+(?:[șs]i|si)\s+cui)\s+(?:aparent\s+)?valid(?:e)?\b"
+        r"(?=[\s\S]{0,260}\b(?:first[-\s]?time\s+vendor|furnizor(?:ul)?(?:\s+nou)?|"
+        r"registry\s+nu\s+are|registr(?:y|ul)\s+nu\s+are|indisponibil(?:[ăa])?)\b)",
         r"\bfactur[ăa]\s+nr\.?\b(?=[\s\S]{0,220}\b(?:emitent|cui|total|iban|beneficiar)\b)",
         r"\b(articol|ghid|newsletter|material\s+educa[țt]ional|red\s+flag)\b[\s\S]{0,120}\b(scam|fraud|phishing|sextortion|tech\s+support|iban)\b",
         r"\bnu\s+(?:[îi]nseamn[ăa]|inseamna)\s+c[ăa]\b",

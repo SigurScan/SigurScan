@@ -149,6 +149,36 @@ def test_non_action_status_and_descriptive_controls_are_not_dangerous():
         assert _label(text, channel="sms") != "DANGEROUS"
 
 
+def test_red_flag_explainer_with_negation_is_not_dangerous():
+    text = (
+        "Acest ghid explică red flag-ul «IBAN nou»; "
+        "nu înseamnă că factura ta cere IBAN nou."
+    )
+
+    assert _label(text, channel="android_native") != "DANGEROUS"
+
+
+def test_invoice_evidence_status_without_instruction_is_not_dangerous():
+    controls = [
+        "Prima factură de la PFA, IBAN pe nume persoană, contract atașat dar neverificat.",
+        "IBAN valid și CUI valid, dar plata este într-o bancă necunoscută față de istoricul firmei.",
+        "Firmă avocat/notar trimite factură legitim-looking; CUI valid, IBAN valid, dar first-time vendor.",
+        (
+            "Factură cu CUI și IBAN aparent valide, dar serviciul ANAF/ONRC este indisponibil în test, "
+            "iar Payment Destination Registry nu are intrare pentru furnizor. Fără linkuri periculoase."
+        ),
+    ]
+
+    for text in controls:
+        assert _label(text, channel="offline_eval") != "DANGEROUS"
+
+
+def test_explicit_new_iban_payment_instruction_stays_dangerous():
+    text = "Buna, ne-am schimbat contul bancar. Virati facturile la noul IBAN."
+
+    assert _label(text, channel="email") == "DANGEROUS"
+
+
 def test_bec_account_change_worded_as_vendor_context_stays_dangerous():
     text = (
         "Furnizor cunoscut trimite cont bancar nou cu Reply-To diferit "
