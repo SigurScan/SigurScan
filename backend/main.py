@@ -5175,7 +5175,11 @@ def _normalize_model_intent_analysis(raw: Any, fallback: Optional[Dict[str, Any]
     negation_resolved = _se_bool(raw.get("negation_scope_resolved"))
 
     positive_action_request = bool(fallback.get("positive_action_request", False))
-    if confidence >= 0.55 and model_positive:
+    local_descriptive_non_action = bool(
+        fallback.get("descriptive_context", False)
+        and not fallback.get("positive_action_request", False)
+    )
+    if confidence >= 0.55 and model_positive and not local_descriptive_non_action:
         positive_action_request = True
     elif (
         confidence >= 0.80

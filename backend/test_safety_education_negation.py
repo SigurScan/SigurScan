@@ -273,6 +273,29 @@ def test_mistral_intent_analysis_can_raise_real_payment_request():
     assert merged["payment_instruction_is_requested"] is True
 
 
+def test_mistral_intent_analysis_cannot_override_local_descriptive_invoice_status():
+    local = {
+        "status": "done",
+        "positive_action_request": False,
+        "protective_warning": False,
+        "descriptive_context": True,
+        "source": "local_request_intent_v1",
+    }
+    model = {
+        "positive_action_request": True,
+        "invoice_or_payment_document": True,
+        "payment_instruction_present": True,
+        "payment_instruction_is_requested": True,
+        "payment_instruction_is_descriptive": False,
+        "confidence": 0.9,
+    }
+
+    merged = _normalize_model_intent_analysis(model, local)
+
+    assert merged["positive_action_request"] is False
+    assert merged["descriptive_context"] is True
+
+
 def test_mistral_semantic_review_preserves_intent_analysis_contract():
     raw = {
         "risk_class": "benign",
