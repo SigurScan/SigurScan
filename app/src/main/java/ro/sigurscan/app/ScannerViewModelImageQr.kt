@@ -124,46 +124,46 @@ internal fun ScannerViewModel.publishQrExtractionIncomplete(reason: String) {
 
 fun ScannerViewModel.onImagePicked(uri: Uri, context: Context) {
     loading = true
-    loadingMsg = "Citim imaginea pe device..."
+    loadingMsg = "Pregătim imaginea pentru verificare..."
 
     viewModelScope.launch {
         var file: File? = null
+        val fileName = getFileName(uri, context)
         try {
+            loadingMsg = "Extragem text, linkuri și coduri QR din imagine..."
+            file = prepareInvoiceImageUpload(
+                uri,
+                context,
+                maxBytes = ScannerViewModel.MAX_IMAGE_UPLOAD_BYTES
+            )
+            val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
+            val body = MultipartBody.Part.createFormData("image_file", file.name, requestFile)
+            val source = "android_image_upload".toRequestBody("text/plain".toMediaTypeOrNull())
+
+            val response = uploadApi.extractImage(body, source)
+            runBackendOrchestratedScanFromExtraction(
+                response = response,
+                fileName = file.name,
+                inputKind = "upload_image",
+                channel = "image_ocr"
+            )
+            return@launch
+        } catch (e: Exception) {
+            loadingMsg = "Extragerea cloud nu a reușit. Încercăm OCR local..."
             val handledLocally = runCatching {
                 runLocalImageOcrScanIfPossible(uri, context)
             }.getOrDefault(false)
-            if (handledLocally) return@launch
-
-            loadingMsg = "OCR local neclar. Încercăm extragerea cloud..."
-            if (!isUploadSizeAllowed(uri, context)) {
+            if (!handledLocally) {
+                val reason = if (e is UploadSizeExceededException) {
+                    "Imaginea este prea mare pentru scanarea cloud, iar OCR-ul local nu a extras text verificabil."
+                } else {
+                    "Nu am putut extrage text sau coduri QR verificabile din imagine. Reîncearcă cu o captură mai clară."
+                }
                 publishImageExtractionIncomplete(
-                    fileName = getFileName(uri, context),
-                    reason = "Imaginea este prea mare pentru scanarea cloud, iar OCR-ul local nu a extras text verificabil."
-                )
-            } else {
-                file = uriToFile(uri, context, ScannerViewModel.MAX_UPLOAD_BYTES)
-                val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
-                val body = MultipartBody.Part.createFormData("image_file", file.name, requestFile)
-                val source = "android_image_upload".toRequestBody("text/plain".toMediaTypeOrNull())
-
-                val response = uploadApi.extractImage(body, source)
-                runBackendOrchestratedScanFromExtraction(
-                    response = response,
-                    fileName = file.name,
-                    inputKind = "upload_image",
-                    channel = "image_ocr"
+                    fileName = fileName,
+                    reason = reason
                 )
             }
-        } catch (e: Exception) {
-            val reason = if (e is UploadSizeExceededException) {
-                "Imaginea este prea mare pentru scanarea cloud, iar OCR-ul local nu a extras text verificabil."
-            } else {
-                "Nu am putut extrage text verificabil din imagine. Reîncearcă cu o captură mai clară."
-            }
-            publishImageExtractionIncomplete(
-                fileName = getFileName(uri, context),
-                reason = reason
-            )
         } finally {
             file?.delete()
             loading = false

@@ -12049,12 +12049,18 @@ async def extract_image_for_orchestration(
         magic_validator=_is_allowed_image_bytes,
     )
 
-    ocr_text, ocr_warning = await extract_text_for_scan(
-        filename=filename,
-        file_bytes=image_bytes,
-        extract_fn=extract_text_with_vision,
-    )
     qr_payloads = _extract_image_qr_payloads(image_bytes)
+    try:
+        ocr_text, ocr_warning = await extract_text_for_scan(
+            filename=filename,
+            file_bytes=image_bytes,
+            extract_fn=extract_text_with_vision,
+        )
+    except HTTPException as exc:
+        if exc.status_code != 503 or not qr_payloads:
+            raise
+        ocr_text = ""
+        ocr_warning = str(exc.detail)
     redacted_text = redact_pii(ocr_text)
     extracted_urls = _dedupe_preserve_order(
         extract_urls(ocr_text)

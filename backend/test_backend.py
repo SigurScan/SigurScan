@@ -8961,6 +8961,35 @@ def test_extract_image_endpoint_returns_ocr_evidence_without_verdict(monkeypatch
     assert "user_risk_label" not in payload
 
 
+def test_extract_image_endpoint_keeps_qr_payload_when_ocr_unavailable(monkeypatch):
+    client = TestClient(app_main.app)
+    qr_url = "https://www.smart-menu.ro/qr/vbiwmbouhu"
+
+    async def fake_extract_text_for_scan(filename, file_bytes, extract_fn):
+        raise app_main.HTTPException(status_code=503, detail="OCR temporar indisponibil")
+
+    monkeypatch.setattr(app_main, "extract_text_for_scan", fake_extract_text_for_scan)
+    monkeypatch.setattr(app_main, "_extract_image_qr_payloads", lambda _: [qr_url])
+
+    response = client.post(
+        "/v1/extract/image",
+        data={"source_channel": "android_test"},
+        files={"image_file": ("qr.png", b"\x89PNG\r\n\x1a\nnot-a-real-image-but-valid-for-contract", "image/png")},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["input_type"] == "image_ocr"
+    assert payload["redacted_text"] == ""
+    assert payload["qr_payloads"] == [qr_url]
+    assert qr_url in payload["extracted_urls"]
+    assert payload["hidden_url_visibility"] is True
+    assert payload["warning"] == "OCR temporar indisponibil"
+    assert "risk_level" not in payload
+    assert "risk_score" not in payload
+    assert "user_risk_label" not in payload
+
+
 def test_extract_email_captures_button_only_cta_without_verdict(monkeypatch):
     html = """
     <html>

@@ -269,6 +269,7 @@ internal fun ScannerViewModel.orchestratedRequest(
 internal fun ScannerViewModel.linksFromExtraction(response: ExtractionResponse, extractedText: String): List<String> {
     return (
         (response.extractedUrls ?: emptyList()) +
+            (response.qrPayloads ?: emptyList()).flatMap { extractUrls(it) } +
             extractUrls(extractedText) +
             extractHtmlLinks(extractedText) +
             response.htmlContent.orEmpty().let { html ->

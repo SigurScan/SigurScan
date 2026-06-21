@@ -145,6 +145,7 @@ data class ExtractionResponse(
     @SerializedName("redacted_text") val redactedText: String? = null,
     @SerializedName("html_content") val htmlContent: String? = null,
     @SerializedName("extracted_urls") val extractedUrls: List<String>? = null,
+    @SerializedName("qr_payloads") val qrPayloads: List<String>? = null,
     val warning: String? = null,
     @SerializedName("hidden_url_visibility") val hiddenUrlVisibility: Boolean? = null,
     val buttons: List<Map<String, Any>>? = null,

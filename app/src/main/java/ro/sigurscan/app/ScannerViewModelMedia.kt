@@ -81,23 +81,31 @@ internal fun ScannerViewModel.decodeHtmlForParser(input: String): String {
     return Html.fromHtml(input, Html.FROM_HTML_MODE_LEGACY).toString()
 }
 
-internal fun ScannerViewModel.prepareInvoiceImageUpload(uri: Uri, context: Context): File {
+internal fun ScannerViewModel.prepareInvoiceImageUpload(
+    uri: Uri,
+    context: Context,
+    maxBytes: Long = ScannerViewModel.MAX_UPLOAD_BYTES
+): File {
     val sourceSize = queryContentSize(uri, context)
-    val normalized = runCatching { normalizeInvoiceImageToJpeg(uri, context) }.getOrNull()
+    val normalized = runCatching { normalizeInvoiceImageToJpeg(uri, context, maxBytes) }.getOrNull()
     if (normalized != null && normalized.length() > 0L) {
-        if (normalized.length() <= ScannerViewModel.MAX_UPLOAD_BYTES) {
+        if (normalized.length() <= maxBytes) {
             return normalized
         }
         normalized.delete()
         throw UploadSizeExceededException("Imaginea facturii este prea mare pentru upload.")
     }
-    if (sourceSize != null && sourceSize > ScannerViewModel.MAX_UPLOAD_BYTES) {
+    if (sourceSize != null && sourceSize > maxBytes) {
         throw UploadSizeExceededException("Imaginea facturii este prea mare pentru upload.")
     }
-    return uriToFile(uri, context, ScannerViewModel.MAX_UPLOAD_BYTES)
+    return uriToFile(uri, context, maxBytes)
 }
 
-internal fun ScannerViewModel.normalizeInvoiceImageToJpeg(uri: Uri, context: Context): File? {
+internal fun ScannerViewModel.normalizeInvoiceImageToJpeg(
+    uri: Uri,
+    context: Context,
+    maxBytes: Long = ScannerViewModel.MAX_UPLOAD_BYTES
+): File? {
     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
     context.contentResolver.openInputStream(uri)?.use { input ->
         BitmapFactory.decodeStream(input, null, bounds)
@@ -119,7 +127,7 @@ internal fun ScannerViewModel.normalizeInvoiceImageToJpeg(uri: Uri, context: Con
                 return null
             }
             val bytes = buffer.toByteArray()
-            if (bytes.size.toLong() > ScannerViewModel.MAX_UPLOAD_BYTES) {
+            if (bytes.size.toLong() > maxBytes) {
                 throw UploadSizeExceededException("Imaginea facturii este prea mare pentru upload.")
             }
             FileOutputStream(file).use { it.write(bytes) }
