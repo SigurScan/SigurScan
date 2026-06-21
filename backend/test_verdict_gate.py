@@ -1,12 +1,12 @@
 import json
 from pathlib import Path
 
-from services.verdict_gate import verdict
+from services.verdict_gate import _has_checked_payment_destination, verdict
 
 
 ROOT = Path(__file__).resolve().parent
 TESTSET_PATH = ROOT / "data" / "verdict_testset_ro.jsonl"
-FIRE_CASES = {"FAN-01", "FAN-02", "YOXO-01", "COM-01"}
+FIRE_CASES = {"FAN-01", "FAN-02", "YOXO-01", "COM-01", "BRASOV-01"}
 
 
 def _load_cases():
@@ -108,6 +108,12 @@ def _bundle_v2_from_case(case: dict) -> dict:
         },
         "semantic_review": _semantic_review_from_case(case),
     }
+    if case.get("id") == "BRASOV-01":
+        bundle["providers"]["payment_destination"] = {
+            "status": "mismatch",
+            "verdict": "mismatch",
+            "reason": "iban_owner_differs_from_claimed_company",
+        }
     if community_reports:
         bundle["community"] = {"reports": community_reports}
     return bundle
@@ -139,6 +145,18 @@ def test_verdict_gate_fire_cases_are_exact():
     for case_id in FIRE_CASES:
         result = verdict(_bundle_v2_from_case(cases[case_id]))
         assert result["label"] == cases[case_id]["label"]
+
+
+def test_payment_destination_status_counts_as_checked_evidence():
+    providers = {
+        "payment_destination": {
+            "status": "mismatch",
+            "verdict": "mismatch",
+            "reason": "iban_owner_differs_from_claimed_company",
+        }
+    }
+
+    assert _has_checked_payment_destination(providers) is True
 
 
 def test_context_words_cannot_override_official_clean_evidence():

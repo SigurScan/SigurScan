@@ -287,6 +287,25 @@ def _should_allow_paid_company_registry(
 
     textual_flags, _ = _detect_textual_b2b_flags(text, claimed_vendor=fields.emitent)
     preliminary_flags.update(textual_flags)
+    if fields.iban:
+        try:
+            from services.payment_destination_registry import match_payment_destination
+
+            payment_destination = match_payment_destination(
+                fields.iban,
+                claimed_brand=brand_match_result.claimed_brand if brand_match_result else None,
+                cui=fields.cui,
+                issuer_name=fields.emitent,
+            )
+            if payment_destination.get("matched") and payment_destination.get("brand_matches") is False:
+                preliminary_flags.add("PAYMENT_DESTINATION_BRAND_MISMATCH")
+            elif (
+                payment_destination.get("matched") is False
+                and payment_destination.get("registry_has_brand_destinations") is True
+            ):
+                preliminary_flags.add("UNKNOWN_PAYMENT_DESTINATION")
+        except Exception:
+            pass
 
     paid_escalation_flags = {
         "ACCOUNT_CHANGE_LANGUAGE",
@@ -294,7 +313,9 @@ def _should_allow_paid_company_registry(
         "BRAND_IMPERSONATION_RISK",
         "FOREIGN_IBAN",
         "MULTIPLE_IBANS",
+        "PAYMENT_DESTINATION_BRAND_MISMATCH",
         "SENSITIVE_DATA_REQUESTED",
+        "UNKNOWN_PAYMENT_DESTINATION",
         *B2B_HIGH_RISK_FLAGS,
     }
     return bool(preliminary_flags & paid_escalation_flags)

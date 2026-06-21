@@ -36,6 +36,70 @@
       ]
     },
     {
+      "id": "WEBRT-FAN-WA-001",
+      "family": "courier_whatsapp_code_takeover",
+      "source_channel": "sms",
+      "input_type": "text",
+      "text": "FAN Courier: coletul nu a putut fi livrat. Confirmati identitatea introducand codul primit prin WhatsApp pe https://fan-curier-verificare.test/wa",
+      "urls": ["https://fan-curier-verificare.test/wa"],
+      "expected_label": "DANGEROUS",
+      "source_refs": [
+        {
+          "publisher": "Bitdefender HotForSecurity",
+          "url": "https://www.bitdefender.com/en-us/blog/hotforsecurity/fan-courier-sms-scam-targets-1-million-romanians-in-massive-whatsapp-takeover-campaign",
+          "pattern": "SMS in numele FAN Courier, site fals care fura codul WhatsApp, preluare cont si cereri de bani."
+        }
+      ]
+    },
+    {
+      "id": "WEBRT-REVOLUT-001",
+      "family": "bank_smishing_credential",
+      "source_channel": "sms",
+      "input_type": "text",
+      "text": "Revolut: am detectat o tranzactie suspecta de 980 RON. Daca nu ati autorizat-o, confirmati-va contul aici: https://revolut-securitate.test/verificare",
+      "urls": ["https://revolut-securitate.test/verificare"],
+      "expected_label": "DANGEROUS",
+      "source_refs": [
+        {
+          "publisher": "Revolut",
+          "url": "https://www.revolut.com/blog/post/text-scams-are-spiking-heres-how-to-spot-them/",
+          "pattern": "Smishing cu alerta falsa de cont/tranzactie si link de verificare; Revolut avertizeaza sa nu fie trimise date/coduri prin SMS."
+        }
+      ]
+    },
+    {
+      "id": "WEBRT-TAXBANK-001",
+      "family": "bank_phishing_fake_tax_email",
+      "source_channel": "email",
+      "input_type": "text",
+      "text": "ANAF: ati raportat eronat veniturile. Pentru a evita poprirea contului, autentificati-va in internet banking prin acest portal securizat: https://anaf-verificare-cont.test/login",
+      "urls": ["https://anaf-verificare-cont.test/login"],
+      "expected_label": "DANGEROUS",
+      "source_refs": [
+        {
+          "publisher": "Eurojust",
+          "url": "https://www.eurojust.europa.eu/news/20-hackers-arrested-eur-1-million-bank-phishing-scam",
+          "pattern": "E-mailuri false care imitau autoritatea fiscala si duceau la furt din conturi bancare."
+        }
+      ]
+    },
+    {
+      "id": "WEBRT-VISH-LOAN-001",
+      "family": "vishing_fake_loan_alert",
+      "source_channel": "phone_transcript",
+      "input_type": "text",
+      "text": "Transcriere apel: Buna ziua, sunt de la departamentul antifrauda al bancii. Vad ca cineva a luat un credit de 12000 RON pe numele dumneavoastra. Ca sa-l anulam, trebuie sa transferati banii intr-un cont sigur si sa-mi confirmati codul din SMS.",
+      "urls": [],
+      "expected_label": "DANGEROUS",
+      "source_refs": [
+        {
+          "publisher": "Politia Romana",
+          "url": "https://politiaromana.ro/ro/stiri-si-media/comunicate/tentative-de-inselaciune-prin-metoda-spoofing",
+          "pattern": "Apeluri prin spoofing in numele bancilor/institutiilor, cu presiune si solicitari de date financiare/personale."
+        }
+      ]
+    },
+    {
       "id": "WEBRT-GHISEUL-001",
       "family": "fake_traffic_fine_payment",
       "source_channel": "sms",
