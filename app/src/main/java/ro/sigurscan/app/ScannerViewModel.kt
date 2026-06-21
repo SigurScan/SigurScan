@@ -99,6 +99,7 @@ class ScannerViewModel(application: Application) : AndroidViewModel(application)
 
     internal companion object {
         internal const val MAX_UPLOAD_BYTES = 25L * 1024L * 1024L
+        internal const val MAX_IMAGE_UPLOAD_BYTES = 10L * 1024L * 1024L
         internal const val MAX_INVOICE_IMAGE_EDGE_PX = 1800
         internal const val INVOICE_IMAGE_JPEG_QUALITY = 88
         internal const val TMP_UPLOAD_PREFIX = "temp_upload_"

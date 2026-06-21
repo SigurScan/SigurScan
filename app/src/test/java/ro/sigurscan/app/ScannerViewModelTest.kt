@@ -768,7 +768,7 @@ class ScannerViewModelTest {
     }
 
     @Test
-    fun imageOcrRunsOnDeviceBeforeCloudFallback() {
+    fun imageUploadUsesCloudQrExtractorBeforeLocalOcrFallback() {
         val viewModelSource = viewModelSource()
         val imageStart = viewModelSource.indexOf("fun ScannerViewModel.onImagePicked(uri: Uri, context: Context)")
         val imageEnd = viewModelSource.indexOf("internal suspend fun ScannerViewModel.runLocalImageOcrScanIfPossible", imageStart)
@@ -777,11 +777,33 @@ class ScannerViewModelTest {
         val imageFlow = viewModelSource.substring(imageStart, imageEnd)
         val localOcrIndex = imageFlow.indexOf("runLocalImageOcrScanIfPossible(uri, context)")
         val cloudOcrIndex = imageFlow.indexOf("uploadApi.extractImage(body, source)")
-        assertTrue("Image scan must try ML Kit/on-device OCR first.", localOcrIndex >= 0)
-        assertTrue("Image scan may call cloud OCR only as fallback.", cloudOcrIndex > localOcrIndex)
+        assertTrue("Image scan must keep local OCR as fallback.", localOcrIndex >= 0)
+        assertTrue("Image scan must use backend extraction first so QR payloads are decoded.", cloudOcrIndex >= 0 && cloudOcrIndex < localOcrIndex)
         assertTrue(
-            "Cloud OCR fallback should be clearly gated behind local OCR being unclear.",
-            imageFlow.contains("OCR local neclar. Încercăm extragerea cloud...")
+            "Backend extraction status should name QR decoding, not only OCR.",
+            imageFlow.contains("Extragem text, linkuri și coduri QR din imagine...")
+        )
+        assertTrue(
+            "Image upload must be normalized under the backend image limit before calling extraction.",
+            imageFlow.contains("prepareInvoiceImageUpload(") &&
+                imageFlow.contains("maxBytes = ScannerViewModel.MAX_IMAGE_UPLOAD_BYTES")
+        )
+        assertTrue(
+            "Android image upload limit must match backend MAX_IMAGE_BYTES, not the larger generic file limit.",
+            viewModelSource.contains("internal const val MAX_IMAGE_UPLOAD_BYTES = 10L * 1024L * 1024L")
+        )
+        assertTrue(
+            "Android must preserve backend QR payloads as URL evidence for preview/orchestration.",
+            viewModelSource.contains("(response.qrPayloads ?: emptyList()).flatMap { extractUrls(it) }")
+        )
+        assertTrue(
+            "ExtractionResponse must deserialize qr_payloads from backend extraction.",
+            File("src/main/java/ro/sigurscan/app/SigurScanApi.kt").readText()
+                .contains("@SerializedName(\"qr_payloads\") val qrPayloads: List<String>? = null")
+        )
+        assertTrue(
+            "Local OCR fallback should remain available when upload cannot run.",
+            imageFlow.contains("Extragerea cloud nu a reușit. Încercăm OCR local...")
         )
     }
 
