@@ -13,6 +13,7 @@ import asyncio
 import hashlib
 import base64
 import secrets
+import urllib.parse
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -652,3 +653,230 @@ def _orchestrated_result_is_final(job: Dict[str, Any], analysis: Dict[str, Any])
         )
     reason_codes = {str(item).strip() for item in gate.get("reason_codes") or []}
     return not (reason_codes & {"insufficient_evidence", "provider_error"})
+
+
+def _orchestrated_cloud_tasks_configured() -> bool:
+    return bool(
+        main.ORCHESTRATED_CLOUD_TASKS_ENABLED
+        and main.CLOUD_TASKS_PROJECT
+        and main.CLOUD_TASKS_LOCATION
+        and main.CLOUD_TASKS_QUEUE
+        and main.INTERNAL_WORKER_TOKEN
+    )
+
+
+def _orchestrated_worker_task_url(scan_id: str, *, max_steps: int = 1) -> str:
+    safe_scan_id = urllib.parse.quote(str(scan_id), safe="")
+    step_budget = max(1, min(int(max_steps or 1), 3))
+    public_base = main.SIGURSCAN_PUBLIC_API_BASE_URL or "https://api.sigurscan.com"
+    return f"{public_base}/internal/orchestrated/{safe_scan_id}/advance?max_steps={step_budget}"
+
+
+def _enqueue_orchestrated_worker_task(
+    scan_id: str,
+    request: Request,
+    *,
+    delay_seconds: int = 0,
+    max_steps: int = 1,
+) -> bool:
+    if not main._orchestrated_cloud_tasks_configured():
+        return False
+    try:
+        access_token = main._cloud_tasks_access_token()
+        queue_url = (
+            f"https://cloudtasks.googleapis.com/v2/projects/{main.CLOUD_TASKS_PROJECT}/"
+            f"locations/{main.CLOUD_TASKS_LOCATION}/queues/{main.CLOUD_TASKS_QUEUE}/tasks"
+        )
+        body = json.dumps({"scan_id": str(scan_id)}, ensure_ascii=False).encode("utf-8")
+        task: Dict[str, Any] = {
+            "httpRequest": {
+                "httpMethod": "POST",
+                "url": main._orchestrated_worker_task_url(scan_id, max_steps=max_steps),
+                "headers": {
+                    "Content-Type": "application/json",
+                    "X-Internal-Worker-Token": main.INTERNAL_WORKER_TOKEN,
+                },
+                "body": base64.b64encode(body).decode("ascii"),
+            }
+        }
+        if delay_seconds > 0:
+            run_at = datetime.now(timezone.utc) + timedelta(seconds=delay_seconds)
+            task["scheduleTime"] = run_at.isoformat().replace("+00:00", "Z")
+        response = main.requests.post(
+            queue_url,
+            headers={
+                "Authorization": f"Bearer {access_token}",
+                "Content-Type": "application/json",
+            },
+            json={"task": task},
+            timeout=main.CLOUD_TASKS_REQUEST_TIMEOUT_SECONDS,
+        )
+        response.raise_for_status()
+        return True
+    except Exception as exc:
+        main.logger.warning("orchestrated Cloud Tasks enqueue failed: %s", type(exc).__name__)
+        return False
+
+
+def _build_orchestrated_text_context(payload: OrchestratedScanRequest) -> Dict[str, Any]:
+    input_type = (payload.input_type or "text").strip().lower()
+    source_channel = payload.source_channel or "android_native"
+
+    if input_type == "url":
+        raw_input = main._normalise_obfuscated_text(payload.url or payload.text or "").strip()
+        embedded_urls = main.extract_urls(raw_input)
+        if embedded_urls:
+            first_url = embedded_urls[0]
+            raw_text = raw_input if payload.text else f"Link: {first_url}"
+            return {
+                "input_type": "url",
+                "source_channel": source_channel,
+                "raw_text": raw_text,
+                "urls": embedded_urls,
+                "extra_fields": {"input_url": payload.url or payload.text, "canonical_url": first_url},
+            }
+
+        url = main._canonicalize_url(raw_input)
+        if not url:
+            raise HTTPException(status_code=400, detail="URL invalid sau format neacceptat.")
+        return {
+            "input_type": "url",
+            "source_channel": source_channel,
+            "raw_text": f"Link: {url}",
+            "urls": [url],
+            "extra_fields": {"input_url": payload.url or payload.text, "canonical_url": url},
+        }
+
+    if input_type in {"email", "email_html", "html"}:
+        raw_email_or_html = payload.html_content or payload.text or ""
+        mime_parts = main._extract_email_mime_parts(payload.text or "") if input_type == "email" and not payload.html_content else {}
+        plain_text_context = main._normalise_obfuscated_text(mime_parts.get("plain") or "")
+        email_subject = main._normalise_obfuscated_text(mime_parts.get("subject") or "")
+        html_to_parse = main._normalise_obfuscated_text(
+            payload.html_content
+            or mime_parts.get("html")
+            or plain_text_context
+            or payload.text
+            or ""
+        )
+        main._validate_text_input("Conținutul HTML trimis", raw_email_or_html, main.MAX_TEXT_CHARS * 8)
+        soup = BeautifulSoup(html_to_parse, "html.parser")
+        click_targets = main._collect_click_targets_from_html(soup)
+        form_context = main._collect_form_context_from_html(soup)
+        discovered_urls: List[str] = []
+        buttons: List[Dict[str, Any]] = []
+        cta_words = ["verific", "confirm", "plăte", "plate", "cont", "login", "conect", "intrare", "detalii", "colet", "awb", "reactivare", "urgent"]
+        for target in click_targets:
+            raw_url = target.get("original_url")
+            if not raw_url or raw_url in discovered_urls:
+                continue
+            discovered_urls.append(raw_url)
+            button_text = str(target.get("button_text") or "")
+            buttons.append(
+                {
+                    "button_text": button_text,
+                    "original_url": raw_url,
+                    "is_sensitive_cta": any(word in button_text.lower() for word in cta_words),
+                    "source_tag": target.get("source_tag"),
+                    "source_attr": target.get("source_attr"),
+                }
+            )
+        visible_text = soup.get_text(separator=" ", strip=True)
+        for url in main.extract_urls(plain_text_context):
+            if url not in discovered_urls:
+                discovered_urls.append(url)
+        for url in main.extract_urls(visible_text):
+            if url not in discovered_urls:
+                discovered_urls.append(url)
+        inferred_brand_hints = main._infer_brand_hints_from_click_targets(click_targets)
+        click_context = [
+            f"CTA {button.get('source_tag')}/{button.get('source_attr')}: "
+            f"{button.get('button_text')} -> {button.get('original_url')}"
+            for button in buttons
+            if button.get("original_url")
+        ]
+        raw_text = "\n".join(
+            part
+            for part in [
+                email_subject,
+                plain_text_context,
+                visible_text,
+                " ".join(inferred_brand_hints),
+                *form_context,
+                *click_context,
+            ]
+            if str(part or "").strip()
+        )
+        auto_invoice = main._invoice_auto_route_context(
+            source_channel=source_channel,
+            raw_text=raw_text,
+            urls=discovered_urls,
+            extra_fields={
+                "buttons": buttons,
+                "inferred_brand_hints": inferred_brand_hints,
+                "email_mime_parsed": bool(mime_parts),
+                "form_context": form_context,
+                "is_forwarded_warning": True,
+            },
+            original_input_type=input_type,
+        )
+        if auto_invoice:
+            return auto_invoice
+        return {
+            "input_type": "email",
+            "source_channel": source_channel,
+            "raw_text": raw_text,
+            "urls": discovered_urls,
+            "extra_fields": {
+                "buttons": buttons,
+                "inferred_brand_hints": inferred_brand_hints,
+                "email_mime_parsed": bool(mime_parts),
+                "form_context": form_context,
+                "is_forwarded_warning": True,
+            },
+        }
+
+    if input_type == "invoice":
+        raw_text = main._normalise_obfuscated_text((payload.text or payload.url or "").strip())
+        main._validate_text_input("Textul facturii", raw_text, main.MAX_TEXT_CHARS)
+        return {
+            "input_type": "invoice",
+            "source_channel": source_channel,
+            "raw_text": raw_text,
+            "urls": main.extract_urls(raw_text),
+            "extra_fields": {"invoice_scan": True},
+        }
+
+    if input_type == "offer":
+        raw_text = main._normalise_obfuscated_text((payload.text or payload.url or "").strip())
+        main._validate_text_input("Textul ofertei", raw_text, main.MAX_TEXT_CHARS)
+        return {
+            "input_type": "offer",
+            "source_channel": source_channel,
+            "raw_text": raw_text,
+            "urls": main.extract_urls(raw_text),
+            "extra_fields": {"offer_scan": True},
+        }
+
+    raw_text = main._normalise_obfuscated_text((payload.text or payload.url or "").strip())
+    main._validate_text_input("Textul trimis", raw_text, main.MAX_TEXT_CHARS)
+    auto_invoice = main._invoice_auto_route_context(
+        source_channel=source_channel,
+        raw_text=raw_text,
+        urls=main.extract_urls(raw_text),
+        original_input_type=input_type,
+    )
+    if auto_invoice:
+        return auto_invoice
+    return {
+        "input_type": "text",
+        "source_channel": source_channel,
+        "raw_text": raw_text,
+        "urls": main.extract_urls(raw_text),
+        "extra_fields": {},
+    }
+
+
+async def _start_orchestrated_compat(payload: OrchestratedScanRequest) -> Dict[str, Any]:
+    job = await main._create_orchestrated_job(payload)
+    return main._orchestrated_status_payload(job)
