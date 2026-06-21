@@ -3851,6 +3851,15 @@ def _collect_infrastructure_flags(
     if rdap_age is not None and youngest_domain_age_days is None:
         youngest_domain_age_days = rdap_age
 
+    terminal_host_unreachable = bool(
+        domain_signals.get("unreachable")
+        and (
+            not official_destination
+            or domain_signals.get("dns_nxdomain")
+            or domain_signals.get("rdap_404")
+        )
+    )
+
     lexical_typosquat = (
         "typosquatting" in lexical_text
         or "lookalike" in lexical_text
@@ -3872,7 +3881,7 @@ def _collect_infrastructure_flags(
         "domain_young": bool(domain_signals.get("domain_young")),
         "ssl_invalid": bool(domain_signals.get("ssl_valid") is False),
         "cert_very_young": bool(domain_signals.get("cert_young")),
-        "host_unreachable": bool(domain_signals.get("unreachable")),
+        "host_unreachable": terminal_host_unreachable,
     }
 
 
@@ -4251,11 +4260,19 @@ def _identity_status_for_decision_bundle(
             payload["domain_age_days"] = domain_age_days
             payload["domain_reputation"] = domain_reputation
         if domain_signals:
+            terminal_host_unreachable = bool(
+                domain_signals.get("unreachable")
+                and (
+                    not official_destination
+                    or domain_signals.get("dns_nxdomain")
+                    or domain_signals.get("rdap_404")
+                )
+            )
             if domain_signals.get("rdap_404"):
                 payload["rdap_inexistent"] = True
             if domain_signals.get("ssl_valid") is False:
                 payload["ssl_invalid"] = True
-            if domain_signals.get("unreachable"):
+            if terminal_host_unreachable:
                 payload["host_unreachable"] = True
         return payload
 

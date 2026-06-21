@@ -3091,6 +3091,70 @@ def test_provider_gate_can_mark_official_destination_clean_without_phishing_data
     assert result["evidence"]["provider_gate"]["official_destination"] is True
 
 
+def test_official_destination_clean_ignores_transient_host_unreachable_signal():
+    analysis = {
+        "claimed_brand": "Hidroelectrica",
+        "risk_level": "medium",
+        "risk_score": 60,
+        "detected_family": "telecom_utilitati",
+        "detected_family_id": "IMP-13",
+        "evidence": {
+            "domain_signals": {
+                "unreachable": True,
+                "domain_age_days": 9668,
+                "ssl_valid": None,
+            },
+            "semantic_review": {
+                "source": "mistral_semantic_pillar",
+                "status": "done",
+                "risk_class": "high",
+                "claim_matches_known_scam_family": True,
+                "matched_family": "IMP-13",
+                "reason_codes": ["semantic:high", "family:imp-13"],
+                "completeness": True,
+            },
+            "external_intel_summary": {
+                "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
+                "phishing_database": {"status": "clean", "verdict": "clean", "consulted": True},
+                "phishtank_online_valid": {"status": "clean", "verdict": "clean", "consulted": True},
+                "openphish": {"status": "clean", "verdict": "clean", "consulted": True},
+                "urlhaus": {"status": "clean", "verdict": "clean", "consulted": True},
+                "urlscan": {
+                    "status": "clean",
+                    "verdict": "No malicious classification",
+                    "score": 0,
+                    "consulted": True,
+                },
+                "infra_dns": {
+                    "status": "clean",
+                    "verdict": "resolves",
+                    "severity": "low",
+                    "consulted": True,
+                },
+            },
+        },
+    }
+    resolved_urls = [
+        {
+            "url": "https://www.hidroelectrica.ro/",
+            "final_url": "https://www.hidroelectrica.ro/",
+            "hostname": "www.hidroelectrica.ro",
+            "final_hostname": "www.hidroelectrica.ro",
+            "registered_domain": "hidroelectrica.ro",
+            "final_registered_domain": "hidroelectrica.ro",
+        }
+    ]
+
+    result = _apply_provider_gate_verdict(analysis, resolved_urls)
+
+    assert result["risk_level"] == "low"
+    assert result["detected_family_id"] == "provider-gate-official-clean"
+    gate = result["evidence"]["verdict_gate"]
+    assert gate["reason_codes"] == ["positive_provenance_clean"]
+    assert result["evidence"]["provider_gate"]["infrastructure_flags"]["host_unreachable"] is False
+    assert "host_unreachable" not in result["evidence"]["decision_bundle"]["identity"]
+
+
 def test_provider_gate_yoxo_onelink_subscription_notice_is_low_risk():
     analysis = {
         "claimed_brand": "YOXO",
