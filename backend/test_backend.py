@@ -9142,6 +9142,40 @@ def test_phishing_database_clean_when_not_listed(monkeypatch):
     assert result[key]["details"]["status"] == "not_listed"
 
 
+def test_phishing_database_matches_equivalent_path_slash_and_encoded_query(monkeypatch):
+    scanned_url = (
+        "http://adityabrla.com/assurance/spazz?"
+        "mxid=ZWxpLm9mZWtAdmFsZW5zLmNvbQ%3D%3D"
+    )
+    listed_url = (
+        "http://adityabrla.com/assurance/spazz/?"
+        "mxid=ZWxpLm9mZWtAdmFsZW5zLmNvbQ=="
+    )
+    key = url_reputation._url_hash(scanned_url)
+
+    monkeypatch.setattr(url_reputation, "ENABLE_PHISHING_DATABASE", True)
+    monkeypatch.setattr(
+        url_reputation,
+        "_PHISHING_DATABASE_CACHE",
+        {"loaded_at": 0, "domains": set(), "links": set(), "link_hashes": set(), "error": None},
+    )
+    monkeypatch.setattr(
+        url_reputation,
+        "_load_local_phishing_lookalikes",
+        lambda: {"domains": set(), "metadata": {}},
+    )
+    monkeypatch.setattr(
+        url_reputation,
+        "_download_text_feed",
+        lambda url: listed_url if url == url_reputation.PHISHING_DATABASE_LINKS_URL else "",
+    )
+
+    result = url_reputation._fetch_phishing_database([scanned_url])
+
+    assert result[key]["status"] == "malicious"
+    assert result[key]["details"]["match_type"] == "url"
+
+
 def test_phishing_database_handles_malformed_url_port(monkeypatch):
     malformed_url = "https://example.com: https://bad.test/path"
     key = url_reputation._url_hash(malformed_url)

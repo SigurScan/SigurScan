@@ -811,12 +811,15 @@ def _load_phishing_database_feeds() -> Dict[str, Any]:
         domains_text = _download_text_feed(PHISHING_DATABASE_DOMAINS_URL)
         links_text = _download_text_feed(PHISHING_DATABASE_LINKS_URL)
         remote_domains = _feed_lines(domains_text)
+        remote_links: set[str] = set()
+        for raw_url in _feed_lines(links_text):
+            remote_links.update(_canonical_url_variants(raw_url))
         _PHISHING_DATABASE_CACHE.update({
             "loaded_at": now,
             "domains": remote_domains | local_domains,
             "local_domains": local_domains,
             "local_metadata": local_metadata,
-            "links": _feed_lines(links_text),
+            "links": remote_links,
             "error": None,
             "domains_url": PHISHING_DATABASE_DOMAINS_URL,
             "links_url": PHISHING_DATABASE_LINKS_URL,
@@ -1259,12 +1262,19 @@ def _canonical_url_variants(url: str) -> set[str]:
     if port:
         netloc = f"{hostname}:{port}"
     path = parsed.path or "/"
-    normalized = urlunparse((parsed.scheme.lower(), netloc, path, "", parsed.query, "")).lower()
-    variants = {normalized}
-    if normalized.endswith("/"):
-        variants.add(normalized.rstrip("/"))
-    else:
-        variants.add(normalized + "/")
+    path_variants = {path}
+    if path != "/":
+        path_variants.update({path.rstrip("/"), path.rstrip("/") + "/"})
+
+    query_variants = {parsed.query}
+    if parsed.query:
+        query_variants.add(re.sub(r"%3d", "=", parsed.query, flags=re.IGNORECASE))
+
+    variants = {
+        urlunparse((parsed.scheme.lower(), netloc, candidate_path, "", candidate_query, "")).lower()
+        for candidate_path in path_variants
+        for candidate_query in query_variants
+    }
     return variants
 
 
