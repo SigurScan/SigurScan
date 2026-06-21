@@ -150,6 +150,30 @@ async def test_scan_invoice_allows_paid_company_registry_for_account_change_case
 
 
 @pytest.mark.asyncio
+async def test_scan_invoice_allows_paid_company_registry_for_known_vendor_unknown_payment_destination():
+    text = (
+        "Furnizor: Compania Apa Brasov S.A.\n"
+        "CUI: RO1096128\n"
+        "IBAN: RO49AAAA1B31007593840000\n"
+        "Total: 287.40 RON\n"
+        "Data: 01.06.2026\n"
+        "Scadenta: 15.06.2026"
+    )
+    with patch("services.invoice_orchestrator.check_cui", new_callable=AsyncMock) as mock_cui:
+        mock_cui.return_value.exists = True
+        mock_cui.return_value.checked = True
+        mock_cui.return_value.denumire = "COMPANIA APA BRASOV S.A."
+        mock_cui.return_value.activ = True
+        mock_cui.return_value.platitor_tva = True
+        mock_cui.return_value.source = "openapi_ro"
+
+        await scan_invoice(text)
+
+    assert mock_cui.call_args.kwargs["allow_paid_fallback"] is True
+    assert mock_cui.call_args.kwargs["paid_fallback_reason"] == "invoice_high_risk"
+
+
+@pytest.mark.asyncio
 async def test_scan_invoice_adds_hunter_io_email_domain_intel_for_heavy_case():
     text = (
         "From: facturi@furnizor-real.ro\n"
