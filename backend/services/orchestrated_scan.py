@@ -16,6 +16,12 @@ import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
+from fastapi import HTTPException, Request
+from starlette.concurrency import run_in_threadpool
+from bs4 import BeautifulSoup, Comment
+import tldextract
+from pypdf import PdfReader
+
 import main
 
 
@@ -217,3 +223,432 @@ def _prune_orchestrated_jobs() -> None:
     for scan_id in expired:
         main._ORCHESTRATED_SCAN_JOBS.pop(scan_id, None)
         main._ORCHESTRATED_SCAN_LOCKS.pop(scan_id, None)
+
+
+def _orchestrated_stage_rank(stage: Any) -> int:
+    return main._ORCHESTRATED_STAGE_RANK.get(str(stage or "").strip().lower(), -1)
+
+
+def _merge_orchestrated_conflict_job(reloaded: Dict[str, Any], local: Dict[str, Any]) -> Dict[str, Any]:
+    merged = dict(reloaded)
+    local_urlscan = local.get("urlscan") if isinstance(local.get("urlscan"), dict) else {}
+    local_is_unpersisted_urlscan_reservation = (
+        str(local_urlscan.get("status") or "").strip().lower() == "submitting"
+        and not local_urlscan.get("uuid")
+    )
+
+    if (
+        not local_is_unpersisted_urlscan_reservation
+        and main._orchestrated_stage_rank(local.get("pipeline_stage")) > main._orchestrated_stage_rank(merged.get("pipeline_stage"))
+    ):
+        merged["pipeline_stage"] = local.get("pipeline_stage")
+
+    for key in (
+        "resolved_urls",
+        "primary_final_url",
+        "threat_intel",
+        "analysis",
+        "result",
+        "claim_verifier_required",
+        "offer_web_claim",
+        "invoice_analysis_text",
+    ):
+        local_value = local.get(key)
+        if local_value not in (None, "", [], {}) and merged.get(key) in (None, "", [], {}):
+            merged[key] = main._deep_copy_jsonable(local_value)
+
+    merged_urlscan = merged.get("urlscan") if isinstance(merged.get("urlscan"), dict) else {}
+    if local_urlscan and not local_is_unpersisted_urlscan_reservation:
+        merged_urlscan = dict(merged_urlscan)
+        local_has_uuid = bool(local_urlscan.get("uuid"))
+        merged_has_uuid = bool(merged_urlscan.get("uuid"))
+        if local_has_uuid and not merged_has_uuid:
+            merged_urlscan = main._deep_copy_jsonable(local_urlscan)
+        else:
+            merged_urlscan = main._merge_progress_dict(
+                merged_urlscan,
+                local_urlscan,
+                ranker=main._urlscan_merge_rank,
+            )
+        merged["urlscan"] = merged_urlscan
+
+    local_preview = local.get("preview") if isinstance(local.get("preview"), dict) else {}
+    if local_preview:
+        merged_preview = dict(merged.get("preview") if isinstance(merged.get("preview"), dict) else {})
+        merged_preview = main._merge_progress_dict(
+            merged_preview,
+            local_preview,
+            ranker=main._preview_merge_rank,
+        )
+        merged["preview"] = merged_preview
+
+    local_metrics = local.get("orchestration_metrics") if isinstance(local.get("orchestration_metrics"), dict) else {}
+    if local_metrics:
+        merged_metrics = dict(merged.get("orchestration_metrics") if isinstance(merged.get("orchestration_metrics"), dict) else {})
+        for key, value in local_metrics.items():
+            if key in {"stage_durations_ms", "component_durations_ms"} and isinstance(value, dict):
+                durations = dict(merged_metrics.get("stage_durations_ms") if isinstance(merged_metrics.get("stage_durations_ms"), dict) else {})
+                if key == "component_durations_ms":
+                    durations = dict(merged_metrics.get("component_durations_ms") if isinstance(merged_metrics.get("component_durations_ms"), dict) else {})
+                for stage_name, duration_ms in value.items():
+                    try:
+                        durations[str(stage_name)] = max(int(durations.get(stage_name, 0) or 0), int(duration_ms))
+                    except Exception:
+                        continue
+                merged_metrics[key] = durations
+            elif key == "stage_sequence" and isinstance(value, list):
+                existing_sequence = merged_metrics.get("stage_sequence")
+                if not isinstance(existing_sequence, list) or len(value) > len(existing_sequence):
+                    merged_metrics["stage_sequence"] = main._deep_copy_jsonable(value)
+            else:
+                try:
+                    merged_metrics[key] = max(int(merged_metrics.get(key, 0) or 0), int(value))
+                except Exception:
+                    if merged_metrics.get(key) in (None, "", [], {}):
+                        merged_metrics[key] = main._deep_copy_jsonable(value)
+        merged["orchestration_metrics"] = merged_metrics
+
+    return merged
+
+
+def _orchestrated_result_fingerprint(
+    job: Dict[str, Any],
+    analysis: Dict[str, Any],
+    pillars: Dict[str, Dict[str, Any]],
+    resolved_urls: List[Dict[str, Any]],
+) -> str:
+    payload = {
+        "redacted_text": job.get("redacted_text", ""),
+        "analysis": analysis,
+        "pillars": pillars,
+        "resolved_urls": resolved_urls,
+        "primary_final_url": job.get("primary_final_url"),
+        "urlscan": job.get("urlscan") if isinstance(job.get("urlscan"), dict) else {},
+    }
+    serialized = json.dumps(payload, sort_keys=True, default=str, ensure_ascii=False)
+    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+
+
+def _build_orchestrated_pillars(job: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    analysis = job.get("analysis") if isinstance(job.get("analysis"), dict) else {}
+    evidence = analysis.get("evidence", {}) if isinstance(analysis.get("evidence"), dict) else {}
+    summary = evidence.get("external_intel_summary") if isinstance(evidence.get("external_intel_summary"), dict) else {}
+    resolved_urls = job.get("resolved_urls") if isinstance(job.get("resolved_urls"), list) else []
+    raw_urls = job.get("urls") if isinstance(job.get("urls"), list) else []
+    has_urls = bool(raw_urls or resolved_urls)
+    final_url = job.get("primary_final_url") or main._first_final_url(resolved_urls)
+    job_input_type = str(job.get("input_type") or "").strip().lower()
+
+    claim = evidence.get("offer_claim_verification") if isinstance(evidence.get("offer_claim_verification"), dict) else {}
+    claim_status = str(claim.get("status") or "").strip().lower()
+    claim_required = bool(job.get("claim_verifier_required", main._claim_verifier_required(analysis)))
+    semantic_review = evidence.get("semantic_review") if isinstance(evidence.get("semantic_review"), dict) else {}
+    semantic_status = str(semantic_review.get("status") or "").strip().lower()
+    claimed_brand = str(analysis.get("claimed_brand") or "Nespecificat")
+    official_destination = main._official_destination_confirmed(resolved_urls, claimed_brand)
+    provider_projection = main._provider_verdict_for_decision_bundle(summary, has_urls=has_urls)
+    provider_projection_verdict = str(provider_projection.get("verdict") or "unknown").strip().lower()
+    semantic_complete = (
+        (semantic_status == "done" and semantic_review.get("completeness") is not False)
+        or (job_input_type == "invoice" and semantic_status == "done")
+        or provider_projection_verdict == "malicious"
+        or (official_destination and provider_projection_verdict == "clean")
+    )
+    semantic_details = semantic_status or "atlas/corpus semantic review pending"
+    if provider_projection_verdict == "malicious":
+        semantic_details = "provider malicious decisive; semantic review not blocking"
+    elif official_destination and provider_projection_verdict == "clean" and not semantic_status:
+        semantic_details = "official clean destination accepted as legit semantic template"
+
+    urlscan_state = job.get("urlscan") if isinstance(job.get("urlscan"), dict) else {}
+    urlscan_status = str(urlscan_state.get("status") or "").strip().lower()
+    screenshot_ready = bool(urlscan_state.get("screenshot_ready"))
+    if urlscan_status == "finished":
+        details = str(urlscan_state.get("verdict") or "finished")
+        if not screenshot_ready:
+            details = f"{details}; captura inca se proceseaza"
+        urlscan_pillar = main._pillar("ok", required=False, details=details, ref=urlscan_state.get("uuid"))
+    elif urlscan_status == "skipped" and not has_urls:
+        urlscan_pillar = main._pillar("not_required", required=False, details="nu exista URL pentru preview")
+    elif urlscan_status in {"error", "timeout", "rate_limited", "skipped"}:
+        urlscan_details = str(urlscan_state.get("details") or urlscan_status)
+        if urlscan_status == "timeout" and urlscan_state.get("verdict") and urlscan_state.get("report_url"):
+            urlscan_pillar = main._pillar(
+                "ok",
+                required=False,
+                details=f"{urlscan_state.get('verdict')}; captura indisponibila la provider",
+                ref=urlscan_state.get("uuid"),
+            )
+        elif official_destination and main._urlscan_scan_prevented(urlscan_details):
+            urlscan_pillar = main._pillar(
+                "ok",
+                required=False,
+                details="urlscan a refuzat sandbox-ul pentru o destinatie oficiala; preview indisponibil.",
+                ref=urlscan_state.get("uuid"),
+            )
+        else:
+            urlscan_pillar = main._pillar("error", required=False, details=urlscan_details, ref=urlscan_state.get("uuid"))
+    elif urlscan_state.get("uuid"):
+        urlscan_pillar = main._pillar("pending", required=False, details="urlscan verdict este in procesare.", ref=urlscan_state.get("uuid"))
+    else:
+        urlscan_pillar = main._pillar("pending", required=False, details="urlscan verdict nu a pornit.")
+
+    if not has_urls:
+        final_url_pillar = main._pillar("not_required", required=False, details="mesajul nu contine URL verificabil")
+        web_risk_pillar = main._pillar("not_required", required=False, details="nu exista URL pentru Web Risk")
+        asf_pillar = main._pillar("not_required", required=False, details="nu exista URL pentru ASF")
+        phishing_database_pillar = main._pillar("not_required", required=False, details="nu exista URL pentru Phishing.Database")
+        phishtank_pillar = main._pillar("not_required", required=False, details="nu exista URL pentru PhishTank")
+        openphish_pillar = main._pillar("not_required", required=False, details="nu exista URL pentru OpenPhish")
+    else:
+        final_url_pillar = main._pillar("ok" if final_url else "pending", details=str(final_url or "se rezolva destinatia finala"))
+        web_risk_pillar = main._provider_pillar_from_summary(summary, "google_web_risk")
+        asf_pillar = main._provider_pillar_from_summary(summary, "asf_investor_alerts")
+        asf_pillar["required"] = False
+        phishing_database_pillar = main._provider_pillar_from_summary(summary, "phishing_database")
+        phishtank_pillar = main._provider_pillar_from_summary(summary, "phishtank_online_valid")
+        openphish_pillar = main._provider_pillar_from_summary(summary, "openphish")
+        openphish_pillar["required"] = False
+
+    return {
+        "final_url": final_url_pillar,
+        "google_web_risk": web_risk_pillar,
+        "asf_investor_alerts": asf_pillar,
+        "phishing_database": phishing_database_pillar,
+        "phishtank_online_valid": phishtank_pillar,
+        "openphish": openphish_pillar,
+        "urlscan": urlscan_pillar,
+        "claim_verifier": main._pillar(
+            (
+                "not_required"
+                if not claim_required
+                else "ok"
+                if claim_status in {"confirmed", "not_found", "inconclusive", "skipped"}
+                else "pending"
+            ),
+            required=claim_required,
+            details=claim_status or ("required" if claim_required else "not required"),
+        ),
+        "semantic_review": main._pillar(
+            "ok" if semantic_complete else "pending",
+            required=True,
+            details=semantic_details,
+        ),
+    }
+
+
+def _orchestrated_required_pillars_timed_out(job: Dict[str, Any]) -> bool:
+    created_at = int(job.get("created_at") or int(time.time()))
+    return int(time.time()) - created_at >= main.ORCHESTRATED_REQUIRED_PILLAR_TIMEOUT_SECONDS
+
+
+def _normalize_orchestrated_preview_status(job: Dict[str, Any], preview: Dict[str, Any]) -> Dict[str, Any]:
+    if not isinstance(preview, dict):
+        return {}
+    normalized = dict(preview)
+    status = str(normalized.get("status") or "").strip().lower()
+    has_visual = bool(normalized.get("image_url") or normalized.get("screenshot_url"))
+    if status != "ready" or has_visual:
+        return normalized
+
+    urlscan_state = job.get("urlscan") if isinstance(job.get("urlscan"), dict) else {}
+    looks_like_urlscan_preview = (
+        str(normalized.get("source") or "").strip().lower() == "urlscan"
+        or bool(normalized.get("report_url"))
+        or bool(urlscan_state.get("uuid"))
+        or str(urlscan_state.get("status") or "").strip().lower() in {"pending", "finished", "timeout"}
+    )
+    if not looks_like_urlscan_preview:
+        return normalized
+
+    normalized["status"] = "pending"
+    normalized["source"] = "urlscan"
+    normalized["image_url"] = None
+    normalized["screenshot_url"] = None
+    normalized["reason"] = normalized.get("reason") or "urlscan_screenshot_pending"
+    return normalized
+
+
+def _orchestrated_status_payload(job: Dict[str, Any]) -> Dict[str, Any]:
+    pillars = main._build_orchestrated_pillars(job)
+    raw_preview = job.get("preview") if isinstance(job.get("preview"), dict) else {}
+    preview = main._normalize_orchestrated_preview_status(job, main._preview_for_final_url_unresolved(job, raw_preview))
+    result = job.get("result") if isinstance(job.get("result"), dict) else None
+    metrics = _orchestrated_metrics(job)
+    result_is_final = result is not None and result.get("is_final", True) is not False
+    final_url_unresolved = preview.get("reason") == "final_url_unresolved"
+    enhancement_done = main._urlscan_enhancement_done(job) or final_url_unresolved
+    if result_is_final:
+        status = "complete"
+    elif main._has_required_pillar_error(pillars):
+        status = "incomplete"
+    else:
+        status = "scanning"
+    job["status"] = status
+    preview_pending = preview.get("status") == "pending" or preview.get("reason") in {
+        "urlscan_pending",
+        "urlscan_screenshot_pending",
+    } or not (preview.get("image_url") or preview.get("screenshot_url"))
+    poll_after_ms = 3000 if (
+        status in {"scanning", "complete"}
+        and isinstance(job.get("urlscan"), dict)
+        and str(job["urlscan"].get("status") or "").lower() == "pending"
+        and job["urlscan"].get("uuid")
+        and preview_pending
+    ) else 1000
+    return {
+        "scan_id": job["scan_id"],
+        "status": status,
+        "status_message": (
+            "Scanarea este finalizata. Destinatia finala nu poate fi incarcata/verificata; nu continua fara verificare oficiala."
+            if status == "complete" and final_url_unresolved
+            else
+            "Scanarea este finalizata."
+            if status == "complete" and enhancement_done
+            else "Verdictul este finalizat. Preview-ul securizat se poate actualiza separat."
+            if status == "complete" and not enhancement_done
+            else "Verdict preliminar disponibil. Verificarea suplimentara (sandbox) continua si poate doar creste nivelul de risc."
+            if status == "scanning" and result is not None
+            else "Scanarea continua pana cand verificarile necesare returneaza date."
+            if status == "scanning"
+            else "Scanarea nu are inca toate verificarile necesare pentru verdict sigur."
+        ),
+        "poll_after_ms": poll_after_ms,
+        "pillars": pillars,
+        "preview": preview,
+        "result": result,
+        "diagnostics": {
+            "pipeline_stage": job.get("pipeline_stage"),
+            "poll_count": metrics.get("poll_count", 0),
+            "stage_durations_ms": metrics.get("stage_durations_ms", {}),
+            "component_durations_ms": metrics.get("component_durations_ms", {}),
+            "urlscan_status": (job.get("urlscan") if isinstance(job.get("urlscan"), dict) else {}).get("status"),
+        },
+    }
+
+
+def _orchestrated_revision(job: Dict[str, Any]) -> int:
+    revision = job.get("_storage_revision")
+    if revision is None:
+        revision = job.get("revision")
+    try:
+        return int(revision)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _orchestrated_verdict_state(status_payload: Dict[str, Any]) -> str:
+    result = status_payload.get("result")
+    status = str(status_payload.get("status") or "").strip().lower()
+    if isinstance(result, dict):
+        if result.get("is_final", True) is not False:
+            return "verdict_done"
+        return "verdict_pending"
+    if status in {"incomplete", "error"}:
+        return "verdict_error"
+    return "running"
+
+
+def _orchestrated_preview_state(status_payload: Dict[str, Any]) -> str:
+    preview = status_payload.get("preview") if isinstance(status_payload.get("preview"), dict) else {}
+    preview_status = str(preview.get("status") or "").strip().lower()
+    reason = str(preview.get("reason") or "").strip().lower()
+    has_visual = bool(preview.get("image_url") or preview.get("screenshot_url"))
+    if has_visual:
+        return "ready"
+    if preview_status == "ready" and not has_visual:
+        return "pending"
+    if reason in {"no_url", "privacy_safe_mode"}:
+        return "not_applicable"
+    if preview_status == "pending" or reason in {"urlscan_pending", "urlscan_screenshot_pending"}:
+        return "pending"
+    if preview_status == "unavailable" or reason in {
+        "final_url_unresolved",
+        "preview_unavailable",
+        "urlscan_timeout",
+        "urlscan_screenshot_timeout",
+    }:
+        return "timeout"
+    return "unknown"
+
+
+def _orchestrated_read_status_payload(job: Dict[str, Any], *, changed: bool) -> Dict[str, Any]:
+    payload = main._orchestrated_status_payload(job)
+    payload["revision"] = main._orchestrated_revision(job)
+    payload["changed"] = bool(changed)
+    payload["verdict_state"] = main._orchestrated_verdict_state(payload)
+    payload["preview_state"] = main._orchestrated_preview_state(payload)
+    return payload
+
+
+def _orchestrated_status_changed(job: Dict[str, Any], after_revision: Optional[int]) -> bool:
+    if after_revision is None:
+        return True
+    return main._orchestrated_revision(job) > after_revision
+
+
+def _orchestrated_worker_can_stop(status_payload: Dict[str, Any]) -> bool:
+    if status_payload.get("verdict_state") != "verdict_done":
+        return False
+    return status_payload.get("preview_state") in {"ready", "timeout", "not_applicable"}
+
+
+async def _wait_for_orchestrated_status_read(
+    scan_id: str,
+    *,
+    after_revision: Optional[int],
+    wait_seconds: float,
+) -> Tuple[Optional[Dict[str, Any]], bool]:
+    deadline = time.monotonic() + max(0.0, min(wait_seconds, 20.0))
+    while True:
+        job = main._load_orchestrated_job(scan_id)
+        if not isinstance(job, dict):
+            return None, False
+        changed = main._orchestrated_status_changed(job, after_revision)
+        remaining = deadline - time.monotonic()
+        if changed or remaining <= 0:
+            return job, changed
+        await asyncio.sleep(min(0.75, remaining))
+
+
+def _orchestrated_can_finalize_result(job: Dict[str, Any], pillars: Dict[str, Dict[str, Any]]) -> bool:
+    if str(job.get("pipeline_stage") or "").strip().lower() == "done":
+        return True
+    if not main._all_required_pillars_terminal(pillars):
+        return False
+    if main.ORCHESTRATED_EARLY_VERDICT:
+        # The verdict publishes as soon as the required pillars are terminal.
+        # It stays is_final=false until the urlscan report is terminal, and the
+        # report can only raise severity when it lands.
+        return True
+    # Legacy pacing: user-facing verdicts wait for the urlscan report when a
+    # URL exists, but not for screenshot availability. The screenshot is an
+    # async visual enhancement and can fill in after the final label.
+    return main._urlscan_result_ready_for_verdict(job)
+
+
+def _orchestrated_result_is_final(job: Dict[str, Any], analysis: Dict[str, Any]) -> bool:
+    evidence = analysis.get("evidence", {}) if isinstance(analysis.get("evidence"), dict) else {}
+    gate = evidence.get("verdict_gate") if isinstance(evidence.get("verdict_gate"), dict) else {}
+    if main._final_url_unresolved_entry(job):
+        return True
+    label = str(gate.get("label") or "").upper()
+    if label in {"SAFE", "SUSPECT", "DANGEROUS"}:
+        return True
+    if label != "UNVERIFIED":
+        return False
+    decision_bundle = evidence.get("decision_bundle") if isinstance(evidence.get("decision_bundle"), dict) else {}
+    bundle_input = decision_bundle.get("input") if isinstance(decision_bundle.get("input"), dict) else {}
+    if bundle_input.get("type") == "invoice":
+        return True
+    has_url_context = bool(job.get("urls")) or bool(job.get("resolved_urls"))
+    if not has_url_context:
+        provider_gate = evidence.get("provider_gate") if isinstance(evidence.get("provider_gate"), dict) else {}
+        timeout_family = str(analysis.get("detected_family_id") or "") == "provider-gate-required-timeout"
+        return (
+            provider_gate.get("required_timeout") is not True
+            and not timeout_family
+            and job.get("required_pillars_timed_out") is not True
+        )
+    reason_codes = {str(item).strip() for item in gate.get("reason_codes") or []}
+    return not (reason_codes & {"insufficient_evidence", "provider_error"})
