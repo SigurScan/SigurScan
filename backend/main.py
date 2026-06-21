@@ -45,6 +45,7 @@ from services.pii_redactor import redact_pii
 from services.external_url_privacy import (
     prepare_external_url,
     prepare_external_urls,
+    prepare_reputation_lookup_url,
     sanitize_resolved_url_entry,
     sanitize_resolved_url_entries,
     sanitize_external_text,
@@ -69,7 +70,7 @@ from services.urechea_ingester import UrecheaIngester
 from services.cfx_engine import CfxStore, extract_fingerprint, CampaignFingerprint, FingerprintMatch
 from services.mistral_shadow_adjudicator import maybe_run_shadow_adjudication
 from services.offer_claim_verifier import verify_offer_claim
-from services.url_reputation import get_reputation_cache_stats, get_reputation_for_urls
+from services.url_reputation import get_reputation_cache_stats, get_reputation_for_urls, reputation_url_hash_variants
 from services.whois_ssl_signals import check_domain_ssl_parallel, domain_risk_from_signals
 from services.telemetry import (
     build_feedback_evaluation_rows,
@@ -328,6 +329,8 @@ def _provider_config_status() -> Dict[str, Any]:
 
     web_risk_configured = _env_present("GOOGLE_WEB_RISK_API_KEY")
     phishing_database_enabled = os.getenv("ENABLE_PHISHING_DATABASE", "true").strip().lower() in {"1", "true", "yes", "on"}
+    phishtank_enabled = os.getenv("ENABLE_PHISHTANK", "true").strip().lower() in {"1", "true", "yes", "on"}
+    openphish_enabled = os.getenv("ENABLE_OPENPHISH", "true").strip().lower() in {"1", "true", "yes", "on"}
     asf_investor_alerts_enabled = os.getenv("ENABLE_ASF_INVESTOR_ALERTS", "true").strip().lower() in {
         "1",
         "true",
@@ -386,6 +389,16 @@ def _provider_config_status() -> Dict[str, Any]:
                 "configured": phishing_database_enabled and not PRIVACY_SAFE_MODE,
                 "policy": "open_feed_runtime_reputation",
             },
+            "phishtank_online_valid": {
+                "configured": phishtank_enabled and not PRIVACY_SAFE_MODE,
+                "policy": "open_feed_runtime_reputation",
+                "source": "PhishTank online-valid feed",
+            },
+            "openphish": {
+                "configured": openphish_enabled and not PRIVACY_SAFE_MODE,
+                "policy": "open_feed_runtime_reputation",
+                "source": "OpenPhish public feed",
+            },
             "asf_investor_alerts": {
                 "configured": asf_investor_alerts_enabled and not PRIVACY_SAFE_MODE,
                 "policy": "official_authority_runtime_reputation",
@@ -396,8 +409,10 @@ def _provider_config_status() -> Dict[str, Any]:
                 ),
             },
             "urlhaus": {
-                "configured": urlhaus_configured and not PRIVACY_SAFE_MODE,
+                "configured": not PRIVACY_SAFE_MODE,
                 "policy": "abuse_ch_runtime_reputation",
+                "source": "URLhaus public recent feed; Auth-Key optional for API lookup",
+                "api_key_configured": urlhaus_configured and not PRIVACY_SAFE_MODE,
             },
             "openapi_ro_company": {
                 "configured": openapi_ro_configured and not PRIVACY_SAFE_MODE,
@@ -2425,6 +2440,8 @@ def _gather_external_intel(
     resolved_urls: List[Dict[str, Any]],
     *,
     include_phishing_database: bool = True,
+    include_phishtank: bool = True,
+    include_openphish: bool = True,
     include_urlhaus: bool = True,
     include_scam_blocklist_nrd: bool = True,
     include_phishdestroy: bool = True,
@@ -2432,20 +2449,156 @@ def _gather_external_intel(
 ) -> Dict[str, Dict[str, Any]]:
     if PRIVACY_SAFE_MODE:
         return {}
-    safe_resolved_urls = sanitize_resolved_url_entries(resolved_urls)
-    final_urls = [
-        entry.get("final_url")
-        for entry in safe_resolved_urls
-        if isinstance(entry.get("final_url"), str) and entry.get("final_url")
-    ]
-    return get_reputation_for_urls(
-        final_urls,
+    reputation_urls = _reputation_lookup_urls_from_resolved_entries(resolved_urls)
+    reputation_hashes_by_url = _reputation_lookup_hashes_by_url_from_resolved_entries(resolved_urls)
+    threat_intel = get_reputation_for_urls(
+        reputation_urls,
         include_phishing_database=include_phishing_database,
+        include_phishtank=include_phishtank,
+        include_openphish=include_openphish,
         include_urlhaus=include_urlhaus,
         include_scam_blocklist_nrd=include_scam_blocklist_nrd,
         include_phishdestroy=include_phishdestroy,
         persist_partial=persist_partial,
+        lookup_url_hashes_by_url=reputation_hashes_by_url,
     )
+    return _sanitize_external_intel_results(threat_intel)
+
+
+def _sanitize_external_intel_results(threat_intel: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+    def sanitize_value(value: Any) -> Any:
+        if isinstance(value, dict):
+            return {str(key): sanitize_value(inner) for key, inner in value.items()}
+        if isinstance(value, list):
+            return [sanitize_value(item) for item in value]
+        if isinstance(value, str):
+            return sanitize_external_text(value)
+        return value
+
+    sanitized: Dict[str, Dict[str, Any]] = {}
+    for key, payload in (threat_intel or {}).items():
+        if not isinstance(payload, dict):
+            continue
+        safe_payload = sanitize_value(payload)
+        if isinstance(payload.get("url"), str):
+            safe_payload["url"] = prepare_external_url(payload["url"]).get("external_url")
+        sanitized[str(key)] = safe_payload
+    return sanitized
+
+
+def _reputation_lookup_urls_from_resolved_entries(resolved_urls: List[Dict[str, Any]]) -> List[str]:
+    candidates: List[str] = []
+
+    def add_candidate(raw_value: Any) -> None:
+        if not isinstance(raw_value, str) or not raw_value.strip():
+            return
+        prepared = prepare_reputation_lookup_url(raw_value.strip())
+        safe_url = prepared.get("external_url")
+        if isinstance(safe_url, str) and safe_url.strip():
+            candidates.append(safe_url.strip())
+
+    for entry in resolved_urls:
+        if not isinstance(entry, dict):
+            continue
+        explicit_lookup_urls = entry.get("reputation_lookup_urls")
+        if isinstance(explicit_lookup_urls, list):
+            for raw_value in explicit_lookup_urls:
+                add_candidate(raw_value)
+        for field_name in ("url", "original_url", "final_url"):
+            add_candidate(entry.get(field_name))
+        redirect_chain = entry.get("redirect_chain")
+        if isinstance(redirect_chain, list):
+            for hop in redirect_chain:
+                if not isinstance(hop, dict):
+                    continue
+                add_candidate(hop.get("url"))
+    return list(dict.fromkeys(candidates))
+
+
+def _normalize_reputation_hashes(raw_hashes: Any) -> List[str]:
+    values = raw_hashes if isinstance(raw_hashes, list) else []
+    output: List[str] = []
+    for value in values:
+        candidate = str(value or "").strip().lower()
+        if re.fullmatch(r"[a-f0-9]{64}", candidate) and candidate not in output:
+            output.append(candidate)
+    return output
+
+
+def _reputation_lookup_hashes_by_url_from_resolved_entries(resolved_urls: List[Dict[str, Any]]) -> Dict[str, List[str]]:
+    output: Dict[str, List[str]] = {}
+
+    def add_hashes(raw_url: Any, raw_hashes: Any) -> None:
+        if not isinstance(raw_url, str) or not raw_url.strip():
+            return
+        safe_url = prepare_reputation_lookup_url(raw_url.strip()).get("external_url")
+        if not isinstance(safe_url, str) or not safe_url.strip():
+            return
+        bucket = output.setdefault(safe_url.strip(), [])
+        for value in _normalize_reputation_hashes(raw_hashes):
+            if value not in bucket:
+                bucket.append(value)
+
+    for entry in resolved_urls:
+        if not isinstance(entry, dict):
+            continue
+        explicit_map = entry.get("reputation_lookup_url_hashes_by_url")
+        if isinstance(explicit_map, dict):
+            for raw_url, raw_hashes in explicit_map.items():
+                add_hashes(raw_url, raw_hashes)
+        explicit_hashes = entry.get("reputation_lookup_url_hashes")
+        if isinstance(explicit_hashes, list):
+            for field_name in ("url", "original_url", "final_url"):
+                add_hashes(entry.get(field_name), explicit_hashes)
+    return output
+
+
+def _attach_reputation_lookup_urls(
+    resolved_urls: List[Dict[str, Any]],
+    reputation_lookup_urls: Any,
+) -> List[Dict[str, Any]]:
+    if not isinstance(reputation_lookup_urls, list) or not reputation_lookup_urls:
+        return resolved_urls
+    safe_lookup_urls = _reputation_lookup_urls_from_resolved_entries(
+        [{"reputation_lookup_urls": reputation_lookup_urls}]
+    )
+    if not safe_lookup_urls or not resolved_urls:
+        return resolved_urls
+    attached = [dict(entry) if isinstance(entry, dict) else {} for entry in resolved_urls]
+    first = attached[0]
+    existing = first.get("reputation_lookup_urls")
+    merged = list(existing) if isinstance(existing, list) else []
+    for lookup_url in safe_lookup_urls:
+        if lookup_url not in merged:
+            merged.append(lookup_url)
+    first["reputation_lookup_urls"] = merged
+    return attached
+
+
+def _attach_reputation_lookup_hashes(
+    resolved_urls: List[Dict[str, Any]],
+    reputation_lookup_hashes_by_url: Any,
+) -> List[Dict[str, Any]]:
+    if not isinstance(reputation_lookup_hashes_by_url, dict) or not reputation_lookup_hashes_by_url:
+        return resolved_urls
+    safe_hashes_by_url = _reputation_lookup_hashes_by_url_from_resolved_entries(
+        [{"reputation_lookup_url_hashes_by_url": reputation_lookup_hashes_by_url}]
+    )
+    if not safe_hashes_by_url or not resolved_urls:
+        return resolved_urls
+    attached = [dict(entry) if isinstance(entry, dict) else {} for entry in resolved_urls]
+    first = attached[0]
+    existing = first.get("reputation_lookup_url_hashes_by_url")
+    merged: Dict[str, List[str]] = {
+        str(url): list(hashes) for url, hashes in existing.items()
+    } if isinstance(existing, dict) else {}
+    for url, hashes in safe_hashes_by_url.items():
+        bucket = merged.setdefault(url, [])
+        for value in hashes:
+            if value not in bucket:
+                bucket.append(value)
+    first["reputation_lookup_url_hashes_by_url"] = merged
+    return attached
 
 
 def _external_intel_provider_error(
@@ -2453,6 +2606,8 @@ def _external_intel_provider_error(
     exc: Exception,
     *,
     include_phishing_database: bool,
+    include_phishtank: bool,
+    include_openphish: bool,
     include_urlhaus: bool,
     include_scam_blocklist_nrd: bool,
     include_phishdestroy: bool,
@@ -2489,6 +2644,30 @@ def _external_intel_provider_error(
                 "score": 0,
                 "details": {
                     "provider": "phishing_database",
+                    "error_type": error_type,
+                    "error": error_message,
+                },
+            }
+        if include_phishtank:
+            sources["phishtank_online_valid"] = {
+                "status": "error",
+                "consulted": True,
+                "threat_type": "error",
+                "score": 0,
+                "details": {
+                    "provider": "phishtank_online_valid",
+                    "error_type": error_type,
+                    "error": error_message,
+                },
+            }
+        if include_openphish:
+            sources["openphish"] = {
+                "status": "error",
+                "consulted": True,
+                "threat_type": "error",
+                "score": 0,
+                "details": {
+                    "provider": "openphish",
                     "error_type": error_type,
                     "error": error_message,
                 },
@@ -2551,6 +2730,8 @@ def _gather_external_intel_safe(
     *,
     include_phishing_database: bool,
     include_urlhaus: bool,
+    include_phishtank: bool = True,
+    include_openphish: bool = True,
     include_scam_blocklist_nrd: bool = True,
     include_phishdestroy: bool = True,
     persist_partial: bool = False,
@@ -2559,6 +2740,8 @@ def _gather_external_intel_safe(
         return _gather_external_intel(
             resolved_urls,
             include_phishing_database=include_phishing_database,
+            include_phishtank=include_phishtank,
+            include_openphish=include_openphish,
             include_urlhaus=include_urlhaus,
             include_scam_blocklist_nrd=include_scam_blocklist_nrd,
             include_phishdestroy=include_phishdestroy,
@@ -2574,6 +2757,8 @@ def _gather_external_intel_safe(
                 resolved_urls,
                 exc,
                 include_phishing_database=include_phishing_database,
+                include_phishtank=include_phishtank,
+                include_openphish=include_openphish,
                 include_urlhaus=include_urlhaus,
                 include_scam_blocklist_nrd=include_scam_blocklist_nrd,
                 include_phishdestroy=include_phishdestroy,
@@ -2583,6 +2768,8 @@ def _gather_external_intel_safe(
             resolved_urls,
             exc,
             include_phishing_database=include_phishing_database,
+            include_phishtank=include_phishtank,
+            include_openphish=include_openphish,
             include_urlhaus=include_urlhaus,
             include_scam_blocklist_nrd=include_scam_blocklist_nrd,
             include_phishdestroy=include_phishdestroy,
@@ -2789,6 +2976,8 @@ def _has_authoritative_bad_provider_verdict(summary: Dict[str, Any]) -> bool:
         "google_web_risk",
         "asf_investor_alerts",
         "phishing_database",
+        "phishtank_online_valid",
+        "openphish",
         "urlscan",
         "urlscan.io",
         "urlhaus",
@@ -2808,6 +2997,8 @@ def _has_bad_provider_verdict(summary: Dict[str, Any]) -> bool:
         "google_web_risk",
         "asf_investor_alerts",
         "phishing_database",
+        "phishtank_online_valid",
+        "openphish",
         "urlscan",
         "urlscan.io",
         "urlhaus",
@@ -3853,6 +4044,8 @@ def _provider_verdict_for_decision_bundle(
         "google_web_risk",
         "asf_investor_alerts",
         "phishing_database",
+        "phishtank_online_valid",
+        "openphish",
         "urlscan",
         "urlscan.io",
         "urlhaus",
@@ -6060,6 +6253,8 @@ def _apply_provider_gate_verdict(
     web_risk_consulted = _source_ready(summary, "google_web_risk")
     asf_investor_alerts_consulted = _source_ready(summary, "asf_investor_alerts")
     phishing_database_consulted = _source_ready(summary, "phishing_database")
+    phishtank_consulted = _source_ready(summary, "phishtank_online_valid")
+    openphish_consulted = _source_ready(summary, "openphish")
     urlscan_consulted = any(_source_ready(summary, name) for name in ("urlscan", "urlscan.io"))
     sensitive_url_path = _has_sensitive_url_path(resolved_urls)
     brand_warning = _brand_warning_matches_text(claimed_brand, raw_text)
@@ -6082,6 +6277,8 @@ def _apply_provider_gate_verdict(
             "google_web_risk",
             "asf_investor_alerts",
             "phishing_database",
+            "phishtank_online_valid",
+            "openphish",
             "urlscan",
             "urlscan.io",
             "urlhaus",
@@ -6106,6 +6303,8 @@ def _apply_provider_gate_verdict(
         "web_risk_consulted": web_risk_consulted,
         "asf_investor_alerts_consulted": asf_investor_alerts_consulted,
         "phishing_database_consulted": phishing_database_consulted,
+        "phishtank_consulted": phishtank_consulted,
+        "openphish_consulted": openphish_consulted,
         "urlscan_consulted": urlscan_consulted,
         "claim_required": claim_required,
         "claim_consulted": claim_consulted,
@@ -8890,6 +9089,10 @@ def _provider_required_for_runtime(source_name: str) -> bool:
         return _env_present("GOOGLE_WEB_RISK_API_KEY")
     if normalized == "phishing_database":
         return os.getenv("ENABLE_PHISHING_DATABASE", "true").strip().lower() in {"1", "true", "yes", "on"}
+    if normalized == "phishtank_online_valid":
+        return os.getenv("ENABLE_PHISHTANK", "true").strip().lower() in {"1", "true", "yes", "on"}
+    if normalized == "openphish":
+        return os.getenv("ENABLE_OPENPHISH", "true").strip().lower() in {"1", "true", "yes", "on"}
     if normalized == "asf_investor_alerts":
         return os.getenv("ENABLE_ASF_INVESTOR_ALERTS", "true").strip().lower() in {"1", "true", "yes", "on"}
     return True
@@ -9025,18 +9228,25 @@ def _build_orchestrated_pillars(job: Dict[str, Any]) -> Dict[str, Dict[str, Any]
         web_risk_pillar = _pillar("not_required", required=False, details="nu exista URL pentru Web Risk")
         asf_pillar = _pillar("not_required", required=False, details="nu exista URL pentru ASF")
         phishing_database_pillar = _pillar("not_required", required=False, details="nu exista URL pentru Phishing.Database")
+        phishtank_pillar = _pillar("not_required", required=False, details="nu exista URL pentru PhishTank")
+        openphish_pillar = _pillar("not_required", required=False, details="nu exista URL pentru OpenPhish")
     else:
         final_url_pillar = _pillar("ok" if final_url else "pending", details=str(final_url or "se rezolva destinatia finala"))
         web_risk_pillar = _provider_pillar_from_summary(summary, "google_web_risk")
         asf_pillar = _provider_pillar_from_summary(summary, "asf_investor_alerts")
         asf_pillar["required"] = False
         phishing_database_pillar = _provider_pillar_from_summary(summary, "phishing_database")
+        phishtank_pillar = _provider_pillar_from_summary(summary, "phishtank_online_valid")
+        openphish_pillar = _provider_pillar_from_summary(summary, "openphish")
+        openphish_pillar["required"] = False
 
     return {
         "final_url": final_url_pillar,
         "google_web_risk": web_risk_pillar,
         "asf_investor_alerts": asf_pillar,
         "phishing_database": phishing_database_pillar,
+        "phishtank_online_valid": phishtank_pillar,
+        "openphish": openphish_pillar,
         "urlscan": urlscan_pillar,
         "claim_verifier": _pillar(
             (
@@ -9187,7 +9397,7 @@ def _public_navigation_clean_can_finalize_before_urlscan(
 
 
 def _baseline_pillars_ready_without_urlscan(pillars: Dict[str, Dict[str, Any]]) -> bool:
-    required_names = ("final_url", "google_web_risk", "phishing_database", "claim_verifier")
+    required_names = ("final_url", "google_web_risk", "phishing_database", "phishtank_online_valid", "claim_verifier")
     for name in required_names:
         pillar = pillars.get(name)
         if not isinstance(pillar, dict):
@@ -10372,6 +10582,18 @@ async def _create_orchestrated_job(payload: OrchestratedScanRequest) -> Dict[str
     context = _build_orchestrated_text_context(payload)
     raw_urls = [str(url) for url in (context.get("urls") or []) if str(url).strip()]
     urls, url_privacy = prepare_external_urls(raw_urls)
+    reputation_lookup_urls: List[str] = []
+    reputation_lookup_url_hashes_by_url: Dict[str, List[str]] = {}
+    for raw_url in raw_urls:
+        reputation_entry = prepare_reputation_lookup_url(raw_url)
+        reputation_url = reputation_entry.get("external_url")
+        if isinstance(reputation_url, str) and reputation_url.strip() and reputation_url not in reputation_lookup_urls:
+            reputation_lookup_urls.append(reputation_url.strip())
+        if isinstance(reputation_url, str) and reputation_url.strip():
+            bucket = reputation_lookup_url_hashes_by_url.setdefault(reputation_url.strip(), [])
+            for value in reputation_url_hash_variants(raw_url):
+                if value not in bucket:
+                    bucket.append(value)
     privacy_by_hash = {entry["input_url_hash"]: entry for entry in url_privacy}
     privacy_by_external_url = {
         str(entry.get("external_url")): entry
@@ -10425,6 +10647,8 @@ async def _create_orchestrated_job(payload: OrchestratedScanRequest) -> Dict[str
             "resolved_urls": [],
             "orchestrated": True,
             "url_privacy": url_privacy,
+            "reputation_lookup_urls": reputation_lookup_urls,
+            "reputation_lookup_url_hashes_by_url": reputation_lookup_url_hashes_by_url,
         }
     )
     job = {
@@ -10501,6 +10725,18 @@ async def _run_orchestrated_fast_lane(job: Dict[str, Any], request: Request) -> 
     resolved_urls = _attach_initial_url_privacy(
         resolved_urls,
         job.get("extra_fields", {}).get("url_privacy")
+        if isinstance(job.get("extra_fields"), dict)
+        else None,
+    )
+    resolved_urls = _attach_reputation_lookup_urls(
+        resolved_urls,
+        job.get("extra_fields", {}).get("reputation_lookup_urls")
+        if isinstance(job.get("extra_fields"), dict)
+        else None,
+    )
+    resolved_urls = _attach_reputation_lookup_hashes(
+        resolved_urls,
+        job.get("extra_fields", {}).get("reputation_lookup_url_hashes_by_url")
         if isinstance(job.get("extra_fields"), dict)
         else None,
     )
@@ -10713,6 +10949,18 @@ async def _run_orchestrated_invoice_fast_lane(job: Dict[str, Any], request: Requ
         resolved_urls = _attach_initial_url_privacy(
             resolved_urls,
             job.get("extra_fields", {}).get("url_privacy")
+            if isinstance(job.get("extra_fields"), dict)
+            else None,
+        )
+        resolved_urls = _attach_reputation_lookup_urls(
+            resolved_urls,
+            job.get("extra_fields", {}).get("reputation_lookup_urls")
+            if isinstance(job.get("extra_fields"), dict)
+            else None,
+        )
+        resolved_urls = _attach_reputation_lookup_hashes(
+            resolved_urls,
+            job.get("extra_fields", {}).get("reputation_lookup_url_hashes_by_url")
             if isinstance(job.get("extra_fields"), dict)
             else None,
         )
@@ -11502,6 +11750,8 @@ async def _refresh_orchestrated_job_impl(job: Dict[str, Any], request: Request) 
             resolved_urls,
             include_phishing_database=False,
             include_urlhaus=True,
+            include_phishtank=False,
+            include_openphish=False,
             include_scam_blocklist_nrd=False,
             include_phishdestroy=False,
             persist_partial=False,

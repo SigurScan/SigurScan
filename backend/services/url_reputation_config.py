@@ -12,6 +12,8 @@ from pathlib import Path
 
 WEB_RISK_SOURCE = "google_web_risk"
 PHISHING_DATABASE_SOURCE = "phishing_database"
+PHISHTANK_SOURCE = "phishtank_online_valid"
+OPENPHISH_SOURCE = "openphish"
 URLHAUS_SOURCE = "urlhaus"
 SCAM_BLOCKLIST_NRD_SOURCE = "scam_blocklist_nrd"
 PHISHDESTROY_SOURCE = "phishdestroy_destroylist"
@@ -19,6 +21,8 @@ ASF_INVESTOR_ALERTS_SOURCE = "asf_investor_alerts"
 
 WEB_RISK_WEIGHT = 60
 PHISHING_DATABASE_WEIGHT = 80
+PHISHTANK_WEIGHT = 90
+OPENPHISH_WEIGHT = 90
 URLHAUS_WEIGHT = 55
 SCAM_BLOCKLIST_NRD_WEIGHT = 70
 PHISHDESTROY_WEIGHT = 70
@@ -27,6 +31,8 @@ SOURCE_ORDER = [
     WEB_RISK_SOURCE,
     ASF_INVESTOR_ALERTS_SOURCE,
     PHISHING_DATABASE_SOURCE,
+    PHISHTANK_SOURCE,
+    OPENPHISH_SOURCE,
     URLHAUS_SOURCE,
     SCAM_BLOCKLIST_NRD_SOURCE,
     PHISHDESTROY_SOURCE,
@@ -35,6 +41,8 @@ SOURCE_ORDER = [
 SOURCE_WEIGHTS = {
     WEB_RISK_SOURCE: WEB_RISK_WEIGHT,
     PHISHING_DATABASE_SOURCE: PHISHING_DATABASE_WEIGHT,
+    PHISHTANK_SOURCE: PHISHTANK_WEIGHT,
+    OPENPHISH_SOURCE: OPENPHISH_WEIGHT,
     URLHAUS_SOURCE: URLHAUS_WEIGHT,
     SCAM_BLOCKLIST_NRD_SOURCE: SCAM_BLOCKLIST_NRD_WEIGHT,
     PHISHDESTROY_SOURCE: PHISHDESTROY_WEIGHT,
@@ -49,7 +57,7 @@ SOURCE_STATUS_WEIGHTS = {
     "error": 0.0,
 }
 
-REPUTATION_CACHE_VERSION = 6
+REPUTATION_CACHE_VERSION = 10
 ASF_INVESTOR_ALERTS_URL = os.getenv(
     "ASF_INVESTOR_ALERTS_URL",
     "https://asfromania.ro/ro/a/19/alerte-investitori---informari",
@@ -62,7 +70,24 @@ PHISHING_DATABASE_LINKS_URL = os.getenv(
     "PHISHING_DATABASE_LINKS_URL",
     "https://phish.co.za/latest/phishing-links-ACTIVE.txt",
 )
+PHISHTANK_ONLINE_VALID_URL = os.getenv(
+    "PHISHTANK_ONLINE_VALID_URL",
+    "https://data.phishtank.com/data/online-valid.csv",
+)
+PHISHTANK_ONLINE_VALID_BZ2_URL = os.getenv(
+    "PHISHTANK_ONLINE_VALID_BZ2_URL",
+    "https://data.phishtank.com/data/online-valid.csv.bz2",
+)
+PHISHTANK_ONLINE_VALID_GZ_URL = os.getenv(
+    "PHISHTANK_ONLINE_VALID_GZ_URL",
+    "https://data.phishtank.com/data/online-valid.csv.gz",
+)
+OPENPHISH_FEED_URL = os.getenv("OPENPHISH_FEED_URL", "https://openphish.com/feed.txt")
 URLHAUS_API_URL = "https://urlhaus-api.abuse.ch/v1/url/"
+URLHAUS_RECENT_CSV_URL = os.getenv(
+    "URLHAUS_RECENT_CSV_URL",
+    "https://urlhaus.abuse.ch/downloads/csv_recent/",
+)
 SCAM_BLOCKLIST_NRD_URL = os.getenv(
     "SCAM_BLOCKLIST_NRD_URL",
     "https://raw.githubusercontent.com/jarelllama/Scam-Blocklist/main/lists/wildcard_domains/scams.txt",
@@ -76,6 +101,13 @@ PHISHDESTROY_API_URL = os.getenv("PHISHDESTROY_API_URL", "https://api.destroy.to
 PHISHDESTROY_LICENSE = "MIT"
 PHISHING_DATABASE_TIMEOUT_SECONDS = float(os.getenv("PHISHING_DATABASE_TIMEOUT_SECONDS", "4.0"))
 PHISHING_DATABASE_FEED_TTL_SECONDS = int(os.getenv("PHISHING_DATABASE_FEED_TTL_SECONDS", "3600"))
+PHISHTANK_TIMEOUT_SECONDS = float(os.getenv("PHISHTANK_TIMEOUT_SECONDS", "6.0"))
+PHISHTANK_FEED_TTL_SECONDS = int(os.getenv("PHISHTANK_FEED_TTL_SECONDS", "3600"))
+OPENPHISH_FEED_TTL_SECONDS = int(os.getenv("OPENPHISH_FEED_TTL_SECONDS", "1800"))
+PHISHTANK_USER_AGENT = os.getenv(
+    "PHISHTANK_USER_AGENT",
+    "SigurScan/1.0 phishing-defense; contact=sigurscan@sigurscan.com",
+)
 SCAM_BLOCKLIST_NRD_TIMEOUT_SECONDS = float(os.getenv("SCAM_BLOCKLIST_NRD_TIMEOUT_SECONDS", "4.0"))
 SCAM_BLOCKLIST_NRD_FEED_TTL_SECONDS = int(os.getenv("SCAM_BLOCKLIST_NRD_FEED_TTL_SECONDS", "21600"))
 PHISHDESTROY_TIMEOUT_SECONDS = float(os.getenv("PHISHDESTROY_TIMEOUT_SECONDS", "4.0"))
@@ -83,12 +115,25 @@ PHISHDESTROY_FEED_TTL_SECONDS = int(os.getenv("PHISHDESTROY_FEED_TTL_SECONDS", "
 ASF_INVESTOR_ALERTS_TIMEOUT_SECONDS = float(os.getenv("ASF_INVESTOR_ALERTS_TIMEOUT_SECONDS", "4.0"))
 ASF_INVESTOR_ALERTS_FEED_TTL_SECONDS = int(os.getenv("ASF_INVESTOR_ALERTS_FEED_TTL_SECONDS", "21600"))
 URLHAUS_TIMEOUT_SECONDS = float(os.getenv("URLHAUS_TIMEOUT_SECONDS", "3.0"))
+URLHAUS_RECENT_FEED_TTL_SECONDS = int(os.getenv("URLHAUS_RECENT_FEED_TTL_SECONDS", "1800"))
 URLHAUS_AUTH_KEY = (
     os.getenv("URLHAUS_AUTH_KEY", "").strip()
     or os.getenv("URLHAUS_API_KEY", "").strip()
     or os.getenv("ABUSECH_AUTH_KEY", "").strip()
 )
 ENABLE_PHISHING_DATABASE = os.getenv("ENABLE_PHISHING_DATABASE", "true").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+ENABLE_PHISHTANK = os.getenv("ENABLE_PHISHTANK", "true").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+ENABLE_OPENPHISH = os.getenv("ENABLE_OPENPHISH", "true").strip().lower() in {
     "1",
     "true",
     "yes",
@@ -113,9 +158,12 @@ ENABLE_ASF_INVESTOR_ALERTS = os.getenv("ENABLE_ASF_INVESTOR_ALERTS", "true").str
     "on",
 }
 PHISHING_DATABASE_MAX_FEED_BYTES = int(os.getenv("PHISHING_DATABASE_MAX_FEED_BYTES", "20000000"))
+PHISHTANK_MAX_FEED_BYTES = int(os.getenv("PHISHTANK_MAX_FEED_BYTES", "25000000"))
+OPENPHISH_MAX_FEED_BYTES = int(os.getenv("OPENPHISH_MAX_FEED_BYTES", "8000000"))
 SCAM_BLOCKLIST_NRD_MAX_FEED_BYTES = int(os.getenv("SCAM_BLOCKLIST_NRD_MAX_FEED_BYTES", "30000000"))
 PHISHDESTROY_MAX_FEED_BYTES = int(os.getenv("PHISHDESTROY_MAX_FEED_BYTES", "10000000"))
 ASF_INVESTOR_ALERTS_MAX_FEED_BYTES = int(os.getenv("ASF_INVESTOR_ALERTS_MAX_FEED_BYTES", "1500000"))
+URLHAUS_RECENT_MAX_FEED_BYTES = int(os.getenv("URLHAUS_RECENT_MAX_FEED_BYTES", "12000000"))
 
 DEFAULT_CACHE_TTL_SECONDS = int(os.getenv("URL_REPUTATION_CACHE_TTL_SECONDS", "43200"))
 MAX_REPUTATION_URLS = int(os.getenv("MAX_REPUTATION_URLS", "60"))

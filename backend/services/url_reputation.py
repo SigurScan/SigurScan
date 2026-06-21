@@ -7,8 +7,12 @@ This module performs:
 - aggregated verdict/reputation payload used by ScamAtlas.
 """
 
+import bz2
+import csv
+import gzip
 import hashlib
 import html
+import io
 import json
 import os
 import re
@@ -28,12 +32,16 @@ from services.google_web_risk import check_urls_against_web_risk, has_web_risk_k
 from services.url_reputation_config import (
     WEB_RISK_SOURCE,
     PHISHING_DATABASE_SOURCE,
+    PHISHTANK_SOURCE,
+    OPENPHISH_SOURCE,
     URLHAUS_SOURCE,
     SCAM_BLOCKLIST_NRD_SOURCE,
     PHISHDESTROY_SOURCE,
     ASF_INVESTOR_ALERTS_SOURCE,
     WEB_RISK_WEIGHT,
     PHISHING_DATABASE_WEIGHT,
+    PHISHTANK_WEIGHT,
+    OPENPHISH_WEIGHT,
     URLHAUS_WEIGHT,
     SCAM_BLOCKLIST_NRD_WEIGHT,
     PHISHDESTROY_WEIGHT,
@@ -45,7 +53,12 @@ from services.url_reputation_config import (
     ASF_INVESTOR_ALERTS_URL,
     PHISHING_DATABASE_DOMAINS_URL,
     PHISHING_DATABASE_LINKS_URL,
+    PHISHTANK_ONLINE_VALID_BZ2_URL,
+    PHISHTANK_ONLINE_VALID_GZ_URL,
+    PHISHTANK_ONLINE_VALID_URL,
+    OPENPHISH_FEED_URL,
     URLHAUS_API_URL,
+    URLHAUS_RECENT_CSV_URL,
     SCAM_BLOCKLIST_NRD_URL,
     SCAM_BLOCKLIST_NRD_LICENSE,
     PHISHDESTROY_URL,
@@ -53,6 +66,10 @@ from services.url_reputation_config import (
     PHISHDESTROY_LICENSE,
     PHISHING_DATABASE_TIMEOUT_SECONDS,
     PHISHING_DATABASE_FEED_TTL_SECONDS,
+    PHISHTANK_TIMEOUT_SECONDS,
+    PHISHTANK_FEED_TTL_SECONDS,
+    OPENPHISH_FEED_TTL_SECONDS,
+    PHISHTANK_USER_AGENT,
     SCAM_BLOCKLIST_NRD_TIMEOUT_SECONDS,
     SCAM_BLOCKLIST_NRD_FEED_TTL_SECONDS,
     PHISHDESTROY_TIMEOUT_SECONDS,
@@ -60,15 +77,21 @@ from services.url_reputation_config import (
     ASF_INVESTOR_ALERTS_TIMEOUT_SECONDS,
     ASF_INVESTOR_ALERTS_FEED_TTL_SECONDS,
     URLHAUS_TIMEOUT_SECONDS,
+    URLHAUS_RECENT_FEED_TTL_SECONDS,
     URLHAUS_AUTH_KEY,
     ENABLE_PHISHING_DATABASE,
+    ENABLE_PHISHTANK,
+    ENABLE_OPENPHISH,
     ENABLE_SCAM_BLOCKLIST_NRD,
     ENABLE_PHISHDESTROY,
     ENABLE_ASF_INVESTOR_ALERTS,
     PHISHING_DATABASE_MAX_FEED_BYTES,
+    PHISHTANK_MAX_FEED_BYTES,
+    OPENPHISH_MAX_FEED_BYTES,
     SCAM_BLOCKLIST_NRD_MAX_FEED_BYTES,
     PHISHDESTROY_MAX_FEED_BYTES,
     ASF_INVESTOR_ALERTS_MAX_FEED_BYTES,
+    URLHAUS_RECENT_MAX_FEED_BYTES,
     DEFAULT_CACHE_TTL_SECONDS,
     MAX_REPUTATION_URLS,
     REPUTATION_CACHE_MAX_ITEMS,
@@ -84,7 +107,24 @@ _PHISHING_DATABASE_CACHE: Dict[str, Any] = {
     "loaded_at": 0,
     "domains": set(),
     "links": set(),
+    "link_hashes": set(),
     "error": None,
+}
+_PHISHTANK_CACHE: Dict[str, Any] = {
+    "loaded_at": 0,
+    "links": set(),
+    "link_hashes": set(),
+    "metadata": {},
+    "metadata_by_hash": {},
+    "error": None,
+    "source_url": PHISHTANK_ONLINE_VALID_URL,
+}
+_OPENPHISH_CACHE: Dict[str, Any] = {
+    "loaded_at": 0,
+    "links": set(),
+    "link_hashes": set(),
+    "error": None,
+    "source_url": OPENPHISH_FEED_URL,
 }
 _SCAM_BLOCKLIST_NRD_CACHE: Dict[str, Any] = {
     "loaded_at": 0,
@@ -108,6 +148,15 @@ _ASF_INVESTOR_ALERTS_CACHE: Dict[str, Any] = {
     "source_url": ASF_INVESTOR_ALERTS_URL,
     "source_publisher": "Autoritatea de Supraveghere Financiară",
 }
+_URLHAUS_RECENT_CACHE: Dict[str, Any] = {
+    "loaded_at": 0,
+    "links": set(),
+    "link_hashes": set(),
+    "metadata": {},
+    "metadata_by_hash": {},
+    "error": None,
+    "source_url": URLHAUS_RECENT_CSV_URL,
+}
 
 
 
@@ -118,6 +167,67 @@ def _normalize_url_for_key(url: str) -> str:
 def _url_hash(url: str) -> str:
     normalized = _normalize_url_for_key(url).encode("utf-8")
     return hashlib.sha256(normalized).hexdigest()
+
+
+def reputation_url_hash_variants(url: str) -> List[str]:
+    """Return stable hashes for exact-feed matching without storing raw URLs."""
+    hashes: set[str] = set()
+    raw = _normalize_url_for_key(url)
+    if raw:
+        hashes.add(_url_hash(raw))
+    for variant in _canonical_url_variants(raw):
+        if variant:
+            hashes.add(_url_hash(variant))
+    return sorted(hashes)
+
+
+def _normalize_lookup_hashes(values: Any) -> set[str]:
+    output: set[str] = set()
+    if not isinstance(values, (list, tuple, set)):
+        return output
+    for value in values:
+        candidate = str(value or "").strip().lower()
+        if re.fullmatch(r"[a-f0-9]{64}", candidate):
+            output.add(candidate)
+    return output
+
+
+def _normalize_lookup_hash_map(values: Any) -> Dict[str, set[str]]:
+    output: Dict[str, set[str]] = {}
+    if not isinstance(values, dict):
+        return output
+    for raw_url, raw_hashes in values.items():
+        url = _normalize_url_for_key(str(raw_url or ""))
+        hashes = _normalize_lookup_hashes(raw_hashes)
+        if url and hashes:
+            output.setdefault(url, set()).update(hashes)
+            for variant in _canonical_url_variants(url):
+                output.setdefault(variant, set()).update(hashes)
+    return output
+
+
+def _lookup_hashes_for_url(
+    url: str,
+    lookup_hashes: set[str],
+    lookup_hashes_by_url: Dict[str, set[str]],
+) -> set[str]:
+    output = set(lookup_hashes)
+    normalized = _normalize_url_for_key(url)
+    if normalized in lookup_hashes_by_url:
+        output.update(lookup_hashes_by_url[normalized])
+    for variant in _canonical_url_variants(normalized):
+        output.update(lookup_hashes_by_url.get(variant, set()))
+    return output
+
+
+def _feed_link_hashes(feed: Dict[str, Any]) -> set[str]:
+    cached = feed.get("link_hashes")
+    if isinstance(cached, set):
+        return cached
+    links = feed.get("links") if isinstance(feed.get("links"), set) else set()
+    hashes = {_url_hash(link) for link in links if isinstance(link, str) and link}
+    feed["link_hashes"] = hashes
+    return hashes
 
 
 def _coerce_int(value: Any, default: int = 0) -> int:
@@ -261,6 +371,8 @@ def _cache_entry_covers_requested_sources(
     *,
     include_asf_investor_alerts: bool,
     include_phishing_database: bool,
+    include_phishtank: bool,
+    include_openphish: bool,
     include_urlhaus: bool,
     include_scam_blocklist_nrd: bool,
     include_phishdestroy: bool,
@@ -278,7 +390,11 @@ def _cache_entry_covers_requested_sources(
         required_sources.append(ASF_INVESTOR_ALERTS_SOURCE)
     if include_phishing_database and ENABLE_PHISHING_DATABASE:
         required_sources.append(PHISHING_DATABASE_SOURCE)
-    if include_urlhaus and urlhaus_key:
+    if include_phishtank and ENABLE_PHISHTANK:
+        required_sources.append(PHISHTANK_SOURCE)
+    if include_openphish and ENABLE_OPENPHISH:
+        required_sources.append(OPENPHISH_SOURCE)
+    if include_urlhaus:
         required_sources.append(URLHAUS_SOURCE)
     if include_scam_blocklist_nrd and ENABLE_SCAM_BLOCKLIST_NRD:
         required_sources.append(SCAM_BLOCKLIST_NRD_SOURCE)
@@ -549,6 +665,62 @@ def _download_text_feed(
     return content.decode("utf-8", errors="ignore")
 
 
+def _phishtank_feed_candidate_urls() -> List[str]:
+    default_csv_url = "https://data.phishtank.com/data/online-valid.csv"
+    configured_url = str(PHISHTANK_ONLINE_VALID_URL or "").strip()
+    candidates: List[str] = []
+
+    # Respect custom feeds first. For the default public feed, prefer compressed
+    # formats because the plain CSV endpoint can intermittently fail behind CDN
+    # redirects while the compressed variants remain available.
+    if configured_url and configured_url != default_csv_url:
+        candidates.append(configured_url)
+
+    candidates.extend([
+        str(PHISHTANK_ONLINE_VALID_BZ2_URL or "").strip(),
+        str(PHISHTANK_ONLINE_VALID_GZ_URL or "").strip(),
+        configured_url or default_csv_url,
+    ])
+
+    ordered: List[str] = []
+    for url in candidates:
+        if url and url not in ordered:
+            ordered.append(url)
+    return ordered
+
+
+def _decode_phishtank_feed_payload(url: str, content: bytes) -> str:
+    lower_url = url.lower()
+    if lower_url.endswith(".bz2") or content.startswith(b"BZh"):
+        content = bz2.decompress(content)
+    elif lower_url.endswith(".gz") or content.startswith(b"\x1f\x8b"):
+        content = gzip.decompress(content)
+    return content.decode("utf-8-sig", errors="ignore")
+
+
+def _download_phishtank_feed() -> str:
+    errors: List[str] = []
+    for url in _phishtank_feed_candidate_urls():
+        try:
+            response = requests.get(
+                url,
+                timeout=PHISHTANK_TIMEOUT_SECONDS,
+                headers={
+                    "User-Agent": PHISHTANK_USER_AGENT,
+                    "Cache-Control": "no-cache",
+                },
+            )
+            response.raise_for_status()
+            content = response.content[:PHISHTANK_MAX_FEED_BYTES + 1]
+            if len(content) > PHISHTANK_MAX_FEED_BYTES:
+                raise ValueError(f"feed_too_large:{url}")
+            return _decode_phishtank_feed_payload(url, content)
+        except Exception as exc:
+            errors.append(f"{url}:{type(exc).__name__}:{exc}")
+            continue
+    raise RuntimeError("phishtank_feed_unavailable:" + " | ".join(errors))
+
+
 def _feed_lines(text: str) -> set[str]:
     values: set[str] = set()
     for raw_line in text.splitlines():
@@ -626,6 +798,7 @@ def _load_phishing_database_feeds() -> Dict[str, Any]:
             "loaded_at": now,
             "domains": set(),
             "links": set(),
+            "link_hashes": set(),
             "error": "disabled",
         })
         return _PHISHING_DATABASE_CACHE
@@ -648,6 +821,7 @@ def _load_phishing_database_feeds() -> Dict[str, Any]:
             "domains_url": PHISHING_DATABASE_DOMAINS_URL,
             "links_url": PHISHING_DATABASE_LINKS_URL,
         })
+        _PHISHING_DATABASE_CACHE["link_hashes"] = _feed_link_hashes(_PHISHING_DATABASE_CACHE)
     except Exception as exc:
         # If a warm cache exists, keep using it; otherwise expose a provider error.
         if not _PHISHING_DATABASE_CACHE.get("domains") and not _PHISHING_DATABASE_CACHE.get("links"):
@@ -657,9 +831,264 @@ def _load_phishing_database_feeds() -> Dict[str, Any]:
                 "local_domains": local_domains,
                 "local_metadata": local_metadata,
                 "links": set(),
+                "link_hashes": set(),
             })
         _PHISHING_DATABASE_CACHE["error"] = str(exc)
     return _PHISHING_DATABASE_CACHE
+
+
+def _parse_phishtank_online_valid_csv(text: str) -> Dict[str, Dict[str, Any]]:
+    links: Dict[str, Dict[str, Any]] = {}
+    reader = csv.DictReader(io.StringIO(text or ""))
+    for row in reader:
+        if not isinstance(row, dict):
+            continue
+        if str(row.get("verified") or "").strip().lower() != "yes":
+            continue
+        if str(row.get("online") or "").strip().lower() != "yes":
+            continue
+        raw_url = str(row.get("url") or "").strip()
+        if not raw_url:
+            continue
+        metadata = {
+            "phish_id": str(row.get("phish_id") or "").strip(),
+            "phish_detail_url": str(row.get("phish_detail_url") or "").strip(),
+            "submission_time": str(row.get("submission_time") or "").strip(),
+            "verification_time": str(row.get("verification_time") or "").strip(),
+            "target": str(row.get("target") or "").strip(),
+        }
+        for variant in _canonical_url_variants(raw_url):
+            links[variant] = metadata
+    return links
+
+
+def _load_phishtank_online_valid_feed() -> Dict[str, Any]:
+    now = int(time.time())
+    cached_at = _coerce_int(_PHISHTANK_CACHE.get("loaded_at", 0), 0)
+    if cached_at and now - cached_at < PHISHTANK_FEED_TTL_SECONDS:
+        return _PHISHTANK_CACHE
+
+    if not ENABLE_PHISHTANK:
+        _PHISHTANK_CACHE.update({
+            "loaded_at": now,
+            "links": set(),
+            "link_hashes": set(),
+            "metadata": {},
+            "metadata_by_hash": {},
+            "error": "disabled",
+            "source_url": PHISHTANK_ONLINE_VALID_URL,
+        })
+        return _PHISHTANK_CACHE
+
+    try:
+        text = _download_phishtank_feed()
+        parsed = _parse_phishtank_online_valid_csv(text)
+        _PHISHTANK_CACHE.update({
+            "loaded_at": now,
+            "links": set(parsed.keys()),
+            "link_hashes": {_url_hash(link) for link in parsed.keys()},
+            "metadata": parsed,
+            "metadata_by_hash": {_url_hash(link): metadata for link, metadata in parsed.items()},
+            "error": None,
+            "source_url": PHISHTANK_ONLINE_VALID_URL,
+        })
+    except Exception as exc:
+        if not _PHISHTANK_CACHE.get("links"):
+            _PHISHTANK_CACHE.update({
+                "loaded_at": now,
+                "links": set(),
+                "link_hashes": set(),
+                "metadata": {},
+                "metadata_by_hash": {},
+                "source_url": PHISHTANK_ONLINE_VALID_URL,
+            })
+        _PHISHTANK_CACHE["error"] = str(exc)
+    return _PHISHTANK_CACHE
+
+
+def _download_openphish_feed() -> str:
+    return _download_text_feed(
+        OPENPHISH_FEED_URL,
+        timeout_seconds=PHISHING_DATABASE_TIMEOUT_SECONDS,
+        max_bytes=OPENPHISH_MAX_FEED_BYTES,
+    )
+
+
+def _load_openphish_feed() -> Dict[str, Any]:
+    now = int(time.time())
+    cached_at = _coerce_int(_OPENPHISH_CACHE.get("loaded_at", 0), 0)
+    if cached_at and now - cached_at < OPENPHISH_FEED_TTL_SECONDS:
+        return _OPENPHISH_CACHE
+
+    if not ENABLE_OPENPHISH:
+        _OPENPHISH_CACHE.update({
+            "loaded_at": now,
+            "links": set(),
+            "link_hashes": set(),
+            "error": "disabled",
+            "source_url": OPENPHISH_FEED_URL,
+        })
+        return _OPENPHISH_CACHE
+
+    try:
+        links: set[str] = set()
+        for raw_line in _download_openphish_feed().splitlines():
+            raw_url = raw_line.strip()
+            if not raw_url or raw_url.startswith("#"):
+                continue
+            for variant in _canonical_url_variants(raw_url):
+                links.add(variant)
+        _OPENPHISH_CACHE.update({
+            "loaded_at": now,
+            "links": links,
+            "link_hashes": {_url_hash(link) for link in links},
+            "error": None,
+            "source_url": OPENPHISH_FEED_URL,
+        })
+    except Exception as exc:
+        if not _OPENPHISH_CACHE.get("links"):
+            _OPENPHISH_CACHE.update({
+                "loaded_at": now,
+                "links": set(),
+                "link_hashes": set(),
+                "source_url": OPENPHISH_FEED_URL,
+            })
+        _OPENPHISH_CACHE["error"] = str(exc)
+    return _OPENPHISH_CACHE
+
+
+def _fetch_openphish(urls: List[str]) -> Dict[str, Dict[str, Any]]:
+    output: Dict[str, Dict[str, Any]] = {}
+    start = time.perf_counter()
+    feed = _load_openphish_feed()
+    query_ms = int((time.perf_counter() - start) * 1000)
+    links = feed.get("links") if isinstance(feed.get("links"), set) else set()
+    error = feed.get("error")
+    source_url = str(feed.get("source_url") or OPENPHISH_FEED_URL)
+
+    for url in urls:
+        key = _url_hash(url)
+        if error and not links:
+            output[key] = {
+                "status": "unknown" if error == "disabled" else "error",
+                "consulted": False if error == "disabled" else True,
+                "threat_type": "unknown" if error == "disabled" else "error",
+                "score": 0,
+                "details": {"status": str(error), "provider": OPENPHISH_SOURCE, "source_url": source_url},
+                "query_ms": query_ms,
+            }
+            continue
+
+        matched_link = next((variant for variant in _canonical_url_variants(url) if variant in links), None)
+        if matched_link:
+            output[key] = {
+                "status": "malicious",
+                "consulted": True,
+                "threat_type": "phishing",
+                "score": 95,
+                "details": {
+                    "provider": OPENPHISH_SOURCE,
+                    "status": "listed_active",
+                    "match_type": "url",
+                    "matched_value": matched_link,
+                    "links_loaded": len(links),
+                    "feed_version_loaded_at": _coerce_int(feed.get("loaded_at", 0), 0),
+                    "source_url": source_url,
+                },
+                "query_ms": query_ms,
+            }
+            continue
+
+        output[key] = {
+            "status": "clean",
+            "consulted": True,
+            "threat_type": "unknown",
+            "score": 0,
+            "details": {
+                "status": "not_listed",
+                "provider": OPENPHISH_SOURCE,
+                "links_loaded": len(links),
+                "source_url": source_url,
+            },
+            "query_ms": query_ms,
+        }
+    return output
+
+
+def _download_urlhaus_recent_feed() -> str:
+    return _download_text_feed(
+        URLHAUS_RECENT_CSV_URL,
+        timeout_seconds=URLHAUS_TIMEOUT_SECONDS,
+        max_bytes=URLHAUS_RECENT_MAX_FEED_BYTES,
+    )
+
+
+def _parse_urlhaus_recent_csv(text: str) -> Dict[str, Dict[str, Any]]:
+    cleaned_lines: List[str] = []
+    for raw_line in (text or "").splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        if line.startswith("# id,"):
+            cleaned_lines.append(line[2:])
+            continue
+        if line.startswith("#"):
+            continue
+        cleaned_lines.append(raw_line)
+
+    links: Dict[str, Dict[str, Any]] = {}
+    reader = csv.DictReader(cleaned_lines)
+    for row in reader:
+        if not isinstance(row, dict):
+            continue
+        raw_url = str(row.get("url") or "").strip()
+        if not raw_url:
+            continue
+        status = str(row.get("url_status") or "").strip().lower()
+        if status and status != "online":
+            continue
+        metadata = {
+            "dateadded": str(row.get("dateadded") or "").strip(),
+            "last_online": str(row.get("last_online") or "").strip(),
+            "threat": str(row.get("threat") or "malware_or_phishing").strip(),
+            "tags": str(row.get("tags") or "").strip(),
+            "urlhaus_link": str(row.get("urlhaus_link") or "").strip(),
+        }
+        for variant in _canonical_url_variants(raw_url):
+            links[variant] = metadata
+    return links
+
+
+def _load_urlhaus_recent_feed() -> Dict[str, Any]:
+    now = int(time.time())
+    cached_at = _coerce_int(_URLHAUS_RECENT_CACHE.get("loaded_at", 0), 0)
+    if cached_at and now - cached_at < URLHAUS_RECENT_FEED_TTL_SECONDS:
+        return _URLHAUS_RECENT_CACHE
+
+    try:
+        text = _download_urlhaus_recent_feed()
+        parsed = _parse_urlhaus_recent_csv(text)
+        _URLHAUS_RECENT_CACHE.update({
+            "loaded_at": now,
+            "links": set(parsed.keys()),
+            "link_hashes": {_url_hash(link) for link in parsed.keys()},
+            "metadata": parsed,
+            "metadata_by_hash": {_url_hash(link): metadata for link, metadata in parsed.items()},
+            "error": None,
+            "source_url": URLHAUS_RECENT_CSV_URL,
+        })
+    except Exception as exc:
+        if not _URLHAUS_RECENT_CACHE.get("links"):
+            _URLHAUS_RECENT_CACHE.update({
+                "loaded_at": now,
+                "links": set(),
+                "link_hashes": set(),
+                "metadata": {},
+                "metadata_by_hash": {},
+                "source_url": URLHAUS_RECENT_CSV_URL,
+            })
+        _URLHAUS_RECENT_CACHE["error"] = str(exc)
+    return _URLHAUS_RECENT_CACHE
 
 
 def _load_scam_blocklist_nrd_feed() -> Dict[str, Any]:
@@ -921,6 +1350,80 @@ def _fetch_phishing_database(urls: List[str]) -> Dict[str, Dict[str, Any]]:
                 "domains_loaded": len(domains),
                 "local_domains_loaded": len(local_domains),
                 "links_loaded": len(links),
+            },
+            "query_ms": query_ms,
+        }
+    return output
+
+
+def _fetch_phishtank_online_valid(urls: List[str]) -> Dict[str, Dict[str, Any]]:
+    output: Dict[str, Dict[str, Any]] = {}
+    if not ENABLE_PHISHTANK:
+        for url in urls:
+            output[_url_hash(url)] = {
+                "status": "unknown",
+                "consulted": False,
+                "threat_type": "unknown",
+                "score": 0,
+                "details": {
+                    "status": "disabled",
+                    "provider": PHISHTANK_SOURCE,
+                    "source_url": PHISHTANK_ONLINE_VALID_URL,
+                },
+                "query_ms": 0,
+            }
+        return output
+
+    start = time.perf_counter()
+    feed = _load_phishtank_online_valid_feed()
+    query_ms = int((time.perf_counter() - start) * 1000)
+    links = feed.get("links") if isinstance(feed.get("links"), set) else set()
+    metadata = feed.get("metadata") if isinstance(feed.get("metadata"), dict) else {}
+    error = feed.get("error")
+    source_url = str(feed.get("source_url") or PHISHTANK_ONLINE_VALID_URL)
+
+    for url in urls:
+        key = _url_hash(url)
+        if error and not links:
+            output[key] = {
+                "status": "error",
+                "threat_type": "error",
+                "score": 0,
+                "details": {"error": str(error), "provider": PHISHTANK_SOURCE, "source_url": source_url},
+                "query_ms": query_ms,
+            }
+            continue
+
+        matched_link = next((variant for variant in _canonical_url_variants(url) if variant in links), None)
+        if matched_link:
+            match_metadata = metadata.get(matched_link) if isinstance(metadata.get(matched_link), dict) else {}
+            output[key] = {
+                "status": "malicious",
+                "threat_type": "phishing",
+                "score": 95,
+                "details": {
+                    "provider": PHISHTANK_SOURCE,
+                    "status": "verified_online",
+                    "match_type": "url",
+                    "matched_value": matched_link,
+                    "links_loaded": len(links),
+                    "feed_version_loaded_at": _coerce_int(feed.get("loaded_at", 0), 0),
+                    "source_url": source_url,
+                    **match_metadata,
+                },
+                "query_ms": query_ms,
+            }
+            continue
+
+        output[key] = {
+            "status": "clean",
+            "threat_type": "unknown",
+            "score": 0,
+            "details": {
+                "status": "not_listed",
+                "provider": PHISHTANK_SOURCE,
+                "links_loaded": len(links),
+                "source_url": source_url,
             },
             "query_ms": query_ms,
         }
@@ -1189,15 +1692,69 @@ def _urlhaus_auth_key() -> str:
 def _fetch_urlhaus(urls: List[str], auth_key: Optional[str] = None) -> Dict[str, Dict[str, Any]]:
     output: Dict[str, Dict[str, Any]] = {}
     auth_key = (auth_key if auth_key is not None else _urlhaus_auth_key()).strip()
+
+    recent_feed: Dict[str, Any] = {}
+    recent_links: set[str] = set()
+    recent_metadata: Dict[str, Any] = {}
+    recent_query_ms = 0
+    if not auth_key:
+        start = time.perf_counter()
+        recent_feed = _load_urlhaus_recent_feed()
+        recent_query_ms = int((time.perf_counter() - start) * 1000)
+        recent_links = recent_feed.get("links") if isinstance(recent_feed.get("links"), set) else set()
+        recent_metadata = recent_feed.get("metadata") if isinstance(recent_feed.get("metadata"), dict) else {}
+
     for url in urls:
         key = _url_hash(url)
         if not auth_key:
+            feed_error = recent_feed.get("error")
+            source_url = str(recent_feed.get("source_url") or URLHAUS_RECENT_CSV_URL)
+            if feed_error and not recent_links:
+                output[key] = {
+                    "status": "error",
+                    "consulted": True,
+                    "threat_type": "error",
+                    "score": 0,
+                    "details": {"error": str(feed_error), "provider": "urlhaus", "source_url": source_url},
+                    "query_ms": recent_query_ms,
+                }
+                continue
+
+            matched_link = next((variant for variant in _canonical_url_variants(url) if variant in recent_links), None)
+            if matched_link:
+                match_metadata = recent_metadata.get(matched_link) if isinstance(recent_metadata.get(matched_link), dict) else {}
+                threat_type = str(match_metadata.get("threat") or "malware_or_phishing")
+                output[key] = {
+                    "status": "malicious",
+                    "consulted": True,
+                    "threat_type": threat_type,
+                    "score": 85,
+                    "details": {
+                        "status": "listed_online",
+                        "provider": "urlhaus",
+                        "match_type": "recent_feed_url",
+                        "matched_value": matched_link,
+                        "links_loaded": len(recent_links),
+                        "feed_version_loaded_at": _coerce_int(recent_feed.get("loaded_at", 0), 0),
+                        "source_url": source_url,
+                        **match_metadata,
+                    },
+                    "query_ms": recent_query_ms,
+                }
+                continue
+
             output[key] = {
-                "status": "unknown",
+                "status": "clean",
+                "consulted": True,
                 "threat_type": "unknown",
                 "score": 0,
-                "details": {"status": "not_configured", "provider": "urlhaus"},
-                "query_ms": 0,
+                "details": {
+                    "status": "not_listed_recent_feed",
+                    "provider": "urlhaus",
+                    "links_loaded": len(recent_links),
+                    "source_url": source_url,
+                },
+                "query_ms": recent_query_ms,
             }
             continue
         output[key] = {
@@ -1219,6 +1776,7 @@ def _fetch_urlhaus(urls: List[str], auth_key: Optional[str] = None) -> Dict[str,
             if response.status_code != 200:
                 output[key] = {
                     "status": "error",
+                    "consulted": True,
                     "threat_type": "error",
                     "score": 0,
                     "details": {"error": f"HTTP {response.status_code}"},
@@ -1231,18 +1789,21 @@ def _fetch_urlhaus(urls: List[str], auth_key: Optional[str] = None) -> Dict[str,
             if not parsed:
                 output[key] = {
                     "status": "clean",
+                    "consulted": True,
                     "threat_type": "unknown",
                     "score": 0,
-                    "details": {"status": "not_listed"},
+                    "details": {"status": "not_listed", "provider": "urlhaus"},
                     "query_ms": query_ms,
                 }
                 continue
 
             output[key] = {
                 "status": parsed.get("status", "unknown"),
+                "consulted": True,
                 "threat_type": parsed.get("threat_type", "unknown"),
                 "score": 85 if parsed.get("status") == "malicious" else 45,
                 "details": {
+                    "provider": "urlhaus",
                     "status": parsed.get("status"),
                     "last_seen": parsed.get("last_seen"),
                     "comment": parsed.get("details", ""),
@@ -1252,9 +1813,10 @@ def _fetch_urlhaus(urls: List[str], auth_key: Optional[str] = None) -> Dict[str,
         except Exception as exc:
             output[key] = {
                 "status": "error",
+                "consulted": True,
                 "threat_type": "error",
                 "score": 0,
-                "details": {"error": str(exc)},
+                "details": {"error": str(exc), "provider": "urlhaus"},
                 "query_ms": 0,
             }
 
@@ -1327,15 +1889,69 @@ def _aggregate_reputation(url: str, per_source: Dict[str, Dict[str, Any]]) -> Di
     }
 
 
+def _provider_hash_lookup_matches(
+    urls: List[str],
+    *,
+    lookup_hashes: set[str],
+    lookup_hashes_by_url: Dict[str, set[str]],
+    feed: Dict[str, Any],
+    provider: str,
+    status: str,
+    threat_type: str,
+    score: int,
+    source_url: str,
+    source_status: str,
+    match_type: str = "url_hash",
+    metadata_by_hash_key: str = "metadata_by_hash",
+    query_ms: int = 0,
+    extra_details: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Dict[str, Any]]:
+    output: Dict[str, Dict[str, Any]] = {}
+    link_hashes = _feed_link_hashes(feed)
+    if not link_hashes:
+        return output
+    metadata_by_hash = feed.get(metadata_by_hash_key) if isinstance(feed.get(metadata_by_hash_key), dict) else {}
+    loaded_at = _coerce_int(feed.get("loaded_at", 0), 0)
+    for url in urls:
+        candidate_hashes = _lookup_hashes_for_url(url, lookup_hashes, lookup_hashes_by_url)
+        matched_hash = next((value for value in sorted(candidate_hashes) if value in link_hashes), None)
+        if not matched_hash:
+            continue
+        match_metadata = metadata_by_hash.get(matched_hash) if isinstance(metadata_by_hash.get(matched_hash), dict) else {}
+        output[_url_hash(url)] = {
+            "status": status,
+            "consulted": True,
+            "threat_type": threat_type,
+            "score": score,
+            "details": {
+                "provider": provider,
+                "status": source_status,
+                "match_type": match_type,
+                "matched_value_hash": matched_hash,
+                "links_loaded": len(link_hashes),
+                "feed_version_loaded_at": loaded_at,
+                "source_url": source_url,
+                **(extra_details or {}),
+                **match_metadata,
+            },
+            "query_ms": query_ms,
+        }
+    return output
+
+
 def get_reputation_for_urls(
     urls: List[str],
     *,
     include_asf_investor_alerts: bool = True,
     include_phishing_database: bool = True,
+    include_phishtank: bool = True,
+    include_openphish: bool = True,
     include_urlhaus: bool = True,
     include_scam_blocklist_nrd: bool = False,
     include_phishdestroy: bool = False,
     persist_partial: bool = False,
+    lookup_url_hashes: Optional[List[str]] = None,
+    lookup_url_hashes_by_url: Optional[Dict[str, List[str]]] = None,
 ) -> Dict[str, Dict[str, Any]]:
     """
     Return reputation info for URLs.
@@ -1357,6 +1973,8 @@ def get_reputation_for_urls(
         return {}
 
     normalized_urls = list(dict.fromkeys(normalized_urls))[:MAX_REPUTATION_URLS]
+    scan_lookup_hashes = _normalize_lookup_hashes(lookup_url_hashes)
+    scan_lookup_hashes_by_url = _normalize_lookup_hash_map(lookup_url_hashes_by_url)
     cache = _load_cache(REPUTATION_CACHE_PATH)
     now = int(time.time())
     results: Dict[str, Dict[str, Any]] = {}
@@ -1367,6 +1985,10 @@ def get_reputation_for_urls(
 
     for url in normalized_urls:
         key = _url_hash(url)
+        url_specific_hashes = _lookup_hashes_for_url(url, scan_lookup_hashes, scan_lookup_hashes_by_url)
+        if url_specific_hashes:
+            need_fetch.append(url)
+            continue
         cached_entry = _load_cache_entry(cache, url)
         if (
             cached_entry is not None
@@ -1375,6 +1997,8 @@ def get_reputation_for_urls(
                 cached_entry,
                 include_asf_investor_alerts=include_asf_investor_alerts,
                 include_phishing_database=bool(include_phishing_database),
+                include_phishtank=bool(include_phishtank),
+                include_openphish=bool(include_openphish),
                 include_urlhaus=include_urlhaus,
                 include_scam_blocklist_nrd=include_scam_blocklist_nrd,
                 include_phishdestroy=include_phishdestroy,
@@ -1392,19 +2016,98 @@ def get_reputation_for_urls(
             _fetch_asf_investor_alerts(need_fetch) if include_asf_investor_alerts else {}
         )
         phishing_database_matches = _fetch_phishing_database(need_fetch) if include_phishing_database else {}
+        phishtank_matches = _fetch_phishtank_online_valid(need_fetch) if include_phishtank else {}
+        openphish_matches = _fetch_openphish(need_fetch) if include_openphish else {}
         urlhaus_matches = _fetch_urlhaus(need_fetch, urlhaus_key) if include_urlhaus else {}
         scam_blocklist_nrd_matches = (
             _fetch_scam_blocklist_nrd(need_fetch) if include_scam_blocklist_nrd else {}
         )
         phishdestroy_matches = _fetch_phishdestroy(need_fetch) if include_phishdestroy else {}
-        should_persist_results = persist_partial or (
+        if scan_lookup_hashes or scan_lookup_hashes_by_url:
+            if include_phishing_database:
+                start = time.perf_counter()
+                phishing_feed = _load_phishing_database_feeds()
+                phishing_hash_matches = _provider_hash_lookup_matches(
+                    need_fetch,
+                    lookup_hashes=scan_lookup_hashes,
+                    lookup_hashes_by_url=scan_lookup_hashes_by_url,
+                    feed=phishing_feed,
+                    provider=PHISHING_DATABASE_SOURCE,
+                    status="malicious",
+                    threat_type="phishing",
+                    score=92,
+                    source_url=str(phishing_feed.get("links_url") or PHISHING_DATABASE_LINKS_URL),
+                    source_status="listed",
+                    query_ms=int((time.perf_counter() - start) * 1000),
+                )
+                phishing_database_matches.update(phishing_hash_matches)
+            if include_phishtank and ENABLE_PHISHTANK:
+                start = time.perf_counter()
+                phishtank_feed = _load_phishtank_online_valid_feed()
+                phishtank_hash_matches = _provider_hash_lookup_matches(
+                    need_fetch,
+                    lookup_hashes=scan_lookup_hashes,
+                    lookup_hashes_by_url=scan_lookup_hashes_by_url,
+                    feed=phishtank_feed,
+                    provider=PHISHTANK_SOURCE,
+                    status="malicious",
+                    threat_type="phishing",
+                    score=95,
+                    source_url=str(phishtank_feed.get("source_url") or PHISHTANK_ONLINE_VALID_URL),
+                    source_status="verified_online",
+                    query_ms=int((time.perf_counter() - start) * 1000),
+                )
+                phishtank_matches.update(phishtank_hash_matches)
+            if include_openphish and ENABLE_OPENPHISH:
+                start = time.perf_counter()
+                openphish_feed = _load_openphish_feed()
+                openphish_hash_matches = _provider_hash_lookup_matches(
+                    need_fetch,
+                    lookup_hashes=scan_lookup_hashes,
+                    lookup_hashes_by_url=scan_lookup_hashes_by_url,
+                    feed=openphish_feed,
+                    provider=OPENPHISH_SOURCE,
+                    status="malicious",
+                    threat_type="phishing",
+                    score=95,
+                    source_url=str(openphish_feed.get("source_url") or OPENPHISH_FEED_URL),
+                    source_status="listed_active",
+                    query_ms=int((time.perf_counter() - start) * 1000),
+                )
+                openphish_matches.update(openphish_hash_matches)
+            if include_urlhaus:
+                start = time.perf_counter()
+                urlhaus_recent_feed = _load_urlhaus_recent_feed()
+                urlhaus_hash_matches = _provider_hash_lookup_matches(
+                    need_fetch,
+                    lookup_hashes=scan_lookup_hashes,
+                    lookup_hashes_by_url=scan_lookup_hashes_by_url,
+                    feed=urlhaus_recent_feed,
+                    provider=URLHAUS_SOURCE,
+                    status="malicious",
+                    threat_type="malware_or_phishing",
+                    score=85,
+                    source_url=str(urlhaus_recent_feed.get("source_url") or URLHAUS_RECENT_CSV_URL),
+                    source_status="listed_online",
+                    match_type="recent_feed_url_hash",
+                    query_ms=int((time.perf_counter() - start) * 1000),
+                )
+                urlhaus_matches.update(urlhaus_hash_matches)
+
+        should_persist_results = (
+            not (scan_lookup_hashes or scan_lookup_hashes_by_url)
+        ) and (persist_partial or (
             (not include_asf_investor_alerts or ENABLE_ASF_INVESTOR_ALERTS)
             and
             bool(include_phishing_database)
+            and bool(include_phishtank)
+            and bool(include_openphish)
             and include_urlhaus
+            and (not include_phishtank or ENABLE_PHISHTANK)
+            and (not include_openphish or ENABLE_OPENPHISH)
             and (not include_scam_blocklist_nrd or ENABLE_SCAM_BLOCKLIST_NRD)
             and (not include_phishdestroy or ENABLE_PHISHDESTROY)
-        )
+        ))
 
         for url in need_fetch:
             key = _url_hash(url)
@@ -1464,6 +2167,53 @@ def get_reputation_for_urls(
                 "query_ms": _coerce_int(phishing_database_entry.get("query_ms", 0), 0),
             }
 
+            phishtank_entry = phishtank_matches.get(key, {
+                "status": "unknown" if not include_phishtank else "error",
+                "threat_type": "unknown" if not include_phishtank else "error",
+                "score": 0,
+                "details": {
+                    "status": (
+                        "disabled"
+                        if include_phishtank and not ENABLE_PHISHTANK
+                        else ("skipped_fast_scan" if not include_phishtank else "not_scanned")
+                    ),
+                    "provider": PHISHTANK_SOURCE,
+                },
+                "query_ms": 0,
+            })
+            per_source[PHISHTANK_SOURCE] = {
+                "status": phishtank_entry.get("status", "unknown"),
+                "consulted": bool(include_phishtank and ENABLE_PHISHTANK),
+                "threat_type": phishtank_entry.get("threat_type", "unknown"),
+                "details": phishtank_entry.get("details", {}),
+                "score": _coerce_int(phishtank_entry.get("score", 0), 0),
+                "query_ms": _coerce_int(phishtank_entry.get("query_ms", 0), 0),
+            }
+
+            openphish_entry = openphish_matches.get(key, {
+                "status": "unknown" if not include_openphish else "error",
+                "consulted": False if not include_openphish else bool(ENABLE_OPENPHISH),
+                "threat_type": "unknown" if not include_openphish else "error",
+                "score": 0,
+                "details": {
+                    "status": (
+                        "disabled"
+                        if include_openphish and not ENABLE_OPENPHISH
+                        else ("skipped_fast_scan" if not include_openphish else "not_scanned")
+                    ),
+                    "provider": OPENPHISH_SOURCE,
+                },
+                "query_ms": 0,
+            })
+            per_source[OPENPHISH_SOURCE] = {
+                "status": openphish_entry.get("status", "unknown"),
+                "consulted": bool(include_openphish and openphish_entry.get("consulted", ENABLE_OPENPHISH)),
+                "threat_type": openphish_entry.get("threat_type", "unknown"),
+                "details": openphish_entry.get("details", {}),
+                "score": _coerce_int(openphish_entry.get("score", 0), 0),
+                "query_ms": _coerce_int(openphish_entry.get("query_ms", 0), 0),
+            }
+
             urlhaus_default_error = "skipped_fast_scan" if not include_urlhaus else "not_scanned"
             urlhaus_entry = urlhaus_matches.get(key, {
                 "status": "unknown" if not include_urlhaus else "error",
@@ -1474,7 +2224,7 @@ def get_reputation_for_urls(
             })
             per_source[URLHAUS_SOURCE] = {
                 "status": urlhaus_entry.get("status", "unknown"),
-                "consulted": bool(include_urlhaus and urlhaus_key),
+                "consulted": bool(include_urlhaus and urlhaus_entry.get("consulted", bool(urlhaus_key))),
                 "threat_type": urlhaus_entry.get("threat_type", "unknown"),
                 "details": urlhaus_entry.get("details", {}),
                 "score": _coerce_int(urlhaus_entry.get("score", 0), 0),
@@ -1553,6 +2303,6 @@ def get_reputation_for_urls(
             else:
                 results[key] = dict(aggregated, cached=False)
 
-    if need_fetch and (persist_partial or (bool(include_phishing_database) and include_urlhaus)):
+    if need_fetch and (persist_partial or (bool(include_phishing_database) and bool(include_phishtank) and include_urlhaus)):
         _save_cache(REPUTATION_CACHE_PATH, cache, remote_subset=updated_cache_entries)
     return results

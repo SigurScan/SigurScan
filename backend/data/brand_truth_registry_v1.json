@@ -282,7 +282,7 @@
       "display_name": "Electrica / PPC",
       "category": "utility",
       "country": "RO",
-      "official_domains": ["electrica.ro", "electrica-furnizare.ro", "ppcenergy.ro", "digital.ppcenergy.ro"],
+      "official_domains": ["electrica.ro", "electrica-furnizare.ro", "electricafurnizare.ro", "ppcenergy.ro", "digital.ppcenergy.ro"],
       "official_email_domains": ["electrica.ro", "ppcenergy.ro"],
       "official_shortcodes": [],
       "official_phones_e164": [],

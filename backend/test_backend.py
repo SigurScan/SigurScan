@@ -69,6 +69,23 @@ def _disable_live_mistral_semantic_pillar_by_default(monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _stub_phishtank_reputation_by_default(monkeypatch):
+    def clean_phishtank(urls):
+        return {
+            url_reputation._url_hash(url): {
+                "status": "clean",
+                "threat_type": "unknown",
+                "score": 0,
+                "details": {"provider": "phishtank_online_valid", "status": "not_listed"},
+                "query_ms": 1,
+            }
+            for url in urls
+        }
+
+    monkeypatch.setattr(url_reputation, "_fetch_phishtank_online_valid", clean_phishtank)
+
+
+@pytest.fixture(autouse=True)
 def _legacy_orchestrated_pacing(monkeypatch):
     """This module asserts the stage machine one stage per poll, with verdicts
     finalized only after the urlscan report. Early provisional verdicts and
@@ -358,6 +375,120 @@ def test_safe_scan_url_list_sanitizes_redirect_output_before_provider_use(monkey
     assert result["redirect_chain"][-1]["url"] == "https://destination.example/pay?ref=public"
     assert result["detected_soft_redirects"] == ["https://destination.example/pay?ref=public"]
     assert token not in serialized
+
+
+def test_orchestrated_job_keeps_reputation_lookup_path_for_opaque_url():
+    raw_url = "https://reported-phish.example/verify/AbCd1234567890EfGh"
+    safe_url = "https://reported-phish.example/"
+    payload = app_main.OrchestratedScanRequest(
+        input_type="url",
+        text=raw_url,
+        source_channel="android_native",
+    )
+
+    job = asyncio.run(app_main._create_orchestrated_job(payload))
+    expected_hashes = url_reputation.reputation_url_hash_variants(raw_url)
+
+    assert job["urls"] == [safe_url]
+    assert job["redacted_text"] == safe_url
+    assert job["extra_fields"]["reputation_lookup_urls"] == [safe_url]
+    assert job["extra_fields"]["reputation_lookup_url_hashes_by_url"][safe_url] == expected_hashes
+    assert raw_url not in json.dumps(job, ensure_ascii=False)
+
+
+def test_orchestrated_job_keeps_reputation_lookup_hashes_for_pii_url():
+    raw_url = "https://reported-phish.example/reset/ana.popescu%40gmail.com/token"
+    payload = app_main.OrchestratedScanRequest(
+        input_type="url",
+        text=raw_url,
+        source_channel="android_native",
+    )
+
+    job = asyncio.run(app_main._create_orchestrated_job(payload))
+    serialized = json.dumps(job, ensure_ascii=False)
+    expected_hashes = url_reputation.reputation_url_hash_variants(raw_url)
+
+    assert job["urls"] == ["https://reported-phish.example/"]
+    assert job["redacted_text"] == "https://reported-phish.example/"
+    assert job["extra_fields"]["reputation_lookup_urls"] == ["https://reported-phish.example/"]
+    assert job["extra_fields"]["reputation_lookup_url_hashes_by_url"]["https://reported-phish.example/"] == expected_hashes
+    assert raw_url not in serialized
+    assert "ana.popescu" not in serialized
+
+
+def test_reputation_lookup_urls_survive_resolver_sanitization(monkeypatch):
+    captured: dict[str, object] = {}
+    raw_reported_url = "https://reported-phish.example/verify/AbCd1234567890EfGh"
+    safe_origin_url = "https://reported-phish.example/"
+    expected_hashes = url_reputation.reputation_url_hash_variants(raw_reported_url)
+
+    def fake_reputation(urls, **kwargs):
+        captured["urls"] = list(urls)
+        captured["hashes_by_url"] = dict(kwargs.get("lookup_url_hashes_by_url") or {})
+        return {}
+
+    resolved_urls = [
+        {
+            "original_url": safe_origin_url,
+            "final_url": safe_origin_url,
+            "redirect_chain": [{"url": safe_origin_url}],
+        }
+    ]
+    resolved_urls = app_main._attach_reputation_lookup_urls(
+        resolved_urls,
+        [raw_reported_url],
+    )
+    resolved_urls = app_main._attach_reputation_lookup_hashes(
+        resolved_urls,
+        {raw_reported_url: expected_hashes},
+    )
+
+    with monkeypatch.context() as patched:
+        patched.setattr(app_main, "PRIVACY_SAFE_MODE", False)
+        patched.setattr(app_main, "get_reputation_for_urls", fake_reputation)
+        app_main._gather_external_intel(resolved_urls)
+
+    assert captured["urls"] == [safe_origin_url]
+    assert captured["hashes_by_url"][safe_origin_url] == expected_hashes
+
+
+def test_reputation_lookup_hashes_cover_pii_url_without_exposing_raw_url(monkeypatch):
+    captured: dict[str, object] = {}
+    raw_reported_url = "https://reported-phish.example/reset/ana.popescu%40gmail.com/token"
+    safe_origin_url = "https://reported-phish.example/"
+    expected_hashes = url_reputation.reputation_url_hash_variants(raw_reported_url)
+
+    def fake_reputation(urls, **kwargs):
+        captured["urls"] = list(urls)
+        captured["hashes_by_url"] = dict(kwargs.get("lookup_url_hashes_by_url") or {})
+        return {}
+
+    resolved_urls = [
+        {
+            "original_url": safe_origin_url,
+            "final_url": safe_origin_url,
+            "redirect_chain": [{"url": safe_origin_url}],
+        }
+    ]
+    resolved_urls = app_main._attach_reputation_lookup_urls(
+        resolved_urls,
+        [raw_reported_url],
+    )
+    resolved_urls = app_main._attach_reputation_lookup_hashes(
+        resolved_urls,
+        {safe_origin_url: expected_hashes},
+    )
+
+    with monkeypatch.context() as patched:
+        patched.setattr(app_main, "PRIVACY_SAFE_MODE", False)
+        patched.setattr(app_main, "get_reputation_for_urls", fake_reputation)
+        app_main._gather_external_intel(resolved_urls)
+
+    serialized = json.dumps(captured, ensure_ascii=False)
+    assert captured["urls"] == [safe_origin_url]
+    assert captured["hashes_by_url"][safe_origin_url] == expected_hashes
+    assert raw_reported_url not in serialized
+    assert "ana.popescu" not in serialized
 
 
 def test_safe_scan_url_list_does_not_log_sensitive_redirect_exception(monkeypatch, caplog):
@@ -1567,9 +1698,10 @@ def test_provider_gate_multi_url_official_lure_does_not_mask_phishing_link():
         "reasons": [],
         "evidence": {
             "external_intel_summary": {
-                "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
-                "phishing_database": {"status": "clean", "verdict": "clean", "consulted": True},
-                "urlhaus": {"status": "clean", "verdict": "clean", "consulted": True},
+                        "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
+                        "phishing_database": {"status": "clean", "verdict": "clean", "consulted": True},
+                        "phishtank_online_valid": {"status": "clean", "verdict": "clean", "consulted": True},
+                        "urlhaus": {"status": "clean", "verdict": "clean", "consulted": True},
             },
             "semantic_review": {
                 "status": "done",
@@ -4077,13 +4209,15 @@ def test_orchestrated_urlhaus_stage_collects_urlhaus_once(monkeypatch):
 
     assert refreshed["pipeline_stage"] == "reputation_ready"
     assert calls == [
-        {
-            "include_phishing_database": False,
-            "include_urlhaus": True,
-            "include_scam_blocklist_nrd": False,
-            "include_phishdestroy": False,
-            "persist_partial": False,
-        }
+            {
+                "include_phishing_database": False,
+                "include_urlhaus": True,
+                "include_phishtank": False,
+                "include_openphish": False,
+                "include_scam_blocklist_nrd": False,
+                "include_phishdestroy": False,
+                "persist_partial": False,
+            }
     ]
     summary = refreshed["analysis"]["evidence"]["external_intel_summary"]
     assert summary["phishing_database"]["status"] == "clean"
@@ -4653,6 +4787,7 @@ def test_orchestrated_known_official_clean_established_url_publishes_final_safe(
                 "external_intel_summary": {
                     "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
                     "phishing_database": {"status": "clean", "verdict": "clean", "consulted": True},
+                    "phishtank_online_valid": {"status": "clean", "verdict": "clean", "consulted": True},
                     "urlhaus": {"status": "clean", "verdict": "clean", "consulted": True},
                     "urlscan": {
                         "status": "clean",
@@ -6407,6 +6542,7 @@ def test_orchestrated_final_verdict_reuses_ai_explanation_cache(monkeypatch):
                 "external_intel_summary": {
                     "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
                     "phishing_database": {"status": "clean", "verdict": "clean", "consulted": True},
+                    "phishtank_online_valid": {"status": "clean", "verdict": "clean", "consulted": True},
                     "urlscan": {"status": "clean", "verdict": "clean", "consulted": True},
                 },
             },
@@ -6477,11 +6613,12 @@ def test_orchestrated_urlscan_final_url_can_downgrade_stale_structural_danger(mo
         "evidence": {
             "has_domain_mismatch": True,
             "offer_claim_verification": {"status": "inconclusive"},
-            "external_intel_summary": {
-                "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
-                "phishing_database": {"status": "clean", "verdict": "clean", "consulted": True},
-                "urlscan": {
-                    "status": "clean",
+                "external_intel_summary": {
+                    "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
+                    "phishing_database": {"status": "clean", "verdict": "clean", "consulted": True},
+                    "phishtank_online_valid": {"status": "clean", "verdict": "clean", "consulted": True},
+                    "urlscan": {
+                        "status": "clean",
                     "verdict": "No malicious classification",
                     "consulted": True,
                     "final_url": "https://apps.apple.com/us/app/yoxo-voce-internet-roaming/id1481946568",
@@ -6865,6 +7002,7 @@ def test_orchestrated_urlscan_timeout_late_malicious_report_upgrades_without_scr
                 "external_intel_summary": {
                     "google_web_risk": {"status": "clean", "verdict": "clean", "consulted": True},
                     "phishing_database": {"status": "clean", "verdict": "clean", "consulted": True},
+                    "phishtank_online_valid": {"status": "clean", "verdict": "clean", "consulted": True},
                 },
                 "offer_claim_verification": {"status": "skipped"},
                 "verdict_gate": dict(safe_gate),
@@ -7319,6 +7457,7 @@ def _clean_external_intel_for_resolved_urls(resolved_urls, *args, **kwargs):
             "sources": {
                 "google_web_risk": {"status": "clean", "consulted": True, "score": 0, "threat_type": "unknown"},
                 "phishing_database": {"status": "clean", "consulted": True, "score": 0, "threat_type": "unknown"},
+                "phishtank_online_valid": {"status": "clean", "consulted": True, "score": 0, "threat_type": "unknown"},
                 "urlscan": {"status": "clean", "consulted": True, "score": 0, "threat_type": "unknown"},
             },
         }
@@ -7337,6 +7476,7 @@ def _clean_web_risk_and_phishing_database_for_resolved_urls(resolved_urls, *args
             "sources": {
                 "google_web_risk": {"status": "clean", "consulted": True, "score": 0, "threat_type": "unknown"},
                 "phishing_database": {"status": "clean", "consulted": True, "score": 0, "threat_type": "unknown"},
+                "phishtank_online_valid": {"status": "clean", "consulted": True, "score": 0, "threat_type": "unknown"},
             },
         }
     return output
@@ -7353,6 +7493,7 @@ def _clean_web_risk_and_weak_phishing_database_for_resolved_urls(resolved_urls, 
             "risk_score": 35,
             "sources": {
                 "google_web_risk": {"status": "clean", "consulted": True, "score": 0, "threat_type": "unknown"},
+                "phishtank_online_valid": {"status": "clean", "consulted": True, "score": 0, "threat_type": "unknown"},
                 "phishing_database": {
                     "status": "suspicious",
                     "verdict": "suspicious",
@@ -7388,6 +7529,7 @@ def _clean_web_risk_and_consensus_phishing_database_for_resolved_urls(resolved_u
             "risk_score": 70,
             "sources": {
                 "google_web_risk": {"status": "clean", "consulted": True, "score": 0, "threat_type": "unknown"},
+                "phishtank_online_valid": {"status": "clean", "consulted": True, "score": 0, "threat_type": "unknown"},
                 "phishing_database": {
                     "status": "malicious",
                     "verdict": "malicious",
@@ -7459,6 +7601,7 @@ def _malicious_web_risk_and_phishing_database_for_resolved_urls(resolved_urls, *
                     "score": 90,
                     "threat_type": "malicious",
                 },
+                "phishtank_online_valid": {"status": "clean", "consulted": True, "score": 0, "threat_type": "unknown"},
             },
         }
     return output
@@ -7991,6 +8134,19 @@ def test_reputation_uses_phishing_database_feed_as_active_provider(monkeypatch, 
     )
     monkeypatch.setattr(
         url_reputation,
+        "_fetch_phishtank_online_valid",
+        lambda urls: {
+            key: {
+                "status": "clean",
+                "threat_type": "unknown",
+                "score": 0,
+                "details": {"provider": "phishtank_online_valid", "status": "not_listed"},
+                "query_ms": 1,
+            }
+        },
+    )
+    monkeypatch.setattr(
+        url_reputation,
         "_fetch_urlhaus",
         lambda urls, auth_key=None: {
             key: {
@@ -8014,16 +8170,93 @@ def test_reputation_uses_phishing_database_feed_as_active_provider(monkeypatch, 
     assert set(result[key]["sources"]) == {
         "google_web_risk",
         "asf_investor_alerts",
-        "phishing_database",
-        "urlhaus",
+            "phishing_database",
+            "phishtank_online_valid",
+            "openphish",
+            "urlhaus",
         "scam_blocklist_nrd",
         "phishdestroy_destroylist",
     }
     assert result[key]["sources"]["asf_investor_alerts"]["consulted"] is True
     assert result[key]["sources"]["asf_investor_alerts"]["status"] == "clean"
+    assert result[key]["sources"]["phishtank_online_valid"]["consulted"] is True
+    assert result[key]["sources"]["phishtank_online_valid"]["status"] == "clean"
     assert result[key]["sources"]["scam_blocklist_nrd"]["consulted"] is False
     assert result[key]["sources"]["phishdestroy_destroylist"]["consulted"] is False
     assert result[key]["verdict"] == "malicious"
+
+
+def test_external_intel_checks_original_final_and_redirect_chain_urls(monkeypatch):
+    captured = {}
+    raw_reported_url = "https://reported-phish.example/verify/AbCd1234567890EfGh"
+    safe_origin_url = "https://reported-phish.example/"
+    expected_hashes = url_reputation.reputation_url_hash_variants(raw_reported_url)
+
+    def fake_reputation(urls, **kwargs):
+        captured["urls"] = list(urls)
+        captured["hashes_by_url"] = dict(kwargs.get("lookup_url_hashes_by_url") or {})
+        return {
+            "raw-hash": {
+                "url": raw_reported_url,
+                "verdict": "malicious",
+                "risk_score": 95,
+                "sources": {
+                    "phishtank_online_valid": {
+                        "status": "malicious",
+                        "consulted": True,
+                        "score": 95,
+                        "details": {"matched_url": raw_reported_url},
+                    }
+                },
+            }
+        }
+
+    monkeypatch.setattr(app_main, "PRIVACY_SAFE_MODE", False)
+    monkeypatch.setattr(app_main, "get_reputation_for_urls", fake_reputation)
+
+    result = app_main._gather_external_intel(
+        [
+            {
+                "url": raw_reported_url,
+                "original_url": raw_reported_url,
+                "final_url": safe_origin_url,
+                "redirect_chain": [
+                    {"url": raw_reported_url},
+                    {"url": safe_origin_url},
+                    {"url": "https://clean-landing.example/"},
+                ],
+                "reputation_lookup_url_hashes_by_url": {raw_reported_url: expected_hashes},
+            }
+        ],
+        include_phishing_database=True,
+        include_phishtank=True,
+        include_urlhaus=False,
+    )
+
+    assert captured["urls"] == [
+        safe_origin_url,
+        "https://clean-landing.example/",
+    ]
+    assert captured["hashes_by_url"][safe_origin_url] == expected_hashes
+    assert raw_reported_url not in json.dumps(captured, ensure_ascii=False)
+    assert result["raw-hash"]["url"] == safe_origin_url
+    assert result["raw-hash"]["sources"]["phishtank_online_valid"]["details"]["matched_url"] == safe_origin_url
+
+
+def test_brand_truth_registry_recognizes_electrica_furnizare_official_domain():
+    result = app_main.brand_truth_registry.provenance_check(
+        claimed_brand="Electrica",
+        observed_channel="official_website",
+        observed_domain="www.electricafurnizare.ro",
+        observed_phone_e164=None,
+        sensitive_asks=[],
+        payment_method=None,
+        final_url="https://www.electricafurnizare.ro/",
+    )
+
+    assert result.manifest_id == "electrica_ppc"
+    assert result.official_match is True
+    assert result.provenance == "match"
 
 
 def test_reputation_uses_asf_investor_alerts_as_hard_provider(monkeypatch, tmp_path):
@@ -8336,18 +8569,25 @@ def test_reputation_cache_refetches_when_configured_source_was_not_consulted(mon
     assert result[key]["sources"]["urlhaus"]["consulted"] is True
 
 
-def test_urlhaus_without_auth_key_is_not_consulted(monkeypatch):
+def test_urlhaus_without_auth_key_uses_recent_public_feed(monkeypatch):
     def fail_post(*args, **kwargs):
         raise AssertionError("URLhaus must not be called without Auth-Key.")
 
     monkeypatch.setattr(url_reputation, "URLHAUS_AUTH_KEY", "")
+    monkeypatch.setattr(url_reputation, "_URLHAUS_RECENT_CACHE", {"loaded_at": 0, "links": set(), "metadata": {}, "error": None})
+    monkeypatch.setattr(
+        url_reputation,
+        "_download_urlhaus_recent_feed",
+        lambda: "# id,dateadded,url,url_status,last_online,threat,tags,urlhaus_link,reporter\n",
+    )
     monkeypatch.setattr(url_reputation.requests, "post", fail_post)
 
     result = url_reputation._fetch_urlhaus(["https://example.com/path"])
     key = url_reputation._url_hash("https://example.com/path")
 
-    assert result[key]["status"] == "unknown"
-    assert result[key]["details"]["status"] == "not_configured"
+    assert result[key]["status"] == "clean"
+    assert result[key]["consulted"] is True
+    assert result[key]["details"]["status"] == "not_listed_recent_feed"
 
 
 def test_urlhaus_uses_auth_key_header_and_form_payload(monkeypatch):
@@ -10067,6 +10307,7 @@ def test_health_reports_provider_config_without_secrets(monkeypatch):
         patched.setenv("OPENAPI_RO_API_KEY", "super-secret-openapi")
         patched.setenv("HUNTER_IO_API_KEY", "super-secret-hunter")
         patched.setenv("ENABLE_PHISHING_DATABASE", "true")
+        patched.setenv("ENABLE_PHISHTANK", "true")
         patched.setenv("ENABLE_ASF_INVESTOR_ALERTS", "true")
         patched.setenv("ENABLE_SCAM_BLOCKLIST_NRD", "true")
         patched.setenv("ENABLE_PHISHDESTROY", "true")
@@ -10079,6 +10320,7 @@ def test_health_reports_provider_config_without_secrets(monkeypatch):
     assert payload["config"]["providers"]["urlscan"]["configured"] is True
     assert payload["config"]["providers"]["google_web_risk"]["configured"] is True
     assert payload["config"]["providers"]["phishing_database"]["configured"] is True
+    assert payload["config"]["providers"]["phishtank_online_valid"]["configured"] is True
     assert payload["config"]["providers"]["asf_investor_alerts"]["configured"] is True
     assert payload["config"]["providers"]["asf_investor_alerts"]["source"] == "Autoritatea de Supraveghere Financiară"
     assert payload["config"]["providers"]["urlhaus"]["configured"] is True

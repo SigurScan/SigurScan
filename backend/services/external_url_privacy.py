@@ -173,6 +173,16 @@ def prepare_external_url(raw_url: str) -> Dict[str, Any]:
     }
 
 
+def prepare_reputation_lookup_url(raw_url: str) -> Dict[str, Any]:
+    """Return the URL form safe enough for reputation providers.
+
+    Exact active-feed matching for sensitive paths is handled by local URL hashes
+    in url_reputation.py. This function never returns a path that the privacy
+    layer classified as direct PII or an opaque secret.
+    """
+    return prepare_external_url(raw_url)
+
+
 def prepare_external_urls(raw_urls: Iterable[str]) -> tuple[List[str], List[Dict[str, Any]]]:
     safe_urls: List[str] = []
     metadata: List[Dict[str, Any]] = []
