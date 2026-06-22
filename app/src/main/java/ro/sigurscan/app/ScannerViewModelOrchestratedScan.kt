@@ -236,7 +236,8 @@ internal fun ScannerViewModel.orchestratedRequest(
     rawInput: String,
     htmlPayload: String?,
     urls: List<String>,
-    forcedInputType: String? = null
+    forcedInputType: String? = null,
+    emailAuth: Map<String, Any>? = null
 ): OrchestratedScanRequest {
     if (forcedInputType == "offer") {
         return OrchestratedScanRequest(
@@ -251,7 +252,8 @@ internal fun ScannerViewModel.orchestratedRequest(
             inputType = "email_html",
             text = rawInput,
             htmlContent = htmlPayload,
-            sourceChannel = activeEvidenceChannel(rawInput) ?: "android_html_share"
+            sourceChannel = activeEvidenceChannel(rawInput) ?: "android_html_share",
+            emailAuth = emailAuth
         )
         urls.isNotEmpty() && looksLikeUrlOnly(rawInput.trim(), urls.first()) -> OrchestratedScanRequest(
             inputType = "url",
@@ -259,9 +261,10 @@ internal fun ScannerViewModel.orchestratedRequest(
             sourceChannel = activeEvidenceChannel(rawInput) ?: "android_url_scan"
         )
         else -> OrchestratedScanRequest(
-            inputType = "text",
+            inputType = if (emailAuth != null) "email" else "text",
             text = rawInput,
-            sourceChannel = activeEvidenceChannel(rawInput) ?: "android_native"
+            sourceChannel = activeEvidenceChannel(rawInput) ?: "android_native",
+            emailAuth = emailAuth
         )
     }
 }
@@ -322,7 +325,13 @@ internal suspend fun ScannerViewModel.runBackendOrchestratedScanFromExtraction(
     stagedEvidenceText = assembledInput
     stagedEvidenceInputKind = inputKind
     stagedEvidenceChannel = channel
-    runBackendOrchestratedScan(assembledInput, htmlPayload, links, forcedInputType = forcedInputType)
+    runBackendOrchestratedScan(
+        assembledInput,
+        htmlPayload,
+        links,
+        forcedInputType = forcedInputType,
+        emailAuth = response.emailAuth
+    )
 }
 
 internal fun ScannerViewModel.providerStatesFromOrchestratedPillars(
@@ -603,12 +612,13 @@ internal suspend fun ScannerViewModel.runBackendOrchestratedScan(
     rawInput: String,
     htmlPayload: String?,
     urls: List<String>,
-    forcedInputType: String? = null
+    forcedInputType: String? = null,
+    emailAuth: Map<String, Any>? = null
 ) {
     val cacheMaterial = if (forcedInputType.isNullOrBlank()) rawInput else "input_type=$forcedInputType\n$rawInput"
     val resultCacheKey = scanResultCacheKey(cacheMaterial, htmlPayload, urls)
     val preliminary = startBackendOrchestratedPendingAssessment(rawInput, urls)
-    var response = scanStartApi.startOrchestratedScan(orchestratedRequest(rawInput, htmlPayload, urls, forcedInputType))
+    var response = scanStartApi.startOrchestratedScan(orchestratedRequest(rawInput, htmlPayload, urls, forcedInputType, emailAuth))
     publishOrchestratedResponse(response, rawInput, urls, preliminary?.scanId, resultCacheKey)
 
     val pollingDeadlineNanos = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(ORCHESTRATED_POLLING_BUDGET_MILLIS)

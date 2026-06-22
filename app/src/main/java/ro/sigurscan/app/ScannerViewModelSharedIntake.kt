@@ -307,37 +307,87 @@ fun ScannerViewModel.onFilePicked(uri: Uri, context: Context) {
         return
     }
 
-    if (importKind == FileImportKind.HTML || importKind == FileImportKind.EMAIL) {
+    if (importKind == FileImportKind.EMAIL) {
+        // Email scan verifies sender headers (SPF/DKIM/DMARC) FIRST, then body text,
+        // then links. The header pillar needs the raw RFC822 headers, so we send the
+        // .eml to /v1/extract/email (which returns email_auth) and route through the
+        // orchestrated extraction path that threads that auth into the verdict.
         loading = true
-        loadingMsg = if (importKind == FileImportKind.HTML) "Analizăm conținutul HTML..." else "Analizăm fișierul email..."
+        loadingMsg = "Verificăm expeditorul, textul și linkurile..."
+        viewModelScope.launch {
+            var file: File? = null
+            try {
+                file = uriToFile(uri, context, ScannerViewModel.MAX_UPLOAD_BYTES)
+                val requestFile = file.asRequestBody("message/rfc822".toMediaTypeOrNull())
+                val body = MultipartBody.Part.createFormData(
+                    "email_file",
+                    fileName.ifBlank { "email.eml" },
+                    requestFile
+                )
+                val source = "android_email_upload".toRequestBody("text/plain".toMediaTypeOrNull())
+                val response = uploadApi.extractEmail(body, source)
+                runBackendOrchestratedScanFromExtraction(
+                    response = response,
+                    fileName = fileName,
+                    inputKind = "import_email",
+                    channel = "email_file"
+                )
+            } catch (e: Exception) {
+                // Backend unreachable / invalid .eml: fall back to local parse
+                // (no sender-auth pillar, but text + links still verified).
+                runCatching {
+                    val rawContent = readTextFromUri(uri, context)
+                    val parsedEmail = EmailMessageParser.parse(rawContent)
+                    val htmlContentSource = parsedEmail.htmlText.ifBlank { rawContent }
+                    val visibleMailText = parsedEmail.bodyForAnalysis.ifBlank { rawContent }
+                    val allLinks = (extractHtmlLinks(htmlContentSource) + extractUrls(rawContent))
+                        .distinct().filter { it.isNotBlank() }
+                    val finalText = MailShareInputAssembler.buildMailScanInput(
+                        sanitizeSharedText(visibleMailText), allLinks, fileName
+                    )
+                    text = finalText
+                    stagedEvidenceHtml = htmlContentSource
+                    stagedEvidenceLinks = allLinks
+                    stagedEvidenceText = finalText
+                    stagedEvidenceInputKind = "import_email"
+                    stagedEvidenceChannel = "email_file"
+                    onScanClick()
+                }.onFailure {
+                    text = "Eroare la citirea conținutului: $fileName"
+                    stagedEvidenceHtml = null
+                    stagedEvidenceLinks = emptyList()
+                    stagedEvidenceText = text
+                    stagedEvidenceInputKind = "import_email"
+                    stagedEvidenceChannel = "email_file"
+                    onScanClick()
+                }
+            } finally {
+                file?.delete()
+                loading = false
+                loadingMsg = ""
+            }
+        }
+        return
+    }
+
+    if (importKind == FileImportKind.HTML) {
+        loading = true
+        loadingMsg = "Analizăm conținutul HTML..."
 
         viewModelScope.launch {
             try {
                 val rawContent = readTextFromUri(uri, context)
-                val parsedEmail = if (importKind == FileImportKind.EMAIL) EmailMessageParser.parse(rawContent) else null
-
-                val htmlContentSource = if (importKind == FileImportKind.EMAIL) {
-                    parsedEmail?.htmlText?.ifBlank { rawContent } ?: rawContent
-                } else {
-                    rawContent
-                }
-                val visibleMailText = if (importKind == FileImportKind.EMAIL) {
-                    parsedEmail?.bodyForAnalysis?.ifBlank { rawContent } ?: rawContent
-                } else {
-                    rawContent
-                }
-
-                val extractedHtmlLinks = extractHtmlLinks(htmlContentSource)
+                val extractedHtmlLinks = extractHtmlLinks(rawContent)
                 val extractedUrls = extractUrls(rawContent)
-                val visibleText = sanitizeSharedText(visibleMailText)
+                val visibleText = sanitizeSharedText(rawContent)
                 val allLinks = (extractedHtmlLinks + extractedUrls).distinct().filter { it.isNotBlank() }
                 val finalText = MailShareInputAssembler.buildMailScanInput(visibleText, allLinks, fileName)
                 text = finalText
-                stagedEvidenceHtml = htmlContentSource
+                stagedEvidenceHtml = rawContent
                 stagedEvidenceLinks = allLinks
                 stagedEvidenceText = finalText
-                stagedEvidenceInputKind = if (importKind == FileImportKind.EMAIL) "import_email" else "import_html"
-                stagedEvidenceChannel = if (importKind == FileImportKind.EMAIL) "email_file" else "html_file"
+                stagedEvidenceInputKind = "import_html"
+                stagedEvidenceChannel = "html_file"
                 loading = false
                 loadingMsg = ""
                 onScanClick()
@@ -346,8 +396,8 @@ fun ScannerViewModel.onFilePicked(uri: Uri, context: Context) {
                 stagedEvidenceHtml = null
                 stagedEvidenceLinks = emptyList()
                 stagedEvidenceText = text
-                stagedEvidenceInputKind = if (importKind == FileImportKind.EMAIL) "import_email" else "import_html"
-                stagedEvidenceChannel = if (importKind == FileImportKind.EMAIL) "email_file" else "html_file"
+                stagedEvidenceInputKind = "import_html"
+                stagedEvidenceChannel = "html_file"
                 loading = false
                 loadingMsg = ""
                 onScanClick()

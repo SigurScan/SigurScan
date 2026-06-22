@@ -151,6 +151,28 @@ internal fun ScannerViewModel.invoiceImageSampleSize(width: Int, height: Int): I
     return sampleSize
 }
 
+/**
+ * Backendul (/v1/extract/image) acceptă uploadul doar dacă extensia SAU content-type-ul
+ * sunt printre {jpg, jpeg, png, webp} / {image/jpeg, image/png, image/webp}. Fișierele
+ * temporare nu au mereu extensie, iar un MIME wildcard nu e concret — trimitem MIME-ul
+ * real + un nume cu extensie corectă (validatorul de magic-bytes acceptă oricare format).
+ */
+internal fun ScannerViewModel.resolveImageUploadMeta(uri: Uri, context: Context): Pair<String, String> {
+    val rawMime = context.contentResolver.getType(uri)?.lowercase(Locale.ROOT)
+    val mime = when (rawMime) {
+        "image/png" -> "image/png"
+        "image/webp" -> "image/webp"
+        else -> "image/jpeg"
+    }
+    val ext = when (mime) {
+        "image/png" -> ".png"
+        "image/webp" -> ".webp"
+        else -> ".jpg"
+    }
+    val baseName = getFileName(uri, context).substringBeforeLast('.', "image").ifBlank { "image" }
+    return mime to "$baseName$ext"
+}
+
 internal fun ScannerViewModel.uriToFile(uri: Uri, context: Context, maxBytes: Long = ScannerViewModel.MAX_UPLOAD_BYTES): File {
     val file = File(context.cacheDir, "${ScannerViewModel.TMP_UPLOAD_PREFIX}${System.currentTimeMillis()}")
     var copiedBytes = 0L
