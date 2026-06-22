@@ -795,6 +795,19 @@ class ScannerViewModelTest {
     }
 
     @Test
+    fun offerConfirmationRoutesToOfferOrchestrationInsteadOfInvoiceUpload() {
+        val source = File("src/main/java/ro/sigurscan/app/ScannerViewModelDocumentScan.kt").readText()
+        val start = source.indexOf("fun ScannerViewModel.confirmOfferAndScan")
+        val end = source.indexOf("internal fun ScannerViewModel.normalizeOfferLinks", start)
+        assertTrue("confirmOfferAndScan must exist.", start >= 0 && end > start)
+
+        val flow = source.substring(start, end)
+        assertTrue(flow.contains("runBackendOrchestratedScan(confirmedInput"))
+        assertTrue(flow.contains("forcedInputType = \"offer\""))
+        assertFalse(flow.contains("uploadApi.scanInvoice"))
+    }
+
+    @Test
     fun imageUploadUsesCloudQrExtractorBeforeLocalOcrFallback() {
         val viewModelSource = viewModelSource()
         val imageStart = viewModelSource.indexOf("fun ScannerViewModel.onImagePicked(uri: Uri, context: Context)")
