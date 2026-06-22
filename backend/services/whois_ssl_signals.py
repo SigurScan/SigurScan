@@ -113,7 +113,7 @@ async def check_rdap(domain: str, timeout: Optional[float] = None) -> Dict[str, 
     if not domain or not isinstance(domain, str):
         return {"age_days": None, "reason": "no_domain"}
     timeout = timeout if timeout is not None else RDAP_TIMEOUT_SECONDS
-    url = f"https://rdap.org/domain/{domain}"
+    url = "https://rdap.org/domain/" + domain
     try:
         async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
             r = await client.get(url, headers={"Accept": "application/rdap+json"})
@@ -130,7 +130,7 @@ async def check_rdap(domain: str, timeout: Optional[float] = None) -> Dict[str, 
             return {"age_days": None, "reason": "unsupported_tld_federation"}
         return {"age_days": None, "registered": False, "reason": "inexistent_domain"}
     if r.status_code != 200:
-        return {"age_days": None, "reason": f"http_{r.status_code}"}
+        return {"age_days": None, "reason": "http_" + str(r.status_code)}
     try:
         data = r.json()
     except Exception:
