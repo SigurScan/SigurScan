@@ -11280,10 +11280,18 @@ async def _run_orchestrated_invoice_fast_lane(job: Dict[str, Any], request: Requ
             for item in (invoice_truth.get("hard_conflicts") or [])
             if isinstance(item, dict) and str(item.get("label") or item.get("code") or "").strip()
         ]
-        reasons = [str(display.get("message") or "Verifică factura înainte de plată.")]
-        if hard_conflicts:
-            reasons.extend(hard_conflicts[:3])
-        safe_actions = [str(next_action.get("title") or "Verifică pe canalul oficial înainte de plată.")]
+        if label == "SAFE" and str(invoice_truth.get("verdict") or "") == "VERIFY_BEFORE_PAYING":
+            reasons = [
+                "Firma și contul de plată sunt confirmate în verificările disponibile. "
+                "Nu putem confirma automat că această factură îți este destinată; "
+                "verifică suma și numărul facturii în portalul furnizorului."
+            ]
+            safe_actions = ["Verifică suma și numărul facturii în portalul furnizorului înainte de plată."]
+        else:
+            reasons = [str(display.get("message") or "Verifică factura înainte de plată.")]
+            if hard_conflicts:
+                reasons.extend(hard_conflicts[:3])
+            safe_actions = [str(next_action.get("title") or "Verifică pe canalul oficial înainte de plată.")]
     else:
         reasons = {
             "SAFE": ["Datele facturii sunt coerente și corespund unui emitent cunoscut."],

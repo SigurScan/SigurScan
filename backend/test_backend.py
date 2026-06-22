@@ -5142,6 +5142,55 @@ def test_orchestrated_invoice_uses_unredacted_text_for_payment_destination(monke
     assert payload["result"]["is_final"] is True
 
 
+def test_orchestrated_invoice_safe_label_does_not_show_verify_copy(monkeypatch):
+    client = TestClient(app_main.app)
+
+    async def fake_check_cui(cui: str):
+        from services.anaf_cui import CuiResult
+
+        return CuiResult(
+            exists=True,
+            checked=True,
+            denumire="PPC Energie S.A.",
+            activ=True,
+            data_inactivare=None,
+            platitor_tva=True,
+            enrolled_efactura=True,
+            raw=None,
+        )
+
+    with monkeypatch.context() as patched:
+        from services import invoice_orchestrator as io
+
+        app_main._ORCHESTRATED_SCAN_JOBS.clear()
+        io._verdict_cache.clear()
+        io._cui_cache.clear()
+        patched.setattr(io, "check_cui", fake_check_cui)
+        patched.setattr(app_main, "_emit_orchestrated_telemetry", lambda *args, **kwargs: None)
+        patched.setattr(app_main, "_emit_scan_event", lambda *args, **kwargs: None)
+
+        start = client.post(
+            "/v1/scan/orchestrated",
+            json={
+                "input_type": "invoice",
+                "source_channel": "android_native",
+                "text": (
+                    "Furnizor: PPC Energie S.A.\n"
+                    "CUI: RO22000460\n"
+                    "IBAN RO45 BTRL RONI NCS0 0073 9101\n"
+                    "Total 119 RON"
+                ),
+            },
+        ).json()
+        _, payload = _poll_orchestrated(client, start["scan_id"], count=3)
+
+    result = payload["result"]
+    reasons = " ".join(result["reasons"]).lower()
+    assert result["user_risk_label"] == "SAFE"
+    assert "nu putem citi suficiente date" not in reasons
+    assert "confirm" in reasons
+
+
 def test_invoice_client_payment_destination_promotes_official_document_chain():
     class Result:
         payment_destination = {
