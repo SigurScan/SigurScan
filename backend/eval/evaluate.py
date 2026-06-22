@@ -398,6 +398,24 @@ def main() -> None:
         help="Metric used to pick best threshold.",
     )
     parser.add_argument("--output", default="", help="Optional JSON output file path.")
+    parser.add_argument(
+        "--fail-under-f1",
+        type=float,
+        default=None,
+        help="Eval gate: exit non-zero if F1 is below this floor.",
+    )
+    parser.add_argument(
+        "--fail-under-precision",
+        type=float,
+        default=None,
+        help="Eval gate: exit non-zero if precision is below this floor.",
+    )
+    parser.add_argument(
+        "--fail-under-recall",
+        type=float,
+        default=None,
+        help="Eval gate: exit non-zero if recall is below this floor.",
+    )
     args = parser.parse_args()
 
     threshold_for_eval = args.risk_threshold
@@ -461,6 +479,26 @@ def main() -> None:
 
     if args.output:
         _write_output(result, Path(args.output))
+
+    # Eval gate: optionally fail the process when metrics drop below a floor.
+    gate_floors = (
+        ("F1", metrics["f1"], args.fail_under_f1),
+        ("Precision", metrics["precision"], args.fail_under_precision),
+        ("Recall", metrics["recall"], args.fail_under_recall),
+    )
+    armed = [floor for floor in gate_floors if floor[2] is not None]
+    if armed:
+        failures = [
+            f"{name} {value:.3f} < floor {floor:.3f}"
+            for name, value, floor in armed
+            if value < floor
+        ]
+        if failures:
+            print("\nEVAL GATE FAILED:")
+            for failure in failures:
+                print(f"  - {failure}")
+            sys.exit(1)
+        print("\nEVAL GATE PASSED")
 
 
 if __name__ == "__main__":

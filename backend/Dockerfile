@@ -17,6 +17,11 @@ COPY services ./services
 COPY data ./data
 COPY eval ./eval
 
+# Defense in depth: run the service as an unprivileged, non-root user.
+RUN useradd --create-home --uid 10001 --shell /usr/sbin/nologin appuser \
+    && chown -R appuser:appuser /app
+USER appuser
+
 EXPOSE 8080
 
 CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8080}"]
