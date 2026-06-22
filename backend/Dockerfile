@@ -11,7 +11,8 @@ WORKDIR /app
 COPY requirements.lock ./
 RUN pip install --root-user-action=ignore --require-hashes -r requirements.lock
 
-COPY main.py api_models.py app_config.py ./
+COPY main.py api_models.py app_config.py app_stores.py ./
+COPY routers ./routers
 COPY services ./services
 COPY data ./data
 COPY eval ./eval

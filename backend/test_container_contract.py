@@ -22,6 +22,13 @@ def test_cloud_run_container_build_is_reproducible_and_warning_free():
     assert "--hash=sha256:" in lockfile
 
 
+def test_cloud_run_image_includes_backend_modules_imported_by_main():
+    dockerfile = DOCKERFILE.read_text(encoding="utf-8")
+
+    assert "app_stores.py" in dockerfile
+    assert "COPY routers ./routers" in dockerfile
+
+
 def test_cloud_run_lockfile_covers_declared_requirements():
     requirements = REQUIREMENTS.read_text(encoding="utf-8")
     lockfile = LOCKFILE.read_text(encoding="utf-8")
