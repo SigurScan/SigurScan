@@ -157,7 +157,8 @@ data class OrchestratedScanRequest(
     val text: String? = null,
     val url: String? = null,
     @SerializedName("html_content") val htmlContent: String? = null,
-    @SerializedName("source_channel") val sourceChannel: String = "android_native"
+    @SerializedName("source_channel") val sourceChannel: String = "android_native",
+    @SerializedName("email_auth") val emailAuth: Map<String, Any>? = null
 )
 
 data class OrchestratedPillarState(

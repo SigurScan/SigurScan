@@ -136,8 +136,9 @@ fun ScannerViewModel.onImagePicked(uri: Uri, context: Context) {
                 context,
                 maxBytes = ScannerViewModel.MAX_IMAGE_UPLOAD_BYTES
             )
-            val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
-            val body = MultipartBody.Part.createFormData("image_file", file.name, requestFile)
+            val (uploadMime, uploadName) = resolveImageUploadMeta(uri, context)
+            val requestFile = file.asRequestBody(uploadMime.toMediaTypeOrNull())
+            val body = MultipartBody.Part.createFormData("image_file", uploadName, requestFile)
             val source = "android_image_upload".toRequestBody("text/plain".toMediaTypeOrNull())
 
             val response = uploadApi.extractImage(body, source)

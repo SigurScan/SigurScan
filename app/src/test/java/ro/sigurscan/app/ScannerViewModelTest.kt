@@ -911,16 +911,36 @@ class ScannerViewModelTest {
         assertTrue("onFilePicked must exist.", fileStart >= 0 && fileEnd > fileStart)
 
         val fileFlow = viewModelSource.substring(fileStart, fileEnd)
-        val emailFlowStart = fileFlow.indexOf("if (importKind == FileImportKind.HTML || importKind == FileImportKind.EMAIL) {")
-        val emailFlowEnd = fileFlow.indexOf("""loading = true
-    loadingMsg = "Analizăm documentul PDF..."""", emailFlowStart)
-        assertTrue("HTML/EML file-import branch must exist before the PDF branch.", emailFlowStart >= 0 && emailFlowEnd > emailFlowStart)
 
-        val emailFlow = fileFlow.substring(emailFlowStart, emailFlowEnd)
+        // Email import must verify sender headers first: it sends the .eml to the
+        // backend extractor (which returns email_auth) and routes through the
+        // orchestrated extraction path that threads that auth into the verdict.
+        val emailFlowStart = fileFlow.indexOf("if (importKind == FileImportKind.EMAIL) {")
+        val htmlFlowStart = fileFlow.indexOf("if (importKind == FileImportKind.HTML) {")
+        val pdfBranch = fileFlow.indexOf("Analizăm documentul PDF")
+        assertTrue("Dedicated EMAIL import branch must exist.", emailFlowStart >= 0)
+        assertTrue("Dedicated HTML import branch must exist after the EMAIL branch.", htmlFlowStart > emailFlowStart)
+        assertTrue("Both import branches must precede the PDF branch.", pdfBranch > htmlFlowStart)
+
+        val emailFlow = fileFlow.substring(emailFlowStart, htmlFlowStart)
+        assertTrue(
+            "Email import must call extractEmail() so the sender-auth (SPF/DKIM/DMARC) pillar is available.",
+            emailFlow.contains("uploadApi.extractEmail(")
+        )
+        assertTrue(
+            "Email import must route through the orchestrated extraction path (which threads email_auth into the verdict).",
+            emailFlow.contains("runBackendOrchestratedScanFromExtraction(")
+        )
+        assertTrue(
+            "Email import must release the file-loading state in finally so the UI never stays stuck on 'Verificăm...'.",
+            emailFlow.contains("finally") && emailFlow.contains("loading = false")
+        )
+
+        val htmlFlow = fileFlow.substring(htmlFlowStart, pdfBranch)
         val resetThenScan = Regex("""loading = false\s+loadingMsg = ""\s+onScanClick\(\)""")
         assertTrue(
-            "HTML/EML imports must clear the file-loading state before triggering orchestrated scan, otherwise the UI stays blocked on 'Analizăm fișierul email...'.",
-            resetThenScan.findAll(emailFlow).count() >= 2
+            "HTML imports must clear the file-loading state before triggering the orchestrated scan (try + catch).",
+            resetThenScan.findAll(htmlFlow).count() >= 2
         )
     }
 
