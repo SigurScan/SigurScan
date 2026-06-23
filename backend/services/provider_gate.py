@@ -10,14 +10,13 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 
-from core.runtime_bridge import _main_module
+import main as main
 
 
 def _maybe_add_dns_reputation(summary: Dict[str, Any], resolved_urls: List[Dict[str, Any]]) -> None:
     """Pilon DNS reputation (gratis, fără cheie). Opt-in prin ENABLE_DNS_REPUTATION;
     implicit OFF → fără rețea/latență. `blocked` → provider hard (dns_security);
     `suspended`/`nxdomain` → semnal ponderat (infra_dns). Best-effort, nu aruncă."""
-    main = _main_module()
     if not main.ENABLE_DNS_REPUTATION or not resolved_urls:
         return
     from services import dns_reputation
@@ -49,7 +48,6 @@ def _apply_provider_gate_verdict(
     raw_text: str = "",
     pillars: Optional[Dict[str, Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
-    main = _main_module()
     evidence = analysis.setdefault("evidence", {})
     summary = evidence.get("external_intel_summary")
     if not isinstance(summary, dict):
@@ -192,8 +190,6 @@ def _project_provider_gate_verdict(
     live scan job. It intentionally reuses the same gate implementation on deep
     copies so the projection cannot drift from the production path.
     """
-
-    main = _main_module()
     analysis_copy = main._deep_copy_jsonable(analysis if isinstance(analysis, dict) else {})
     resolved_copy = main._deep_copy_jsonable(resolved_urls if isinstance(resolved_urls, list) else [])
     pillars_copy = main._deep_copy_jsonable(pillars) if isinstance(pillars, dict) else None

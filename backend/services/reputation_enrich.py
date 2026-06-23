@@ -7,7 +7,7 @@ import re
 from typing import Any, Dict, List, Optional
 
 
-from core.runtime_bridge import _main_module
+import main as main
 
 
 def _gather_external_intel(
@@ -21,7 +21,6 @@ def _gather_external_intel(
     include_phishdestroy: bool = True,
     persist_partial: bool = False,
 ) -> Dict[str, Dict[str, Any]]:
-    main = _main_module()
     if main.PRIVACY_SAFE_MODE:
         return {}
     reputation_urls = _reputation_lookup_urls_from_resolved_entries(resolved_urls)
@@ -43,7 +42,6 @@ def _gather_external_intel(
 def _sanitize_external_intel_results(
     threat_intel: Dict[str, Dict[str, Any]],
 ) -> Dict[str, Dict[str, Any]]:
-    main = _main_module()
 
     def sanitize_value(value: Any) -> Any:
         if isinstance(value, dict):
@@ -68,7 +66,6 @@ def _sanitize_external_intel_results(
 def _reputation_lookup_urls_from_resolved_entries(
     resolved_urls: List[Dict[str, Any]],
 ) -> List[str]:
-    main = _main_module()
     candidates: List[str] = []
 
     def add_candidate(raw_value: Any) -> None:
@@ -115,7 +112,7 @@ def _reputation_lookup_hashes_by_url_from_resolved_entries(
     def add_hashes(raw_url: Any, raw_hashes: Any) -> None:
         if not isinstance(raw_url, str) or not raw_url.strip():
             return
-        safe_url = _main_module().prepare_reputation_lookup_url(raw_url.strip()).get("external_url")
+        safe_url = main.prepare_reputation_lookup_url(raw_url.strip()).get("external_url")
         if not isinstance(safe_url, str) or not safe_url.strip():
             return
         bucket = output.setdefault(safe_url.strip(), [])
@@ -196,7 +193,6 @@ def _external_intel_provider_error(
     include_scam_blocklist_nrd: bool,
     include_phishdestroy: bool,
 ) -> Dict[str, Dict[str, Any]]:
-    main = _main_module()
     safe_resolved_urls = main.sanitize_resolved_url_entries(resolved_urls)
     final_urls = [
         str(entry.get("final_url") or "").strip()
@@ -362,7 +358,6 @@ def _gather_external_intel_safe(
 
 
 def _analysis_needs_deep_reputation_fallback(analysis: Dict[str, Any]) -> bool:
-    main = _main_module()
     if main.PRIVACY_SAFE_MODE or not main.ENABLE_DEEP_REPUTATION_FALLBACK:
         return False
 
@@ -404,7 +399,6 @@ def _analyze_with_reputation(
     threat_intel_override: Optional[Dict[str, Dict[str, Any]]] = None,
     allow_deep_fallback: bool = True,
 ) -> Dict[str, Any]:
-    main = _main_module()
     use_fast = bool(fast_reputation)
     threat_intel = threat_intel_override
     if threat_intel is None:

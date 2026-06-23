@@ -16,10 +16,8 @@ from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import HTMLResponse
 
-from core.runtime_bridge import _main_module
+import main as main
 from api_models import FeedbackRequest
-
-main = _main_module()
 
 router = APIRouter()
 

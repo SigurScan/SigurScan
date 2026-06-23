@@ -7,7 +7,23 @@ from typing import Any, Dict
 
 from fastapi import HTTPException, Request
 
-from core.runtime_bridge import _main_module
+from config import (
+    ADMIN_API_KEYS,
+    AI_OFFER_CLAIM_TIMEOUT_SECONDS,
+    ALLOWED_MOCK_OCR,
+    CLIENT_INSTANCE_HEADER,
+    ENABLE_CLOUD_AI_EXPLANATION,
+    ENABLE_RATE_LIMIT,
+    _INTEGRITY_GUARDED_PREFIXES,
+    _SCREENSHOT_PROXY_PATH_RE,
+    INTERNAL_WORKER_TOKEN,
+    PRIVACY_SAFE_MODE,
+    REQUIRE_API_KEY,
+    URLSCAN_API_KEY,
+    URLSCAN_VISIBILITY_DEFAULT,
+    PLAY_INTEGRITY_NONCE_PATH,
+)
+from services import play_integrity, play_integrity_nonce, rate_limiter
 
 
 def _env_present(*names: str) -> bool:
@@ -15,8 +31,6 @@ def _env_present(*names: str) -> bool:
 
 
 def _provider_config_status() -> Dict[str, Any]:
-    _main = _main_module()
-
     web_risk_configured = _env_present("GOOGLE_WEB_RISK_API_KEY")
     phishing_database_enabled = os.getenv("ENABLE_PHISHING_DATABASE", "true").strip().lower() in {"1", "true", "yes", "on"}
     phishtank_enabled = os.getenv("ENABLE_PHISHTANK", "true").strip().lower() in {"1", "true", "yes", "on"}
@@ -58,39 +72,39 @@ def _provider_config_status() -> Dict[str, Any]:
     gemini_configured = _env_present("GEMINI_API_KEY")
     offer_claim_configured = gemini_configured
     return {
-        "privacy_safe_mode": _main.PRIVACY_SAFE_MODE,
-        "rate_limit_enabled": _main.ENABLE_RATE_LIMIT,
-        "rate_limit_backend": _main.rate_limiter.backend_mode(),
-        "api_key_required": _main.REQUIRE_API_KEY,
-        "admin_api_configured": bool(_main.ADMIN_API_KEYS),
-        "play_integrity_mode": _main.play_integrity.mode(),
-        "play_integrity_nonce_backend": _main.play_integrity_nonce.backend_mode(),
-        "mock_ocr_allowed": _main.ALLOWED_MOCK_OCR,
+        "privacy_safe_mode": PRIVACY_SAFE_MODE,
+        "rate_limit_enabled": ENABLE_RATE_LIMIT,
+        "rate_limit_backend": rate_limiter.backend_mode(),
+        "api_key_required": REQUIRE_API_KEY,
+        "admin_api_configured": bool(ADMIN_API_KEYS),
+        "play_integrity_mode": play_integrity.mode(),
+        "play_integrity_nonce_backend": play_integrity_nonce.backend_mode(),
+        "mock_ocr_allowed": ALLOWED_MOCK_OCR,
         "providers": {
             "urlscan": {
-                "configured": bool(_main.URLSCAN_API_KEY) and not _main.PRIVACY_SAFE_MODE,
-                "visibility": _main.URLSCAN_VISIBILITY_DEFAULT,
+                "configured": bool(URLSCAN_API_KEY) and not PRIVACY_SAFE_MODE,
+                "visibility": URLSCAN_VISIBILITY_DEFAULT,
             },
             "google_web_risk": {
-                "configured": web_risk_configured and not _main.PRIVACY_SAFE_MODE,
+                "configured": web_risk_configured and not PRIVACY_SAFE_MODE,
                 "extended_threat_types_env": bool(os.getenv("GOOGLE_WEB_RISK_THREAT_TYPES", "").strip()),
             },
             "phishing_database": {
-                "configured": phishing_database_enabled and not _main.PRIVACY_SAFE_MODE,
+                "configured": phishing_database_enabled and not PRIVACY_SAFE_MODE,
                 "policy": "open_feed_runtime_reputation",
             },
             "phishtank_online_valid": {
-                "configured": phishtank_enabled and not _main.PRIVACY_SAFE_MODE,
+                "configured": phishtank_enabled and not PRIVACY_SAFE_MODE,
                 "policy": "open_feed_runtime_reputation",
                 "source": "PhishTank online-valid feed",
             },
             "openphish": {
-                "configured": openphish_enabled and not _main.PRIVACY_SAFE_MODE,
+                "configured": openphish_enabled and not PRIVACY_SAFE_MODE,
                 "policy": "open_feed_runtime_reputation",
                 "source": "OpenPhish public feed",
             },
             "asf_investor_alerts": {
-                "configured": asf_investor_alerts_enabled and not _main.PRIVACY_SAFE_MODE,
+                "configured": asf_investor_alerts_enabled and not PRIVACY_SAFE_MODE,
                 "policy": "official_authority_runtime_reputation",
                 "source": "Autoritatea de Supraveghere Financiară",
                 "source_url": os.getenv(
@@ -99,42 +113,42 @@ def _provider_config_status() -> Dict[str, Any]:
                 ),
             },
             "urlhaus": {
-                "configured": not _main.PRIVACY_SAFE_MODE,
+                "configured": not PRIVACY_SAFE_MODE,
                 "policy": "abuse_ch_runtime_reputation",
                 "source": "URLhaus public recent feed; Auth-Key optional for API lookup",
-                "api_key_configured": urlhaus_configured and not _main.PRIVACY_SAFE_MODE,
+                "api_key_configured": urlhaus_configured and not PRIVACY_SAFE_MODE,
             },
             "openapi_ro_company": {
-                "configured": openapi_ro_configured and not _main.PRIVACY_SAFE_MODE,
+                "configured": openapi_ro_configured and not PRIVACY_SAFE_MODE,
                 "policy": "paid_escalation_only",
                 "monthly_budget": openapi_ro_budget,
             },
             "hunter_io_email_domain": {
-                "configured": hunter_io_configured and not _main.PRIVACY_SAFE_MODE,
+                "configured": hunter_io_configured and not PRIVACY_SAFE_MODE,
                 "policy": "paid_escalation_only",
                 "monthly_budget": hunter_io_budget,
             },
             "scam_blocklist_nrd": {
-                "configured": scam_blocklist_nrd_enabled and not _main.PRIVACY_SAFE_MODE,
+                "configured": scam_blocklist_nrd_enabled and not PRIVACY_SAFE_MODE,
                 "policy": "open_feed_runtime_reputation",
                 "source": "jarelllama/Scam-Blocklist",
                 "license": "GPL-3.0",
             },
             "phishdestroy_destroylist": {
-                "configured": phishdestroy_enabled and not _main.PRIVACY_SAFE_MODE,
+                "configured": phishdestroy_enabled and not PRIVACY_SAFE_MODE,
                 "policy": "open_feed_runtime_reputation",
                 "source": "phishdestroy/destroylist",
                 "license": "MIT",
                 "api": "https://api.destroy.tools/v1",
             },
             "ai_explanation": {
-                "configured": (mistral_configured or gemini_configured) and _main.ENABLE_CLOUD_AI_EXPLANATION,
+                "configured": (mistral_configured or gemini_configured) and ENABLE_CLOUD_AI_EXPLANATION,
                 "mistral_configured": mistral_configured,
                 "gemini_configured": gemini_configured,
             },
             "offer_claim_verifier": {
-                "configured": offer_claim_configured and not _main.PRIVACY_SAFE_MODE,
-                "timeout_seconds": _main.AI_OFFER_CLAIM_TIMEOUT_SECONDS,
+                "configured": offer_claim_configured and not PRIVACY_SAFE_MODE,
+                "timeout_seconds": AI_OFFER_CLAIM_TIMEOUT_SECONDS,
             },
         },
     }
@@ -150,9 +164,7 @@ def _extract_api_key(request: Request) -> str:
 
 
 def _extract_client_instance_id(request: Request) -> str:
-    _main = _main_module()
-
-    value = (request.headers.get(_main.CLIENT_INSTANCE_HEADER) or "").strip()
+    value = (request.headers.get(CLIENT_INSTANCE_HEADER) or "").strip()
     if not value or len(value) > 128:
         return ""
     if not re.fullmatch(r"[A-Za-z0-9._:-]{8,128}", value):
@@ -165,16 +177,14 @@ def _play_integrity_client_binding(request: Request, api_key: str = "") -> str:
 
 
 def _internal_worker_token_matches(request: Request) -> bool:
-    _main = _main_module()
-
-    if not _main.INTERNAL_WORKER_TOKEN:
+    if not INTERNAL_WORKER_TOKEN:
         return False
     provided = (
         request.headers.get("X-Internal-Worker-Token")
         or request.headers.get("X-Cloud-Tasks-Token")
         or ""
     ).strip()
-    return bool(provided) and hmac.compare_digest(provided, _main.INTERNAL_WORKER_TOKEN)
+    return bool(provided) and hmac.compare_digest(provided, INTERNAL_WORKER_TOKEN)
 
 
 def _require_internal_worker_auth(request: Request) -> None:
@@ -184,18 +194,12 @@ def _require_internal_worker_auth(request: Request) -> None:
 
 
 def _is_screenshot_proxy_path(path: str) -> bool:
-    _main = _main_module()
-
-    return bool(_main._SCREENSHOT_PROXY_PATH_RE.match(path))
+    return bool(_SCREENSHOT_PROXY_PATH_RE.match(path))
 
 
 def _is_integrity_guarded_path(path: str) -> bool:
-    _main = _main_module()
-
-    return path.startswith(_main._INTEGRITY_GUARDED_PREFIXES)
+    return path.startswith(_INTEGRITY_GUARDED_PREFIXES)
 
 
 def _is_play_integrity_nonce_path(path: str) -> bool:
-    _main = _main_module()
-
-    return path == _main.PLAY_INTEGRITY_NONCE_PATH
+    return path == PLAY_INTEGRITY_NONCE_PATH
