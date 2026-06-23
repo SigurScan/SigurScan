@@ -1,5 +1,4 @@
 import json
-import sys
 import os
 from datetime import datetime, timezone
 from collections import Counter, defaultdict
@@ -112,18 +111,6 @@ def find_scan_record_by_id(scan_id: str) -> Dict[str, Any] | None:
     return None
 
 
-def _main_module() -> Any:
-    return sys.modules.get("main") or sys.modules.get("app")
-
-
-def _runtime_callable(name: str, fallback):
-    runtime = _main_module()
-    if runtime is None:
-        return fallback
-    fn = getattr(runtime, name, None)
-    return fn if callable(fn) else fallback
-
-
 def _safe_pct(value: Any, total: int) -> float:
     if not total:
         return 0.0
@@ -146,8 +133,8 @@ def _build_feedback_quality_payload(
     sweep_step: int = 5,
     sweep_metric: str = "f1",
 ) -> Dict[str, Any]:
-    feedback_rows = _runtime_callable("load_feedback_records", load_feedback_records)()
-    scan_rows = _runtime_callable("load_scan_records", load_scan_records)()
+    feedback_rows = load_feedback_records()
+    scan_rows = load_scan_records()
     dataset_rows = build_feedback_evaluation_rows(
         feedback_rows,
         scan_rows,
@@ -198,8 +185,8 @@ def _build_readiness_payload(
     trend_min_signal_support: int = 1,
 ) -> Dict[str, Any]:
     bucket_size_days = max(1, bucket_size_days)
-    feedback_rows = _runtime_callable("load_feedback_records", load_feedback_records)()
-    scan_rows = _runtime_callable("load_scan_records", load_scan_records)()
+    feedback_rows = load_feedback_records()
+    scan_rows = load_scan_records()
     dataset_rows = build_feedback_evaluation_rows(
         feedback_rows,
         scan_rows,
@@ -345,7 +332,7 @@ def _build_orchestration_telemetry_payload(
 ) -> Dict[str, Any]:
     records = [
         row
-        for row in _runtime_callable("load_scan_records", load_scan_records)(limit)
+        for row in load_scan_records(limit)
         if isinstance(row, dict) and str(row.get("event_type") or "").startswith("orchestrated_")
     ]
     by_event: Counter[str] = Counter()
@@ -541,12 +528,10 @@ def _build_shadow_adjudication_payload(
 ) -> Dict[str, Any]:
     records = [
         row
-        for row in _runtime_callable("load_scan_records", load_scan_records)(limit)
+        for row in load_scan_records(limit)
         if isinstance(row, dict) and str(row.get("event_type") or "") == "adjudication_shadow"
     ]
-    feedback_by_scan = _latest_feedback_by_scan_id(
-        _runtime_callable("load_feedback_records", load_feedback_records)()
-    )
+    feedback_by_scan = _latest_feedback_by_scan_id(load_feedback_records())
 
     by_gate_label: Counter[str] = Counter()
     by_shadow_label: Counter[str] = Counter()
