@@ -10,7 +10,8 @@ import urllib.parse
 from services.urlscan_helpers import _normalize_urlscan_preview_cache_entry
 
 
-import main as main
+import importlib
+main = importlib.import_module("main_runtime")
 
 
 def _save_urlscan_preview_cache(entry: Dict[str, Any]) -> None:

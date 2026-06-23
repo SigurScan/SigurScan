@@ -10,7 +10,8 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 
-import main as main
+import importlib
+main = importlib.import_module("main_runtime")
 
 
 def _maybe_add_dns_reputation(summary: Dict[str, Any], resolved_urls: List[Dict[str, Any]]) -> None:

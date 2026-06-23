@@ -11,7 +11,8 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 
-import main as main
+import importlib
+main = importlib.import_module("main_runtime")
 from services import play_integrity_nonce
 
 router = APIRouter()

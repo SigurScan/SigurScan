@@ -16,7 +16,7 @@ from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import HTMLResponse
 
-import main as main
+main = importlib.import_module("main_runtime")
 from api_models import FeedbackRequest
 
 router = APIRouter()

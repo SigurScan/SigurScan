@@ -32,19 +32,33 @@ REQUIRED_CORE_ROUTES = {
 
 class _ImportMainVisitor(ast.NodeVisitor):
     def __init__(self):
+        self.main_aliases = {"main"}
         self.imported_main = False
+        self.main_attribute_used = False
 
     def visit_Import(self, node: ast.Import):
         for alias in node.names:
             if alias.name == "main":
                 self.imported_main = True
+                self.main_aliases.add(alias.asname or alias.name)
+                return
+            if alias.name.endswith(".main"):
+                self.imported_main = True
+                self.main_aliases.add(alias.asname or alias.name.split(".")[-1])
                 return
         self.generic_visit(node)
 
     def visit_ImportFrom(self, node: ast.ImportFrom):
         if node.module == "main" or (node.module and node.module.endswith(".main")):
             self.imported_main = True
+            for alias in node.names:
+                self.main_aliases.add(alias.asname or alias.name)
             return
+        self.generic_visit(node)
+
+    def visit_Attribute(self, node: ast.Attribute):
+        if isinstance(node.value, ast.Name) and node.value.id in self.main_aliases:
+            self.main_attribute_used = True
         self.generic_visit(node)
 
 
@@ -67,7 +81,7 @@ def _modules_with_main_import():
                 continue
             visitor = _ImportMainVisitor()
             visitor.visit(tree)
-            if visitor.imported_main:
+            if visitor.imported_main or visitor.main_attribute_used:
                 offenders.append(str(py.relative_to(REPO_ROOT)))
     return sorted(offenders)
 

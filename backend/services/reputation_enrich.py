@@ -7,7 +7,8 @@ import re
 from typing import Any, Dict, List, Optional
 
 
-import main as main
+import importlib
+main = importlib.import_module("main_runtime")
 
 
 def _gather_external_intel(

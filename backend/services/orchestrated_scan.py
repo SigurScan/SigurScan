@@ -26,7 +26,8 @@ from api_models import OrchestratedScanRequest, UrlscanSandboxRequest
 from services.verdict_gate import verdict as reduce_verdict
 from config import URLSCAN_VISIBILITY_DEFAULT, URLSCAN_COUNTRY_DEFAULT, URLSCAN_CUSTOM_AGENT_DEFAULT
 
-import main as main
+import importlib
+main = importlib.import_module("main_runtime")
 
 
 class OrchestratedScanEngine:
