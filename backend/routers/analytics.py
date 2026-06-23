@@ -1,7 +1,7 @@
 """Feedback, evaluation, telemetry and HTML dashboard routes.
 
 Read-mostly analytics over scan/feedback telemetry. Handlers reference shared
-helpers/config/telemetry through the `main` module (import main; main.X) so that
+helpers/config/telemetry through the runtime module (runtime bridge; module_X) so that
 test monkeypatching of main.<symbol> keeps working and there is no import-time
 cycle. Extracted from main.py.
 """
@@ -16,7 +16,7 @@ from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import HTMLResponse
 
-from core.main_bridge import _main_module
+from core.runtime_bridge import _main_module
 from api_models import FeedbackRequest
 
 main = _main_module()

@@ -1,8 +1,7 @@
 """Orchestrated-scan engine, extracted from main.py incrementally.
 
-Functions reference their main-module siblings/helpers/config/state via `import main;
-main.X` (resolved at call time). main.py re-exports these names, so existing test
-monkeypatching of main.<symbol> keeps working unchanged.
+Runtime values are accessed via the shared runtime bridge module, keeping current
+test monkeypatch behavior intact while decoupling imports.
 """
 
 import os
@@ -27,7 +26,7 @@ from api_models import OrchestratedScanRequest, UrlscanSandboxRequest
 from services.verdict_gate import verdict as reduce_verdict
 from config import URLSCAN_VISIBILITY_DEFAULT, URLSCAN_COUNTRY_DEFAULT, URLSCAN_CUSTOM_AGENT_DEFAULT
 
-from core.main_bridge import _main_module
+from core.runtime_bridge import _main_module
 
 main = _main_module()
 

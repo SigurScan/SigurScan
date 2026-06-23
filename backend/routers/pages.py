@@ -1,7 +1,7 @@
 """Static/landing pages, health checks and Play Integrity nonce.
 
-References main config/helpers via `import main; main.X` (resolved at call time)
-so monkeypatching keeps working; routers are registered at the end of main.py.
+References shared runtime config/helpers through the runtime bridge.
+Monkeypatching keeps working; routers are registered at the end of runtime module.
 """
 
 import time
@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 
-from core.main_bridge import _main_module
+from core.runtime_bridge import _main_module
 from services import play_integrity_nonce
 
 router = APIRouter()

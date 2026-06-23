@@ -7,7 +7,7 @@ from typing import Any, Dict
 
 from fastapi import HTTPException, Request
 
-from core.main_bridge import _main_module
+from core.runtime_bridge import _main_module
 
 
 def _env_present(*names: str) -> bool:
