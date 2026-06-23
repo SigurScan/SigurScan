@@ -5611,31 +5611,6 @@ def _apply_primary_resolved_url(
 
 
 def _looks_like_structured_invoice_text(raw_text: str) -> bool:
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def _looks_like_structured_invoice_text(raw_text: str) -> bool:
     """Detects an actual invoice/proforma body, not a generic "view invoice" SMS.
 
     This is deliberately conservative: auto-routing to the invoice reducer only
