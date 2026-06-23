@@ -27,6 +27,29 @@ from config import (
 from services import play_integrity, play_integrity_nonce, rate_limiter
 
 
+def _runtime_setting(name: str, default):
+    for module_name in ("main", "app"):
+        module = sys.modules.get(module_name)
+        if module is None:
+            continue
+        if hasattr(module, name):
+            return getattr(module, name)
+    return default
+
+
+def _runtime_bool_setting(name: str, default: bool = False) -> bool:
+    value = _runtime_setting(name, default)
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return bool(default)
+    if isinstance(value, (int, float)):
+        return bool(value)
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "on"}
+    return bool(value)
+
+
 def _runtime_internal_worker_token() -> str:
     for module_name in ("main", "app", __name__):
         module = sys.modules.get(module_name)
@@ -43,6 +66,14 @@ def _env_present(*names: str) -> bool:
 
 
 def _provider_config_status() -> Dict[str, Any]:
+    privacy_safe_mode = _runtime_bool_setting("PRIVACY_SAFE_MODE", PRIVACY_SAFE_MODE)
+    api_key_required = _runtime_bool_setting("REQUIRE_API_KEY", REQUIRE_API_KEY)
+    admin_api_keys = _runtime_setting("ADMIN_API_KEYS", ADMIN_API_KEYS)
+    enabled_mock_ocr = _runtime_bool_setting("ALLOWED_MOCK_OCR", ALLOWED_MOCK_OCR)
+    urlscan_api_key = _runtime_setting("URLSCAN_API_KEY", URLSCAN_API_KEY)
+    urlscan_visibility = _runtime_setting("URLSCAN_VISIBILITY_DEFAULT", URLSCAN_VISIBILITY_DEFAULT)
+    rate_limit_enabled = _runtime_bool_setting("ENABLE_RATE_LIMIT", ENABLE_RATE_LIMIT)
+
     web_risk_configured = _env_present("GOOGLE_WEB_RISK_API_KEY")
     phishing_database_enabled = os.getenv("ENABLE_PHISHING_DATABASE", "true").strip().lower() in {"1", "true", "yes", "on"}
     phishtank_enabled = os.getenv("ENABLE_PHISHTANK", "true").strip().lower() in {"1", "true", "yes", "on"}
@@ -84,18 +115,18 @@ def _provider_config_status() -> Dict[str, Any]:
     gemini_configured = _env_present("GEMINI_API_KEY")
     offer_claim_configured = gemini_configured
     return {
-        "privacy_safe_mode": PRIVACY_SAFE_MODE,
-        "rate_limit_enabled": ENABLE_RATE_LIMIT,
+        "privacy_safe_mode": privacy_safe_mode,
+        "rate_limit_enabled": rate_limit_enabled,
         "rate_limit_backend": rate_limiter.backend_mode(),
-        "api_key_required": REQUIRE_API_KEY,
-        "admin_api_configured": bool(ADMIN_API_KEYS),
+        "api_key_required": api_key_required,
+        "admin_api_configured": bool(admin_api_keys),
         "play_integrity_mode": play_integrity.mode(),
         "play_integrity_nonce_backend": play_integrity_nonce.backend_mode(),
-        "mock_ocr_allowed": ALLOWED_MOCK_OCR,
+        "mock_ocr_allowed": enabled_mock_ocr,
         "providers": {
             "urlscan": {
-                "configured": bool(URLSCAN_API_KEY) and not PRIVACY_SAFE_MODE,
-                "visibility": URLSCAN_VISIBILITY_DEFAULT,
+                "configured": bool(urlscan_api_key) and not privacy_safe_mode,
+                "visibility": urlscan_visibility,
             },
             "google_web_risk": {
                 "configured": web_risk_configured and not PRIVACY_SAFE_MODE,

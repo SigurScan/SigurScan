@@ -228,6 +228,11 @@ def _runtime_float_setting(name: str, default: float) -> float:
         except Exception:
             return float(default)
 
+
+def _runtime_callable(name: str, fallback):
+    value = _runtime_setting(name, fallback)
+    return value if callable(value) else fallback
+
 app = FastAPI(
     title="SigurScan API",
     description="Anti-scam detection engine localized for Romania (2025-2026)",
@@ -276,22 +281,25 @@ async def security_guard(request: Request, call_next):
             and (integrity_verdict.get("result") or {}).get("status") == "valid"
         )
 
+    admin_api_keys = set(_runtime_setting("ADMIN_API_KEYS", ADMIN_API_KEYS) or [])
+    allowed_api_keys = set(_runtime_setting("ALLOWED_API_KEYS", ALLOWED_API_KEYS) or [])
+
     # Operator endpoints: separate admin keys, fail closed when unconfigured.
     if internal_worker_authorized:
         return await call_next(request)
     if path in ADMIN_ONLY_PATHS:
-        if not ADMIN_API_KEYS:
+        if not admin_api_keys:
             return JSONResponse(
                 status_code=403,
                 content={"detail": "Admin access is not configured on this deployment."},
             )
-        if not api_key or api_key not in ADMIN_API_KEYS:
+        if not api_key or api_key not in admin_api_keys:
             return JSONResponse(status_code=401, content={"detail": "Missing or invalid admin API key."})
-    elif REQUIRE_API_KEY and not (request.method == "GET" and _is_screenshot_proxy_path(path)):
+    elif _runtime_bool_setting("REQUIRE_API_KEY") and not (request.method == "GET" and _is_screenshot_proxy_path(path)):
         # Fail closed: requiring a key while configuring none is a deployment
         # error and must not silently open the API.
         nonce_request_allowed = _is_play_integrity_nonce_path(path) and play_integrity.mode() != "off"
-        api_key_authorized = bool(api_key and api_key in ALLOWED_API_KEYS)
+        api_key_authorized = bool(api_key and api_key in allowed_api_keys)
         if not api_key_authorized and not integrity_can_authorize_client and not nonce_request_allowed:
             return JSONResponse(status_code=401, content={"detail": "Missing or invalid API key."})
 
@@ -302,14 +310,14 @@ async def security_guard(request: Request, call_next):
                 content={"detail": "Play Integrity verification failed.", "integrity": integrity_verdict["result"]},
             )
 
-    if ENABLE_RATE_LIMIT:
+    if _runtime_bool_setting("ENABLE_RATE_LIMIT"):
         decision = await asyncio.to_thread(
             rate_limiter.check_sync,
             api_key or None,
             request.client.host if request.client else "anonymous",
             path,
-            RATE_LIMIT_PER_MINUTE,
-            path in ADMIN_ONLY_PATHS and api_key in ADMIN_API_KEYS,
+            int(_runtime_setting("RATE_LIMIT_PER_MINUTE", RATE_LIMIT_PER_MINUTE)),
+            path in ADMIN_ONLY_PATHS and api_key in admin_api_keys,
         )
         if not decision.allowed:
             return JSONResponse(
@@ -423,10 +431,14 @@ def _extract_email_auth_context(msg: Message | None, is_forwarded_guess: bool = 
             if auth_results.get(mechanism) == "pass":
                 auth_results[mechanism] = "unknown"
     else:
-        spf_record = get_spf_dns_record(from_domain or "")
-        dmarc_policy = get_dmarc_policy(from_domain or "")
+        spf_lookup = _runtime_callable("get_spf_dns_record", get_spf_dns_record)
+        dmarc_lookup = _runtime_callable("get_dmarc_policy", get_dmarc_policy)
+        dkim_lookup = _runtime_callable("check_dkim_dns_record", check_dkim_dns_record)
+
+        spf_record = spf_lookup(from_domain or "")
+        dmarc_policy = dmarc_lookup(from_domain or "")
         if has_dkim_signature and dkim_signature_domain and dkim_selector:
-            dns_dkim_record = check_dkim_dns_record(dkim_selector, dkim_signature_domain)
+            dns_dkim_record = dkim_lookup(dkim_selector, dkim_signature_domain)
         aspf_mode = str(dmarc_policy.get("aspf", "r") if isinstance(dmarc_policy, dict) else "r").lower().strip() or "r"
         adkim_mode = str(dmarc_policy.get("adkim", "r") if isinstance(dmarc_policy, dict) else "r").lower().strip() or "r"
 
@@ -4997,19 +5009,24 @@ def _apply_fast_preview_cache_hit(job: Dict[str, Any], cached: Dict[str, Any]) -
 def _apply_best_preview_cache_hit(job: Dict[str, Any], final_url: Any) -> Dict[str, Any]:
     if not final_url:
         return job
-    cached_fast = _load_fast_preview_cache(final_url)
-    cached_urlscan = _load_urlscan_preview_cache(final_url)
+    load_fast = _runtime_callable("_load_fast_preview_cache", _load_fast_preview_cache)
+    load_urlscan = _runtime_callable("_load_urlscan_preview_cache", _load_urlscan_preview_cache)
+    cached_fast = load_fast(final_url)
+    cached_urlscan = load_urlscan(final_url)
     if cached_urlscan:
-        job = _apply_urlscan_preview_cache_hit(job, cached_urlscan)
+        apply_urlscan = _runtime_callable("_apply_urlscan_preview_cache_hit", _apply_urlscan_preview_cache_hit)
+        apply_fast = _runtime_callable("_apply_fast_preview_cache_hit", _apply_fast_preview_cache_hit)
+        job = apply_urlscan(job, cached_urlscan)
         if cached_fast:
-            return _apply_fast_preview_cache_hit(job, cached_fast)
+            return apply_fast(job, cached_fast)
         preview = job.get("preview") if isinstance(job.get("preview"), dict) else {}
         if preview.get("status") == "ready" and (
             preview.get("image_url") or preview.get("screenshot_url")
         ):
             return job
     if cached_fast:
-        return _apply_fast_preview_cache_hit(job, cached_fast)
+        apply_fast = _runtime_callable("_apply_fast_preview_cache_hit", _apply_fast_preview_cache_hit)
+        return apply_fast(job, cached_fast)
     return job
 
 
