@@ -811,7 +811,10 @@ class OrchestratedScanEngine:
             for url in runtime.extract_urls(visible_text):
                 if url not in discovered_urls:
                     discovered_urls.append(url)
-            inferred_brand_hints = runtime._infer_brand_hints_from_click_targets(click_targets)
+            inferred_brand_hints = runtime._infer_brand_hints_from_click_targets(
+                click_targets,
+                runtime.BRAND_REGISTRY,
+            )
             click_context = [
                 f"CTA {button.get('source_tag')}/{button.get('source_attr')}: "
                 f"{button.get('button_text')} -> {button.get('original_url')}"

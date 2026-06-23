@@ -3,6 +3,7 @@ from __future__ import annotations
 import hmac
 import os
 import re
+import sys
 from typing import Any, Dict
 
 from fastapi import HTTPException, Request
@@ -24,6 +25,17 @@ from config import (
     PLAY_INTEGRITY_NONCE_PATH,
 )
 from services import play_integrity, play_integrity_nonce, rate_limiter
+
+
+def _runtime_internal_worker_token() -> str:
+    for module_name in ("main", "app", __name__):
+        module = sys.modules.get(module_name)
+        if module is None:
+            continue
+        candidate = getattr(module, "INTERNAL_WORKER_TOKEN", "")
+        if isinstance(candidate, str) and candidate:
+            return candidate.strip()
+    return INTERNAL_WORKER_TOKEN.strip()
 
 
 def _env_present(*names: str) -> bool:
@@ -177,14 +189,15 @@ def _play_integrity_client_binding(request: Request, api_key: str = "") -> str:
 
 
 def _internal_worker_token_matches(request: Request) -> bool:
-    if not INTERNAL_WORKER_TOKEN:
+    internal_token = _runtime_internal_worker_token()
+    if not internal_token:
         return False
     provided = (
         request.headers.get("X-Internal-Worker-Token")
         or request.headers.get("X-Cloud-Tasks-Token")
         or ""
     ).strip()
-    return bool(provided) and hmac.compare_digest(provided, INTERNAL_WORKER_TOKEN)
+    return bool(provided) and hmac.compare_digest(provided, internal_token)
 
 
 def _require_internal_worker_auth(request: Request) -> None:

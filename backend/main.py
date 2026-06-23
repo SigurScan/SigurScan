@@ -10,10 +10,7 @@ except Exception:
     import importlib
 
     _fallback_module = importlib.import_module("app")
-    if hasattr(_fallback_module, "app") and hasattr(_fallback_module, "create_app"):
-        _runtime = _fallback_module
-    else:
-        from . import app as _runtime
+    _runtime = _fallback_module
 
 
 def __getattr__(name: str) -> Any:

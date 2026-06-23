@@ -1,4 +1,5 @@
 import os
+import sys
 import importlib
 import asyncio
 import re
@@ -171,6 +172,8 @@ from config import (
     _INTEGRITY_GUARDED_PREFIXES,
     _ORCHESTRATED_STAGE_RANK,
     _VERDICT_SEVERITY_RANK,
+    _FINAL_URL_UNRESOLVED_ERROR_MARKERS,
+    _FINAL_URL_UNRESOLVED_SUSPICIOUS_DNS_VERDICTS,
 )
 
 from runtime_state import _URLSCAN_PREVIEW_CACHE, _FAST_PREVIEW_CACHE, engine, tier1_classifier
@@ -178,6 +181,51 @@ from runtime_state import _URLSCAN_PREVIEW_CACHE, _FAST_PREVIEW_CACHE, engine, t
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("main")
+
+
+def _runtime_module():
+    runtime = sys.modules.get("main")
+    if runtime is None:
+        runtime = sys.modules.get("app")
+    return runtime
+
+
+def _runtime_setting(name: str, default):
+    module = _runtime_module()
+    if module is None:
+        return default
+    return getattr(module, name, default)
+
+
+def _runtime_bool_setting(name: str, default: bool = False) -> bool:
+    value = _runtime_setting(name, default)
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return bool(default)
+    if isinstance(value, (int, float)):
+        return bool(value)
+    if isinstance(value, str):
+        return value.strip().lower() in {"1", "true", "yes", "on"}
+    return bool(value)
+
+
+def _runtime_str_setting(name: str, default: str) -> str:
+    value = _runtime_setting(name, default)
+    if value is None:
+        return str(default)
+    return str(value)
+
+
+def _runtime_float_setting(name: str, default: float) -> float:
+    value = _runtime_setting(name, default)
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        try:
+            return float(str(value).strip())
+        except Exception:
+            return float(default)
 
 app = FastAPI(
     title="SigurScan API",
@@ -188,7 +236,7 @@ app = FastAPI(
     openapi_url="/openapi.json" if EXPOSE_API_DOCS else None,
 )
 
-if PRIVACY_SAFE_MODE:
+if _runtime_bool_setting("PRIVACY_SAFE_MODE"):
     logger.warning("SIGURSCAN_SAFE_MODE activ: verificările externe pentru URL/reputație și Gemini sunt dezactivate.")
 
 # Enable CORS for local testing from React Native/Expo web
@@ -366,7 +414,7 @@ def _extract_email_auth_context(msg: Message | None, is_forwarded_guess: bool = 
     dmarc_policy: Dict[str, Any] = {}
     dns_dkim_record = None
 
-    if PRIVACY_SAFE_MODE:
+    if _runtime_bool_setting("PRIVACY_SAFE_MODE"):
         auth_fail_reasons.append(
             "SIGURSCAN_SAFE_MODE: verificările DNS SPF/DMARC/DKIM sunt dezactivate pentru confidențialitate."
         )
@@ -470,10 +518,10 @@ def _extract_email_auth_context(msg: Message | None, is_forwarded_guess: bool = 
             "spf_record_present": bool(spf_record),
             "dkim_selector": dkim_selector,
             "dkim_signature_domain": dkim_signature_domain,
-            "spf_record_source": "dns" if not PRIVACY_SAFE_MODE else "privacy_safe_disabled",
-            "dmarc_policy_source": "dns" if not PRIVACY_SAFE_MODE else "privacy_safe_disabled",
-            "dkim_dns_source": "dns" if not PRIVACY_SAFE_MODE else "privacy_safe_disabled",
-            "dns_checks_disabled": bool(PRIVACY_SAFE_MODE),
+            "spf_record_source": "dns" if not _runtime_bool_setting("PRIVACY_SAFE_MODE") else "privacy_safe_disabled",
+            "dmarc_policy_source": "dns" if not _runtime_bool_setting("PRIVACY_SAFE_MODE") else "privacy_safe_disabled",
+            "dkim_dns_source": "dns" if not _runtime_bool_setting("PRIVACY_SAFE_MODE") else "privacy_safe_disabled",
+            "dns_checks_disabled": bool(_runtime_bool_setting("PRIVACY_SAFE_MODE")),
             "reply_to_mismatch": bool(
                 reply_to_domain and from_domain and reply_to_domain != from_domain
             ),
@@ -509,13 +557,13 @@ def _extract_email_auth_context(msg: Message | None, is_forwarded_guess: bool = 
 
 
 def _safe_mode_url_entry(url: str) -> Dict[str, Any]:
-    return _core_safe_mode_url_entry(url, privacy_safe_mode=PRIVACY_SAFE_MODE)
+    return _core_safe_mode_url_entry(url, privacy_safe_mode=_runtime_bool_setting("PRIVACY_SAFE_MODE"))
 
 
 def _safe_scan_url_list(urls: List[str]) -> List[Dict[str, Any]]:
     return _core_safe_scan_url_list(
         urls,
-        privacy_safe_mode=PRIVACY_SAFE_MODE,
+        privacy_safe_mode=_runtime_bool_setting("PRIVACY_SAFE_MODE"),
         resolve_redirects_safely_fn=resolve_redirects_safely,
     )
 
@@ -3135,20 +3183,25 @@ def _call_mistral_semantic_review(payload: Dict[str, Any]) -> Dict[str, Any]:
     response = requests.post(
         "https://api.mistral.ai/v1/chat/completions",
         headers={
-            "Authorization": f"Bearer {MISTRAL_SEMANTIC_API_KEY}",
+            "Authorization": f"Bearer {_runtime_str_setting('MISTRAL_SEMANTIC_API_KEY', MISTRAL_SEMANTIC_API_KEY)}",
             "Content-Type": "application/json",
         },
         json={
-            "model": MISTRAL_SEMANTIC_MODEL,
+            "model": _runtime_str_setting("MISTRAL_SEMANTIC_MODEL", MISTRAL_SEMANTIC_MODEL),
             "temperature": 0,
             "max_tokens": 620,
             "response_format": {"type": "json_object"},
             "messages": [
-                {"role": "system", "content": MISTRAL_SEMANTIC_SYSTEM_PROMPT},
+                {
+                    "role": "system",
+                    "content": _runtime_str_setting(
+                        "MISTRAL_SEMANTIC_SYSTEM_PROMPT", MISTRAL_SEMANTIC_SYSTEM_PROMPT
+                    ),
+                },
                 {"role": "user", "content": json.dumps(payload, ensure_ascii=False, sort_keys=True)},
             ],
         },
-        timeout=MISTRAL_SEMANTIC_TIMEOUT_SECONDS,
+        timeout=_runtime_float_setting("MISTRAL_SEMANTIC_TIMEOUT_SECONDS", MISTRAL_SEMANTIC_TIMEOUT_SECONDS),
     )
     response.raise_for_status()
     body = response.json()
@@ -3184,7 +3237,11 @@ async def _enrich_semantic_review_async(
             "source": "semantic_review_missing",
         }
 
-    if PRIVACY_SAFE_MODE or not ENABLE_MISTRAL_SEMANTIC_PILLAR or not MISTRAL_SEMANTIC_API_KEY:
+    if (
+        _runtime_bool_setting("PRIVACY_SAFE_MODE")
+        or not _runtime_bool_setting("ENABLE_MISTRAL_SEMANTIC_PILLAR")
+        or not bool(_runtime_str_setting("MISTRAL_SEMANTIC_API_KEY", MISTRAL_SEMANTIC_API_KEY))
+    ):
         evidence["semantic_review"] = _calibrate_semantic_review_with_tier1(
             fallback,
             tier1_result,
@@ -4330,8 +4387,8 @@ def _build_scan_response(
         "reasons": _dedupe_preserve_order(
             reasons if reasons is not None else analysis_results.get("reasons", [])
         ),
-        "privacy_safe_mode": PRIVACY_SAFE_MODE,
-        "processing_mode": "privacy_safe" if PRIVACY_SAFE_MODE else "full",
+        "privacy_safe_mode": _runtime_bool_setting("PRIVACY_SAFE_MODE"),
+        "processing_mode": "privacy_safe" if _runtime_bool_setting("PRIVACY_SAFE_MODE") else "full",
         "evidence": _deep_copy_jsonable(analysis_results.get("evidence", {})),
         "redacted_text": redacted_text,
         "ai_verdict": ai_explanation.get("verdict_summary"),
@@ -4592,7 +4649,7 @@ async def extract_text_for_scan(
     ocr_warning: Optional[str] = None
     ocr_text = ""
 
-    if PRIVACY_SAFE_MODE:
+    if _runtime_bool_setting("PRIVACY_SAFE_MODE"):
         ocr_warning = "Mod sigur activ: OCR cloud dezactivat."
     elif has_vision_key():
         try:
@@ -4607,7 +4664,7 @@ async def extract_text_for_scan(
             "Lipsește GOOGLE_CLOUD_VISION_API_KEY. Se folosește scenariu mock pe nume fișier."
         )
 
-    if not ocr_text.strip() and ALLOWED_MOCK_OCR:
+    if not ocr_text.strip() and bool(_runtime_bool_setting("ALLOWED_MOCK_OCR", ALLOWED_MOCK_OCR)):
         ocr_text = mock_ocr_text_by_filename(filename)
     if not ocr_text.strip():
         if ocr_warning is None:
@@ -4625,7 +4682,7 @@ def _build_ai_explanation(
 ) -> Dict[str, Any]:
     provider_safe_text = sanitize_external_text(text)
     provider_safe_resolved_urls = sanitize_resolved_url_entries(resolved_urls)
-    if PRIVACY_SAFE_MODE:
+    if _runtime_bool_setting("PRIVACY_SAFE_MODE"):
         return generate_fallback_explanation(provider_safe_text, analysis)
     return generate_ai_explanation(provider_safe_text, analysis, provider_safe_resolved_urls)
 
@@ -4637,13 +4694,17 @@ async def _build_ai_explanation_async(
 ) -> Dict[str, Any]:
     provider_safe_text = sanitize_external_text(text)
     provider_safe_resolved_urls = sanitize_resolved_url_entries(resolved_urls)
-    if PRIVACY_SAFE_MODE or not ENABLE_CLOUD_AI_EXPLANATION or AI_EXPLANATION_TIMEOUT_SECONDS <= 0:
+    if (
+        _runtime_bool_setting("PRIVACY_SAFE_MODE")
+        or not _runtime_bool_setting("ENABLE_CLOUD_AI_EXPLANATION")
+        or _runtime_float_setting("AI_EXPLANATION_TIMEOUT_SECONDS", AI_EXPLANATION_TIMEOUT_SECONDS) <= 0
+    ):
         return generate_fallback_explanation(provider_safe_text, analysis)
 
     try:
         return await asyncio.wait_for(
             run_in_threadpool(generate_ai_explanation, provider_safe_text, analysis, provider_safe_resolved_urls),
-            timeout=AI_EXPLANATION_TIMEOUT_SECONDS,
+            timeout=_runtime_float_setting("AI_EXPLANATION_TIMEOUT_SECONDS", AI_EXPLANATION_TIMEOUT_SECONDS),
         )
     except asyncio.TimeoutError:
         logger.warning("AI explanation timed out; using deterministic fallback.")
@@ -4720,7 +4781,7 @@ async def _enrich_offer_claim_verification_async(
     analysis: Dict[str, Any],
     resolved_urls: List[Dict[str, Any]],
 ) -> Dict[str, Any]:
-    if PRIVACY_SAFE_MODE or AI_OFFER_CLAIM_TIMEOUT_SECONDS <= 0:
+    if _runtime_bool_setting("PRIVACY_SAFE_MODE") or _runtime_float_setting("AI_OFFER_CLAIM_TIMEOUT_SECONDS", AI_OFFER_CLAIM_TIMEOUT_SECONDS) <= 0:
         offer_claim = _skipped_offer_claim_payload("Claim web check skipped by privacy/timeout policy.")
         _attach_offer_claim_verification(analysis, offer_claim)
         return offer_claim
@@ -4736,7 +4797,7 @@ async def _enrich_offer_claim_verification_async(
                 provider_safe_resolved_urls,
                 brand_registry=BRAND_REGISTRY,
             ),
-            timeout=AI_OFFER_CLAIM_TIMEOUT_SECONDS,
+            timeout=_runtime_float_setting("AI_OFFER_CLAIM_TIMEOUT_SECONDS", AI_OFFER_CLAIM_TIMEOUT_SECONDS),
         )
     except asyncio.TimeoutError:
         logger.warning("Offer claim web check timed out.")
@@ -5026,7 +5087,7 @@ def _provider_pillar_from_summary(summary: Dict[str, Any], source_name: str) -> 
 
 
 def _provider_required_for_runtime(source_name: str) -> bool:
-    if PRIVACY_SAFE_MODE:
+    if _runtime_bool_setting("PRIVACY_SAFE_MODE"):
         return False
     normalized = str(source_name or "").strip().lower()
     if normalized == "google_web_risk":
@@ -5650,7 +5711,7 @@ async def _run_offer_web_claim_enrichment(job: Dict[str, Any]) -> Dict[str, Any]
                 issuer_name=offer_fields.get("issuer_name"),
                 platform_name=offer_fields.get("platform_name") or offer_fields.get("document_type"),
             ),
-            timeout=AI_OFFER_CLAIM_TIMEOUT_SECONDS,
+            timeout=_runtime_float_setting("AI_OFFER_CLAIM_TIMEOUT_SECONDS", AI_OFFER_CLAIM_TIMEOUT_SECONDS),
         )
     except Exception as exc:  # timeout/erori → inconcludent, nu blocăm nimic
         claim = _skipped_offer_claim_payload(f"Offer web check unavailable: {type(exc).__name__}.")

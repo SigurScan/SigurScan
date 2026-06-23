@@ -10,12 +10,6 @@ import sys
 from fastapi import File, Form, HTTPException, UploadFile
 
 from api_models import OrchestratedScanRequest, TextScanRequest, URLScanRequest
-from services.extract_pipeline import (
-    _assemble_extracted_text_for_orchestration,
-    extract_email_for_orchestration,
-    extract_image_for_orchestration,
-    extract_pdf_for_orchestration,
-)
 
 
 class _RuntimeProxy:
@@ -68,7 +62,7 @@ async def scan_email(
     """
     Compatibility wrapper. Extracts email evidence, then starts orchestrated scan.
     """
-    extraction = await extract_email_for_orchestration(
+    extraction = await runtime.extract_email_for_orchestration(
         email_file=email_file,
         html_content=html_content,
         source_channel=source_channel,
@@ -88,7 +82,7 @@ async def scan_image(
     """
     Compatibility wrapper. Extracts OCR evidence, then starts orchestrated scan.
     """
-    extraction = await extract_image_for_orchestration(
+    extraction = await runtime.extract_image_for_orchestration(
         image_file=image_file,
         source_channel=source_channel,
     )
@@ -107,7 +101,7 @@ async def scan_pdf(
     """
     Compatibility wrapper. Extracts PDF OCR evidence, then starts orchestrated scan.
     """
-    extraction = await extract_pdf_for_orchestration(
+    extraction = await runtime.extract_pdf_for_orchestration(
         pdf_file=pdf_file,
         source_channel=source_channel,
     )
