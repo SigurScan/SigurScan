@@ -3,14 +3,10 @@
 from __future__ import annotations
 
 import asyncio  # noqa: F401 - re-export for legacy compatibility
+from fastapi import HTTPException
 
 from app import app, create_app  # noqa: F401
 from app_stores import brand_truth_registry, urechea_ingester  # noqa: F401
-from config import *  # noqa: F401,F403
-from config import (  # noqa: F401
-    _ORCHESTRATED_STAGE_RANK,
-    _VERDICT_SEVERITY_RANK,
-)
 from core.click_intelligence import _collect_click_targets_from_html  # noqa: F401
 from starlette.concurrency import run_in_threadpool  # noqa: F401
 from core.email_auth import _is_domain_aligned  # noqa: F401
@@ -137,6 +133,13 @@ from services import rate_limiter  # noqa: F401
 import json as json  # noqa: F401 - re-export for legacy test compat
 import requests as requests  # noqa: F401 - used externally as main.requests
 from services.whois_ssl_signals import check_domain_ssl_parallel  # noqa: F401
+from config import *  # noqa: F401,F403
+from config import (  # noqa: F401
+    _ORCHESTRATED_STAGE_RANK,
+    _VERDICT_SEVERITY_RANK,
+)
+import sys as sys
+import types as types
 
 __all__ = [
     "app",
@@ -145,3 +148,160 @@ __all__ = [
     "orchestrated_engine",
     "brand_truth_registry",
 ]
+
+
+_COMPAT_SYNCABLE_MAIN_SYMBOLS = {
+    "ADMIN_API_KEYS",
+    "ALLOWED_API_KEYS",
+    "ALLOWED_MOCK_OCR",
+    "EVAL_DATASET_DEFAULT_PATH",
+    "ENABLE_DNS_REPUTATION",
+    "_analyze_with_reputation",
+    "_apply_provider_gate_verdict",
+    "_build_ai_explanation",
+    "_build_ai_explanation_async",
+    "_build_orchestration_telemetry_payload",
+    "_build_readiness_payload",
+    "_build_shadow_adjudication_payload",
+    "_call_mistral_semantic_review",
+    "_claim_verifier_required",
+    "_emit_scan_event",
+    "_enrich_local_semantic_review",
+    "_enrich_offer_claim_verification_async",
+    "_enrich_semantic_review_async",
+    "_external_intel_summary_from_threat_intel",
+    "_extract_image_qr_payloads",
+    "_extract_pdf_embedded_text",
+    "_extract_pdf_qr_payloads",
+    "_gather_external_intel",
+    "_gather_external_intel_safe",
+    "_load_fast_preview_cache",
+    "_load_urlscan_preview_cache",
+    "_provider_required_for_runtime",
+    "_safe_scan_url_list",
+    "_save_urlscan_preview_cache",
+    "_urlscan_screenshot_is_ready",
+    "check_dkim_dns_record",
+    "check_domain_ssl_parallel",
+    "extract_email_for_orchestration",
+    "extract_image_for_orchestration",
+    "extract_pdf_for_orchestration",
+    "extract_text_for_scan",
+    "generate_ai_explanation",
+    "generate_fallback_explanation",
+    "ORCHESTRATED_CLOUD_TASKS_ENABLED",
+    "ORCHESTRATED_CLOUD_TASKS_CONTINUE_DELAY_SECONDS",
+    "ORCHESTRATED_DEFER_AI_EXPLANATION",
+    "ORCHESTRATED_EARLY_VERDICT",
+    "ORCHESTRATED_REQUIRED_PILLAR_TIMEOUT_SECONDS",
+    "ORCHESTRATED_URLSCAN_PENDING_TIMEOUT_SECONDS",
+    "ORCHESTRATED_URLSCAN_SUBMIT_RESERVATION_TIMEOUT_SECONDS",
+    "AI_EXPLANATION_TIMEOUT_SECONDS",
+    "AI_OFFER_CLAIM_TIMEOUT_SECONDS",
+    "ENABLE_CLOUD_AI_EXPLANATION",
+    "get_dmarc_policy",
+    "get_reputation_for_urls",
+    "get_spf_dns_record",
+    "get_urlscan_result",
+    "has_vision_key",
+    "INTERNAL_WORKER_TOKEN",
+    "MISTRAL_SEMANTIC_API_KEY",
+    "REQUIRE_API_KEY",
+    "PRIVACY_SAFE_MODE",
+    "HTTPException",
+    "SIGURSCAN_PUBLIC_API_BASE_URL",
+    "URLSCAN_API_KEY",
+    "URLSCAN_TIMEOUT_SECONDS",
+    "URLSCAN_PREVIEW_CACHE_MAX_ENTRIES",
+    "URLSCAN_PREVIEW_CACHE_TTL_SECONDS",
+    "CLOUD_TASKS_LOCATION",
+    "CLOUD_TASKS_PROJECT",
+    "CLOUD_TASKS_QUEUE",
+    "load_feedback_records",
+    "load_scan_records",
+    "log_scan_event",
+    "maybe_run_shadow_adjudication",
+    "resolve_redirects_safely",
+    "run_in_threadpool",
+    "get_reputation_cache_stats",
+    "_URLSCAN_PREVIEW_CACHE",
+    "verify_offer_claim",
+}
+
+_COMPAT_SYNC_MODULE_NAMES = (
+    "services.scan_analysis",
+    "services.scan_pipeline",
+    "services.scan_helpers",
+    "services.orchestrated_scan",
+    "services.orchestrated_pipeline",
+    "services.reputation_enrich",
+    "services.provider_gate",
+    "services.gemini_explainer",
+    "services.offer_claim_verifier",
+    "services.redirect_resolver",
+    "services.url_reputation",
+    "services.urlscan_logic",
+    "services.urlscan_helpers",
+    "services.urlscan_pipeline",
+    "services.whois_ssl_signals",
+    "services.extract_pipeline",
+    "services.external_url_privacy",
+    "services.dns_reputation",
+    "services.telemetry",
+    "core.scan_context",
+    "core.email_auth",
+    "services.mistral_shadow_adjudicator",
+    "runtime_state",
+    "core.url_intelligence",
+    "routers.analytics",
+    "core.request_security",
+    "starlette.concurrency",
+)
+_COMPAT_ACTIVE_PATCH_COUNTS: dict[str, int] = {}
+_COMPAT_PATCH_STACK = {}
+_PATCH_SENTINEL = object()
+
+
+def _iter_compat_modules():
+    return tuple(
+        module
+        for module_name in _COMPAT_SYNC_MODULE_NAMES
+        if (module := sys.modules.get(module_name)) is not None
+    )
+
+
+class _MainCompatModule(types.ModuleType):
+    def __setattr__(self, name: str, value: object) -> None:  # noqa: ANN401
+        if name.startswith("__"):
+            object.__setattr__(self, name, value)
+            return
+
+        if name in _COMPAT_SYNCABLE_MAIN_SYMBOLS:
+            _COMPAT_ACTIVE_PATCH_COUNTS[name] = _COMPAT_ACTIVE_PATCH_COUNTS.get(name, 0) + 1
+            stack = _COMPAT_PATCH_STACK.setdefault(name, [])
+            current_main_value = self.__dict__.get(name, _PATCH_SENTINEL)
+            if stack and stack[-1][0] is value:
+                _, module_snapshot = stack.pop()
+                for module, previous_value in module_snapshot:
+                    object.__setattr__(module, name, previous_value)
+
+                remaining = _COMPAT_ACTIVE_PATCH_COUNTS.get(name, 0) - 1
+                if remaining > 0:
+                    _COMPAT_ACTIVE_PATCH_COUNTS[name] = remaining
+                else:
+                    _COMPAT_ACTIVE_PATCH_COUNTS.pop(name, None)
+            else:
+                module_snapshot: list[tuple[object, object]] = []
+                for module in _iter_compat_modules():
+                    if module is self:
+                        continue
+                    if hasattr(module, name):
+                        module_snapshot.append((module, getattr(module, name)))
+                        object.__setattr__(module, name, value)
+                stack.append((current_main_value, module_snapshot))
+
+        object.__setattr__(self, name, value)
+
+
+_main_module = sys.modules[__name__]
+_main_module.__class__ = _MainCompatModule

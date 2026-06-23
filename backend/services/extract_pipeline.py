@@ -31,6 +31,7 @@ from core.url_intelligence import (
 )
 from services.google_vision_ocr import extract_text_from_pdf_with_vision, extract_text_with_vision
 from services.pii_redactor import redact_pii
+from services.scam_atlas import BRAND_REGISTRY as SCAM_ATLAS_BRAND_REGISTRY
 from services.scan_helpers import _is_allowed_image_bytes, _validate_file_upload, extract_text_for_scan
 
 logger = logging.getLogger("main")
@@ -237,12 +238,10 @@ async def extract_email_for_orchestration(
         if url not in discovered_urls:
             discovered_urls.append(url)
 
-    from services.brand_registry import BRAND_REGISTRY
-
     email_subject = parsed_message.get("Subject", "") if parsed_message else ""
     inferred_brand_hints = _infer_brand_hints_from_click_targets(
         click_targets,
-        BRAND_REGISTRY,
+        SCAM_ATLAS_BRAND_REGISTRY,
     )
     content_for_analysis = "\n".join(
         part

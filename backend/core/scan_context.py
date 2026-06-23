@@ -7,6 +7,7 @@ from typing import Any, Callable, Dict, List, Mapping, Optional
 import re
 import os
 import logging
+import sys
 from core.url_intelligence import _canonicalize_url
 
 import email
@@ -47,6 +48,11 @@ logger = logging.getLogger("main")
 
 
 def _is_privacy_safe_mode() -> bool:
+    main_module = sys.modules.get("main")
+    if main_module is not None and hasattr(main_module, "PRIVACY_SAFE_MODE"):
+        override = str(main_module.PRIVACY_SAFE_MODE).strip().lower()
+        if override in {"1", "true", "false", "yes", "on", "off", "0", "no", "none", ""}:
+            return override in {"1", "true", "yes", "on"}
     return (
         os.getenv(_SCAN_PRIVACY_SAFE_MODE_ENV_VARS[0])
         or os.getenv(_SCAN_PRIVACY_SAFE_MODE_ENV_VARS[1])

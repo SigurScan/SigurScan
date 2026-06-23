@@ -121,7 +121,7 @@ from services.gemini_explainer import generate_fallback_explanation
 from services.urlscan_pipeline import get_urlscan_result, submit_urlscan_sandbox
 from services.telemetry import log_scan_event
 from services.pii_redactor import redact_pii
-from services.brand_registry import BRAND_REGISTRY
+from services.scam_atlas import BRAND_REGISTRY as SCAM_ATLAS_BRAND_REGISTRY
 from core.serialization import _deep_copy_jsonable, _merge_progress_dict
 from core.request_security import _env_present
 from core.email_auth import _extract_domain_root
@@ -903,7 +903,7 @@ class OrchestratedScanEngine:
                     discovered_urls.append(url)
             inferred_brand_hints = _infer_brand_hints_from_click_targets(
                 click_targets,
-                BRAND_REGISTRY,
+                SCAM_ATLAS_BRAND_REGISTRY,
             )
             click_context = [
                 f"CTA {button.get('source_tag')}/{button.get('source_attr')}: "

@@ -34,17 +34,38 @@ from config import (
 )
 from services import play_integrity, play_integrity_nonce, rate_limiter
 
+_RUNTIME_SETTING_BASELINE: dict[str, object] = {
+    "ADMIN_API_KEYS": ADMIN_API_KEYS,
+    "ALLOWED_API_KEYS": ALLOWED_API_KEYS,
+    "ALLOWED_MOCK_OCR": ALLOWED_MOCK_OCR,
+    "INTERNAL_WORKER_TOKEN": INTERNAL_WORKER_TOKEN,
+    "PRIVACY_SAFE_MODE": PRIVACY_SAFE_MODE,
+    "RATE_LIMIT_WINDOW_SECONDS": RATE_LIMIT_WINDOW_SECONDS,
+    "REQUIRE_API_KEY": REQUIRE_API_KEY,
+    "ENABLE_RATE_LIMIT": ENABLE_RATE_LIMIT,
+    "RATE_LIMIT_PER_MINUTE": RATE_LIMIT_PER_MINUTE,
+    "URLSCAN_API_KEY": URLSCAN_API_KEY,
+    "URLSCAN_VISIBILITY_DEFAULT": URLSCAN_VISIBILITY_DEFAULT,
+    "ENABLE_CLOUD_AI_EXPLANATION": ENABLE_CLOUD_AI_EXPLANATION,
+}
+
 
 def _runtime_setting(name: str, default):
-    for module_name in ("main", "app"):
-        module = sys.modules.get(module_name)
-        if module is None:
-            continue
-        if hasattr(module, name):
-            return getattr(module, name)
-    if hasattr(_config_module, name):
-        return getattr(_config_module, name)
-    return default
+    config_value = getattr(_config_module, name, default)
+    baseline = _RUNTIME_SETTING_BASELINE.get(name, default)
+    main_module = sys.modules.get("main")
+    if main_module is not None and hasattr(main_module, name):
+        main_candidate = getattr(main_module, name)
+        if main_candidate != baseline:
+            return main_candidate
+
+    app_module = sys.modules.get("app")
+    if app_module is not None and hasattr(app_module, name):
+        app_candidate = getattr(app_module, name)
+        if app_candidate != default:
+            return app_candidate
+
+    return config_value if config_value is not baseline else baseline
 
 
 def _runtime_bool_setting(name: str, default: bool = False) -> bool:
@@ -61,15 +82,8 @@ def _runtime_bool_setting(name: str, default: bool = False) -> bool:
 
 
 def _runtime_internal_worker_token() -> str:
-    for module_name in ("main", "app", __name__):
-        module = sys.modules.get(module_name)
-        if module is None:
-            continue
-        candidate = getattr(module, "INTERNAL_WORKER_TOKEN", "")
-        if isinstance(candidate, str) and candidate:
-            return candidate.strip()
-    fallback = getattr(_config_module, "INTERNAL_WORKER_TOKEN", "")
-    return (fallback or INTERNAL_WORKER_TOKEN).strip()
+    candidate = _runtime_setting("INTERNAL_WORKER_TOKEN", INTERNAL_WORKER_TOKEN)
+    return candidate.strip() if isinstance(candidate, str) else ""
 
 
 def _env_present(*names: str) -> bool:

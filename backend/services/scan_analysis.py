@@ -156,6 +156,7 @@ from services.urlscan_helpers import (
     _urlscan_preview_cache_is_fresh,
     _supabase_signed_preview_object_path,
 )
+from services.urlscan_logic import _apply_urlscan_preview_cache_hit
 from services.whois_ssl_signals import check_domain_ssl_parallel, domain_risk_from_signals
 from services.telemetry import (
     build_feedback_evaluation_rows,
@@ -5058,7 +5059,6 @@ async def _run_offer_web_claim_enrichment(job: Dict[str, Any]) -> Dict[str, Any]
     job["analysis"] = analysis
     orchestrated_engine._emit_orchestrated_telemetry("orchestrated_offer_web_claim", job, claim_status=claim.get("status"))
     return orchestrated_engine._persist_orchestrated_job(job)
-
 
 
 
