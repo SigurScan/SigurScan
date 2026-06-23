@@ -1192,3 +1192,21 @@ def _apply_decision_contract_result(
         return analysis
 
     return _runtime_call("_apply_decision_contract_result", _fallback, analysis, decision_bundle, gate_result, provider_gate)
+
+
+def _skipped_offer_claim_payload_impl(reason: str) -> Dict[str, Any]:
+    return {
+        "provider": "ai_offer_web_check",
+        "status": "skipped",
+        "verdict": "skipped",
+        "severity": "unknown",
+        "summary": reason,
+        "details": reason,
+        "confidence": 0,
+        "evidence_urls": [],
+        "method": "skipped",
+    }
+
+
+def _skipped_offer_claim_payload(reason: str) -> Dict[str, Any]:
+    return _runtime_call("_skipped_offer_claim_payload", _skipped_offer_claim_payload_impl, reason)

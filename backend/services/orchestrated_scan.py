@@ -20,7 +20,7 @@ import tldextract
 from pypdf import PdfReader
 
 from api_models import OrchestratedScanRequest, UrlscanSandboxRequest
-from services.provider_gate import _apply_decision_contract_result, _apply_provider_gate_verdict, _claim_verifier_required
+from services.provider_gate import _apply_decision_contract_result, _apply_provider_gate_verdict, _claim_verifier_required, _skipped_offer_claim_payload
 from services.verdict_gate import verdict as reduce_verdict
 from config import URLSCAN_VISIBILITY_DEFAULT, URLSCAN_COUNTRY_DEFAULT, URLSCAN_CUSTOM_AGENT_DEFAULT
 
@@ -1403,7 +1403,7 @@ class OrchestratedScanEngine:
             )
             runtime._attach_offer_claim_verification(
                 analysis,
-                runtime._skipped_offer_claim_payload("Claim web check skipped because hard reputation evidence is already decisive."),
+                _skipped_offer_claim_payload("Claim web check skipped because hard reputation evidence is already decisive."),
             )
             claim_required = False
         else:
@@ -1432,7 +1432,7 @@ class OrchestratedScanEngine:
             )
             runtime._attach_offer_claim_verification(
                 analysis,
-                runtime._skipped_offer_claim_payload(
+                _skipped_offer_claim_payload(
                     "Claim web check deferred by fast lane; verdict uses provider reputation, identity, atlas and local Tier1."
                 ),
             )
@@ -2209,7 +2209,7 @@ class OrchestratedScanEngine:
                 await runtime._enrich_semantic_review_async(redacted_text, analysis, resolved_urls)
                 runtime._attach_offer_claim_verification(
                     analysis,
-                    runtime._skipped_offer_claim_payload("Claim web check skipped because hard reputation evidence is already decisive."),
+                    _skipped_offer_claim_payload("Claim web check skipped because hard reputation evidence is already decisive."),
                 )
                 job["analysis"] = analysis
                 job["claim_verifier_required"] = False
@@ -2302,7 +2302,7 @@ class OrchestratedScanEngine:
                 await runtime._enrich_semantic_review_async(redacted_text, analysis, resolved_urls)
                 runtime._attach_offer_claim_verification(
                     analysis,
-                    runtime._skipped_offer_claim_payload(
+                    _skipped_offer_claim_payload(
                         "Claim web check skipped because hard reputation evidence is already decisive."
                         if runtime._has_bad_provider_verdict(summary)
                         else "Claim web check skipped because no concrete offer/brand claim was detected."
@@ -2335,7 +2335,7 @@ class OrchestratedScanEngine:
                     if runtime._has_bad_provider_verdict(summary)
                     else "Claim web check skipped because no concrete offer/brand claim was detected."
                 )
-                runtime._attach_offer_claim_verification(analysis, runtime._skipped_offer_claim_payload(reason))
+                runtime._attach_offer_claim_verification(analysis, _skipped_offer_claim_payload(reason))
             job["analysis"] = analysis
             job["claim_verifier_required"] = claim_required
             self._set_orchestrated_stage(job, "analysis_ready")
