@@ -20,6 +20,7 @@ import tldextract
 from pypdf import PdfReader
 
 from api_models import OrchestratedScanRequest, UrlscanSandboxRequest
+from services.provider_gate import _apply_provider_gate_verdict
 from services.verdict_gate import verdict as reduce_verdict
 from config import URLSCAN_VISIBILITY_DEFAULT, URLSCAN_COUNTRY_DEFAULT, URLSCAN_CUSTOM_AGENT_DEFAULT
 
@@ -941,7 +942,7 @@ class OrchestratedScanEngine:
                 evidence_for_gate = analysis.setdefault("evidence", {})
                 if isinstance(evidence_for_gate, dict) and not isinstance(evidence_for_gate.get("cross_scan_knowledge"), dict):
                     evidence_for_gate["cross_scan_knowledge"] = job_cross_scan
-            runtime._apply_provider_gate_verdict(
+            _apply_provider_gate_verdict(
                 analysis,
                 resolved_urls,
                 raw_text=str(job.get("redacted_text") or ""),
