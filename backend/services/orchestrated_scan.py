@@ -25,7 +25,7 @@ from pypdf import PdfReader
 
 from api_models import OrchestratedScanRequest, UrlscanSandboxRequest
 from services.verdict_gate import verdict as reduce_verdict
-from app_config import URLSCAN_VISIBILITY_DEFAULT, URLSCAN_COUNTRY_DEFAULT, URLSCAN_CUSTOM_AGENT_DEFAULT
+from config import URLSCAN_VISIBILITY_DEFAULT, URLSCAN_COUNTRY_DEFAULT, URLSCAN_CUSTOM_AGENT_DEFAULT
 
 import main
 
