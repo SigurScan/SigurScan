@@ -1,18 +1,53 @@
-"""Application entrypoint.
+"""Application entrypoint and runtime façade.
 
-The runtime object is built in `main_runtime` and re-exported here so deployment
-entrypoints can keep using `app:app`.
+The concrete implementation still lives in ``main_runtime``. This module exposes:
+- ``app`` and ``create_app`` for ASGI launchers
+- a legacy-compatible runtime surface via module attributes (e.g. ``_new_scan_id``)
+
+Keeping imports here lazy avoids import-time cycles when ``main_runtime`` loads
+its services, which now reference ``app`` for compatibility access.
 """
 
 from __future__ import annotations
 
+from typing import Any
+
+import importlib
 from fastapi import FastAPI
 
-from main_runtime import app as app
-from main_runtime import create_app as _create_app
+_runtime = None
+_app_instance = None
+
+
+def _runtime_module():
+    global _runtime
+    if _runtime is None:
+        _runtime = importlib.import_module("main_runtime")
+    return _runtime
+
+
+def __getattr__(name: str) -> Any:
+    if name == "app":
+        return create_app()
+    return getattr(_runtime_module(), name)
+
+
+def __dir__():
+    try:
+        runtime = _runtime_module()
+        return sorted(set(globals()) | set(dir(runtime)))
+    except Exception:
+        return sorted(set(globals()))
 
 
 def create_app() -> FastAPI:
-    """Factory wrapper for compatibility with factory-based startup tools."""
+    """Create a FastAPI application using the runtime factory."""
 
-    return _create_app()
+    global _app_instance
+    if _app_instance is None:
+        _app_instance = _runtime_module().create_app()
+    return _app_instance
+
+
+
+

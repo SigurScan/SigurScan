@@ -7,7 +7,7 @@ import re
 from typing import Any, Dict, List, Optional
 
 
-import main_runtime as runtime
+import app as runtime
 
 
 def _gather_external_intel(

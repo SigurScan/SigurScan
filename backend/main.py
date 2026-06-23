@@ -1,29 +1,16 @@
-"""Legacy compatibility shim for imports/tests.
-
-Runtime implementation lives in ``backend/main_runtime.py``.
-This module keeps the historical ``main`` module surface alive for existing
-code while avoiding import-time cycles during startup.
-"""
+"""Backward-compatibility façade for legacy ``main`` imports."""
 
 from __future__ import annotations
 
-import importlib
 from typing import Any
 
-
-_runtime = None
-
-
-def _get_runtime():
-    global _runtime
-    if _runtime is None:
-        _runtime = importlib.import_module("main_runtime")
-    return _runtime
+import app as _runtime
 
 
 def __getattr__(name: str) -> Any:
-    return getattr(_get_runtime(), name)
+    return getattr(_runtime, name)
 
 
-app = _get_runtime().app
-globals().update(_get_runtime().__dict__)
+app = _runtime.app
+__all__ = ["app", "create_app"]
+create_app = _runtime.create_app

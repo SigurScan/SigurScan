@@ -7,7 +7,7 @@ cycle. Extracted from runtime.py.
 """
 
 import json
-import main_runtime as runtime
+import app as runtime
 import importlib
 import time
 from datetime import datetime, timedelta, timezone

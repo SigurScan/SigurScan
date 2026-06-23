@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import HTTPException, Request
 
 
-import main_runtime as runtime
+import app as runtime
 
 
 async def advance_orchestrated_scan_worker(scan_id: str, request: Request, max_steps: int = 1):

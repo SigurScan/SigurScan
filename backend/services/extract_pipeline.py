@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup
 from fastapi import File, Form, HTTPException, UploadFile
 
 
-import main_runtime as runtime
+import app as runtime
 
 
 async def extract_image_for_orchestration(

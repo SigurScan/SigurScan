@@ -15,7 +15,7 @@ from services.extract_pipeline import (
 )
 
 
-import main_runtime as runtime
+import app as runtime
 
 
 async def scan_text(request: TextScanRequest):

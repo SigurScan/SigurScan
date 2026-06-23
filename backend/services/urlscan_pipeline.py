@@ -9,7 +9,7 @@ from fastapi.responses import Response
 from starlette.concurrency import run_in_threadpool
 
 
-import main_runtime as runtime
+import app as runtime
 
 
 async def submit_urlscan_sandbox(payload, request: Request):
