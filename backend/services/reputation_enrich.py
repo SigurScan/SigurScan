@@ -6,20 +6,19 @@ import hashlib
 import re
 from typing import Any, Dict, List, Optional
 
-import importlib
-import sys
+from config import (
+    ENABLE_DEEP_REPUTATION_FALLBACK,
+    FAST_REPUTATION_INCLUDE_URLHAUS,
+    PRIVACY_SAFE_MODE,
+)
+from runtime_state import engine
+from services.external_url_privacy import (
+    prepare_reputation_lookup_url,
+    sanitize_external_text,
+    sanitize_resolved_url_entries,
+)
+from services.url_reputation import get_reputation_for_urls
 
-
-
-class _RuntimeProxy:
-    def __getattr__(self, name: str):
-        runtime = sys.modules.get("main")
-        if runtime is None:
-            runtime = importlib.import_module("app")
-        return getattr(runtime, name)
-
-
-runtime = _RuntimeProxy()
 
 
 def _gather_external_intel(
@@ -33,11 +32,11 @@ def _gather_external_intel(
     include_phishdestroy: bool = True,
     persist_partial: bool = False,
 ) -> Dict[str, Dict[str, Any]]:
-    if runtime.PRIVACY_SAFE_MODE:
+    if PRIVACY_SAFE_MODE:
         return {}
     reputation_urls = _reputation_lookup_urls_from_resolved_entries(resolved_urls)
     reputation_hashes_by_url = _reputation_lookup_hashes_by_url_from_resolved_entries(resolved_urls)
-    threat_intel = runtime.get_reputation_for_urls(
+    threat_intel = get_reputation_for_urls(
         reputation_urls,
         include_phishing_database=include_phishing_database,
         include_phishtank=include_phishtank,
@@ -61,7 +60,7 @@ def _sanitize_external_intel_results(
         if isinstance(value, list):
             return [sanitize_value(item) for item in value]
         if isinstance(value, str):
-            return runtime.sanitize_external_text(value)
+            return sanitize_external_text(value)
         return value
 
     sanitized: Dict[str, Dict[str, Any]] = {}
@@ -70,7 +69,7 @@ def _sanitize_external_intel_results(
             continue
         safe_payload = sanitize_value(payload)
         if isinstance(payload.get("url"), str):
-            safe_payload["url"] = runtime.prepare_external_url(payload["url"]).get("external_url")
+            safe_payload["url"] = prepare_reputation_lookup_url(payload["url"]).get("external_url")
         sanitized[str(key)] = safe_payload
     return sanitized
 
@@ -83,7 +82,7 @@ def _reputation_lookup_urls_from_resolved_entries(
     def add_candidate(raw_value: Any) -> None:
         if not isinstance(raw_value, str) or not raw_value.strip():
             return
-        prepared = runtime.prepare_reputation_lookup_url(raw_value.strip())
+        prepared = prepare_reputation_lookup_url(raw_value.strip())
         safe_url = prepared.get("external_url")
         if isinstance(safe_url, str) and safe_url.strip():
             candidates.append(safe_url.strip())
@@ -124,7 +123,7 @@ def _reputation_lookup_hashes_by_url_from_resolved_entries(
     def add_hashes(raw_url: Any, raw_hashes: Any) -> None:
         if not isinstance(raw_url, str) or not raw_url.strip():
             return
-        safe_url = runtime.prepare_reputation_lookup_url(raw_url.strip()).get("external_url")
+        safe_url = prepare_reputation_lookup_url(raw_url.strip()).get("external_url")
         if not isinstance(safe_url, str) or not safe_url.strip():
             return
         bucket = output.setdefault(safe_url.strip(), [])
@@ -205,7 +204,7 @@ def _external_intel_provider_error(
     include_scam_blocklist_nrd: bool,
     include_phishdestroy: bool,
 ) -> Dict[str, Dict[str, Any]]:
-    safe_resolved_urls = runtime.sanitize_resolved_url_entries(resolved_urls)
+    safe_resolved_urls = sanitize_resolved_url_entries(resolved_urls)
     final_urls = [
         str(entry.get("final_url") or "").strip()
         for entry in safe_resolved_urls
@@ -330,7 +329,7 @@ def _gather_external_intel_safe(
     persist_partial: bool = False,
 ) -> Dict[str, Dict[str, Any]]:
     try:
-        return runtime._gather_external_intel(
+        return _gather_external_intel(
             resolved_urls,
             include_phishing_database=include_phishing_database,
             include_phishtank=include_phishtank,
@@ -344,7 +343,7 @@ def _gather_external_intel_safe(
         # Compatibility for tests that monkeypatch the helper with the older
         # single-argument signature.
         try:
-            return runtime._gather_external_intel(resolved_urls)  # type: ignore[call-arg]
+            return _gather_external_intel(resolved_urls)  # type: ignore[call-arg]
         except Exception as exc:
             return _external_intel_provider_error(
                 resolved_urls,
@@ -370,7 +369,7 @@ def _gather_external_intel_safe(
 
 
 def _analysis_needs_deep_reputation_fallback(analysis: Dict[str, Any]) -> bool:
-    if runtime.PRIVACY_SAFE_MODE or not runtime.ENABLE_DEEP_REPUTATION_FALLBACK:
+    if PRIVACY_SAFE_MODE or not ENABLE_DEEP_REPUTATION_FALLBACK:
         return False
 
     evidence = analysis.get("evidence", {}) if isinstance(analysis.get("evidence"), dict) else {}
@@ -417,7 +416,7 @@ def _analyze_with_reputation(
         threat_intel = _gather_external_intel_safe(
             resolved_urls,
             include_phishing_database=True,
-            include_urlhaus=(not use_fast) or runtime.FAST_REPUTATION_INCLUDE_URLHAUS,
+            include_urlhaus=(not use_fast) or FAST_REPUTATION_INCLUDE_URLHAUS,
             persist_partial=False,
         )
     analyze_kwargs: Dict[str, Any] = {
@@ -426,7 +425,7 @@ def _analyze_with_reputation(
     }
     if email_context is not None:
         analyze_kwargs["email_context"] = email_context
-    analysis = runtime.engine.analyze(redacted_text, **analyze_kwargs)
+    analysis = engine.analyze(redacted_text, **analyze_kwargs)
 
     if use_fast and allow_deep_fallback and _analysis_needs_deep_reputation_fallback(analysis):
         deep_threat_intel = _gather_external_intel_safe(
@@ -437,7 +436,7 @@ def _analyze_with_reputation(
         )
         if deep_threat_intel:
             analyze_kwargs["external_threat_intel"] = deep_threat_intel
-            analysis = runtime.engine.analyze(redacted_text, **analyze_kwargs)
+            analysis = engine.analyze(redacted_text, **analyze_kwargs)
             analysis.setdefault("evidence", {})["deep_reputation_fallback"] = True
     else:
         analysis.setdefault("evidence", {})["deep_reputation_fallback"] = False
