@@ -2,12 +2,20 @@ from __future__ import annotations
 
 from email import policy
 from email.message import Message
+from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional
 import re
+import os
+import logging
+from core.url_intelligence import _canonicalize_url
 
 import email
 import html
+from fastapi import HTTPException
 import urllib.parse
+from services.external_url_privacy import sanitize_resolved_url_entry
+from services.redirect_resolver import is_known_shortener, resolve_redirects_safely
+from core.email_auth import _extract_domain_root
 
 
 _APP_SCHEME_BRAND_HINTS = {
@@ -16,6 +24,20 @@ _APP_SCHEME_BRAND_HINTS = {
     "revolut": "Revolut",
     "whatsapp": "WhatsApp",
 }
+
+_BACKEND_DIR = Path(__file__).resolve().parent.parent
+EVAL_DATASET_DEFAULT_PATH = _BACKEND_DIR / "data" / "evaluation_dataset_v1.jsonl"
+EVAL_DATASET_ALLOWED_ROOT = (_BACKEND_DIR / "data").resolve()
+_SCAN_PRIVACY_SAFE_MODE_ENV_VARS = ("SIGURSCAN_SAFE_MODE", "NUDACLICK_SAFE_MODE")
+logger = logging.getLogger("main")
+
+
+def _is_privacy_safe_mode() -> bool:
+    return (
+        os.getenv(_SCAN_PRIVACY_SAFE_MODE_ENV_VARS[0])
+        or os.getenv(_SCAN_PRIVACY_SAFE_MODE_ENV_VARS[1])
+        or "false"
+    ).strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _extract_email_mime_parts(raw_email: str) -> Dict[str, str]:
@@ -233,3 +255,110 @@ def _attach_initial_url_privacy(
         )
         attached.append(candidate)
     return attached
+
+
+def _safe_mode_url_entry(url: str, *, privacy_safe_mode: Optional[bool] = None) -> Dict[str, Any]:
+    raw_url = (url or "").strip()
+    final_url = _canonicalize_url(raw_url) or raw_url
+    parsed = urllib.parse.urlparse(final_url)
+    hostname = (parsed.hostname or "").lower()
+    is_shortener = False
+    try:
+        is_shortener = is_known_shortener(final_url)
+    except Exception:
+        is_shortener = False
+
+    return {
+        "original_url": raw_url,
+        "final_url": final_url,
+        "final_hostname": hostname,
+        "final_registered_domain": _extract_domain_root(hostname),
+        "domain_age_days": None,
+        "domain_created_date": None,
+        "has_mx_records": None,
+        "redirect_chain": [],
+        "redirect_count": 0,
+        "shortener_count": 1 if is_shortener else 0,
+        "uses_shortener": is_shortener,
+        "detected_soft_redirects": [],
+        "success": True,
+        "error_message": (
+            "SIGURSCAN_SAFE_MODE: nu se face verificare externă a URL-ului."
+            if (_is_privacy_safe_mode() if privacy_safe_mode is None else privacy_safe_mode)
+            else None
+        ),
+    }
+
+
+def _safe_scan_url_list(
+    urls: List[str],
+    *,
+    privacy_safe_mode: Optional[bool] = None,
+) -> List[Dict[str, Any]]:
+    resolved_urls: List[Dict[str, Any]] = []
+    safe_mode = _is_privacy_safe_mode() if privacy_safe_mode is None else privacy_safe_mode
+    if safe_mode:
+        for url in urls:
+            resolved_urls.append(sanitize_resolved_url_entry(_safe_mode_url_entry(url)))
+        return resolved_urls
+    for url in urls:
+        try:
+            resolved_urls.append(
+                sanitize_resolved_url_entry(resolve_redirects_safely(url))
+            )
+        except Exception as exc:
+            failed_entry = sanitize_resolved_url_entry(
+                {
+                    "original_url": url,
+                    "final_url": url,
+                    "final_hostname": urllib.parse.urlparse(url).hostname,
+                    "final_registered_domain": urllib.parse.urlparse(url).hostname,
+                    "domain_age_days": None,
+                    "domain_created_date": None,
+                    "has_mx_records": None,
+                    "redirect_chain": [],
+                    "redirect_count": 0,
+                    "shortener_count": 0,
+                    "uses_shortener": False,
+                    "detected_soft_redirects": [],
+                    "success": False,
+                    "error_message": str(exc),
+                }
+            )
+            logger.warning(
+                "Redirect resolution failed for %s: %s",
+                url,
+                failed_entry.get("error_message") or "resolver_error",
+            )
+            resolved_urls.append(failed_entry)
+    return resolved_urls
+
+
+def _resolve_eval_dataset_path(dataset_path: Optional[str]) -> Path:
+    if not dataset_path:
+        candidate = EVAL_DATASET_DEFAULT_PATH
+    else:
+        cleaned = str(dataset_path).strip()
+        if not cleaned:
+            candidate = EVAL_DATASET_DEFAULT_PATH
+        else:
+            candidate = Path(cleaned)
+            if not candidate.is_absolute():
+                candidate = (_BACKEND_DIR / candidate)
+
+    resolved = candidate.expanduser().resolve()
+    if resolved != EVAL_DATASET_ALLOWED_ROOT and EVAL_DATASET_ALLOWED_ROOT not in resolved.parents:
+        raise HTTPException(
+            status_code=400,
+            detail="Dataset file must be inside backend/data.",
+        )
+    if not resolved.exists() or not resolved.is_file():
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                f"Dataset file not found: {resolved}"
+                if os.path.isabs(str(resolved))
+                else "Dataset file not found"
+            ),
+        )
+    return resolved

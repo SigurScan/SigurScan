@@ -77,9 +77,14 @@ from core.url_intelligence import (
 from core.click_intelligence import _collect_click_targets_from_html, _collect_form_context_from_html
 from core.scan_context import (
     _attach_initial_url_privacy,
+    EVAL_DATASET_ALLOWED_ROOT,
+    EVAL_DATASET_DEFAULT_PATH,
     _decode_repeated_url_value,
     _extract_email_mime_parts,
     _feedback_sample_payload,
+    _resolve_eval_dataset_path,
+    _safe_mode_url_entry as _core_safe_mode_url_entry,
+    _safe_scan_url_list as _core_safe_scan_url_list,
     _infer_brand_hints_from_click_targets,
     _merge_url_privacy,
 )
@@ -102,12 +107,10 @@ from services.external_url_privacy import (
     prepare_external_url,
     prepare_external_urls,
     prepare_reputation_lookup_url,
-    sanitize_resolved_url_entry,
     sanitize_resolved_url_entries,
     sanitize_external_text,
 )
 from services.redirect_resolver import (
-    resolve_redirects_safely,
     is_known_shortener,
     _is_scan_target_blocked,
     get_spf_dns_record,
@@ -366,9 +369,6 @@ _LEGACY_SCREENSHOT_PROXY_HOSTS = {
     "sigurscan-backend.vercel.app",
 }
 
-_BACKEND_DIR = Path(__file__).resolve().parent
-EVAL_DATASET_DEFAULT_PATH = _BACKEND_DIR / "data" / "evaluation_dataset_v1.jsonl"
-EVAL_DATASET_ALLOWED_ROOT = (_BACKEND_DIR / "data").resolve()
 if PRIVACY_SAFE_MODE:
     logger.warning("SIGURSCAN_SAFE_MODE activ: verificările externe pentru URL/reputație și Gemini sunt dezactivate.")
 
@@ -689,75 +689,12 @@ def _extract_email_auth_context(msg: Message | None, is_forwarded_guess: bool = 
     return email_ctx
 
 
+def _safe_mode_url_entry(url: str) -> Dict[str, Any]:
+    return _core_safe_mode_url_entry(url, privacy_safe_mode=PRIVACY_SAFE_MODE)
 
 
 def _safe_scan_url_list(urls: List[str]) -> List[Dict[str, Any]]:
-    resolved_urls: List[Dict[str, Any]] = []
-    if PRIVACY_SAFE_MODE:
-        for url in urls:
-            resolved_urls.append(sanitize_resolved_url_entry(_safe_mode_url_entry(url)))
-        return resolved_urls
-    for url in urls:
-        try:
-            resolved_urls.append(
-                sanitize_resolved_url_entry(resolve_redirects_safely(url))
-            )
-        except Exception as exc:
-            failed_entry = sanitize_resolved_url_entry(
-                {
-                    "original_url": url,
-                    "final_url": url,
-                    "final_hostname": urllib.parse.urlparse(url).hostname,
-                    "final_registered_domain": urllib.parse.urlparse(url).hostname,
-                    "domain_age_days": None,
-                    "domain_created_date": None,
-                    "has_mx_records": None,
-                    "redirect_chain": [],
-                    "redirect_count": 0,
-                    "shortener_count": 0,
-                    "uses_shortener": False,
-                    "detected_soft_redirects": [],
-                    "success": False,
-                    "error_message": str(exc),
-                }
-            )
-            logger.warning(
-                "Redirect resolution failed for %s: %s",
-                url,
-                failed_entry.get("error_message") or "resolver_error",
-            )
-            resolved_urls.append(failed_entry)
-    return resolved_urls
-
-
-def _resolve_eval_dataset_path(dataset_path: Optional[str]) -> Path:
-    if not dataset_path:
-        candidate = EVAL_DATASET_DEFAULT_PATH
-    else:
-        cleaned = str(dataset_path).strip()
-        if not cleaned:
-            candidate = EVAL_DATASET_DEFAULT_PATH
-        else:
-            candidate = Path(cleaned)
-            if not candidate.is_absolute():
-                candidate = (_BACKEND_DIR / candidate)
-
-    resolved = candidate.expanduser().resolve()
-    if resolved != EVAL_DATASET_ALLOWED_ROOT and EVAL_DATASET_ALLOWED_ROOT not in resolved.parents:
-        raise HTTPException(
-            status_code=400,
-            detail="Dataset file must be inside backend/data.",
-        )
-    if not resolved.exists() or not resolved.is_file():
-        raise HTTPException(
-            status_code=404,
-            detail=(
-                f"Dataset file not found: {resolved}"
-                if os.path.isabs(str(resolved))
-                else "Dataset file not found"
-            ),
-        )
-    return resolved
+    return _core_safe_scan_url_list(urls, privacy_safe_mode=PRIVACY_SAFE_MODE)
 
 
 def _gather_external_intel(
@@ -5708,41 +5645,6 @@ async def extract_text_for_scan(
         )
 
     return ocr_text, ocr_warning
-
-
-def _safe_mode_url_entry(url: str) -> Dict[str, Any]:
-    raw_url = (url or "").strip()
-    final_url = _canonicalize_url(raw_url) or raw_url
-    parsed = urllib.parse.urlparse(final_url)
-    hostname = (parsed.hostname or "").lower()
-    is_shortener = False
-    try:
-        is_shortener = is_known_shortener(final_url)
-    except Exception:
-        is_shortener = False
-
-    return {
-        "original_url": raw_url,
-        "final_url": final_url,
-        "final_hostname": hostname,
-        "final_registered_domain": _extract_domain_root(hostname),
-        "domain_age_days": None,
-        "domain_created_date": None,
-        "has_mx_records": None,
-        "redirect_chain": [],
-        "redirect_count": 0,
-        "shortener_count": 1 if is_shortener else 0,
-        "uses_shortener": is_shortener,
-        "detected_soft_redirects": [],
-        "success": True,
-        "error_message": (
-            "SIGURSCAN_SAFE_MODE: nu se face verificare externă a URL-ului."
-            if PRIVACY_SAFE_MODE
-            else None
-        ),
-    }
-
-
 def _build_ai_explanation(
     text: str,
     analysis: Dict[str, Any],
