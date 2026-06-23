@@ -475,6 +475,23 @@ class OrchestratedScanEngine:
         if not looks_like_urlscan_preview:
             return normalized
 
+        # Read-boundary deadline: even if the worker step that applies the urlscan
+        # timeout has not advanced, never report "pending" forever. After the budget
+        # the screenshot is treated as unavailable so the client stops spinning and
+        # keeps the verdict (a final verdict never waits for a screenshot).
+        created_at = int(job.get("created_at") or int(time.time()))
+        if int(time.time()) - created_at >= main.ORCHESTRATED_URLSCAN_PENDING_TIMEOUT_SECONDS:
+            normalized["status"] = "unavailable"
+            normalized["source"] = "urlscan"
+            normalized["image_url"] = None
+            normalized["screenshot_url"] = None
+            normalized["reason"] = "urlscan_screenshot_timeout"
+            normalized["details"] = normalized.get("details") or (
+                "Captura paginii nu a putut fi generată la timp (preview indisponibil). "
+                "Verdictul rămâne valabil."
+            )
+            return normalized
+
         normalized["status"] = "pending"
         normalized["source"] = "urlscan"
         normalized["image_url"] = None
