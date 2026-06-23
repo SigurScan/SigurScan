@@ -54,8 +54,6 @@ def _runtime_module():
 
 
 def __getattr__(name: str) -> Any:
-    if name == "app":
-        return create_app()
     if name == "create_app":
         return create_app
     return getattr(_runtime_module(), name)
@@ -76,7 +74,7 @@ def create_app() -> FastAPI:
     if _app_instance is None:
         _app_instance = _runtime_module().create_app()
     return _app_instance
-    
+
 
 # Backward-compatible module-level app object expected by ASGI runners.
 # The object is provided lazily via ``__getattr__`` to avoid import-time cycles
