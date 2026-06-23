@@ -2,25 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Any
-import importlib
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 import config
 from core.request_security import security_guard
+from routers import analytics, circle, community, extract, intel, pages, orchestrated, sandbox
 
 RISK_THRESHOLD = config.RISK_THRESHOLD
-
-from routers import pages, circle, community, intel, analytics, extract, orchestrated, sandbox
-
-_RUNTIME_MODULE: Any | None = None
-
-def _main_runtime() -> Any:
-    global _RUNTIME_MODULE
-    if _RUNTIME_MODULE is None:
-        _RUNTIME_MODULE = importlib.import_module("main_runtime")
-    return _RUNTIME_MODULE
 
 
 def create_app() -> FastAPI:
@@ -50,15 +39,3 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
-
-
-def __getattr__(name: str) -> Any:
-    if name == "create_app":
-        return create_app
-    if name == "app":
-        return app
-    return getattr(_main_runtime(), name)
-
-
-def __dir__():
-    return sorted(set(globals()) | set(dir(_main_runtime())))
