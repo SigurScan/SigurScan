@@ -14,15 +14,6 @@ from services.scan_pipeline import (
 
 router = APIRouter()
 
-# Include sub-routers for scan-related routes defined in dedicated modules.
-from routers.orchestrated import router as orchestrated_router
-from routers.sandbox import router as sandbox_router
-from routers.extract import router as extract_router
-
-router.include_router(orchestrated_router)
-router.include_router(sandbox_router)
-router.include_router(extract_router)
-
 
 @router.post("/v1/scan/text")
 async def scan_text(request: TextScanRequest):
