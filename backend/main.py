@@ -39,6 +39,7 @@ import html
 from starlette.concurrency import run_in_threadpool
 import tldextract
 from pypdf import PdfReader
+from core.serialization import _deep_copy_jsonable, _merge_missing_dict_values, _merge_progress_dict
 
 # Import our custom services
 from services.pii_redactor import redact_pii
@@ -8278,25 +8279,6 @@ def _merge_threat_intel_sources(
                 current_entry[field] = _deep_copy_jsonable(overlay_entry[field])
     return merged
 
-
-
-
-def _deep_copy_jsonable(value: Any) -> Any:
-    try:
-        return json.loads(json.dumps(value))
-    except Exception:
-        return value
-
-
-def _merge_missing_dict_values(target: Dict[str, Any], source: Dict[str, Any]) -> None:
-    for key, value in source.items():
-        if value in (None, "", [], {}):
-            continue
-        current = target.get(key)
-        if current in (None, "", [], {}):
-            target[key] = _deep_copy_jsonable(value)
-
-
 def _urlscan_merge_rank(state: Dict[str, Any]) -> int:
     status = str((state or {}).get("status") or "").strip().lower()
     if status == "finished" and bool((state or {}).get("screenshot_ready")):
@@ -8355,28 +8337,6 @@ def _preview_merge_rank(state: Dict[str, Any]) -> int:
     if status == "ready":
         return 1
     return 0
-
-
-def _merge_progress_dict(
-    base: Dict[str, Any],
-    overlay: Dict[str, Any],
-    *,
-    ranker,
-) -> Dict[str, Any]:
-    if not base:
-        return _deep_copy_jsonable(overlay)
-    if not overlay:
-        return _deep_copy_jsonable(base)
-    base_rank = ranker(base)
-    overlay_rank = ranker(overlay)
-    winner = _deep_copy_jsonable(overlay if overlay_rank > base_rank else base)
-    loser = base if overlay_rank > base_rank else overlay
-    _merge_missing_dict_values(winner, loser)
-    return winner
-
-
-
-
 
 
 def _ai_explanation_fingerprint(analysis: Dict[str, Any]) -> str:
