@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from config import (
+    FAST_PREVIEW_CACHE_MAX_ENTRIES,
+    FAST_PREVIEW_SIGNED_URL_TTL_SECONDS,
     ORCHESTRATED_URLSCAN_PENDING_TIMEOUT_SECONDS,
     URLSCAN_PREVIEW_CACHE_MAX_ENTRIES,
     URLSCAN_PREVIEW_CACHE_TTL_SECONDS,
@@ -15,15 +17,19 @@ import urllib.parse
 
 from core.email_auth import _extract_domain_root
 from core.scan_context import _merge_url_privacy
-from runtime_state import _URLSCAN_PREVIEW_CACHE
+from core.serialization import _deep_copy_jsonable
+from runtime_state import _FAST_PREVIEW_CACHE, _URLSCAN_PREVIEW_CACHE
 from services import supabase_store
 from services.external_url_privacy import prepare_external_url
 from services.reputation_enrich import _has_bad_provider_verdict
 from services.urlscan_helpers import (
+    _fast_preview_cache_lookup_keys,
     _canonical_urlscan_preview_cache_url,
     _normalize_urlscan_preview_cache_entry,
     _remember_preview_cache_entry,
+    _supabase_signed_preview_object_path,
     _urlscan_preview_cache_key,
+    _urlscan_preview_cache_is_fresh,
 )
 
 
@@ -232,6 +238,204 @@ def _mark_urlscan_screenshot_unavailable(
     preview["image_url"] = None
     preview["reason"] = "urlscan_screenshot_timeout"
     preview["details"] = URLSCAN_SCREENSHOT_UNAVAILABLE_DETAILS
+
+
+def _normalize_fast_preview_cache_entry(entry: Any) -> Optional[Dict[str, Any]]:
+    if not isinstance(entry, dict):
+        return None
+    if entry.get("visual_only") is False or str(entry.get("verdict_role") or "none").strip().lower() != "none":
+        return None
+    status = str(entry.get("status") or "").strip().lower()
+    final_url = str(entry.get("final_url") or "").strip()
+    screenshot_path = str(entry.get("screenshot_path") or "").strip()
+    if status != "ready" or not final_url or not screenshot_path or not entry.get("reachable"):
+        return None
+    final_privacy = prepare_external_url(final_url)
+    if (
+        final_privacy.get("preview_allowed") is False
+        or final_privacy.get("action") != "unchanged"
+    ):
+        return None
+    if not _urlscan_preview_cache_is_fresh(entry):
+        return None
+
+    now = int(time.time())
+    cached_image_url = str(entry.get("image_url") or entry.get("screenshot_url") or "").strip()
+    signed_object_path = (
+        _supabase_signed_preview_object_path(screenshot_path)
+        or _supabase_signed_preview_object_path(cached_image_url)
+    )
+    durable_screenshot_path = signed_object_path or screenshot_path
+    image_url = None if signed_object_path else (
+        screenshot_path if screenshot_path.startswith(("http://", "https://")) else None
+    )
+    try:
+        signed_url_expires_at = int(entry.get("_signed_url_expires_at") or 0)
+    except (TypeError, ValueError):
+        signed_url_expires_at = 0
+    if not image_url and cached_image_url and signed_url_expires_at > now + 5:
+        image_url = cached_image_url
+    if not image_url:
+        image_url = supabase_store.create_preview_signed_url(
+            durable_screenshot_path,
+            bucket="previews",
+            expires_in_seconds=FAST_PREVIEW_SIGNED_URL_TTL_SECONDS,
+        )
+    if not image_url:
+        return None
+
+    normalized = dict(entry)
+    normalized["status"] = "ready"
+    normalized["source"] = "precapture_worker"
+    normalized["final_url"] = final_url
+    normalized["image_url"] = image_url
+    normalized["screenshot_url"] = image_url
+    if signed_object_path or not screenshot_path.startswith(("http://", "https://")):
+        normalized["_signed_url_expires_at"] = now + max(1, FAST_PREVIEW_SIGNED_URL_TTL_SECONDS - 30)
+    normalized["cache_hit"] = True
+    normalized["reason"] = None
+    return normalized
+
+
+def _load_fast_preview_cache(final_url: Any) -> Optional[Dict[str, Any]]:
+    cache_keys = _fast_preview_cache_lookup_keys(final_url)
+    if not cache_keys:
+        return None
+
+    for cache_key in cache_keys:
+        cached = _normalize_fast_preview_cache_entry(_FAST_PREVIEW_CACHE.get(cache_key))
+        if cached:
+            _remember_preview_cache_entry(
+                _FAST_PREVIEW_CACHE,
+                cache_key,
+                cached,
+                FAST_PREVIEW_CACHE_MAX_ENTRIES,
+            )
+            return cached
+
+    persisted = None
+    persisted_key = None
+    for cache_key in cache_keys:
+        persisted = _normalize_fast_preview_cache_entry(supabase_store.load_fast_preview_cache(cache_key))
+        persisted_key = cache_key if persisted else None
+        if not persisted:
+            alias = supabase_store.load_fast_preview_alias_cache(cache_key)
+            final_hash = str((alias or {}).get("final_url_hash") or "").strip()
+            if final_hash and final_hash != cache_key:
+                persisted = _normalize_fast_preview_cache_entry(supabase_store.load_fast_preview_cache(final_hash))
+                persisted_key = final_hash if persisted else None
+        if persisted:
+            break
+
+    if persisted:
+        _remember_preview_cache_entry(
+            _FAST_PREVIEW_CACHE,
+            cache_keys[0],
+            persisted,
+            FAST_PREVIEW_CACHE_MAX_ENTRIES,
+        )
+        if persisted_key:
+            _remember_preview_cache_entry(
+                _FAST_PREVIEW_CACHE,
+                persisted_key,
+                persisted,
+                FAST_PREVIEW_CACHE_MAX_ENTRIES,
+            )
+    return persisted
+
+
+def _apply_fast_preview_cache_hit(
+    job: Dict[str, Any],
+    cached: Dict[str, Any],
+    *,
+    increment_metric=None,
+) -> Dict[str, Any]:
+    cached_preview = _normalize_fast_preview_cache_entry(cached)
+    if not cached_preview:
+        return job
+    preview = job.setdefault("preview", {})
+    preview["status"] = "ready"
+    preview["source"] = "precapture_worker"
+    preview["final_url"] = cached_preview.get("final_url")
+    preview["image_url"] = cached_preview.get("image_url")
+    preview["screenshot_url"] = cached_preview.get("screenshot_url")
+    preview["page_title"] = cached_preview.get("page_title")
+    preview["captured_at"] = cached_preview.get("captured_at")
+    preview["width"] = cached_preview.get("screenshot_w")
+    preview["height"] = cached_preview.get("screenshot_h")
+    preview["cache_hit"] = True
+    preview["fast_cache_hit"] = True
+    preview["reason"] = None
+    if callable(increment_metric):
+        try:
+            increment_metric(job, "fast_preview_cache_hit_count")
+        except Exception:
+            pass
+    return job
+
+
+def _apply_best_preview_cache_hit(
+    job: Dict[str, Any],
+    final_url: Any,
+    *,
+    increment_metric=None,
+) -> Dict[str, Any]:
+    if not final_url:
+        return job
+    cached_fast = _load_fast_preview_cache(final_url)
+    cached_urlscan = _load_urlscan_preview_cache(final_url)
+    if cached_urlscan:
+        job = _apply_urlscan_preview_cache_hit(job, cached_urlscan)
+        if cached_fast:
+            return _apply_fast_preview_cache_hit(job, cached_fast, increment_metric=increment_metric)
+        preview = job.get("preview") if isinstance(job.get("preview"), dict) else {}
+        if preview.get("status") == "ready" and (
+            preview.get("image_url") or preview.get("screenshot_url")
+        ):
+            return job
+    if cached_fast:
+        return _apply_fast_preview_cache_hit(job, cached_fast, increment_metric=increment_metric)
+    return job
+
+
+def _merge_threat_intel_sources(
+    base: Optional[Dict[str, Dict[str, Any]]],
+    overlay: Optional[Dict[str, Dict[str, Any]]],
+) -> Dict[str, Dict[str, Any]]:
+    merged: Dict[str, Dict[str, Any]] = _deep_copy_jsonable(base or {})
+
+    def should_replace_source(current: Any, incoming: Dict[str, Any]) -> bool:
+        if not isinstance(current, dict):
+            return True
+        current_consulted = bool(current.get("consulted"))
+        incoming_consulted = bool(incoming.get("consulted"))
+        if current_consulted and not incoming_consulted:
+            return False
+        return True
+
+    for key, overlay_entry in (overlay or {}).items():
+        if not isinstance(overlay_entry, dict):
+            continue
+        current_entry = merged.get(key)
+        if not isinstance(current_entry, dict):
+            merged[key] = _deep_copy_jsonable(overlay_entry)
+            continue
+        current_sources = current_entry.setdefault("sources", {})
+        overlay_sources = overlay_entry.get("sources")
+        if isinstance(current_sources, dict) and isinstance(overlay_sources, dict):
+            for source_name, source_payload in overlay_sources.items():
+                if isinstance(source_payload, dict) and should_replace_source(current_sources.get(source_name), source_payload):
+                    current_sources[source_name] = _deep_copy_jsonable(source_payload)
+        for field in (
+            "verdict",
+            "risk_score",
+            "active_sources",
+            "consulted_sources",
+            "consulted_source_count",
+        ):
+            if field in overlay_entry:
+                current_entry[field] = _deep_copy_jsonable(overlay_entry[field])
+    return merged
 
 
 def _urlscan_pending_has_timed_out(job: Dict[str, Any]) -> bool:
