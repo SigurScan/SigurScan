@@ -10,9 +10,11 @@ from typing import Any, Dict
 from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse
 
+import config as _config_module
 from config import (
     ADMIN_API_KEYS,
     AI_OFFER_CLAIM_TIMEOUT_SECONDS,
+    ALLOWED_API_KEYS,
     ALLOWED_MOCK_OCR,
     CLIENT_INSTANCE_HEADER,
     PUBLIC_PATHS,
@@ -40,6 +42,8 @@ def _runtime_setting(name: str, default):
             continue
         if hasattr(module, name):
             return getattr(module, name)
+    if hasattr(_config_module, name):
+        return getattr(_config_module, name)
     return default
 
 
@@ -64,7 +68,8 @@ def _runtime_internal_worker_token() -> str:
         candidate = getattr(module, "INTERNAL_WORKER_TOKEN", "")
         if isinstance(candidate, str) and candidate:
             return candidate.strip()
-    return INTERNAL_WORKER_TOKEN.strip()
+    fallback = getattr(_config_module, "INTERNAL_WORKER_TOKEN", "")
+    return (fallback or INTERNAL_WORKER_TOKEN).strip()
 
 
 def _env_present(*names: str) -> bool:
@@ -256,7 +261,7 @@ def _is_play_integrity_nonce_path(path: str) -> bool:
 
 
 async def security_guard(request: Request, call_next):
-    """HTTP middleware preserving the previous hardening behavior from main_runtime."""
+    """HTTP middleware preserving request security hardening."""
 
     path = request.url.path
     if path in PUBLIC_PATHS or request.method == "OPTIONS":

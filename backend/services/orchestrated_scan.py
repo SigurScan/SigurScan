@@ -9,9 +9,6 @@ import hashlib
 import base64
 import secrets
 import urllib.parse
-import sys
-from functools import lru_cache
-from importlib import import_module
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -36,127 +33,109 @@ from core.url_intelligence import _canonicalize_url, extract_urls
 from config import URLSCAN_VISIBILITY_DEFAULT, URLSCAN_COUNTRY_DEFAULT, URLSCAN_CUSTOM_AGENT_DEFAULT, MAX_TEXT_CHARS
 
 
-_RUNTIME_IMPORT_EXPORTS = (
-    "BRAND_REGISTRY",
-    "CLOUD_TASKS_LOCATION",
-    "CLOUD_TASKS_PROJECT",
-    "CLOUD_TASKS_QUEUE",
-    "CLOUD_TASKS_REQUEST_TIMEOUT_SECONDS",
-    "INTERNAL_WORKER_TOKEN",
-    "ORCHESTRATED_CLOUD_TASKS_ENABLED",
-    "ORCHESTRATED_DEFER_AI_EXPLANATION",
-    "ORCHESTRATED_EARLY_VERDICT",
-    "ORCHESTRATED_JOB_TTL_SECONDS",
-    "ORCHESTRATED_REFRESH_LOCK_TTL_SECONDS",
-    "ORCHESTRATED_REQUIRED_PILLAR_TIMEOUT_SECONDS",
-    "ORCHESTRATED_URLSCAN_SUBMIT_RESERVATION_TIMEOUT_SECONDS",
-    "PRIVACY_SAFE_MODE",
-    "SIGURSCAN_PUBLIC_API_BASE_URL",
-    "_ORCHESTRATED_STAGE_RANK",
-    "_ai_explanation_fingerprint",
-    "_all_required_pillars_terminal",
-    "_analyze_with_reputation",
-    "_apply_best_preview_cache_hit",
-    "_apply_fast_preview_cache_hit",
-    "_apply_final_url_unresolved_shortener_fail_safe",
-    "_apply_primary_resolved_url",
-    "_apply_urlscan_preview_cache_hit",
-    "_assemble_extracted_text_for_orchestration",
-    "_attach_offer_claim_verification",
-    "_build_ai_explanation_async",
-    "_build_scan_response",
-    "_cloud_tasks_access_token",
-    "_deep_copy_jsonable",
-    "_emit_scan_event",
-    "_enrich_local_semantic_review",
-    "_enrich_offer_claim_verification_async",
-    "_enrich_semantic_review_async",
-    "_env_present",
-    "_external_intel_summary_from_threat_intel",
-    "_extract_domain_root",
-    "_extract_email_mime_parts",
-    "_final_url_unresolved_entry",
-    "_gather_external_intel_safe",
-    "_has_required_pillar_error",
-    "_invoice_auto_route_context",
-    "_load_fast_preview_cache",
-    "_load_urlscan_preview_cache",
-    "_mark_required_pillars_timeout",
-    "_mark_urlscan_screenshot_unavailable",
-    "_merge_progress_dict",
-    "_merge_threat_intel_sources",
-    "_merge_url_privacy",
-    "_normalize_screenshot_proxy_url",
-    "_official_clean_can_finalize_before_urlscan",
-    "_official_destination_confirmed",
-    "_pillar",
-    "_preview_for_final_url_unresolved",
-    "_preview_merge_rank",
-    "_provider_pillar_from_summary",
-    "_provider_reputation_context_analysis",
-    "_provider_verdict_for_decision_bundle",
-    "_public_navigation_clean_can_finalize_before_urlscan",
-    "_first_final_url",
-    "_run_offer_web_claim_enrichment",
-    "_sanitize_urlscan_result_payload",
-    "_save_urlscan_preview_cache",
-    "_select_primary_resolved_url",
-    "_sync_resolved_urls_with_urlscan_final",
-    "_urlscan_enhancement_done",
-    "_urlscan_finished_with_risk",
-    "_urlscan_merge_rank",
-    "_urlscan_pending_has_timed_out",
-    "_urlscan_preview_cache_entry_from_job",
-    "_urlscan_provider_payload",
-    "_urlscan_result_ready_for_verdict",
-    "_urlscan_scan_prevented",
-    "_urlscan_screenshot_is_ready",
-    "_urlscan_state_has_risk",
-    "check_domain_ssl_parallel",
-    "domain_risk_from_signals",
-    "generate_fallback_explanation",
-    "get_urlscan_result",
-    "supabase_store",
-    "urllib",
-    "log_scan_event",
-    "logger",
-    "redact_pii",
-    "requests",
-    "submit_urlscan_sandbox",
+import logging
+import requests as _requests
+
+from services.scan_analysis import (
+    _ai_explanation_fingerprint,
+    _all_required_pillars_terminal,
+    _apply_best_preview_cache_hit,
+    _apply_fast_preview_cache_hit,
+    _apply_final_url_unresolved_shortener_fail_safe,
+    _apply_primary_resolved_url,
+    _attach_offer_claim_verification,
+    _build_ai_explanation_async,
+    _build_scan_response,
+    _cloud_tasks_access_token,
+    _collect_signal_ids,
+    _emit_scan_event,
+    _enrich_local_semantic_review,
+    _enrich_offer_claim_verification_async,
+    _enrich_semantic_review_async,
+    _final_url_unresolved_entry,
+    _first_final_url,
+    _has_required_pillar_error,
+    _invoice_auto_route_context,
+    _load_fast_preview_cache,
+    _mark_required_pillars_timeout,
+    _merge_threat_intel_sources,
+    _official_clean_can_finalize_before_urlscan,
+    _official_destination_confirmed,
+    _pillar,
+    _preview_for_final_url_unresolved,
+    _preview_merge_rank,
+    _provider_pillar_from_summary,
+    _provider_reputation_context_analysis,
+    _provider_verdict_for_decision_bundle,
+    _public_navigation_clean_can_finalize_before_urlscan,
+    _run_offer_web_claim_enrichment,
+    _select_primary_resolved_url,
+    logger,
 )
+from config import (
+    CLOUD_TASKS_LOCATION,
+    CLOUD_TASKS_PROJECT,
+    CLOUD_TASKS_QUEUE,
+    CLOUD_TASKS_REQUEST_TIMEOUT_SECONDS,
+    INTERNAL_WORKER_TOKEN,
+    ORCHESTRATED_CLOUD_TASKS_ENABLED,
+    ORCHESTRATED_DEFER_AI_EXPLANATION,
+    ORCHESTRATED_EARLY_VERDICT,
+    ORCHESTRATED_JOB_TTL_SECONDS,
+    ORCHESTRATED_REFRESH_LOCK_TTL_SECONDS,
+    ORCHESTRATED_REQUIRED_PILLAR_TIMEOUT_SECONDS,
+    ORCHESTRATED_URLSCAN_SUBMIT_RESERVATION_TIMEOUT_SECONDS,
+    PRIVACY_SAFE_MODE,
+    SIGURSCAN_PUBLIC_API_BASE_URL,
+    _ORCHESTRATED_STAGE_RANK,
+)
+from services.reputation_enrich import (
+    _analyze_with_reputation,
+    _external_intel_summary_from_threat_intel,
+    _gather_external_intel_safe,
+)
+from services.urlscan_logic import (
+    _apply_urlscan_preview_cache_hit,
+    _mark_urlscan_screenshot_unavailable,
+    _sanitize_urlscan_result_payload,
+    _save_urlscan_preview_cache,
+    _sync_resolved_urls_with_urlscan_final,
+    _urlscan_enhancement_done,
+    _urlscan_finished_with_risk,
+    _urlscan_merge_rank,
+    _urlscan_pending_has_timed_out,
+    _urlscan_preview_cache_entry_from_job,
+    _urlscan_provider_payload,
+    _urlscan_result_ready_for_verdict,
+    _urlscan_scan_prevented,
+    _urlscan_state_has_risk,
+)
+from services.urlscan_helpers import (
+    _load_urlscan_preview_cache,
+    _normalize_screenshot_proxy_url,
+    _urlscan_screenshot_is_ready,
+)
+from services.extract_pipeline import _assemble_extracted_text_for_orchestration
+from services.whois_ssl_signals import check_domain_ssl_parallel, domain_risk_from_signals
+from services.gemini_explainer import generate_fallback_explanation
+from services.urlscan_pipeline import get_urlscan_result, submit_urlscan_sandbox
+from services.telemetry import log_scan_event
+from services.pii_redactor import redact_pii
+from services.brand_registry import BRAND_REGISTRY
+from core.serialization import _deep_copy_jsonable, _merge_progress_dict
+from core.request_security import _env_present
+from core.email_auth import _extract_domain_root
+from core.scan_context import _extract_email_mime_parts, _merge_url_privacy
+from services import supabase_store
 
-
-def _bind_runtime_exports() -> None:
-    runtime_module = _runtime_module()
-    for name in _RUNTIME_IMPORT_EXPORTS:
-        if name in globals():
-            continue
-        if name in {"requests", "logger"} and name in globals():
-            continue
-        if hasattr(runtime_module, name):
-            globals()[name] = getattr(runtime_module, name)
-
-
-@lru_cache(maxsize=1)
-def _runtime_module():
-    runtime = sys.modules.get("main_runtime")
-    if runtime is None:
-        runtime = sys.modules.get("main")
-    if runtime is None:
-        try:
-            runtime = import_module("main_runtime")
-        except Exception:
-            runtime = import_module("main")
-    return runtime
-
-
+requests = _requests
 class OrchestratedScanEngine:
     """Orchestrated-scan engine: owns the in-memory job store/locks and the full
     scan pipeline. Helpers/config that remain in py are referenced via X."""
 
     def __init__(self) -> None:
-        _bind_runtime_exports()
         self._ORCHESTRATED_SCAN_JOBS: Dict[str, Dict[str, Any]] = {}
+        self._ORCHESTRATED_SCAN_LOCKS: Dict[str, asyncio.Lock] = {}
         self._ORCHESTRATED_SCAN_LOCKS: Dict[str, asyncio.Lock] = {}
 
 
@@ -1309,7 +1288,7 @@ class OrchestratedScanEngine:
             privacy_safe_text = privacy_safe_text.replace(raw_url, safe_url)
         cross_scan_knowledge: Dict[str, Any] = {}
         try:
-            from services.brand_registry import detect_claimed_brand
+            from services.brand_registry import detect_claimed_brand, BRAND_REGISTRY
             from services.cross_scan_knowledge import evaluate_cross_scan_knowledge
             from services.invoice_parser import CUI_PATTERN
 

@@ -1,3 +1,5 @@
+"""Scan analysis functions extracted from the legacy runtime module."""
+
 import os
 import sys
 import importlib
@@ -147,6 +149,13 @@ from app_stores import brand_truth_registry, campaign_store, urechea_ingester, c
 from services.mistral_shadow_adjudicator import maybe_run_shadow_adjudication
 from services.offer_claim_verifier import verify_offer_claim
 from services.url_reputation import get_reputation_cache_stats, get_reputation_for_urls, reputation_url_hash_variants
+from services.urlscan_helpers import (
+    _fast_preview_cache_lookup_keys,
+    _remember_preview_cache_entry,
+    _load_urlscan_preview_cache,
+    _urlscan_preview_cache_is_fresh,
+    _supabase_signed_preview_object_path,
+)
 from services.whois_ssl_signals import check_domain_ssl_parallel, domain_risk_from_signals
 from services.telemetry import (
     build_feedback_evaluation_rows,
@@ -187,154 +196,9 @@ from runtime_state import _URLSCAN_PREVIEW_CACHE, _FAST_PREVIEW_CACHE, engine, t
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("main")
 
+logger = logging.getLogger("scan_analysis")
 
-def _runtime_module():
-    runtime = sys.modules.get("main")
-    if runtime is None:
-        runtime = sys.modules.get("app")
-    return runtime
-
-
-def _runtime_setting(name: str, default):
-    module = _runtime_module()
-    if module is None:
-        return default
-    return getattr(module, name, default)
-
-
-def _runtime_bool_setting(name: str, default: bool = False) -> bool:
-    value = _runtime_setting(name, default)
-    if isinstance(value, bool):
-        return value
-    if value is None:
-        return bool(default)
-    if isinstance(value, (int, float)):
-        return bool(value)
-    if isinstance(value, str):
-        return value.strip().lower() in {"1", "true", "yes", "on"}
-    return bool(value)
-
-
-def _runtime_str_setting(name: str, default: str) -> str:
-    value = _runtime_setting(name, default)
-    if value is None:
-        return str(default)
-    return str(value)
-
-
-def _runtime_float_setting(name: str, default: float) -> float:
-    value = _runtime_setting(name, default)
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        try:
-            return float(str(value).strip())
-        except Exception:
-            return float(default)
-
-
-def _runtime_callable(name: str, fallback):
-    value = _runtime_setting(name, fallback)
-    return value if callable(value) else fallback
-
-app = FastAPI(
-    title="SigurScan API",
-    description="Anti-scam detection engine localized for Romania (2025-2026)",
-    version="1.0",
-    docs_url="/docs" if EXPOSE_API_DOCS else None,
-    redoc_url="/redoc" if EXPOSE_API_DOCS else None,
-    openapi_url="/openapi.json" if EXPOSE_API_DOCS else None,
-)
-
-if _runtime_bool_setting("PRIVACY_SAFE_MODE"):
-    logger.warning("SIGURSCAN_SAFE_MODE activ: verificările externe pentru URL/reputație și Gemini sunt dezactivate.")
-
-# Enable CORS for local testing from React Native/Expo web
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
-    allow_credentials="*" not in ALLOWED_ORIGINS,
-    allow_methods=ALLOWED_CORS_METHODS,
-    allow_headers=ALLOWED_CORS_HEADERS,
-)
-
-
-@app.middleware("http")
-async def security_guard(request: Request, call_next):
-    path = request.url.path
-    if path in PUBLIC_PATHS or request.method == "OPTIONS":
-        return await call_next(request)
-
-    api_key = _extract_api_key(request)
-    internal_worker_authorized = path.startswith("/internal/") and _internal_worker_token_matches(request)
-    integrity_verdict = None
-    integrity_can_authorize_client = False
-    should_check_integrity = (
-        play_integrity.mode() != "off"
-        and request.method == "POST"
-        and _is_integrity_guarded_path(path)
-    )
-    if should_check_integrity:
-        integrity_verdict = play_integrity.evaluate_request_token(
-            request.headers.get(play_integrity.INTEGRITY_TOKEN_HEADER, ""),
-            _play_integrity_client_binding(request, api_key),
-        )
-        integrity_can_authorize_client = (
-            play_integrity.mode() == "enforce"
-            and not integrity_verdict["block"]
-            and (integrity_verdict.get("result") or {}).get("status") == "valid"
-        )
-
-    admin_api_keys = set(_runtime_setting("ADMIN_API_KEYS", ADMIN_API_KEYS) or [])
-    allowed_api_keys = set(_runtime_setting("ALLOWED_API_KEYS", ALLOWED_API_KEYS) or [])
-
-    # Operator endpoints: separate admin keys, fail closed when unconfigured.
-    if internal_worker_authorized:
-        return await call_next(request)
-    if path in ADMIN_ONLY_PATHS:
-        if not admin_api_keys:
-            return JSONResponse(
-                status_code=403,
-                content={"detail": "Admin access is not configured on this deployment."},
-            )
-        if not api_key or api_key not in admin_api_keys:
-            return JSONResponse(status_code=401, content={"detail": "Missing or invalid admin API key."})
-    elif _runtime_bool_setting("REQUIRE_API_KEY") and not (request.method == "GET" and _is_screenshot_proxy_path(path)):
-        # Fail closed: requiring a key while configuring none is a deployment
-        # error and must not silently open the API.
-        nonce_request_allowed = _is_play_integrity_nonce_path(path) and play_integrity.mode() != "off"
-        api_key_authorized = bool(api_key and api_key in allowed_api_keys)
-        if not api_key_authorized and not integrity_can_authorize_client and not nonce_request_allowed:
-            return JSONResponse(status_code=401, content={"detail": "Missing or invalid API key."})
-
-    if integrity_verdict is not None:
-        if integrity_verdict["block"]:
-            return JSONResponse(
-                status_code=401,
-                content={"detail": "Play Integrity verification failed.", "integrity": integrity_verdict["result"]},
-            )
-
-    if _runtime_bool_setting("ENABLE_RATE_LIMIT"):
-        decision = await asyncio.to_thread(
-            rate_limiter.check_sync,
-            api_key or None,
-            request.client.host if request.client else "anonymous",
-            path,
-            int(_runtime_setting("RATE_LIMIT_PER_MINUTE", RATE_LIMIT_PER_MINUTE)),
-            path in ADMIN_ONLY_PATHS and api_key in admin_api_keys,
-        )
-        if not decision.allowed:
-            return JSONResponse(
-                status_code=429,
-                content={"detail": "Too many requests. Try again later."},
-                headers={"Retry-After": str(decision.retry_after_seconds or RATE_LIMIT_WINDOW_SECONDS)},
-            )
-
-    return await call_next(request)
-
-
-
-
+# ── Analysis functions ────────────────────────────────────────────
 
 def _extract_email_auth_context(msg: Message | None, is_forwarded_guess: bool = True) -> Dict[str, Any]:
     """
@@ -427,7 +291,7 @@ def _extract_email_auth_context(msg: Message | None, is_forwarded_guess: bool = 
     dmarc_policy: Dict[str, Any] = {}
     dns_dkim_record = None
 
-    if _runtime_bool_setting("PRIVACY_SAFE_MODE"):
+    if PRIVACY_SAFE_MODE:
         auth_fail_reasons.append(
             "SIGURSCAN_SAFE_MODE: verificările DNS SPF/DMARC/DKIM sunt dezactivate pentru confidențialitate."
         )
@@ -435,9 +299,9 @@ def _extract_email_auth_context(msg: Message | None, is_forwarded_guess: bool = 
             if auth_results.get(mechanism) == "pass":
                 auth_results[mechanism] = "unknown"
     else:
-        spf_lookup = _runtime_callable("get_spf_dns_record", get_spf_dns_record)
-        dmarc_lookup = _runtime_callable("get_dmarc_policy", get_dmarc_policy)
-        dkim_lookup = _runtime_callable("check_dkim_dns_record", check_dkim_dns_record)
+        spf_lookup = get_spf_dns_record
+        dmarc_lookup = get_dmarc_policy
+        dkim_lookup = check_dkim_dns_record
 
         spf_record = spf_lookup(from_domain or "")
         dmarc_policy = dmarc_lookup(from_domain or "")
@@ -535,10 +399,10 @@ def _extract_email_auth_context(msg: Message | None, is_forwarded_guess: bool = 
             "spf_record_present": bool(spf_record),
             "dkim_selector": dkim_selector,
             "dkim_signature_domain": dkim_signature_domain,
-            "spf_record_source": "dns" if not _runtime_bool_setting("PRIVACY_SAFE_MODE") else "privacy_safe_disabled",
-            "dmarc_policy_source": "dns" if not _runtime_bool_setting("PRIVACY_SAFE_MODE") else "privacy_safe_disabled",
-            "dkim_dns_source": "dns" if not _runtime_bool_setting("PRIVACY_SAFE_MODE") else "privacy_safe_disabled",
-            "dns_checks_disabled": bool(_runtime_bool_setting("PRIVACY_SAFE_MODE")),
+            "spf_record_source": "dns" if not PRIVACY_SAFE_MODE else "privacy_safe_disabled",
+            "dmarc_policy_source": "dns" if not PRIVACY_SAFE_MODE else "privacy_safe_disabled",
+            "dkim_dns_source": "dns" if not PRIVACY_SAFE_MODE else "privacy_safe_disabled",
+            "dns_checks_disabled": bool(PRIVACY_SAFE_MODE),
             "reply_to_mismatch": bool(
                 reply_to_domain and from_domain and reply_to_domain != from_domain
             ),
@@ -574,14 +438,14 @@ def _extract_email_auth_context(msg: Message | None, is_forwarded_guess: bool = 
 
 
 def _safe_mode_url_entry(url: str) -> Dict[str, Any]:
-    return _core_safe_mode_url_entry(url, privacy_safe_mode=_runtime_bool_setting("PRIVACY_SAFE_MODE"))
+    return _core_safe_mode_url_entry(url, privacy_safe_mode=PRIVACY_SAFE_MODE)
 
 
 def _safe_scan_url_list(urls: List[str]) -> List[Dict[str, Any]]:
     return _core_safe_scan_url_list(
         urls,
-        privacy_safe_mode=_runtime_bool_setting("PRIVACY_SAFE_MODE"),
-        resolve_redirects_safely_fn=_runtime_setting("resolve_redirects_safely", resolve_redirects_safely),
+        privacy_safe_mode=PRIVACY_SAFE_MODE,
+        resolve_redirects_safely_fn=resolve_redirects_safely,
     )
 
 
@@ -3200,25 +3064,23 @@ def _call_mistral_semantic_review(payload: Dict[str, Any]) -> Dict[str, Any]:
     response = requests.post(
         "https://api.mistral.ai/v1/chat/completions",
         headers={
-            "Authorization": f"Bearer {_runtime_str_setting('MISTRAL_SEMANTIC_API_KEY', MISTRAL_SEMANTIC_API_KEY)}",
+            "Authorization": f"Bearer {MISTRAL_SEMANTIC_API_KEY}",
             "Content-Type": "application/json",
         },
         json={
-            "model": _runtime_str_setting("MISTRAL_SEMANTIC_MODEL", MISTRAL_SEMANTIC_MODEL),
+            "model": MISTRAL_SEMANTIC_MODEL,
             "temperature": 0,
             "max_tokens": 620,
             "response_format": {"type": "json_object"},
             "messages": [
                 {
                     "role": "system",
-                    "content": _runtime_str_setting(
-                        "MISTRAL_SEMANTIC_SYSTEM_PROMPT", MISTRAL_SEMANTIC_SYSTEM_PROMPT
-                    ),
+                    "content": MISTRAL_SEMANTIC_SYSTEM_PROMPT,
                 },
                 {"role": "user", "content": json.dumps(payload, ensure_ascii=False, sort_keys=True)},
             ],
         },
-        timeout=_runtime_float_setting("MISTRAL_SEMANTIC_TIMEOUT_SECONDS", MISTRAL_SEMANTIC_TIMEOUT_SECONDS),
+        timeout=MISTRAL_SEMANTIC_TIMEOUT_SECONDS,
     )
     response.raise_for_status()
     body = response.json()
@@ -3255,9 +3117,9 @@ async def _enrich_semantic_review_async(
         }
 
     if (
-        _runtime_bool_setting("PRIVACY_SAFE_MODE")
-        or not _runtime_bool_setting("ENABLE_MISTRAL_SEMANTIC_PILLAR")
-        or not bool(_runtime_str_setting("MISTRAL_SEMANTIC_API_KEY", MISTRAL_SEMANTIC_API_KEY))
+        PRIVACY_SAFE_MODE
+        or not ENABLE_MISTRAL_SEMANTIC_PILLAR
+        or not bool(MISTRAL_SEMANTIC_API_KEY)
     ):
         evidence["semantic_review"] = _calibrate_semantic_review_with_tier1(
             fallback,
@@ -3292,8 +3154,8 @@ async def _enrich_semantic_review_async(
         "external_intel_summary": evidence.get("external_intel_summary") if isinstance(evidence.get("external_intel_summary"), dict) else {},
     }
     try:
-        raw_review = await _runtime_setting("run_in_threadpool", run_in_threadpool)(
-            _runtime_setting("_call_mistral_semantic_review", _call_mistral_semantic_review),
+        raw_review = await run_in_threadpool(
+            _call_mistral_semantic_review,
             payload,
         )
         raw_semantic_review = _unwrap_mistral_semantic_payload(raw_review)
@@ -3809,8 +3671,8 @@ def _build_scan_response(
         "reasons": _dedupe_preserve_order(
             reasons if reasons is not None else analysis_results.get("reasons", [])
         ),
-        "privacy_safe_mode": _runtime_bool_setting("PRIVACY_SAFE_MODE"),
-        "processing_mode": "privacy_safe" if _runtime_bool_setting("PRIVACY_SAFE_MODE") else "full",
+        "privacy_safe_mode": PRIVACY_SAFE_MODE,
+        "processing_mode": "privacy_safe" if PRIVACY_SAFE_MODE else "full",
         "evidence": _deep_copy_jsonable(analysis_results.get("evidence", {})),
         "redacted_text": redacted_text,
         "ai_verdict": ai_explanation.get("verdict_summary"),
@@ -3955,7 +3817,7 @@ def _emit_scan_event(
             "email_auth_action": analysis.get("evidence", {}).get("email_auth", {}).get("auth_action_plan"),
         },
     }
-    _runtime_setting("log_scan_event", log_scan_event)(event)
+    log_scan_event(event)
     if scan_payload.get("is_final") is not False:
         evidence_bundle = build_evidence_bundle(
             input_type=input_channel,
@@ -3964,7 +3826,7 @@ def _emit_scan_event(
             resolved_urls=safe_resolved_urls,
             scan_payload=scan_payload,
         )
-        _runtime_setting("maybe_run_shadow_adjudication", maybe_run_shadow_adjudication)(
+        maybe_run_shadow_adjudication(
             scan_id=scan_id,
             input_type=input_channel,
             source_channel=source_channel,
@@ -4071,11 +3933,11 @@ async def extract_text_for_scan(
     ocr_warning: Optional[str] = None
     ocr_text = ""
 
-    if _runtime_bool_setting("PRIVACY_SAFE_MODE"):
+    if PRIVACY_SAFE_MODE:
         ocr_warning = "Mod sigur activ: OCR cloud dezactivat."
-    elif _runtime_setting("has_vision_key", has_vision_key)():
+    elif has_vision_key():
         try:
-            ocr_text = await _runtime_setting("run_in_threadpool", run_in_threadpool)(extract_fn, file_bytes)
+            ocr_text = await run_in_threadpool(extract_fn, file_bytes)
             if not ocr_text.strip():
                 ocr_warning = "OCR cloud nu a extras text din fișier."
         except Exception as exc:
@@ -4086,7 +3948,7 @@ async def extract_text_for_scan(
             "Lipsește GOOGLE_CLOUD_VISION_API_KEY. Se folosește scenariu mock pe nume fișier."
         )
 
-    if not ocr_text.strip() and bool(_runtime_bool_setting("ALLOWED_MOCK_OCR", ALLOWED_MOCK_OCR)):
+    if not ocr_text.strip() and bool(ALLOWED_MOCK_OCR):
         ocr_text = mock_ocr_text_by_filename(filename)
     if not ocr_text.strip():
         if ocr_warning is None:
@@ -4104,12 +3966,12 @@ def _build_ai_explanation(
 ) -> Dict[str, Any]:
     provider_safe_text = sanitize_external_text(text)
     provider_safe_resolved_urls = sanitize_resolved_url_entries(resolved_urls)
-    if _runtime_bool_setting("PRIVACY_SAFE_MODE"):
-        return _runtime_setting("generate_fallback_explanation", generate_fallback_explanation)(
+    if PRIVACY_SAFE_MODE:
+        return generate_fallback_explanation(
             provider_safe_text,
             analysis,
         )
-    return _runtime_setting("generate_ai_explanation", generate_ai_explanation)(
+    return generate_ai_explanation(
         provider_safe_text,
         analysis,
         provider_safe_resolved_urls,
@@ -4124,24 +3986,24 @@ async def _build_ai_explanation_async(
     provider_safe_text = sanitize_external_text(text)
     provider_safe_resolved_urls = sanitize_resolved_url_entries(resolved_urls)
     if (
-        _runtime_bool_setting("PRIVACY_SAFE_MODE")
-        or not _runtime_bool_setting("ENABLE_CLOUD_AI_EXPLANATION")
-        or _runtime_float_setting("AI_EXPLANATION_TIMEOUT_SECONDS", AI_EXPLANATION_TIMEOUT_SECONDS) <= 0
+        PRIVACY_SAFE_MODE
+        or not ENABLE_CLOUD_AI_EXPLANATION
+        or AI_EXPLANATION_TIMEOUT_SECONDS <= 0
     ):
-        return _runtime_setting("generate_fallback_explanation", generate_fallback_explanation)(
+        return generate_fallback_explanation(
             provider_safe_text,
             analysis,
         )
 
     try:
         return await asyncio.wait_for(
-            _runtime_setting("run_in_threadpool", run_in_threadpool)(
-                _runtime_setting("generate_ai_explanation", generate_ai_explanation),
+            run_in_threadpool(
+                generate_ai_explanation,
                 provider_safe_text,
                 analysis,
                 provider_safe_resolved_urls,
             ),
-            timeout=_runtime_float_setting("AI_EXPLANATION_TIMEOUT_SECONDS", AI_EXPLANATION_TIMEOUT_SECONDS),
+            timeout=AI_EXPLANATION_TIMEOUT_SECONDS,
         )
     except asyncio.TimeoutError:
         logger.warning("AI explanation timed out; using deterministic fallback.")
@@ -4218,7 +4080,7 @@ async def _enrich_offer_claim_verification_async(
     analysis: Dict[str, Any],
     resolved_urls: List[Dict[str, Any]],
 ) -> Dict[str, Any]:
-    if _runtime_bool_setting("PRIVACY_SAFE_MODE") or _runtime_float_setting("AI_OFFER_CLAIM_TIMEOUT_SECONDS", AI_OFFER_CLAIM_TIMEOUT_SECONDS) <= 0:
+    if PRIVACY_SAFE_MODE or AI_OFFER_CLAIM_TIMEOUT_SECONDS <= 0:
         offer_claim = _skipped_offer_claim_payload("Claim web check skipped by privacy/timeout policy.")
         _attach_offer_claim_verification(analysis, offer_claim)
         return offer_claim
@@ -4227,14 +4089,14 @@ async def _enrich_offer_claim_verification_async(
         provider_safe_text = sanitize_external_text(text)
         provider_safe_resolved_urls = sanitize_resolved_url_entries(resolved_urls)
         offer_claim = await asyncio.wait_for(
-            _runtime_setting("run_in_threadpool", run_in_threadpool)(
-                _runtime_setting("verify_offer_claim", verify_offer_claim),
+            run_in_threadpool(
+                verify_offer_claim,
                 provider_safe_text,
                 analysis,
                 provider_safe_resolved_urls,
                 brand_registry=BRAND_REGISTRY,
             ),
-            timeout=_runtime_float_setting("AI_OFFER_CLAIM_TIMEOUT_SECONDS", AI_OFFER_CLAIM_TIMEOUT_SECONDS),
+            timeout=AI_OFFER_CLAIM_TIMEOUT_SECONDS,
         )
     except asyncio.TimeoutError:
         logger.warning("Offer claim web check timed out.")
@@ -4389,6 +4251,7 @@ def _load_fast_preview_cache(final_url: Any) -> Optional[Dict[str, Any]]:
 
 
 def _apply_fast_preview_cache_hit(job: Dict[str, Any], cached: Dict[str, Any]) -> Dict[str, Any]:
+    from services.orchestrated_scan import orchestrated_engine
     cached_preview = _normalize_fast_preview_cache_entry(cached)
     if not cached_preview:
         return job
@@ -4413,13 +4276,13 @@ def _apply_fast_preview_cache_hit(job: Dict[str, Any], cached: Dict[str, Any]) -
 def _apply_best_preview_cache_hit(job: Dict[str, Any], final_url: Any) -> Dict[str, Any]:
     if not final_url:
         return job
-    load_fast = _runtime_callable("_load_fast_preview_cache", _load_fast_preview_cache)
-    load_urlscan = _runtime_callable("_load_urlscan_preview_cache", _load_urlscan_preview_cache)
+    load_fast = _load_fast_preview_cache
+    load_urlscan = _load_urlscan_preview_cache
     cached_fast = load_fast(final_url)
     cached_urlscan = load_urlscan(final_url)
     if cached_urlscan:
-        apply_urlscan = _runtime_callable("_apply_urlscan_preview_cache_hit", _apply_urlscan_preview_cache_hit)
-        apply_fast = _runtime_callable("_apply_fast_preview_cache_hit", _apply_fast_preview_cache_hit)
+        apply_urlscan = _apply_urlscan_preview_cache_hit
+        apply_fast = _apply_fast_preview_cache_hit
         job = apply_urlscan(job, cached_urlscan)
         if cached_fast:
             return apply_fast(job, cached_fast)
@@ -4429,7 +4292,7 @@ def _apply_best_preview_cache_hit(job: Dict[str, Any], final_url: Any) -> Dict[s
         ):
             return job
     if cached_fast:
-        apply_fast = _runtime_callable("_apply_fast_preview_cache_hit", _apply_fast_preview_cache_hit)
+        apply_fast = _apply_fast_preview_cache_hit
         return apply_fast(job, cached_fast)
     return job
 
@@ -4529,7 +4392,7 @@ def _provider_pillar_from_summary(summary: Dict[str, Any], source_name: str) -> 
 
 
 def _provider_required_for_runtime(source_name: str) -> bool:
-    if _runtime_bool_setting("PRIVACY_SAFE_MODE"):
+    if PRIVACY_SAFE_MODE:
         return False
     normalized = str(source_name or "").strip().lower()
     if normalized == "google_web_risk":
@@ -4676,6 +4539,7 @@ def _baseline_pillars_ready_without_urlscan(pillars: Dict[str, Dict[str, Any]]) 
 
 
 def _mark_required_pillars_timeout(job: Dict[str, Any]) -> Dict[str, Any]:
+    from services.orchestrated_scan import orchestrated_engine
     analysis = job.get("analysis") if isinstance(job.get("analysis"), dict) and job.get("analysis") else {}
     timeout_semantic_review = {
         "status": "done",
@@ -5132,6 +4996,7 @@ async def _run_offer_web_claim_enrichment(job: Dict[str, Any]) -> Dict[str, Any]
     from services.brand_registry import BRAND_REGISTRY as OFFER_BRAND_REGISTRY
     from services.offer_claim_verifier import verify_offer_web_claim
     from services.verdict_gate import verdict as reduce_verdict
+    from services.orchestrated_scan import orchestrated_engine
 
     analysis = job.get("analysis") if isinstance(job.get("analysis"), dict) else {}
     evidence = analysis.get("evidence") if isinstance(analysis.get("evidence"), dict) else {}
@@ -5143,7 +5008,7 @@ async def _run_offer_web_claim_enrichment(job: Dict[str, Any]) -> Dict[str, Any]
 
     try:
         claim = await asyncio.wait_for(
-            _runtime_setting("run_in_threadpool", run_in_threadpool)(
+            run_in_threadpool(
                 verify_offer_web_claim,
                 str(job.get("redacted_text") or ""),
                 analysis,
@@ -5153,7 +5018,7 @@ async def _run_offer_web_claim_enrichment(job: Dict[str, Any]) -> Dict[str, Any]
                 issuer_name=offer_fields.get("issuer_name"),
                 platform_name=offer_fields.get("platform_name") or offer_fields.get("document_type"),
             ),
-            timeout=_runtime_float_setting("AI_OFFER_CLAIM_TIMEOUT_SECONDS", AI_OFFER_CLAIM_TIMEOUT_SECONDS),
+            timeout=AI_OFFER_CLAIM_TIMEOUT_SECONDS,
         )
     except Exception as exc:  # timeout/erori → inconcludent, nu blocăm nimic
         claim = _skipped_offer_claim_payload(f"Offer web check unavailable: {type(exc).__name__}.")
@@ -5197,85 +5062,3 @@ async def _run_offer_web_claim_enrichment(job: Dict[str, Any]) -> Dict[str, Any]
 
 
 
-
-
-
-
-from services.extract_pipeline import (
-    _assemble_extracted_text_for_orchestration,
-    extract_email_for_orchestration,
-    extract_image_for_orchestration,
-    extract_pdf_for_orchestration,
-)
-from services.orchestrated_pipeline import (
-    advance_orchestrated_scan_worker,
-    get_orchestrated_scan,
-    get_orchestrated_scan_status,
-    start_orchestrated_scan,
-)
-from services.scan_pipeline import scan_email, scan_invoice_endpoint, scan_image, scan_pdf, scan_text, scan_url
-from services.urlscan_helpers import (
-    _canonical_urlscan_preview_cache_url,
-    _fast_preview_cache_lookup_keys,
-    _load_urlscan_preview_cache,
-    _normalize_screenshot_proxy_url,
-    _normalize_urlscan_preview_cache_entry,
-    _public_route_url,
-    _remember_preview_cache_entry,
-    _require_urlscan_key,
-    _safe_urlscan_tag,
-    _safe_urlscan_visibility,
-    _supabase_signed_preview_object_path,
-    _summarize_urlscan_payload,
-    _trim_preview_cache,
-    _urlscan_direct_screenshot_url,
-    _urlscan_error_detail,
-    _urlscan_headers,
-    _urlscan_preview_cache_is_fresh,
-    _urlscan_preview_cache_key,
-    _urlscan_report_url,
-    _urlscan_screenshot_is_ready,
-    _urlscan_tags,
-    _validate_sandbox_url,
-)
-from services.urlscan_logic import (
-    _apply_urlscan_preview_cache_hit,
-    _sanitize_urlscan_result_payload,
-    _save_urlscan_preview_cache,
-    _sync_resolved_urls_with_urlscan_final,
-    _urlscan_enhancement_done,
-    _urlscan_finished_with_risk,
-    _urlscan_merge_rank,
-    _urlscan_pending_has_timed_out,
-    _urlscan_preview_cache_entry_from_job,
-    _urlscan_provider_payload,
-    _urlscan_result_ready_for_verdict,
-    _urlscan_scan_prevented,
-    _urlscan_state_has_risk,
-    _mark_urlscan_screenshot_unavailable,
-)
-from services.urlscan_pipeline import get_urlscan_result, submit_urlscan_sandbox, urlscan_screenshot
-
-
-# Orchestrated-scan engine functions live in services/orchestrated_scan.py;
-# re-exported so existing references and test monkeypatching (main.<fn>) keep working.
-from services.orchestrated_scan import orchestrated_engine
-
-# ── API routers ─────────────────────────────────────────────────────────────
-# Registered last so router handlers that reference the fully-initialized main
-# module (import main; main.X) resolve correctly and avoid import-time cycles.
-from routers import circle, community, intel, analytics, pages, extract, orchestrated, sandbox  # noqa: E402
-app.include_router(pages.router)
-app.include_router(circle.router)
-app.include_router(community.router)
-app.include_router(intel.router)
-app.include_router(analytics.router)
-app.include_router(extract.router)
-app.include_router(orchestrated.router)
-app.include_router(sandbox.router)
-
-
-def create_app():
-    """Factory entrypoint compatibility."""
-
-    return app

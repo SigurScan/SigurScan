@@ -1,14 +1,7 @@
-"""Provider-gate helpers extracted from ``runtime.py``.
-
-The implementation keeps the public behavior stable while moving most helpers
-local to the services layer. Calls first check runtime/app monkeypatches (for test
-compatibility) and fallback to local implementations when needed.
-"""
+"""Provider-gate helpers extracted from ``runtime.py``."""
 
 from __future__ import annotations
 
-import importlib
-import sys
 import re
 import urllib.parse
 from typing import Any, Dict, List, Optional
@@ -24,40 +17,7 @@ from app_stores import brand_truth_registry
 from config import DOMAIN_ESTABLISHED_AGE_DAYS, DOMAIN_SUSPICIOUS_AGE_DAYS, ENABLE_DNS_REPUTATION
 
 
-def _resolve_runtime_module():
-    runtime = sys.modules.get("main")
-    if runtime is None:
-        runtime = sys.modules.get("main_runtime")
-    if runtime is None:
-        runtime = importlib.import_module("main_runtime")
-    return runtime
 
-
-def _runtime_bool_setting(name: str, default: bool) -> bool:
-    runtime = _resolve_runtime_module()
-    if runtime is None:
-        return default
-    value = getattr(runtime, name, default)
-    if isinstance(value, bool):
-        return value
-    if value is None:
-        return bool(default)
-    if isinstance(value, (int, float)):
-        return bool(value)
-    if isinstance(value, str):
-        return value.strip().lower() in {"1", "true", "yes", "on"}
-    return bool(value)
-
-
-def _runtime_call(name: str, fallback, *args, **kwargs):
-    runtime = _resolve_runtime_module()
-    candidate = getattr(runtime, name, None) if runtime is not None else None
-    if callable(candidate) and candidate is not fallback:
-        try:
-            return candidate(*args, **kwargs)
-        except Exception:
-            pass
-    return fallback(*args, **kwargs)
 
 
 def _source_status_impl(summary: Dict[str, Any], source_name: str) -> str:
@@ -73,7 +33,7 @@ def _source_consulted_impl(summary: Dict[str, Any], source_name: str) -> bool:
 
 
 def _source_ready(summary: Dict[str, Any], source_name: str) -> bool:
-    return _runtime_call("_source_ready", _source_ready_impl, summary, source_name)
+    return _source_ready_impl(summary, source_name)
 
 
 def _source_ready_impl(summary: Dict[str, Any], source_name: str) -> bool:
@@ -188,11 +148,10 @@ def _official_destination_confirmed(
     resolved_urls: List[Dict[str, Any]],
     claimed_brand: str,
 ) -> bool:
-    return _runtime_call(
-        "_official_destination_confirmed",
-        _official_destination_confirmed_impl,
-        resolved_urls,
+    return _official_destination_confirmed_impl(
+resolved_urls,
         claimed_brand,
+
     )
 
 
@@ -265,12 +224,11 @@ def _collect_infrastructure_flags(
     *,
     official_destination: bool = False,
 ) -> Dict[str, Any]:
-    return _runtime_call(
-        "_collect_infrastructure_flags",
-        _collect_infrastructure_flags_impl,
-        analysis,
+    return _collect_infrastructure_flags_impl(
+analysis,
         resolved_urls,
         official_destination=official_destination,
+
     )
 
 
@@ -349,11 +307,10 @@ def _augment_summary_with_infra_flags_impl(summary: Dict[str, Any], infra_flags:
 
 
 def _augment_summary_with_infra_flags(summary: Dict[str, Any], infra_flags: Dict[str, Any]) -> None:
-    return _runtime_call(
-        "_augment_summary_with_infra_flags",
-        _augment_summary_with_infra_flags_impl,
-        summary,
+    return _augment_summary_with_infra_flags_impl(
+summary,
         infra_flags,
+
     )
 
 
@@ -361,19 +318,11 @@ def _has_integration_context_impl(raw_text: str) -> bool:
     normalized = _normalise_obfuscated_text(raw_text or "").lower()
     if not normalized:
         return False
-    return _runtime_call(
-        "_looks_like_descriptive_or_status_context",
-        lambda text: False,
-        raw_text,
-    )
+    return False
 
 
 def _has_explicit_user_directed_action_impl(raw_text: str) -> bool:
-    return _runtime_call(
-        "_has_explicit_user_directed_action",
-        lambda text: False,
-        raw_text,
-    )
+    return False
 
 
 def _looks_like_descriptive_or_status_context(raw_text: str) -> bool:
@@ -483,19 +432,17 @@ def _brand_warning_matches_text_impl(claimed_brand: str, raw_text: str) -> Dict[
 
 
 def _brand_warning_rule_for_claimed_brand(claimed_brand: str) -> Optional[Dict[str, Any]]:
-    return _runtime_call(
-        "_brand_warning_rule_for_claimed_brand",
-        _brand_warning_rule_for_claimed_brand_impl,
-        claimed_brand,
+    return _brand_warning_rule_for_claimed_brand_impl(
+claimed_brand,
+
     )
 
 
 def _brand_warning_matches_text(claimed_brand: str, raw_text: str) -> Dict[str, Any]:
-    return _runtime_call(
-        "_brand_warning_matches_text",
-        _brand_warning_matches_text_impl,
-        claimed_brand,
+    return _brand_warning_matches_text_impl(
+claimed_brand,
         raw_text,
+
     )
 
 
@@ -547,10 +494,9 @@ def _looks_like_official_safety_education_impl(raw_text: str) -> bool:
 
 
 def _looks_like_official_safety_education(raw_text: str) -> bool:
-    return _runtime_call(
-        "_looks_like_official_safety_education",
-        _looks_like_official_safety_education_impl,
-        raw_text,
+    return _looks_like_official_safety_education_impl(
+raw_text,
+
     )
 
 
@@ -588,10 +534,9 @@ def _has_direct_sensitive_request_impl(raw_text: str) -> bool:
 
 
 def _has_direct_sensitive_request(raw_text: str) -> bool:
-    return _runtime_call(
-        "_has_direct_sensitive_request",
-        _has_direct_sensitive_request_impl,
-        raw_text,
+    return _has_direct_sensitive_request_impl(
+raw_text,
+
     )
 
 
@@ -611,10 +556,9 @@ def _has_sensitive_url_path_impl(resolved_urls: List[Dict[str, Any]]) -> bool:
 
 
 def _has_sensitive_url_path(resolved_urls: List[Dict[str, Any]]) -> bool:
-    return _runtime_call(
-        "_has_sensitive_url_path",
-        _has_sensitive_url_path_impl,
-        resolved_urls,
+    return _has_sensitive_url_path_impl(
+resolved_urls,
+
     )
 
 
@@ -650,10 +594,9 @@ def _claim_verifier_required_impl(analysis: Dict[str, Any]) -> bool:
 
 
 def _claim_verifier_required(analysis: Dict[str, Any]) -> bool:
-    return _runtime_call(
-        "_claim_verifier_required",
-        _claim_verifier_required_impl,
-        analysis,
+    return _claim_verifier_required_impl(
+analysis,
+
     )
 
 
@@ -681,29 +624,26 @@ def _attach_brand_warning_summary_impl(summary: Dict[str, Any], brand_warning: D
 
 
 def _attach_brand_warning_summary(summary: Dict[str, Any], brand_warning: Dict[str, Any]) -> None:
-    return _runtime_call(
-        "_attach_brand_warning_summary",
-        _attach_brand_warning_summary_impl,
-        summary,
+    return _attach_brand_warning_summary_impl(
+summary,
         brand_warning,
+
     )
 
 
 def _source_status(summary: Dict[str, Any], source_name: str) -> str:
-    return _runtime_call(
-        "_source_status",
-        _source_status_impl,
-        summary,
+    return _source_status_impl(
+summary,
         source_name,
+
     )
 
 
 def _source_consulted(summary: Dict[str, Any], source_name: str) -> bool:
-    return _runtime_call(
-        "_source_consulted",
-        _source_consulted_impl,
-        summary,
+    return _source_consulted_impl(
+summary,
         source_name,
+
     )
 
 
@@ -716,16 +656,7 @@ def _request_sensitivity_from_signals_impl(
     official_destination: bool,
     resolved_urls: List[Dict[str, Any]],
 ) -> str:
-    return _runtime_call(
-        "_request_sensitivity_from_signals",
-        lambda **kwargs: "none",
-        raw_text=raw_text,
-        brand_warning=brand_warning,
-        direct_sensitive_request=direct_sensitive_request,
-        sensitive_url_path=sensitive_url_path,
-        official_destination=official_destination,
-        resolved_urls=resolved_urls,
-    )
+    "none"
 
 
 def _request_sensitivity_from_signals(
@@ -737,27 +668,19 @@ def _request_sensitivity_from_signals(
     official_destination: bool,
     resolved_urls: List[Dict[str, Any]],
 ) -> str:
-    return _runtime_call(
-        "_request_sensitivity_from_signals",
-        _request_sensitivity_from_signals_impl,
-        raw_text=raw_text,
+    return _request_sensitivity_from_signals_impl(
+raw_text=raw_text,
         brand_warning=brand_warning,
         direct_sensitive_request=direct_sensitive_request,
         sensitive_url_path=sensitive_url_path,
         official_destination=official_destination,
         resolved_urls=resolved_urls,
+
     )
 
 
 def _detect_person_never_does_violations_impl(raw_text: str, effective_channel: str, result, violated_never_does: list) -> None:
-    return _runtime_call(
-        "_detect_person_never_does_violations",
-        lambda raw_text, effective_channel, result, violated_never_does: None,
-        raw_text=raw_text,
-        effective_channel=effective_channel,
-        result=result,
-        violated_never_does=violated_never_does,
-    )
+    None
 
 
 def _enrich_with_btr_provenance_impl(
@@ -778,9 +701,7 @@ def _enrich_with_btr_provenance_impl(
         except Exception:
             pass
     official_destination = _official_destination_confirmed(resolved_urls, claimed_brand)
-    sensitive = _runtime_call(
-        "_request_sensitivity_from_signals",
-        _request_sensitivity_from_signals,
+    sensitive = _request_sensitivity_from_signals(
         raw_text=raw_text,
         brand_warning=evidence.get("brand_warning") or {"triggered": False, "matched_assets": []},
         direct_sensitive_request=evidence.get("direct_sensitive_request") or False,
@@ -802,9 +723,7 @@ def _enrich_with_btr_provenance_impl(
         final_url=first_url,
     )
     violated_never_does = list(result.violated_never_does)
-    _runtime_call(
-        "_detect_person_never_does_violations",
-        _detect_person_never_does_violations_impl,
+    _detect_person_never_does_violations_impl(
         raw_text,
         effective_channel,
         result,
@@ -833,13 +752,12 @@ def _enrich_with_btr_provenance(
     raw_text: str,
     resolved_urls: List[Dict[str, Any]],
 ) -> None:
-    return _runtime_call(
-        "_enrich_with_btr_provenance",
-        _enrich_with_btr_provenance_impl,
-        analysis,
+    return _enrich_with_btr_provenance_impl(
+analysis,
         claimed_brand,
         raw_text,
         resolved_urls,
+
     )
 
 
@@ -847,7 +765,7 @@ def _maybe_add_dns_reputation(summary: Dict[str, Any], resolved_urls: List[Dict[
     """Pilon DNS reputation (gratis, fără cheie). Opt-in prin ENABLE_DNS_REPUTATION;
     implicit OFF → fără rețea/latență. `blocked` → provider hard (dns_security);
     `suspended`/`nxdomain` → semnal ponderat (infra_dns). Best-effort, nu aruncă."""
-    if not _runtime_bool_setting("ENABLE_DNS_REPUTATION", ENABLE_DNS_REPUTATION) or not resolved_urls:
+    if not ENABLE_DNS_REPUTATION or not resolved_urls:
         return
     from services import dns_reputation
 
@@ -890,7 +808,7 @@ def _apply_provider_gate_verdict(
         official_destination=official_destination,
     )
     _augment_summary_with_infra_flags(summary, infra_flags)
-    _runtime_call("_maybe_add_dns_reputation", _maybe_add_dns_reputation, summary, resolved_urls)
+    _maybe_add_dns_reputation(summary, resolved_urls)
     evidence["external_intel_summary"] = summary
 
     source_channel = evidence.get("source_channel") if isinstance(evidence, dict) else None
@@ -1126,9 +1044,7 @@ def _build_decision_evidence_bundle(
 
     if summary is None:
         summary = analysis.get("evidence", {}).get("external_intel_summary") if isinstance(analysis.get("evidence"), dict) else None
-    return _runtime_call(
-        "_build_decision_evidence_bundle",
-        _fallback,
+    return _fallback(
         analysis,
         resolved_urls,
         raw_text=raw_text,
@@ -1191,7 +1107,7 @@ def _apply_decision_contract_result(
         )
         return analysis
 
-    return _runtime_call("_apply_decision_contract_result", _fallback, analysis, decision_bundle, gate_result, provider_gate)
+    return _fallback(analysis, decision_bundle, gate_result, provider_gate)
 
 
 def _skipped_offer_claim_payload_impl(reason: str) -> Dict[str, Any]:
@@ -1209,4 +1125,4 @@ def _skipped_offer_claim_payload_impl(reason: str) -> Dict[str, Any]:
 
 
 def _skipped_offer_claim_payload(reason: str) -> Dict[str, Any]:
-    return _runtime_call("_skipped_offer_claim_payload", _skipped_offer_claim_payload_impl, reason)
+    return _skipped_offer_claim_payload_impl(reason)
