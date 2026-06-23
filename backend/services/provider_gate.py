@@ -13,16 +13,23 @@ import importlib
 import sys
 
 
+def _resolve_runtime_module():
+    runtime = sys.modules.get("main")
+    if runtime is None:
+        runtime = sys.modules.get("main_runtime")
+    if runtime is None:
+        runtime = importlib.import_module("main_runtime")
+    return runtime
 
-class _RuntimeProxy:
+
+class _RuntimeNamespace:
     def __getattr__(self, name: str):
-        runtime = sys.modules.get("main")
-        if runtime is None:
-            runtime = importlib.import_module("app")
+        runtime = _resolve_runtime_module()
         return getattr(runtime, name)
 
 
-runtime = _RuntimeProxy()
+
+runtime = _RuntimeNamespace()
 
 
 def _maybe_add_dns_reputation(summary: Dict[str, Any], resolved_urls: List[Dict[str, Any]]) -> None:
