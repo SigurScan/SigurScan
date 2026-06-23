@@ -2,25 +2,19 @@
 
 from __future__ import annotations
 
-from typing import Any
-
-from config import RISK_THRESHOLD
 from app import app, create_app
+import main_runtime as _main_runtime
 
+# Keep the canonical FastAPI application object from `app.py` (not the compatibility
+# shim app that also exists inside `main_runtime`).
+app = app
+create_app = create_app
 
-def __getattr__(name: str) -> Any:
-    if name in {"app", "create_app"}:
-        return globals()[name]
-    import importlib
+for _name, _value in vars(_main_runtime).items():
+    if _name.startswith("__"):
+        continue
+    if _name in {"app", "create_app"}:
+        continue
+    globals()[_name] = _value
 
-    runtime = importlib.import_module("main_runtime")
-    return getattr(runtime, name)
-
-
-def __dir__():
-    import importlib
-
-    runtime = importlib.import_module("main_runtime")
-    return sorted(set(globals()) | set(dir(runtime)))
-
-__all__ = ["app", "create_app"]
+del _main_runtime
