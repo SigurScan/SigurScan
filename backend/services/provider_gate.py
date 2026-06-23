@@ -10,10 +10,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 
-def _main_module():
-    import main as _main
-
-    return _main
+from core.main_bridge import _main_module
 
 
 def _maybe_add_dns_reputation(summary: Dict[str, Any], resolved_urls: List[Dict[str, Any]]) -> None:

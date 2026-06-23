@@ -7,13 +7,15 @@ from typing import Any, Dict
 
 from fastapi import HTTPException, Request
 
+from core.main_bridge import _main_module
+
 
 def _env_present(*names: str) -> bool:
     return any(os.getenv(name, "").strip() for name in names)
 
 
 def _provider_config_status() -> Dict[str, Any]:
-    import main as _main
+    _main = _main_module()
 
     web_risk_configured = _env_present("GOOGLE_WEB_RISK_API_KEY")
     phishing_database_enabled = os.getenv("ENABLE_PHISHING_DATABASE", "true").strip().lower() in {"1", "true", "yes", "on"}
@@ -148,7 +150,7 @@ def _extract_api_key(request: Request) -> str:
 
 
 def _extract_client_instance_id(request: Request) -> str:
-    import main as _main
+    _main = _main_module()
 
     value = (request.headers.get(_main.CLIENT_INSTANCE_HEADER) or "").strip()
     if not value or len(value) > 128:
@@ -163,7 +165,7 @@ def _play_integrity_client_binding(request: Request, api_key: str = "") -> str:
 
 
 def _internal_worker_token_matches(request: Request) -> bool:
-    import main as _main
+    _main = _main_module()
 
     if not _main.INTERNAL_WORKER_TOKEN:
         return False
@@ -182,18 +184,18 @@ def _require_internal_worker_auth(request: Request) -> None:
 
 
 def _is_screenshot_proxy_path(path: str) -> bool:
-    import main as _main
+    _main = _main_module()
 
     return bool(_main._SCREENSHOT_PROXY_PATH_RE.match(path))
 
 
 def _is_integrity_guarded_path(path: str) -> bool:
-    import main as _main
+    _main = _main_module()
 
     return path.startswith(_main._INTEGRITY_GUARDED_PREFIXES)
 
 
 def _is_play_integrity_nonce_path(path: str) -> bool:
-    import main as _main
+    _main = _main_module()
 
     return path == _main.PLAY_INTEGRITY_NONCE_PATH

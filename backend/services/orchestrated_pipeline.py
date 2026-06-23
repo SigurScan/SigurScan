@@ -5,10 +5,7 @@ from __future__ import annotations
 from fastapi import HTTPException, Request
 
 
-def _main_module():
-    import main as _main
-
-    return _main
+from core.main_bridge import _main_module
 
 
 async def advance_orchestrated_scan_worker(scan_id: str, request: Request, max_steps: int = 1):

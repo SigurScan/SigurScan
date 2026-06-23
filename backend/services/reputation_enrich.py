@@ -7,10 +7,7 @@ import re
 from typing import Any, Dict, List, Optional
 
 
-def _main_module():
-    import main as _main
-
-    return _main
+from core.main_bridge import _main_module
 
 
 def _gather_external_intel(

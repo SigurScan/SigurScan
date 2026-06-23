@@ -14,10 +14,7 @@ from fastapi import HTTPException, Request
 from starlette.concurrency import run_in_threadpool
 
 
-def _main_module():
-    import main as _main
-
-    return _main
+from core.main_bridge import _main_module
 
 
 def _require_urlscan_key() -> None:

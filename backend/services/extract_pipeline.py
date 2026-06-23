@@ -8,10 +8,7 @@ from bs4 import BeautifulSoup
 from fastapi import File, Form, HTTPException, UploadFile
 
 
-def _main_module():
-    import main as _main
-
-    return _main
+from core.main_bridge import _main_module
 
 
 async def extract_image_for_orchestration(

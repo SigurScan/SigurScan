@@ -15,10 +15,7 @@ from services.extract_pipeline import (
 )
 
 
-def _main_module():
-    import main as _main
-
-    return _main
+from core.main_bridge import _main_module
 
 
 async def scan_text(request: TextScanRequest):
