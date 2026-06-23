@@ -14,8 +14,22 @@ import html
 from fastapi import HTTPException
 import urllib.parse
 from services.external_url_privacy import sanitize_resolved_url_entry
-from services.redirect_resolver import is_known_shortener, resolve_redirects_safely
-from core.email_auth import _extract_domain_root
+from services.redirect_resolver import (
+    get_dmarc_policy,
+    get_spf_dns_record,
+    check_dkim_dns_record,
+    is_known_shortener,
+    resolve_redirects_safely,
+)
+from core.email_auth import (
+    _build_auth_action_plan,
+    _extract_domain,
+    _extract_domain_root,
+    _extract_spf_all_mechanism,
+    _is_domain_aligned,
+    _parse_auth_statuses,
+    _parse_dkim_signature_fields,
+)
 
 
 _APP_SCHEME_BRAND_HINTS = {
@@ -171,6 +185,239 @@ def _infer_brand_hints_from_click_targets(click_targets: List[Dict[str, Any]], b
             if hint not in hints:
                 hints.append(hint)
     return hints
+
+
+def _extract_email_auth_context(msg: Message | None, is_forwarded_guess: bool = True) -> Dict[str, Any]:
+    """
+    Build authentication evidence from raw RFC822 headers.
+    If msg is None, returns a "missing" profile, to avoid false confidence.
+    """
+    if msg is None:
+        email_ctx = {
+            "auth_strength": "unavailable" if is_forwarded_guess else "missing",
+            "sender_auth_confidence": "low",
+            "auth_fail_reasons": [],
+            "has_dkim_signature": False,
+            "dkim_signature_fields": {},
+            "auth_status": {"spf": "missing", "dkim": "missing", "dmarc": "missing"},
+            "dns_checks": {
+                "spf_record": None,
+                "dmarc_policy": None,
+                "dkim_dns": None,
+                "dkim_signature": {},
+                "spf_dns_present": False,
+                "dkim_dns_present": False,
+                "dmarc_dns_present": False,
+            },
+            "is_forwarded_guess": is_forwarded_guess,
+            "headers_present": False,
+        }
+        email_ctx["auth_action_plan"] = {
+            "dmarc_policy": "none",
+            "spf_all": None,
+            "action": "monitor",
+            "severity": "low",
+            "risk_score_delta": 0,
+            "spf_dns_present": False,
+            "dkim_dns_present": False,
+            "dmarc_dns_present": False,
+            "policy_context": {
+                "provider": None,
+                "pct": None,
+                "adkim": None,
+                "aspf": None,
+                "spf_alignment_mode": "r",
+                "dkim_alignment_mode": "r",
+                "spf_aligned": None,
+                "dkim_aligned": None,
+            },
+            "reasons": [
+                "Antetele originale SPF/DKIM/DMARC nu au fost disponibile în conținutul partajat."
+            ],
+        }
+        email_ctx["from_domain"] = None
+        email_ctx["reply_to_domain"] = None
+        email_ctx["alignment"] = {
+            "from_domain": None,
+            "return_path_domain": None,
+            "dkim_signature_domain": None,
+            "spf_alignment_mode": "r",
+            "dkim_alignment_mode": "r",
+            "spf_aligned": None,
+            "dkim_aligned": None,
+        }
+        return email_ctx
+
+    auth_results = {"spf": "missing", "dkim": "missing", "dmarc": "missing"}
+    auth_fail_reasons = []
+
+    from_domain = _extract_domain(msg.get("From"))
+    reply_to_domain = _extract_domain(msg.get("Reply-To"))
+
+    auth_headers = msg.get_all("Authentication-Results", [])
+    for auth_header in auth_headers:
+        _parse_auth_statuses(auth_header, auth_results)
+
+    received_spf = msg.get_all("Received-SPF") or []
+    for header in received_spf:
+        _parse_auth_statuses(f"spf={header}", auth_results)
+
+    dkim_signature = msg.get("DKIM-Signature") or ""
+    dkim_signature_fields = _parse_dkim_signature_fields(dkim_signature)
+    dkim_selector = dkim_signature_fields.get("selector", "default")
+    dkim_signature_domain = dkim_signature_fields.get("domain")
+    has_dkim_signature = bool(dkim_signature)
+    if has_dkim_signature and auth_results.get("dkim", "missing") == "missing":
+        auth_results["dkim"] = "unknown"
+
+    # DNS-level checks (SPF/DMARC/DKIM) increase confidence versus false positives.
+    # In privacy-safe mode, skip DNS lookups to avoid external lookups for message analysis.
+    aspf_mode = "r"
+    adkim_mode = "r"
+    spf_record = None
+    dmarc_policy: Dict[str, Any] = {}
+    dns_dkim_record = None
+
+    if _is_privacy_safe_mode():
+        auth_fail_reasons.append(
+            "SIGURSCAN_SAFE_MODE: verificările DNS SPF/DMARC/DKIM sunt dezactivate pentru confidențialitate."
+        )
+        for mechanism in ("spf", "dkim", "dmarc"):
+            if auth_results.get(mechanism) == "pass":
+                auth_results[mechanism] = "unknown"
+    else:
+        spf_record = get_spf_dns_record(from_domain or "")
+        dmarc_policy = get_dmarc_policy(from_domain or "")
+        if has_dkim_signature and dkim_signature_domain and dkim_selector:
+            dns_dkim_record = check_dkim_dns_record(dkim_selector, dkim_signature_domain)
+        if dmarc_policy is None:
+            dmarc_policy = {}
+        aspf_mode = str(dmarc_policy.get("aspf", "r") if isinstance(dmarc_policy, dict) else "r").lower().strip() or "r"
+        adkim_mode = str(dmarc_policy.get("adkim", "r") if isinstance(dmarc_policy, dict) else "r").lower().strip() or "r"
+
+    if reply_to_domain and from_domain and reply_to_domain != from_domain:
+        auth_fail_reasons.append(
+            f"Domain diferit în Reply-To ({reply_to_domain}) față de From ({from_domain})"
+        )
+        if auth_results.get("dmarc", "missing") == "pass":
+            auth_results["dmarc"] = "unknown"
+
+    if from_domain and not spf_record:
+        auth_fail_reasons.append(
+            "SPF DNS nu a răspuns cu o politică validă pentru domeniul From."
+        )
+        if auth_results.get("spf", "missing") == "pass":
+            auth_results["spf"] = "unknown"
+
+    if from_domain and not dmarc_policy:
+        auth_fail_reasons.append(
+            "DMARC nu este publicat sau nu a putut fi verificat pentru domeniul From."
+        )
+        if auth_results.get("dmarc", "missing") == "pass":
+            auth_results["dmarc"] = "unknown"
+
+    if has_dkim_signature and dkim_signature_domain and not dns_dkim_record:
+        auth_fail_reasons.append(
+            f"Cheie DKIM DNS lipsă la {dkim_signature_domain} (selector {dkim_selector})."
+        )
+        if auth_results.get("dkim", "missing") == "pass":
+            auth_results["dkim"] = "unknown"
+
+    return_path_domain = _extract_domain(msg.get("Return-Path"))
+    spf_aligned = _is_domain_aligned(from_domain, return_path_domain, aspf_mode)
+    dkim_aligned = None
+    if dkim_signature_domain:
+        dkim_aligned = _is_domain_aligned(from_domain, dkim_signature_domain, adkim_mode)
+
+    for mechanism, status in auth_results.items():
+        if status == "fail":
+            auth_fail_reasons.append(
+                f"{mechanism.upper()} nu validează: {status}"
+            )
+
+    failed_count = sum(1 for status in auth_results.values() if status == "fail")
+    passed_count = sum(1 for status in auth_results.values() if status == "pass")
+
+    if failed_count > 0:
+        auth_strength = "fail"
+        sender_confidence = "low"
+    elif (
+        from_domain
+        and spf_record
+        and dmarc_policy
+        and has_dkim_signature
+        and dns_dkim_record
+        and all(auth_results.get(key) == "pass" for key in ("spf", "dkim", "dmarc"))
+    ):
+        auth_strength = "pass"
+        sender_confidence = "high"
+    elif passed_count >= 2 and not failed_count:
+        auth_strength = "pass"
+        sender_confidence = "high"
+    elif passed_count > 0:
+        auth_strength = "partial"
+        sender_confidence = "medium"
+    elif "unknown" in auth_results.values():
+        auth_strength = "partial"
+        sender_confidence = "medium"
+    else:
+        auth_strength = "missing"
+        sender_confidence = "low"
+
+    email_ctx = {
+        "auth_strength": auth_strength,
+        "sender_auth_confidence": sender_confidence,
+        "auth_fail_reasons": auth_fail_reasons,
+        "has_dkim_signature": has_dkim_signature,
+        "dkim_signature_fields": dkim_signature_fields,
+        "auth_status": auth_results,
+        "dns_checks": {
+            "spf_record": spf_record,
+            "spf_dns_present": bool(spf_record),
+            "dmarc_policy": dmarc_policy,
+            "dmarc_dns_present": bool(dmarc_policy),
+            "dkim_dns": dns_dkim_record,
+            "dkim_signature": dkim_signature_fields,
+            "dkim_dns_present": bool(dns_dkim_record),
+            "from_domain": from_domain,
+            "return_path_domain": return_path_domain,
+            "spf_record_present": bool(spf_record),
+            "dkim_selector": dkim_selector,
+            "dkim_signature_domain": dkim_signature_domain,
+            "spf_record_source": "dns" if not _is_privacy_safe_mode() else "privacy_safe_disabled",
+            "dmarc_policy_source": "dns" if not _is_privacy_safe_mode() else "privacy_safe_disabled",
+            "dkim_dns_source": "dns" if not _is_privacy_safe_mode() else "privacy_safe_disabled",
+            "dns_checks_disabled": bool(_is_privacy_safe_mode()),
+            "reply_to_mismatch": bool(
+                reply_to_domain and from_domain and reply_to_domain != from_domain
+            ),
+            "policy_checks": {
+                "dkim_signature_present": bool(dkim_signature),
+                "spf_all": _extract_spf_all_mechanism(spf_record),
+                "spf_alignment_mode": aspf_mode,
+                "dkim_alignment_mode": adkim_mode,
+            },
+            "spf_alignment_mode": aspf_mode,
+            "dkim_alignment_mode": adkim_mode,
+            "spf_aligned": spf_aligned,
+            "dkim_aligned": dkim_aligned,
+        },
+        "from_domain": from_domain,
+        "reply_to_domain": reply_to_domain,
+        "alignment": {
+            "from_domain": from_domain,
+            "return_path_domain": return_path_domain,
+            "dkim_signature_domain": dkim_signature_domain,
+            "spf_alignment_mode": aspf_mode,
+            "dkim_alignment_mode": adkim_mode,
+            "spf_aligned": spf_aligned,
+            "dkim_aligned": dkim_aligned,
+        },
+        "is_forwarded_guess": is_forwarded_guess,
+        "headers_present": True,
+    }
+    email_ctx["auth_action_plan"] = _build_auth_action_plan(email_ctx)
+    return email_ctx
 
 
 def _feedback_sample_payload(row: Dict[str, Any]) -> Dict[str, Any]:
