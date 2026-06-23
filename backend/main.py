@@ -41,6 +41,7 @@ import tldextract
 from pypdf import PdfReader
 from core.serialization import _deep_copy_jsonable, _merge_missing_dict_values, _merge_progress_dict
 from core.text_utils import _normalise_obfuscated_text
+from core.identity import _new_scan_id
 
 # Import our custom services
 from services.pii_redactor import redact_pii
@@ -6933,10 +6934,6 @@ def _validate_text_input(field_name: str, value: str, max_chars: int) -> None:
             status_code=413,
             detail=f"{field_name} depășește limita de {max_chars} caractere."
         )
-
-
-def _new_scan_id(prefix: str) -> str:
-    return f"{prefix}_{secrets.token_urlsafe(24)}"
 
 
 def _normalize_user_facing_risk_level(risk_level: Optional[str]) -> str:
