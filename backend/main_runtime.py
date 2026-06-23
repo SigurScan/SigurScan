@@ -136,9 +136,8 @@ from services.reputation_enrich import (
     _sanitize_external_intel_results,
 )
 from services.provider_gate import _apply_provider_gate_verdict, _maybe_add_dns_reputation, _project_provider_gate_verdict
-from services.scam_atlas import BRAND_ID_TO_DISPLAY_NAME, BRAND_REGISTRY, BRAND_WARNING_RULES, ScamAtlasEngine
+from services.scam_atlas import BRAND_ID_TO_DISPLAY_NAME, BRAND_REGISTRY, BRAND_WARNING_RULES
 from services.tier1_classifier import LEGIT_LABELS as TIER1_LEGIT_LABELS
-from services.tier1_classifier import Tier1Classifier
 from services.gemini_explainer import generate_ai_explanation, generate_fallback_explanation
 from services.evidence_bundle import build_evidence_bundle
 from services.verdict_gate import verdict as reduce_verdict
@@ -174,7 +173,7 @@ from config import (
     _VERDICT_SEVERITY_RANK,
 )
 
-from runtime_state import _URLSCAN_PREVIEW_CACHE, _FAST_PREVIEW_CACHE
+from runtime_state import _URLSCAN_PREVIEW_CACHE, _FAST_PREVIEW_CACHE, engine, tier1_classifier
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -272,9 +271,7 @@ async def security_guard(request: Request, call_next):
 
     return await call_next(request)
 
-# Initialize engine, registries, and OSINT pipeline
-engine = ScamAtlasEngine()
-tier1_classifier = Tier1Classifier.load_default()
+
 
 
 
