@@ -4,7 +4,10 @@ from __future__ import annotations
 
 from typing import Any
 
-import app as _runtime
+try:
+    import app as _runtime
+except ModuleNotFoundError:
+    from . import app as _runtime
 
 
 def __getattr__(name: str) -> Any:

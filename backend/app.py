@@ -22,7 +22,15 @@ _app_instance = None
 def _runtime_module():
     global _runtime
     if _runtime is None:
-        _runtime = importlib.import_module("main_runtime")
+        for module_name in ("main_runtime", "backend.main_runtime"):
+            try:
+                _runtime = importlib.import_module(module_name)
+                break
+            except ModuleNotFoundError:
+                _runtime = None
+                continue
+        if _runtime is None:
+            raise ModuleNotFoundError("Unable to import main runtime module as 'main_runtime' or 'backend.main_runtime'.")
     return _runtime
 
 
@@ -47,7 +55,5 @@ def create_app() -> FastAPI:
     if _app_instance is None:
         _app_instance = _runtime_module().create_app()
     return _app_instance
-
-
 
 
