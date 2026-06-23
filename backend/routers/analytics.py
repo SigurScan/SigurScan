@@ -7,9 +7,9 @@ cycle. Extracted from runtime.py.
 """
 
 import json
-import app as runtime
 import importlib
 import time
+import sys
 from datetime import datetime, timedelta, timezone
 from collections import Counter
 from typing import Optional, List, Dict, Any
@@ -17,6 +17,17 @@ from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import HTMLResponse
 from api_models import FeedbackRequest
+
+
+class _RuntimeProxy:
+    def __getattr__(self, name: str):
+        runtime = sys.modules.get("main")
+        if runtime is None:
+            runtime = importlib.import_module("app")
+        return getattr(runtime, name)
+
+
+runtime = _RuntimeProxy()
 
 router = APIRouter()
 

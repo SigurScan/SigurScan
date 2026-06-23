@@ -5,6 +5,8 @@ from __future__ import annotations
 import hashlib
 import re
 import time
+import importlib
+import sys
 import urllib.parse
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -14,7 +16,15 @@ from fastapi import HTTPException, Request
 from starlette.concurrency import run_in_threadpool
 
 
-import app as runtime
+class _RuntimeProxy:
+    def __getattr__(self, name: str):
+        runtime = sys.modules.get("main")
+        if runtime is None:
+            runtime = importlib.import_module("app")
+        return getattr(runtime, name)
+
+
+runtime = _RuntimeProxy()
 
 
 def _require_urlscan_key() -> None:
