@@ -11,10 +11,11 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 
-import main
+from core.main_bridge import _main_module
 from services import play_integrity_nonce
 
 router = APIRouter()
+main = _main_module()
 
 
 @router.get("/")
