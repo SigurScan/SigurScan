@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any, Dict, List
 
 
@@ -509,6 +510,18 @@ def verdict(bundle: Dict[str, Any]) -> Dict[str, Any]:
     provider_is_error = provider_verdict in PROVIDER_ERROR
     non_http_deeplink_present = _bool(non_http_deeplink.get("present"))
 
+    informational_attachment = (
+        _norm(semantic.get("matched_family")) == "executable_invoice_attachment"
+        and hard_sensitive
+        and not _bool(request.get("positive_action_request"))
+        and not social_engineering.get("levers")
+        and not re.search(
+            r"\b(executabil|instalator|\.exe|\.apk|\.msi|\.bat|\.cmd|\.scr|\.vbs|\.ps1|\.jar)\b",
+            str((bundle.get("input") or {}).get("redacted_text", "")),
+            re.IGNORECASE,
+        )
+    )
+
     # ─── Rule 1: Hard external evidence wins ────────────────────────────────
     if provider_verdict in PROVIDER_MALICIOUS:
         return _result("DANGEROUS", ["provider_malicious"], confidence=95)
@@ -556,7 +569,7 @@ def verdict(bundle: Dict[str, Any]) -> Dict[str, Any]:
     # (whitelist official domain violated would come via identity_status mismatch)
 
     # ─── Rule 3: Sensitive on wrong channel ─────────────────────────────────
-    if hard_sensitive and wrong_channel and positive_action_request:
+    if hard_sensitive and wrong_channel and positive_action_request and not informational_attachment:
         return _result("DANGEROUS", ["sensitive_wrong_channel"], confidence=90)
     if (
         value_sensitive
@@ -593,7 +606,7 @@ def verdict(bundle: Dict[str, Any]) -> Dict[str, Any]:
     # structured signal; this deterministic gate decides severity. Safety
     # education was handled above and positive provenance can still constrain
     # non-actionable build-up.
-    if _is_actionable_social_engineering(social_engineering) and not has_provenance:
+    if _is_actionable_social_engineering(social_engineering) and not has_provenance and not informational_attachment:
         return _result("DANGEROUS", ["social_engineering_high_confidence_intent"], confidence=88)
 
     if _is_social_engineering_build_up(social_engineering) and not has_provenance:
@@ -620,7 +633,7 @@ def verdict(bundle: Dict[str, Any]) -> Dict[str, Any]:
 
     # ─── Rule 8: Semantic high + sensitive combo ───────────────────────────
     if semantic_risk == "high" and (
-        hard_sensitive
+        (hard_sensitive and not informational_attachment)
         or identity_status in BAD_IDENTITY
         or (value_sensitive and not value_request_has_confirmed_destination)
     ):
