@@ -189,14 +189,24 @@ def _is_actionable_social_engineering(social_engineering: Dict[str, Any]) -> boo
     if _norm(social_engineering.get("status")) != "done":
         return False
     intent = _norm(social_engineering.get("intent"))
-    if intent not in DANGEROUS_SOCIAL_ENGINEERING_INTENTS:
+    levers = set(_str_list(social_engineering.get("levers")))
+    # `impersonation` is only a build-up intent (-> SUSPECT), and the build-up
+    # branch requires ask_present=False -- so an authority/fear impersonation that
+    # MAKES a concrete ask (fake Police/ANAF demanding data) falls into a dead zone
+    # with no escalation. Promote that specific shape onto the actionable branch.
+    # The build-up branch (impersonation + no ask) is untouched.
+    impersonation_with_authority_ask = (
+        intent == "impersonation"
+        and _bool(social_engineering.get("ask_present"))
+        and bool(levers & {"authority", "fear"})
+    )
+    if intent not in DANGEROUS_SOCIAL_ENGINEERING_INTENTS and not impersonation_with_authority_ask:
         return False
     if not _bool(social_engineering.get("ask_present")):
         return False
     if _float(social_engineering.get("confidence")) < 0.78:
         return False
     ask_types = set(_str_list(social_engineering.get("ask_type")))
-    levers = set(_str_list(social_engineering.get("levers")))
     if ask_types - {"none"}:
         return True
     return bool(levers & {"authority", "fear", "urgency", "secrecy", "greed"})
