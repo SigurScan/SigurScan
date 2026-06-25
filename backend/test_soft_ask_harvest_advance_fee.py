@@ -44,14 +44,30 @@ def test_advance_fee_insurance_to_withdraw_escalates():
 def test_legit_loan_statement_and_id_does_not_escalate():
     # FP boundary: a legit credit application asking for a statement + ID copy.
     assert _verdict("Pentru aprobarea creditului, va rugam atasati extrasul de cont pe ultimele "
-                    "3 luni si o copie a buletinului. Multumim.", channel="email") != "DANGEROUS"
+                    "3 luni si o copie a buletinului. Multumim.", channel="email") == "UNVERIFIED"
 
 
 def test_legit_processing_commission_does_not_escalate():
     assert _verdict("Tranzactie procesata. S-a aplicat un comision de procesare de 5 lei conform "
-                    "contractului.", channel="email") != "DANGEROUS"
+                    "contractului.", channel="email") == "UNVERIFIED"
 
 
 def test_legit_withdrawal_notice_does_not_escalate():
     assert _verdict("Retragerea de 500 lei a fost initiata. Fondurile vor ajunge in 1-2 zile "
-                    "lucratoare.", channel="email") != "DANGEROUS"
+                    "lucratoare.", channel="email") == "UNVERIFIED"
+
+
+def test_legit_atm_withdrawal_alert_does_not_escalate():
+    # FP boundary (advance_fee sibling): a legit ATM withdrawal alert that self-directs
+    # the user to the number on the back of the card must stay UNVERIFIED, never escalate.
+    assert _verdict("Ati efectuat o retragere de 700 lei de la bancomat (ATM) astazi, ora 14:32. "
+                    "Daca nu recunoasteti operatiunea, contactati banca la numarul de pe spatele "
+                    "cardului.", channel="sms") == "UNVERIFIED"
+
+
+def test_legit_broker_kyc_onboarding_does_not_escalate():
+    # FP boundary (account_inventory sibling): a legit brokerage KYC onboarding that asks,
+    # via the official portal, which bank will fund the account must stay UNVERIFIED.
+    assert _verdict("Pentru deschiderea contului de brokeraj, conform cerintelor legale KYC, va "
+                    "rugam completati formularul oficial cu banca din care veti alimenta contul. "
+                    "Documentele se incarca doar in portalul nostru securizat.", channel="email") == "UNVERIFIED"

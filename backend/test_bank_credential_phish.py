@@ -47,4 +47,4 @@ def test_bank_credential_update_to_official_domain_does_not_escalate():
     text = ("BCR: din motive de securitate va recomandam sa va actualizati datele de "
             "contact in Internet Banking. Accesati: "
             "https://www.bcr.ro/ro/persoane-fizice/internet-banking")
-    assert _verdict(text) != "DANGEROUS"
+    assert _verdict(text) == "UNVERIFIED"
