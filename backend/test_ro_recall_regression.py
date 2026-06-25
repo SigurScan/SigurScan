@@ -38,9 +38,8 @@ MODE = {
     # BANK_PHISH-001 was a gap; the bank_credential_update_phish family now flags it
     # (channel-gated: official-destination bank emails stay clean) -> HARD_FLOOR.
     # FAKE_APP-001 was a gap; the fake_security_app_install family now flags the
-    # "install our security app via link / take remote control" shape -> HARD_FLOOR
-    # (legit "install our app from the official store" stays clean).
-    "RECOVERY_SCAM-001": "KNOWN_GAP",      # offline UNVERIFIED / live DANGEROUS (Mistral, non-det)
+    # "install our security app via link / take remote control" shape -> HARD_FLOOR.
+    # RECOVERY_SCAM-001 fixed by advance_fee_unlock -> HARD_FLOOR.
     "PIG_BUTCHERING-001": "KNOWN_GAP",     # grooming, no ask yet
     "DELIVERY_SMISH-002": "INDICATOR_ONLY",
     "QUISH_PARKING-001": "INDICATOR_ONLY",
@@ -50,11 +49,11 @@ MODE = {
     "RO-SCAM-2026-008": "HARD_FLOOR",      # caught as SUSPECT (flagged)
     "RO-SCAM-2026-016": "HARD_FLOOR",
     "RO-SCAM-2025-020": "HARD_FLOOR",
-    "RO-SCAM-2025-006": "KNOWN_GAP",
-    "RO-SCAM-2025-010": "KNOWN_GAP",       # "where do you bank / balances" identity harvest
-    "RO-SCAM-2026-017": "KNOWN_GAP",
-    "RO-SCAM-2026-018": "KNOWN_GAP",
-    "RO-SCAM-2026-019": "KNOWN_GAP",
+    "RO-SCAM-2025-006": "NON_MESSAGE",     # degraded fragment w/ arrows; clean ANAF-portal msg already fires
+    # RO-SCAM-2025-010 ("unde ai conturi/solduri") fixed by account_inventory_harvest -> HARD_FLOOR.
+    "RO-SCAM-2026-017": "NON_MESSAGE",     # investment intro/opener, no concrete ask
+    "RO-SCAM-2026-018": "KNOWN_GAP",       # investment onboarding (ID+statement+deposit); FP-risky to force
+    # RO-SCAM-2026-019 (advance-fee "insurance to withdraw") fixed by advance_fee_unlock -> HARD_FLOOR.
     "RO-SCAM-2026-003": "INDICATOR_ONLY",
     "RO-SCAM-2026-004": "INDICATOR_ONLY",
     "RO-SCAM-2025-005": "INDICATOR_ONLY",
