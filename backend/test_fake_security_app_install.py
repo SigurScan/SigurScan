@@ -43,4 +43,4 @@ def test_legit_official_store_app_does_not_escalate():
     # FP boundary: installing the bank's OWN app from the official store.
     text = ("Banca Transilvania: gestioneaza-ti contul oriunde. Descarca aplicatia "
             "oficiala BT Pay din Google Play sau App Store.")
-    assert _verdict(text) != "DANGEROUS"
+    assert _verdict(text) == "UNVERIFIED"

@@ -60,4 +60,4 @@ def test_legit_invoice_with_iban_does_not_escalate():
     # pretext and no fee-charging institution, must NOT become DANGEROUS.
     text = ("Buna ziua, va rugam achitati factura 2026-0042 in contul nostru "
             "RO12BTRL1234567890123456 pana pe 30 mai. Multumim.")
-    assert _verdict(text) != "DANGEROUS"
+    assert _verdict(text) == "UNVERIFIED"
