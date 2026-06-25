@@ -33,7 +33,8 @@ _CH = {"voce": "phone_call", "sms": "sms", "email": "email", "qr": "qr_scan", "a
 # case_id -> mode. Default for v1 corpus is HARD_FLOOR unless overridden here.
 MODE = {
     # ---- v1 corpus ----
-    "OSIM_INVOICE-001": "KNOWN_GAP",       # P0 protected, missed offline+live (fix incoming)
+    # OSIM_INVOICE-001 was a P0 protected gap; the institution_fee_to_account family
+    # now flags it deterministically -> promoted to HARD_FLOOR (xfail flipped to pass).
     "BANK_PHISH-001": "KNOWN_GAP",
     "FAKE_APP-001": "KNOWN_GAP",
     "RECOVERY_SCAM-001": "KNOWN_GAP",      # offline UNVERIFIED / live DANGEROUS (Mistral, non-det)
