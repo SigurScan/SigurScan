@@ -1514,6 +1514,22 @@ def _local_high_risk_semantic_review(raw_text: str) -> Optional[Dict[str, Any]]:
             r"(?=.{0,180}\b(?:logheaz[ăa]|autentific[ăa]|actualizarea\s+datelor|link)\b)",
         ),
         (
+            # Bank credential-update phishing. brand_login_update_link above is too
+            # narrow: "actualizarea/confirmarea datelor" breaks the exact
+            # "actualizarea datelor" anchor, and `link\b` misses the inflected
+            # "linkul". Anchor on bank/internet-banking + an update/confirm verb +
+            # an account/credentials target + an access/link/restriction cue.
+            # Maps to the `password` (credential) token like brand_login_update_link;
+            # escalation stays channel-gated -> an email whose link resolves to the
+            # bank's OFFICIAL domain (official_destination) is NOT escalated.
+            "semantic:bank_credential_update_phish",
+            "bank_credential_update_phish",
+            r"(?=.{0,200}\b(?:ing|bcr|brd|bt|raiffeisen|unicredit|cec|banca|internet\s+banking|home.?bank|net\s*bank)\b)"
+            r"(?=.{0,240}\b(?:confirma[țt]i?|confirmarea|actualiza[țt]i?|actualizarea|verifica[țt]i?|reactiva[țt]i?)\b)"
+            r"(?=.{0,260}\b(?:datel\w*\s+(?:contului|de\s+autentificare|de\s+acces)|internet\s+banking|cont(?:ul)?\s+de\s+internet)\b)"
+            r"(?=.{0,300}\b(?:link\w*|acces\w*|restric[țt]ion\w*|blocat|suspendat|limitat|dezactivat)\b)",
+        ),
+        (
             "semantic:external_card_cvv_otp_collection",
             "external_card_cvv_otp_collection",
             r"(?=.{0,180}\b(?:completarea|completeaz[ăa]|introdu)\b)"
@@ -2618,7 +2634,7 @@ def _request_sensitivity_from_signals_impl(
             return "transfer"
         if matched_family in {"bank_data_collection", "external_card_cvv_otp_collection"}:
             return "card"
-        if matched_family in {"brand_login_update_link", "password_update_link", "safety_education_login_pretext", "data_url_credential_form"}:
+        if matched_family in {"brand_login_update_link", "bank_credential_update_phish", "password_update_link", "safety_education_login_pretext", "data_url_credential_form"}:
             return "password"
         if matched_family in {"executable_invoice_attachment", "security_update_install_link", "deeplink_fallback_login_or_install"}:
             return "remote"

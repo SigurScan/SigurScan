@@ -35,7 +35,8 @@ MODE = {
     # ---- v1 corpus ----
     # OSIM_INVOICE-001 was a P0 protected gap; the institution_fee_to_account family
     # now flags it deterministically -> promoted to HARD_FLOOR (xfail flipped to pass).
-    "BANK_PHISH-001": "KNOWN_GAP",
+    # BANK_PHISH-001 was a gap; the bank_credential_update_phish family now flags it
+    # (channel-gated: official-destination bank emails stay clean) -> HARD_FLOOR.
     "FAKE_APP-001": "KNOWN_GAP",
     "RECOVERY_SCAM-001": "KNOWN_GAP",      # offline UNVERIFIED / live DANGEROUS (Mistral, non-det)
     "PIG_BUTCHERING-001": "KNOWN_GAP",     # grooming, no ask yet
@@ -102,6 +103,10 @@ def test_hard_floor_recall_holds(case):
     # Deterministic floor must keep flagging these real scams (SUSPECT or DANGEROUS).
     actual = _verdict(case)
     assert actual in {"DANGEROUS", "SUSPECT"}, f"{case['case_id']} recall regressed -> {actual}"
+    # Protected cluster (BEC/IBAN-change, payroll, OSIM/IP-fee): a miss = large loss,
+    # so these must be hard DANGEROUS, never merely SUSPECT.
+    if case.get("protected"):
+        assert actual == "DANGEROUS", f"{case['case_id']} protected cluster must be DANGEROUS -> {actual}"
 
 
 @pytest.mark.parametrize("case", _GAP, ids=lambda c: c["case_id"])
