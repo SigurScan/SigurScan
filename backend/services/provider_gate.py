@@ -1494,6 +1494,25 @@ def _local_high_risk_semantic_review(raw_text: str) -> Optional[Dict[str, Any]]:
             r"(?=.{0,380}(?:\bRO[A-Z0-9]{16,30}\b|cont(?:ul)?(?:\s+indicat)?|\biban\b))",
         ),
         (
+            # Account-inventory / financial-identity harvesting. Fake police/BNR/
+            # "advisor" calls ask the victim to disclose where they bank, which banks,
+            # what balances -- there is no legitimate reason to ask this. Maps to the
+            # id_document (hard) token; escalation stays channel-gated.
+            "semantic:account_inventory_harvest",
+            "account_inventory_harvest",
+            r"\b(?:unde\s+(?:ai|ave[țt]i|am)\s+cont\w*|la\s+ce\s+b[ăa]nci|ce\s+(?:solduri|sume|valori)\s+(?:ai|ave[țt]i|am)|inventar\w*\s+(?:de\s+)?cont\w*|ce\s+conturi\s+(?:de[țt]ine[țt]i|ai))\b",
+        ),
+        (
+            # Advance-fee / pay-to-unlock / recovery scam: pay a fee/insurance/
+            # commission up front in order to recover / withdraw / unlock funds or a
+            # prize. Maps to the transfer (value) token.
+            "semantic:advance_fee_unlock",
+            "advance_fee_unlock",
+            r"(?=.{0,300}\b(?:tax[ăa]|comision|asigurar\w*|sum[ăa]|cau[țt]iune|garan[țt]i\w*|onorariu)\b)"
+            r"(?=.{0,320}\b(?:[îi]n\s+avans|mai\s+[îi]nt[âa]i|achita\w*\s+[îi]n\s+avans|trebuie\s+(?:s[ăa]\s+)?(?:achita\w*|pl[ăa]ti\w*|[îi]ncheia\w*)|pentru\s+a)\b)"
+            r"(?=.{0,360}\b(?:recupera\w*|retrage\w*|retragere\w*|debloca\w*|deblocare\w*|elibera\w*|primi\s+(?:profitul|banii|premiul|suma)|deblocheze)\b)",
+        ),
+        (
             "semantic:hospital_bail_no_call_money_request",
             "hospital_bail_no_call_money_request",
             r"(?=.{0,180}\b(?:spital|cau[țt]iune|cautiune|accident)\b)"
@@ -2650,8 +2669,11 @@ def _request_sensitivity_from_signals_impl(
             "migrated_account_new_iban",
             "bank_change_iban_format",
             "institution_fee_to_account",
+            "advance_fee_unlock",
         }:
             return "transfer"
+        if matched_family == "account_inventory_harvest":
+            return "id_document"
         if matched_family in {"bank_data_collection", "external_card_cvv_otp_collection"}:
             return "card"
         if matched_family in {"brand_login_update_link", "bank_credential_update_phish", "password_update_link", "safety_education_login_pretext", "data_url_credential_form"}:
