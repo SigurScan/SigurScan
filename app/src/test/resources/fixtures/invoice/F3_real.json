@@ -1,0 +1,287 @@
+{
+  "source_type": "pdf",
+  "fields": {
+    "emitent": "ELECTRICA FURNIZARE",
+    "cui": "99887766",
+    "iban": "RO06BRDE0000789012345678",
+    "nr_factura": null,
+    "data_emitere": "2026-06-12",
+    "scadenta": "2026-06-18",
+    "subtotal": 847.5,
+    "tva": 161.03,
+    "total": 1008.53,
+    "currency": "RON",
+    "invoice_profile": "ro",
+    "all_ibans": [
+      "RO06BRDE0000789012345678",
+      "IN48HPENTRUEVITAREADECONECTARII",
+      "EF2026552310DATAEMITERII"
+    ],
+    "payment_beneficiary": "EF COLLECT SERVICES SRL"
+  },
+  "readiness": {
+    "state": "ready_for_analysis",
+    "blocks_safe_verdict": false,
+    "items": []
+  },
+  "coherence": {
+    "totals_match": true,
+    "tva_rate_plausible": true,
+    "dates_plausible": true,
+    "all_ok": true
+  },
+  "iban": {
+    "valid": true,
+    "bank": "BRD",
+    "is_trezorerie": false
+  },
+  "brand": "electrica",
+  "brand_match": {
+    "domain_matches": false,
+    "cui_matches": false,
+    "iban_matches": null,
+    "impersonation_risk": true
+  },
+  "payment_destination": {
+    "matched": false,
+    "brand_matches": null,
+    "cui_matches": null,
+    "brand_id": null,
+    "claimed_brand": "electrica",
+    "registry_has_brand_destinations": true,
+    "trust_tier": "T4_STRUCTURALLY_VALID_UNKNOWN",
+    "confidence": "unknown",
+    "can_contribute_to_safe": false,
+    "client_distribution_allowed": false,
+    "iban_masked_for_client": null,
+    "source_kind": null,
+    "source_refs": [],
+    "display": "IBAN valid, dar destinație neconfirmată"
+  },
+  "beneficiary_name_check": {
+    "recommended": true,
+    "method": "bank_app_beneficiary_name_check",
+    "local_service_hint": "SANB/BNDS dacă ambele bănci îl oferă",
+    "title": "Verifică numele beneficiarului în aplicația băncii",
+    "reason": "IBAN-ul nu apare între destinațiile oficiale cunoscute pentru acest furnizor. Banca beneficiarului apare în lista Transfond SANB; afișarea depinde și de banca din care plătești.",
+    "expected_beneficiary": "ELECTRICA FURNIZARE",
+    "iban_masked_for_client": "RO06...5678",
+    "bank_code": "BRDE",
+    "bank": "BRD",
+    "sanb": {
+      "payee_bank_participant": true,
+      "participant_name": "BRD - GROUPE SOCIETE GENERALE S.A.",
+      "bic": "BRDEROBU",
+      "source": "https://www.transfond.ro/pdf/Lista_bancilor_care_ofera_SANB.pdf",
+      "source_accessed_at": "2026-06-15",
+      "requires_payer_bank_participation": true
+    },
+    "steps": [
+      "În aplicația băncii, începe o plată nouă către IBAN-ul de pe factură.",
+      "Înainte să autorizezi plata, verifică numele beneficiarului afișat de bancă.",
+      "Continuă doar dacă numele afișat seamănă clar cu firma emitentă de pe factură.",
+      "Dacă banca nu afișează numele, banca ta sau banca beneficiarului poate să nu ofere SANB; confirmă direct cu furnizorul pe un canal oficial.",
+      "Dacă numele afișat nu se potrivește, oprește plata."
+    ],
+    "privacy_note": "SigurScan nu îți cere acces la banca ta, parolă, OTP, PIN sau captură de ecran."
+  },
+  "official_document_check": {
+    "provided": false,
+    "status": "not_provided"
+  },
+  "anaf": {
+    "exists": false,
+    "checked": true,
+    "denumire": null,
+    "activ": false,
+    "platitor_tva": false,
+    "source": "anaf"
+  },
+  "fraud_flags": [
+    "FRAGMENTED_IBAN_PAYMENT_TARGET",
+    "UNKNOWN_PAYMENT_DESTINATION",
+    "MULTIPLE_IBANS",
+    "URGENT_PAYMENT_OVERRIDE_NO_TICKET"
+  ],
+  "evidence_bundle": {
+    "schema": "sigurscan_evidence_bundle_v2",
+    "input": {
+      "type": "invoice",
+      "redacted_text": "ELECTRICA FURNIZARE\nFACTURA FISCALA\nSeria/Nr: EF-2026-552310\nData emiterii: 12.06.2026\nScadenta: 18.06.2026\nFURNIZOR\nELECTRICA FURNIZARE\nCUI: RO99887766\ncontact: facturi@electrica-plati.info\nDetalii produse/servicii\nDenumire\nCant\nPret\nValoare\nEnergie electrica - restanta\n1\n847.50\n847.50\nSubtotal:\n847.50 RON\nTVA (19%):\n161.03 RON\nTOTAL:\n1008.53 RON\nModalitate de plata\nBeneficiar: EF COLLECT SERVICES SRL\nBanca: BRD\nIBAN: RO06BRDE0000789012345678\nPlata urgenta in 48h pentru evitarea deconectarii."
+    },
+    "resolution": {
+      "status": "not_required",
+      "completeness": true
+    },
+    "providers": {
+      "verdict": "clean",
+      "anaf": {
+        "status": "unknown",
+        "verdict": "unknown",
+        "reasons": [
+          "CUI negăsit în registru"
+        ],
+        "completeness": true,
+        "source": "anaf"
+      },
+      "iban": {
+        "status": "clean",
+        "verdict": "clean",
+        "reasons": [],
+        "completeness": true
+      },
+      "coherence": {
+        "status": "clean",
+        "verdict": "clean",
+        "reasons": [],
+        "completeness": true
+      },
+      "reasons": [
+        "CUI negăsit în registru"
+      ],
+      "payment_destination": {
+        "status": "unknown",
+        "verdict": "unknown",
+        "trust_tier": "T4_STRUCTURALLY_VALID_UNKNOWN",
+        "matched": false,
+        "brand_matches": null,
+        "reasons": [
+          "IBAN valid structural, dar neconfirmat ca destinație oficială"
+        ]
+      }
+    },
+    "identity": {
+      "status": "lookalike",
+      "claimed_brand": "electrica",
+      "domain_reputation": "unknown",
+      "reason": "CUI/IBAN nealiniat cu brandul declarat",
+      "completeness": true,
+      "violated_never_asks": []
+    },
+    "request": {
+      "sensitive": "transfer",
+      "channel": "invoice",
+      "completeness": true
+    },
+    "semantic_review": {
+      "status": "done",
+      "risk_class": "high",
+      "reasons": [
+        "Semnal de fraudă pe destinația plății",
+        "Impersonation risk detected"
+      ],
+      "completeness": true
+    },
+    "context": {
+      "urgency": false,
+      "passive_payment": true,
+      "apk_or_remote_mention": false,
+      "b2b_invoice_signals": [
+        "FRAGMENTED_IBAN_PAYMENT_TARGET",
+        "URGENT_PAYMENT_OVERRIDE_NO_TICKET"
+      ]
+    },
+    "evidence_hash": "sha256:a0a195f03855db034a7aa555b1c2124826c5aa5bfa05396e8819da9ab16ee3c1"
+  },
+  "verdict_gate": {
+    "label": "SUSPECT",
+    "risk_level": "medium",
+    "risk_score": 90,
+    "reason_codes": [
+      "HIGH_RISK_PAYMENT_PATTERN_REQUIRES_VERIFICATION"
+    ],
+    "confidence": 82,
+    "is_final": true
+  },
+  "invoice_truth": {
+    "schema": "sigurscan_invoice_truth_v4",
+    "ruleset_version": "invoice-truth-v4.0",
+    "verdict": "VERIFY_BEFORE_PAYING",
+    "decision_status": "ACTION_REQUIRED",
+    "safe_to_pay": false,
+    "primary_reason_code": "HIGH_RISK_PAYMENT_PATTERN_REQUIRES_VERIFICATION",
+    "policy_profile": "b2b_or_invoice_with_issuer",
+    "display": {
+      "title": "Verifică plata",
+      "message": "Factura are un tipar de plată cu risc crescut. Verifică obligația, contractul sau comanda pe canalul oficial înainte să autorizezi plata.",
+      "tone": "warning"
+    },
+    "verified_items": [
+      {
+        "code": "IBAN_STRUCTURE_VALID",
+        "label": "IBAN-ul are format valid"
+      },
+      {
+        "code": "DOCUMENT_COHERENT",
+        "label": "Suma și datele facturii sunt coerente"
+      }
+    ],
+    "unconfirmed_items": [
+      {
+        "code": "ISSUER_NOT_CONFIRMED",
+        "label": "Firma nu a putut fi confirmată"
+      },
+      {
+        "code": "PAYMENT_BENEFICIARY_UNCONFIRMED",
+        "label": "Verifică numele beneficiarului afișat de bancă înainte să autorizezi plata"
+      },
+      {
+        "code": "INVOICE_OBLIGATION_UNCONFIRMED",
+        "label": "Nu putem confirma automat că datorezi această factură"
+      },
+      {
+        "code": "HIGH_RISK_PAYMENT_PATTERN_REQUIRES_VERIFICATION",
+        "label": "Tiparul de plată trebuie verificat înainte de autorizare"
+      }
+    ],
+    "hard_conflicts": [],
+    "proofs": {
+      "issuer_identity": {
+        "state": "CONTRADICTED",
+        "source": "anaf"
+      },
+      "invoice_obligation": {
+        "state": "PLAUSIBLE",
+        "source": "scanned_document_only"
+      },
+      "payment_destination": {
+        "state": "UNCONFIRMED_VALID",
+        "trust_tier": "T4_STRUCTURALLY_VALID_UNKNOWN",
+        "iban_masked": "RO06...5678"
+      },
+      "channel_change": {
+        "state": "NEUTRAL"
+      }
+    },
+    "assurance": {
+      "required": [
+        "issuer_identity",
+        "invoice_obligation",
+        "payment_destination",
+        "channel_change"
+      ],
+      "missing_requirements": [
+        "ISSUER_NOT_CONFIRMED",
+        "PAYMENT_BENEFICIARY_UNCONFIRMED",
+        "INVOICE_OBLIGATION_UNCONFIRMED",
+        "HIGH_RISK_PAYMENT_PATTERN_REQUIRES_VERIFICATION"
+      ]
+    },
+    "next_action": {
+      "type": "CALL_SUPPLIER_KNOWN_NUMBER",
+      "title": "Sună furnizorul pe numărul cunoscut",
+      "requires_authorization": false
+    }
+  },
+  "sanb_attestation": null,
+  "warnings": [
+    "Potential impersonation of electrica: domeniul nu corespunde brandului; CUI-ul nu corespunde brandului",
+    "CUI 99887766 inexistent în registrul ANAF (not found)",
+    "IBAN-ul de plată pare rupt pe mai multe rânduri; verifică atent înainte de plată.",
+    "IBAN-ul este valid, dar nu apare între destinațiile oficiale cunoscute pentru acest furnizor.",
+    "Cerere de plată urgentă care ocolește procedura internă/ticket/aprobare."
+  ],
+  "error": null,
+  "ocr_warning": "Lipsește GOOGLE_CLOUD_VISION_API_KEY. Se folosește scenariu mock pe nume fișier.",
+  "qr_payloads": []
+}

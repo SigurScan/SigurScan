@@ -1,0 +1,278 @@
+{
+  "source_type": "pdf",
+  "fields": {
+    "emitent": "ALFA DISTRIB SRL",
+    "cui": "12345678",
+    "iban": "RO17BTRL0000456789012345",
+    "nr_factura": null,
+    "data_emitere": "2026-06-09",
+    "scadenta": "2026-07-09",
+    "subtotal": 1000.0,
+    "tva": 190.0,
+    "total": 9990.0,
+    "currency": "RON",
+    "invoice_profile": "ro",
+    "all_ibans": [
+      "RO17BTRL0000456789012345",
+      "AD778DATAEMITERII"
+    ],
+    "payment_beneficiary": "ALFA DISTRIB SRL"
+  },
+  "readiness": {
+    "state": "ready_for_analysis",
+    "blocks_safe_verdict": false,
+    "items": []
+  },
+  "coherence": {
+    "totals_match": false,
+    "tva_rate_plausible": true,
+    "dates_plausible": true,
+    "all_ok": false
+  },
+  "iban": {
+    "valid": true,
+    "bank": "Banca Transilvania",
+    "is_trezorerie": false
+  },
+  "brand": null,
+  "brand_match": null,
+  "payment_destination": {
+    "matched": false,
+    "brand_matches": null,
+    "cui_matches": null,
+    "brand_id": null,
+    "claimed_brand": null,
+    "registry_has_brand_destinations": false,
+    "trust_tier": "T4_STRUCTURALLY_VALID_UNKNOWN",
+    "confidence": "unknown",
+    "can_contribute_to_safe": false,
+    "client_distribution_allowed": false,
+    "iban_masked_for_client": null,
+    "source_kind": null,
+    "source_refs": [],
+    "display": "IBAN valid, dar destinație neconfirmată"
+  },
+  "beneficiary_name_check": {
+    "recommended": true,
+    "method": "bank_app_beneficiary_name_check",
+    "local_service_hint": "SANB/BNDS dacă ambele bănci îl oferă",
+    "title": "Verifică numele beneficiarului în aplicația băncii",
+    "reason": "Nu avem o sursă publică suficientă care să confirme proprietarul IBAN-ului. Banca beneficiarului apare în lista Transfond SANB; afișarea depinde și de banca din care plătești.",
+    "expected_beneficiary": "ALFA DISTRIB SRL",
+    "iban_masked_for_client": "RO17...2345",
+    "bank_code": "BTRL",
+    "bank": "Banca Transilvania",
+    "sanb": {
+      "payee_bank_participant": true,
+      "participant_name": "BANCA TRANSILVANIA S.A.",
+      "bic": "BTRLRO22",
+      "source": "https://www.transfond.ro/pdf/Lista_bancilor_care_ofera_SANB.pdf",
+      "source_accessed_at": "2026-06-15",
+      "requires_payer_bank_participation": true
+    },
+    "steps": [
+      "În aplicația băncii, începe o plată nouă către IBAN-ul de pe factură.",
+      "Înainte să autorizezi plata, verifică numele beneficiarului afișat de bancă.",
+      "Continuă doar dacă numele afișat seamănă clar cu firma emitentă de pe factură.",
+      "Dacă banca nu afișează numele, banca ta sau banca beneficiarului poate să nu ofere SANB; confirmă direct cu furnizorul pe un canal oficial.",
+      "Dacă numele afișat nu se potrivește, oprește plata."
+    ],
+    "privacy_note": "SigurScan nu îți cere acces la banca ta, parolă, OTP, PIN sau captură de ecran."
+  },
+  "official_document_check": {
+    "provided": false,
+    "status": "not_provided"
+  },
+  "anaf": {
+    "exists": false,
+    "checked": true,
+    "denumire": null,
+    "activ": false,
+    "platitor_tva": false,
+    "source": "anaf"
+  },
+  "fraud_flags": [
+    "FRAGMENTED_IBAN_PAYMENT_TARGET",
+    "HIGH_VALUE_UNCONFIRMED_PAYMENT_DESTINATION",
+    "MULTIPLE_IBANS"
+  ],
+  "evidence_bundle": {
+    "schema": "sigurscan_evidence_bundle_v2",
+    "input": {
+      "type": "invoice",
+      "redacted_text": "FACTURA FISCALA\nSeria/Nr: AD-778\nData emiterii: 09.06.2026\nScadenta: 09.07.2026\nFURNIZOR\nALFA DISTRIB SRL\nCUI: RO12345678\nCluj-Napoca\nDetalii produse/servicii\nDenumire\nCant\nPret\nValoare\nMarfa diverse\n1\n1000.00\n1000.00\nSubtotal:\n1000.00 RON\nTVA (19%):\n190.00 RON\nTOTAL:\n9990.00 RON\nModalitate de plata\nBeneficiar: ALFA DISTRIB SRL\nBanca: Banca Transilvania\nIBAN: RO17BTRL0000456789012345"
+    },
+    "resolution": {
+      "status": "not_required",
+      "completeness": true
+    },
+    "providers": {
+      "verdict": "suspicious",
+      "anaf": {
+        "status": "unknown",
+        "verdict": "unknown",
+        "reasons": [
+          "CUI negăsit în registru"
+        ],
+        "completeness": true,
+        "source": "anaf"
+      },
+      "iban": {
+        "status": "clean",
+        "verdict": "clean",
+        "reasons": [],
+        "completeness": true
+      },
+      "coherence": {
+        "status": "suspicious",
+        "verdict": "suspicious",
+        "reasons": [
+          "Totalul nu corespunde cu subtotal+TVA"
+        ],
+        "completeness": true
+      },
+      "reasons": [
+        "CUI negăsit în registru"
+      ],
+      "payment_destination": {
+        "status": "unknown",
+        "verdict": "unknown",
+        "trust_tier": "T4_STRUCTURALLY_VALID_UNKNOWN",
+        "matched": false,
+        "brand_matches": null,
+        "reasons": [
+          "IBAN valid structural, dar neconfirmat ca destinație oficială"
+        ]
+      }
+    },
+    "identity": {
+      "status": "unknown",
+      "claimed_brand": "Nespecificat",
+      "domain_reputation": "unknown",
+      "reason": "Brand nedeclarat",
+      "completeness": true,
+      "violated_never_asks": []
+    },
+    "request": {
+      "sensitive": "transfer",
+      "channel": "invoice",
+      "completeness": true
+    },
+    "semantic_review": {
+      "status": "done",
+      "risk_class": "high",
+      "reasons": [
+        "Semnal de fraudă pe destinația plății",
+        "Impersonation risk detected",
+        "Document incoherent"
+      ],
+      "completeness": true
+    },
+    "context": {
+      "urgency": false,
+      "passive_payment": true,
+      "apk_or_remote_mention": false,
+      "b2b_invoice_signals": [
+        "FRAGMENTED_IBAN_PAYMENT_TARGET",
+        "HIGH_VALUE_UNCONFIRMED_PAYMENT_DESTINATION"
+      ]
+    },
+    "evidence_hash": "sha256:1090c81b0ffd81dea2353c27c7720774a872ef07ac697940f4b491cdb7c5b747"
+  },
+  "verdict_gate": {
+    "label": "SUSPECT",
+    "risk_level": "medium",
+    "risk_score": 90,
+    "reason_codes": [
+      "UNCONFIRMED_DESTINATION"
+    ],
+    "confidence": 82,
+    "is_final": true
+  },
+  "invoice_truth": {
+    "schema": "sigurscan_invoice_truth_v4",
+    "ruleset_version": "invoice-truth-v4.0",
+    "verdict": "VERIFY_BEFORE_PAYING",
+    "decision_status": "ACTION_REQUIRED",
+    "safe_to_pay": false,
+    "primary_reason_code": "UNCONFIRMED_DESTINATION",
+    "policy_profile": "high_value_payment",
+    "display": {
+      "title": "Verifică înainte să plătești",
+      "message": "Factura nu pare fraudă după verificările disponibile. Înainte să plătești, verifică în aplicația bancară că numele beneficiarului afișat corespunde furnizorului.",
+      "tone": "pending"
+    },
+    "verified_items": [
+      {
+        "code": "IBAN_STRUCTURE_VALID",
+        "label": "IBAN-ul are format valid"
+      }
+    ],
+    "unconfirmed_items": [
+      {
+        "code": "ISSUER_NOT_CONFIRMED",
+        "label": "Firma nu a putut fi confirmată"
+      },
+      {
+        "code": "DOCUMENT_NOT_FULLY_COHERENT",
+        "label": "Datele facturii nu sunt complet coerente"
+      },
+      {
+        "code": "PAYMENT_BENEFICIARY_UNCONFIRMED",
+        "label": "Verifică numele beneficiarului afișat de bancă înainte să autorizezi plata"
+      },
+      {
+        "code": "INVOICE_OBLIGATION_UNCONFIRMED",
+        "label": "Nu putem confirma automat că datorezi această factură"
+      }
+    ],
+    "hard_conflicts": [],
+    "proofs": {
+      "issuer_identity": {
+        "state": "CONTRADICTED",
+        "source": "anaf"
+      },
+      "invoice_obligation": {
+        "state": "PLAUSIBLE",
+        "source": "scanned_document_only"
+      },
+      "payment_destination": {
+        "state": "UNCONFIRMED_VALID",
+        "trust_tier": "T4_STRUCTURALLY_VALID_UNKNOWN",
+        "iban_masked": "RO17...2345"
+      },
+      "channel_change": {
+        "state": "NEUTRAL"
+      }
+    },
+    "assurance": {
+      "required": [
+        "issuer_identity",
+        "invoice_obligation",
+        "payment_destination",
+        "channel_change"
+      ],
+      "missing_requirements": [
+        "ISSUER_NOT_CONFIRMED",
+        "DOCUMENT_NOT_FULLY_COHERENT",
+        "PAYMENT_BENEFICIARY_UNCONFIRMED",
+        "INVOICE_OBLIGATION_UNCONFIRMED"
+      ]
+    },
+    "next_action": {
+      "type": "VERIFY_BENEFICIARY_IN_BANK",
+      "title": "Verifică numele beneficiarului în aplicația băncii",
+      "requires_authorization": false,
+      "available": true
+    }
+  },
+  "sanb_attestation": null,
+  "warnings": [
+    "CUI 12345678 inexistent în registrul ANAF (not found)",
+    "IBAN-ul de plată pare rupt pe mai multe rânduri; verifică atent înainte de plată.",
+    "Valoarea facturii este mare, iar proprietarul IBAN-ului nu poate fi confirmat din surse publice. Verifică numele beneficiarului în aplicația băncii sau direct cu furnizorul."
+  ],
+  "error": null,
+  "ocr_warning": "Lipsește GOOGLE_CLOUD_VISION_API_KEY. Se folosește scenariu mock pe nume fișier.",
+  "qr_payloads": []
+}
