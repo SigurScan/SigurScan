@@ -1,0 +1,2381 @@
+{
+  "version": "2026-06-26-wave5-p0-daily-life",
+  "generated_at": "2026-06-26T18:12:58+00:00",
+  "purpose": "Public official Romanian payment destinations for everyday invoices; exact-match backend seed only.",
+  "rules": [
+    "Only public official sources from supplied research were imported.",
+    "Duplicate IBANs already present in existing payment_destination_registry_ro_*.json files were skipped.",
+    "All imported IBANs passed local IBAN structural validation.",
+    "Raw IBANs are backend seed only; client display uses masked IBANs."
+  ],
+  "source_index": [
+    {
+      "source_file": "/Users/vaduvageorge/Downloads/verified_payment_destinations_P0_RO_2026-06-26.json",
+      "source_entries": 79,
+      "source_destinations": 109,
+      "accessed_at": "2026-06-26"
+    }
+  ],
+  "summary": {
+    "source_entries": 79,
+    "source_destinations": 109,
+    "entries_added": 50,
+    "destinations_added": 65,
+    "safe_destinations": 65,
+    "skipped": {
+      "duplicate_existing_iban": 44,
+      "invalid_iban": 0,
+      "empty_destinations_after_dedupe": 29
+    }
+  },
+  "trust_tiers": {
+    "T1_PUBLIC_OFFICIAL": "Published by the merchant/institution on an official webpage or official public document."
+  },
+  "entries": [
+    {
+      "brand_id": "ritter_itp",
+      "display_name": "Ritter ITP",
+      "legal_name": "RITTER AUTOMOTIVE S.R.L.",
+      "cui": "32259772",
+      "category": "itp_service",
+      "aliases": [
+        "Ritter ITP",
+        "RITTER AUTOMOTIVE S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_servicii_itp_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Libra Internet Bank",
+          "source_refs": [
+            {
+              "url": "https://ritter-itp.ro/",
+              "title": "Statie ITP pentru Inspectii Tehnice Periodice",
+              "publisher": "Ritter ITP",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "CUI: 32259772 ... Libra Bank RO39 BREL 0002 0014 6621 0100"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO39BREL0002001466210100",
+          "iban_masked_for_client": "RO39…0100"
+        }
+      ]
+    },
+    {
+      "brand_id": "autopiesa",
+      "display_name": "Autopiesa",
+      "legal_name": "AUTO PIESA SITE S.R.L.",
+      "cui": "30770958",
+      "category": "piese_auto",
+      "aliases": [
+        "Autopiesa",
+        "AUTO PIESA SITE S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_comenzi_piese_auto_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "ING Bank",
+          "source_refs": [
+            {
+              "url": "https://autopiesa.ro/contact",
+              "title": "Contact - Autopiesa.ro",
+              "publisher": "Autopiesa",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Cod fiscal (CUI): RO30770958 ... Cont IBAN: RO27INGB0000999903238091"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO27INGB0000999903238091",
+          "iban_masked_for_client": "RO27…8091"
+        }
+      ]
+    },
+    {
+      "brand_id": "anvelopemag",
+      "display_name": "AnvelopeMag",
+      "legal_name": "AUTO DIN S.R.L.",
+      "cui": "26170602",
+      "category": "anvelope",
+      "aliases": [
+        "AnvelopeMag",
+        "AUTO DIN S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_comenzi_anvelope_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BCR",
+          "source_refs": [
+            {
+              "url": "https://www.anvelopemag.ro/termeni-si-conditii",
+              "title": "Termeni si conditii la AnvelopeMag",
+              "publisher": "AnvelopeMag",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "CUI: RO26170602 ... IBAN: RO29 RNCB 0196 1129 0606 0001"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO29RNCB0196112906060001",
+          "iban_masked_for_client": "RO29…0001"
+        }
+      ]
+    },
+    {
+      "brand_id": "maestro_ddd",
+      "display_name": "Maestro DDD",
+      "legal_name": "MAESTRO S.R.L.",
+      "cui": "12043021",
+      "category": "ddd_deratizare_dezinsectie_dezinfectie",
+      "aliases": [
+        "Maestro DDD",
+        "MAESTRO S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_servicii_ddd_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://dezinfectie-dezinsectie-deratizare.ro/contact",
+              "title": "Contact Maestro DDD Bucuresti",
+              "publisher": "Maestro DDD",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "MAESTRO S.R.L. CUI: RO12043021 IBAN: RO45BTRLRONCRT00C7938703"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO45BTRLRONCRT00C7938703",
+          "iban_masked_for_client": "RO45…8703"
+        }
+      ]
+    },
+    {
+      "brand_id": "perla_services",
+      "display_name": "Perla Services",
+      "legal_name": "PERLA SERVICES S.R.L.",
+      "cui": "21060285",
+      "category": "curatenie",
+      "aliases": [
+        "Perla Services",
+        "PERLA SERVICES S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_servicii_curatenie_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Raiffeisen Bank",
+          "source_refs": [
+            {
+              "url": "https://www.perlaservices.ro/contact.html",
+              "title": "Contact - Spalatorie covoare Mangalia",
+              "publisher": "Perla Services",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "CUI: 21060285 ... IBAN: RO71RZBR0000060019792741"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO71RZBR0000060019792741",
+          "iban_masked_for_client": "RO71…2741"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_servicii_curatenie_prin_cont_trezorerie",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Trezoreria Statului",
+          "source_refs": [
+            {
+              "url": "https://www.perlaservices.ro/contact.html",
+              "title": "Contact - Spalatorie covoare Mangalia",
+              "publisher": "Perla Services",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "IBAN: RO70TREZ2335069XXX003512 - Banca: TREZORERIA STATULUI"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO70TREZ2335069XXX003512",
+          "iban_masked_for_client": "RO70…3512"
+        }
+      ]
+    },
+    {
+      "brand_id": "cleanprofi",
+      "display_name": "CleanProfi",
+      "legal_name": "BIOCLEAN DIACRISS S.R.L.",
+      "cui": "45312649",
+      "category": "curatenie_profesionala",
+      "aliases": [
+        "CleanProfi",
+        "BIOCLEAN DIACRISS S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_produse_servicii_curatenie_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BCR",
+          "source_refs": [
+            {
+              "url": "https://cleanprofi.ro/cum-platesc/",
+              "title": "Cum platesc - Clean Profi",
+              "publisher": "CleanProfi",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "CUI: 45312649 ... IBAN: RO03 RNCB 0144 1716 0169 0001"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO03RNCB0144171601690001",
+          "iban_masked_for_client": "RO03…0001"
+        }
+      ]
+    },
+    {
+      "brand_id": "bella_bologna",
+      "display_name": "Bella Bologna",
+      "legal_name": "BELLA BOLOGNA S.R.L.",
+      "cui": "18404940",
+      "category": "curatenie_facility",
+      "aliases": [
+        "Bella Bologna",
+        "BELLA BOLOGNA S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_servicii_curatenie_facility_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Raiffeisen Bank",
+          "source_refs": [
+            {
+              "url": "https://www.bellabologna.ro/date-contact/",
+              "title": "Contact | Bella Bologna",
+              "publisher": "Bella Bologna",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "CUI: RO18404940 IBAN: RO18RZBR0000060008092682"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO18RZBR0000060008092682",
+          "iban_masked_for_client": "RO18…2682"
+        }
+      ]
+    },
+    {
+      "brand_id": "mbp_tehnic",
+      "display_name": "MBP Tehnic",
+      "legal_name": "MBP TEHNIC SOLUTIONS S.R.L.",
+      "cui": "44514658",
+      "category": "instalatii_hvac_service",
+      "aliases": [
+        "MBP Tehnic",
+        "MBP TEHNIC SOLUTIONS S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_servicii_tehnice_hvac_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://www.mbptehnic.ro/contact/",
+              "title": "Contact - MBP Tehnic",
+              "publisher": "MBP Tehnic",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "CUI: 44514658 ... IBAN: RO53BTRLRONCRT0609433601"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO53BTRLRONCRT0609433601",
+          "iban_masked_for_client": "RO53…3601"
+        }
+      ]
+    },
+    {
+      "brand_id": "centraletermicero",
+      "display_name": "CentraleTermiceRO",
+      "legal_name": "SMART CONSINSTAL S.R.L.",
+      "cui": "21875785",
+      "category": "centrale_termice_hvac",
+      "aliases": [
+        "CentraleTermiceRO",
+        "SMART CONSINSTAL S.R.L.",
+        "Smart Consinstal"
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_comanda_centrale_instalatii_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "ING Bank",
+          "source_refs": [
+            {
+              "url": "https://www.centraletermicero.ro/cum-platesc.html",
+              "title": "Cum platesc",
+              "publisher": "CentraleTermiceRO",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "SC SMART CONSINSTAL SRL ... Cont IBAN : RO82INGB0000999901131231"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO82INGB0000999901131231",
+          "iban_masked_for_client": "RO82…1231"
+        }
+      ]
+    },
+    {
+      "brand_id": "bavaria_instalatii",
+      "display_name": "Bavaria Instalatii",
+      "legal_name": "BAVARIA S.R.L.",
+      "cui": "6604189",
+      "category": "instalatii_service_centrale",
+      "aliases": [
+        "Bavaria Instalatii",
+        "BAVARIA S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_servicii_instalatii_service_centrale_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "UniCredit Bank",
+          "source_refs": [
+            {
+              "url": "https://www.bavariainstalatii.ro/contact",
+              "title": "Contact - BAVARIA",
+              "publisher": "Bavaria Instalatii",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "CUI: RO6604189 ... IBAN: RO34BACX0000000991217000"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO34BACX0000000991217000",
+          "iban_masked_for_client": "RO34…7000"
+        }
+      ]
+    },
+    {
+      "brand_id": "oraterm",
+      "display_name": "Oraterm",
+      "legal_name": "ORATERM S.R.L.",
+      "cui": "17301482",
+      "category": "hvac_instalatii",
+      "aliases": [
+        "Oraterm",
+        "ORATERM S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_comenzi_echipamente_hvac_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BCR",
+          "source_refs": [
+            {
+              "url": "https://www.oraterm.ro/metode-de-plata",
+              "title": "Metode de Plata",
+              "publisher": "Oraterm",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "CUI: RO17301482 ... RO03 RNCB 0032 0464 8869 0001"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO03RNCB0032046488690001",
+          "iban_masked_for_client": "RO03…0001"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_comenzi_echipamente_hvac_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://www.oraterm.ro/metode-de-plata",
+              "title": "Metode de Plata",
+              "publisher": "Oraterm",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "CUI: RO17301482 ... RO05 BTRL RONC RT05 8833 5801"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO05BTRLRONCRT0588335801",
+          "iban_masked_for_client": "RO05…5801"
+        }
+      ]
+    },
+    {
+      "brand_id": "termo_service_2000",
+      "display_name": "Termo Service 2000",
+      "legal_name": "TERMO SERVICE 2000 S.R.L.",
+      "cui": "9336021",
+      "category": "service_centrale_hvac",
+      "aliases": [
+        "Termo Service 2000",
+        "TERMO SERVICE 2000 S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_servicii_centrale_termice_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "ING Bank",
+          "source_refs": [
+            {
+              "url": "https://www.termoexpert.ro/contact/",
+              "title": "Date de contact Termo Service 2000 SRL",
+              "publisher": "Termo Service 2000",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "CUI: RO9336021 ... IBAN: RO76INGB0000999904213611"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO76INGB0000999904213611",
+          "iban_masked_for_client": "RO76…3611"
+        }
+      ]
+    },
+    {
+      "brand_id": "sustain_energy",
+      "display_name": "Sustain Energy",
+      "legal_name": "SAVE ENERGY INSTALL S.R.L.",
+      "cui": "48135436",
+      "category": "hvac_fotovoltaice_instalatii",
+      "aliases": [
+        "Sustain Energy",
+        "SAVE ENERGY INSTALL S.R.L.",
+        "Save Energy Install"
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_servicii_echipamente_energie_hvac_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://www.sustainenergy.ro/metode-de-plata",
+              "title": "Metode de Plata",
+              "publisher": "Sustain Energy",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "SC Save Energy Install SRL CUI 48135436 ... RO12BTRLRONCRT0CL7294501"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO12BTRLRONCRT0CL7294501",
+          "iban_masked_for_client": "RO12…4501"
+        }
+      ]
+    },
+    {
+      "brand_id": "solar_trend",
+      "display_name": "Solar Trend",
+      "legal_name": "SOLAR TREND SERVICE S.R.L.",
+      "cui": "31093794",
+      "category": "hvac_fotovoltaice",
+      "aliases": [
+        "Solar Trend",
+        "SOLAR TREND SERVICE S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_servicii_echipamente_fotovoltaice_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://www.solartrend.ro/infop/24/Contact",
+              "title": "Contact - Solar Trend",
+              "publisher": "Solar Trend",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "IBAN RON:RO39BTRLRONCRT0200228101 ... C.U.I.: RO31093794"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO39BTRLRONCRT0200228101",
+          "iban_masked_for_client": "RO39…8101"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_servicii_echipamente_fotovoltaice_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://www.solartrend.ro/infop/24/Contact",
+              "title": "Contact - Solar Trend",
+              "publisher": "Solar Trend",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "IBAN EUR:RO86BTRLEURCRT0200228101 ... C.U.I.: RO31093794"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO86BTRLEURCRT0200228101",
+          "iban_masked_for_client": "RO86…8101"
+        }
+      ]
+    },
+    {
+      "brand_id": "ventlex",
+      "display_name": "Ventlex",
+      "legal_name": "VENTLEX S.R.L.",
+      "cui": "47713655",
+      "category": "ventilatie_hvac_echipamente",
+      "aliases": [
+        "Ventlex",
+        "VENTLEX S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_comenzi_ventilatie_hvac_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://www.ventlex.ro/cum-platesc",
+              "title": "Cum platesc? - Ventlex.ro",
+              "publisher": "Ventlex",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "SC VENTLEX SRL ... CUI 47713655 ... RO29BTRLRONCRT0CK8088701"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO29BTRLRONCRT0CK8088701",
+          "iban_masked_for_client": "RO29…8701"
+        }
+      ]
+    },
+    {
+      "brand_id": "multiserv_cabinet_veterinar_craiova",
+      "display_name": "Multiserv Cabinet Veterinar Craiova",
+      "legal_name": "MULTISERV ROVINE S.R.L.",
+      "cui": "37594190",
+      "category": "veterinar",
+      "aliases": [
+        "Multiserv Cabinet Veterinar Craiova",
+        "MULTISERV ROVINE S.R.L.",
+        "Multiserv Rovine"
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_servicii_veterinare_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://veterinarcraiova.ro/",
+              "title": "Introducere - Multiserv",
+              "publisher": "Multiserv Cabinet Veterinar",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "C.U.I. 37594190 ... IBAN RO25 BTRL RONC RT03 9622 5001"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO25BTRLRONCRT0396225001",
+          "iban_masked_for_client": "RO25…5001"
+        }
+      ]
+    },
+    {
+      "brand_id": "medcenter",
+      "display_name": "Medcenter",
+      "legal_name": "MEDCENTER S.R.L.",
+      "cui": "13368447",
+      "category": "clinica_medicala",
+      "aliases": [
+        "Medcenter",
+        "MEDCENTER S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_servicii_medicale_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "UniCredit Bank",
+          "source_refs": [
+            {
+              "url": "https://www.medcenter.ro/contacte-generale",
+              "title": "Contacte generale - Medcenter",
+              "publisher": "Medcenter",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "C.U.I.: 13368447 ... Cod IBAN: RO22 BACX 0000 0000 3079 1310"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO22BACX0000000030791310",
+          "iban_masked_for_client": "RO22…1310"
+        }
+      ]
+    },
+    {
+      "brand_id": "laurus_medical",
+      "display_name": "Laurus Medical",
+      "legal_name": "LAURUS MEDICAL S.R.L.",
+      "cui": "18905789",
+      "category": "clinica_medicala",
+      "aliases": [
+        "Laurus Medical",
+        "LAURUS MEDICAL S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_pdf",
+          "scope": "plata_servicii_medicale_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "OTP Bank",
+          "source_refs": [
+            {
+              "url": "https://www.laurusmedical.ro/wp-content/uploads/servicii-casa-galati.pdf",
+              "title": "servicii-casa-galati.pdf",
+              "publisher": "Laurus Medical",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "SC LAURUS MEDICAL SRL ... CUI: 18905789 ... IBAN: RO28OTPV130000749446RO01"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO28OTPV130000749446RO01",
+          "iban_masked_for_client": "RO28…RO01"
+        }
+      ]
+    },
+    {
+      "brand_id": "bio_terra_med",
+      "display_name": "Bio Terra Med",
+      "legal_name": "BIO TERRA MED S.R.L.",
+      "cui": "13798304",
+      "category": "clinica_medicala",
+      "aliases": [
+        "Bio Terra Med",
+        "BIO TERRA MED S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_servicii_medicale_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "ING Bank",
+          "source_refs": [
+            {
+              "url": "https://bioterramed.ro/coloana-ta-conteaza/",
+              "title": "Pastila medicală: Coloana ta contează!",
+              "publisher": "Bio Terra Med",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "BIO TERRA MED S.R.L. ... Iban: RO87INGB0000999904552137"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO87INGB0000999904552137",
+          "iban_masked_for_client": "RO87…2137"
+        }
+      ]
+    },
+    {
+      "brand_id": "cartomed",
+      "display_name": "Cartomed",
+      "legal_name": "CARTO-PLAST S.R.L.",
+      "cui": "22847422",
+      "category": "echipamente_medicale_veterinare",
+      "aliases": [
+        "Cartomed",
+        "CARTO-PLAST S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_comenzi_echipamente_medicale_veterinare_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Raiffeisen Bank",
+          "source_refs": [
+            {
+              "url": "https://cartomed.ro/contact",
+              "title": "Contact Us - Cartomed",
+              "publisher": "Cartomed",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "CARTO-PLAST S.R.L. ... Cont IBAN: RO32RZBR0000060014560390"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO32RZBR0000060014560390",
+          "iban_masked_for_client": "RO32…0390"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_comenzi_echipamente_medicale_veterinare_prin_cont_trezorerie",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Trezoreria Statului",
+          "source_refs": [
+            {
+              "url": "https://cartomed.ro/contact",
+              "title": "Contact Us - Cartomed",
+              "publisher": "Cartomed",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Cont trezorerie București Sector 1: RO44TREZ7015069XXX014734"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO44TREZ7015069XXX014734",
+          "iban_masked_for_client": "RO44…4734"
+        }
+      ]
+    },
+    {
+      "brand_id": "istoma",
+      "display_name": "iStoma",
+      "legal_name": "IDAVA SOLUTIONS S.R.L.",
+      "cui": "30410797",
+      "category": "software_medical_stomatologic",
+      "aliases": [
+        "iStoma",
+        "IDAVA SOLUTIONS S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_software_servicii_istoma_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "ING Bank",
+          "source_refs": [
+            {
+              "url": "https://istoma.ro/Blog/Articol/De-acum-poti-merge-la-dentist-pe-caiet-sau-in-rate-fara-dobanda-ce-clinici-te-trateaza-pe-datorie",
+              "title": "iStoma - Aplicatia medicilor eficienti",
+              "publisher": "iStoma",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "IDAVA SOLUTIONS SRL ... IBAN: RO79INGB0000999911463628"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO79INGB0000999911463628",
+          "iban_masked_for_client": "RO79…3628"
+        }
+      ]
+    },
+    {
+      "brand_id": "cabinet_avocat_radu_marca",
+      "display_name": "Cabinet Avocat Radu Marca",
+      "legal_name": "CABINET DE AVOCAT RADU MARCA",
+      "cui": "29873518",
+      "category": "avocatura_legal",
+      "aliases": [
+        "Cabinet Avocat Radu Marca",
+        "CABINET DE AVOCAT RADU MARCA"
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_servicii_avocatura_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Libra Internet Bank",
+          "source_refs": [
+            {
+              "url": "https://avocat-marca.ro/sa/",
+              "title": "SA - Radu Marca",
+              "publisher": "Cabinet de Avocat Radu Marca",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "CIF 29873518 IBAN RO05 BREL 0002 0010 7016 0100"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO05BREL0002001070160100",
+          "iban_masked_for_client": "RO05…0100"
+        }
+      ]
+    },
+    {
+      "brand_id": "avocator",
+      "display_name": "Avocator",
+      "legal_name": "WEB MEDIA CONCEPT S.R.L.",
+      "cui": "29117735",
+      "category": "legal_services_platform",
+      "aliases": [
+        "Avocator",
+        "WEB MEDIA CONCEPT S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_servicii_platforma_juridica_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BCR",
+          "source_refs": [
+            {
+              "url": "https://avocator.ro/birou-eroii-revolutiei/",
+              "title": "Birou Eroii Revoluției – Avocator",
+              "publisher": "Avocator",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "WEB MEDIA CONCEPT S.R.L. ... CIF: 29117735 ... IBAN: RO81RNCB0278123912120001"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO81RNCB0278123912120001",
+          "iban_masked_for_client": "RO81…0001"
+        }
+      ]
+    },
+    {
+      "brand_id": "picxelit",
+      "display_name": "Picxelit",
+      "legal_name": "PICXELIT S.R.L.",
+      "cui": "37716557",
+      "category": "it_ecommerce_software",
+      "aliases": [
+        "Picxelit",
+        "PICXELIT S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_comenzi_it_software_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://picxelit.ro/metode-de-plata/",
+              "title": "Metode de plata - Picxelit",
+              "publisher": "Picxelit",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "PICXELIT S.R.L. ... IBAN RON: RO17BTRLRONCRT0399130101"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO17BTRLRONCRT0399130101",
+          "iban_masked_for_client": "RO17…0101"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_comenzi_it_software_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://picxelit.ro/metode-de-plata/",
+              "title": "Metode de plata - Picxelit",
+              "publisher": "Picxelit",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "PICXELIT S.R.L. ... IBAN EURO: RO64BTRLEURCRT0399130101"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO64BTRLEURCRT0399130101",
+          "iban_masked_for_client": "RO64…0101"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_comenzi_it_software_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://picxelit.ro/metode-de-plata/",
+              "title": "Metode de plata - Picxelit",
+              "publisher": "Picxelit",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "PICXELIT S.R.L. ... IBAN USD: RO68BTRLUSDCRT0399130101"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO68BTRLUSDCRT0399130101",
+          "iban_masked_for_client": "RO68…0101"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_comenzi_it_software_prin_cont_trezorerie",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Trezoreria Statului",
+          "source_refs": [
+            {
+              "url": "https://picxelit.ro/metode-de-plata/",
+              "title": "Metode de plata - Picxelit",
+              "publisher": "Picxelit",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "IBAN: RO73TREZ4215069XXX018186 Banca: TREZORERIA STATULUI"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO73TREZ4215069XXX018186",
+          "iban_masked_for_client": "RO73…8186"
+        }
+      ]
+    },
+    {
+      "brand_id": "host4u",
+      "display_name": "Host4U",
+      "legal_name": "CREATIV SOLUTIONS S.R.L.",
+      "cui": "16202138",
+      "category": "hosting_it_support",
+      "aliases": [
+        "Host4U",
+        "CREATIV SOLUTIONS S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_servicii_hosting_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BCR",
+          "source_refs": [
+            {
+              "url": "https://host4u.ro/plata-hosting/",
+              "title": "Cum platesc serviciile de hosting?",
+              "publisher": "Host4U",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Beneficiar: S.C. CREATIV SOLUTIONS S.R.L. ... Iban: RO11RNCB0593036065430001"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO11RNCB0593036065430001",
+          "iban_masked_for_client": "RO11…0001"
+        }
+      ]
+    },
+    {
+      "brand_id": "winmentor_th_junior",
+      "display_name": "WinMENTOR - TH Junior",
+      "legal_name": "TH JUNIOR S.R.L.",
+      "cui": "6887050",
+      "category": "software_contabilitate_erp",
+      "aliases": [
+        "WinMENTOR - TH Junior",
+        "TH JUNIOR S.R.L.",
+        "WinMENTOR TH Junior"
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_abonament_software_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "ING Bank",
+          "source_refs": [
+            {
+              "url": "https://portal.winmentor.ro/winmentor/plata-abonamentului-pentru-declaratii/",
+              "title": "WinMENTOR: plata abonamentului pentru declarații",
+              "publisher": "WinMENTOR",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "TH Junior SRL Iasi CUI: RO6887050 ... IBAN: RO43 INGB 0000 9999 0417 8994"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO43INGB0000999904178994",
+          "iban_masked_for_client": "RO43…8994"
+        }
+      ]
+    },
+    {
+      "brand_id": "winmentor_info_mentor",
+      "display_name": "WinMENTOR - Info Mentor",
+      "legal_name": "INFO MENTOR S.R.L.",
+      "cui": "12515981",
+      "category": "software_contabilitate_erp",
+      "aliases": [
+        "WinMENTOR - Info Mentor",
+        "INFO MENTOR S.R.L.",
+        "WinMENTOR Info Mentor"
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_abonament_software_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "ING Bank",
+          "source_refs": [
+            {
+              "url": "https://portal.winmentor.ro/winmentor/plata-abonamentului-pentru-declaratii/",
+              "title": "WinMENTOR: plata abonamentului pentru declarații",
+              "publisher": "WinMENTOR",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Info Mentor SRL ... CUI: RO12515981 ... IBAN: RO34 INGB 0000 9999 0457 5110"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO34INGB0000999904575110",
+          "iban_masked_for_client": "RO34…5110"
+        }
+      ]
+    },
+    {
+      "brand_id": "24_it_suport",
+      "display_name": "24 IT Suport",
+      "legal_name": "24 IT SUPORT SOFTWARE & HARDWARE S.R.L.",
+      "cui": "46782541",
+      "category": "it_support_hardware_software",
+      "aliases": [
+        "24 IT Suport",
+        "24 IT SUPORT SOFTWARE & HARDWARE S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_comenzi_it_hardware_software_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://www.24it-magazin.ro/metode-de-plata",
+              "title": "Metode de Plata - 24 IT",
+              "publisher": "24 IT Suport",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "SC 24 IT SUPORT SOFTWARE & HARDWARE SRL ... RO15BTRLRONCRT0CI1848901"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO15BTRLRONCRT0CI1848901",
+          "iban_masked_for_client": "RO15…8901"
+        }
+      ]
+    },
+    {
+      "brand_id": "wowhost",
+      "display_name": "WOWHOST",
+      "legal_name": "WOWBRANDS NETWORK S.R.L.",
+      "cui": "50844863",
+      "category": "hosting_it_support",
+      "aliases": [
+        "WOWHOST",
+        "WOWBRANDS NETWORK S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_servicii_hosting_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://www.wowhost.ro/clienti/termeni-si-conditii.php",
+              "title": "Termeni si conditii - WOWHOST",
+              "publisher": "WOWHOST",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "WOWBRANDS Network S.R.L. ... IBAN RON: RO51 BTRL RONC RT0C V429 0501"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO51BTRLRONCRT0CV4290501",
+          "iban_masked_for_client": "RO51…0501"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_servicii_hosting_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://www.wowhost.ro/clienti/termeni-si-conditii.php",
+              "title": "Termeni si conditii - WOWHOST",
+              "publisher": "WOWHOST",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "WOWBRANDS Network S.R.L. ... IBAN EUR: RO95 BTRL EURC RT0C V429 0501"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO95BTRLEURCRT0CV4290501",
+          "iban_masked_for_client": "RO95…0501"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_servicii_hosting_prin_cont_trezorerie",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Trezoreria Statului",
+          "source_refs": [
+            {
+              "url": "https://www.wowhost.ro/clienti/termeni-si-conditii.php",
+              "title": "Termeni si conditii - WOWHOST",
+              "publisher": "WOWHOST",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Trezorerie Galați: RO32 TREZ 3065 069X XX02 1689"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO32TREZ3065069XXX021689",
+          "iban_masked_for_client": "RO32…1689"
+        }
+      ]
+    },
+    {
+      "brand_id": "trustnet_solutions",
+      "display_name": "Trustnet Solutions",
+      "legal_name": "TRUSTNET SOLUTIONS S.R.L.",
+      "cui": "29673820",
+      "category": "hosting_it_support",
+      "aliases": [
+        "Trustnet Solutions",
+        "TRUSTNET SOLUTIONS S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_servicii_hosting_it_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BCR",
+          "source_refs": [
+            {
+              "url": "https://www.trustnetsolutions.ro/cum-platesc.html",
+              "title": "Modalitati de plata - Trustnet Solutions",
+              "publisher": "Trustnet Solutions",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "S.C. Trustnet Solutions S.R.L ... IBAN: RO79RNCB0541126102790001"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO79RNCB0541126102790001",
+          "iban_masked_for_client": "RO79…0001"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_servicii_hosting_it_prin_cont_trezorerie",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Trezoreria Statului",
+          "source_refs": [
+            {
+              "url": "https://www.trustnetsolutions.ro/cum-platesc.html",
+              "title": "Modalitati de plata - Trustnet Solutions",
+              "publisher": "Trustnet Solutions",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "TREZORERIE: RO06TREZ0025069XXX006473"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO06TREZ0025069XXX006473",
+          "iban_masked_for_client": "RO06…6473"
+        }
+      ]
+    },
+    {
+      "brand_id": "licente_digitale",
+      "display_name": "Licente Digitale",
+      "legal_name": "AFACEREA TA PE NET S.R.L.",
+      "cui": "40182840",
+      "category": "software_licente_it",
+      "aliases": [
+        "Licente Digitale",
+        "AFACEREA TA PE NET S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_licente_software_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://licente-digitale.ro/modalitati-de-plata/",
+              "title": "Modalități de plată - Licente-digitale.ro",
+              "publisher": "Licente Digitale",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "AFACEREA TA PE NET SRL ... Cont IBAN: RO83BTRLRONCRT0476506201"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO83BTRLRONCRT0476506201",
+          "iban_masked_for_client": "RO83…6201"
+        }
+      ]
+    },
+    {
+      "brand_id": "solverse",
+      "display_name": "Solverse",
+      "legal_name": "SOLVERSE SOLUTIONS S.R.L.",
+      "cui": "46151346",
+      "category": "software_it_ecommerce",
+      "aliases": [
+        "Solverse",
+        "SOLVERSE SOLUTIONS S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_comenzi_it_software_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Raiffeisen Bank",
+          "source_refs": [
+            {
+              "url": "https://solverse.ro/modalitati-de-plata/",
+              "title": "Modalitati de plata - Solverse",
+              "publisher": "Solverse",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Beneficiar: SC SOLVERSE SOLUTIONS SRL ... IBAN: RO77RZBR0000060023576021"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO77RZBR0000060023576021",
+          "iban_masked_for_client": "RO77…6021"
+        }
+      ]
+    },
+    {
+      "brand_id": "krogan_inventiv",
+      "display_name": "Krogan Inventiv",
+      "legal_name": "KROGAN INVENTIV S.R.L.",
+      "cui": "27627738",
+      "category": "software_it_support",
+      "aliases": [
+        "Krogan Inventiv",
+        "KROGAN INVENTIV S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_servicii_software_it_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "ING Bank",
+          "source_refs": [
+            {
+              "url": "https://inventiv.krogan.ro/en/home/",
+              "title": "home - Krogan Inventiv",
+              "publisher": "Krogan Inventiv",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "S.C. Krogan Inventiv SRL ... Cont Iban : RO39INGB0000999902177859"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO39INGB0000999902177859",
+          "iban_masked_for_client": "RO39…7859"
+        }
+      ]
+    },
+    {
+      "brand_id": "webinspire",
+      "display_name": "WebInspire",
+      "legal_name": "WEBINSPIRE SOFT S.R.L.",
+      "cui": "46421482",
+      "category": "web_design_it_support",
+      "aliases": [
+        "WebInspire",
+        "WEBINSPIRE SOFT S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_servicii_web_design_prin_cont_trezorerie",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Trezoreria Statului",
+          "source_refs": [
+            {
+              "url": "https://www.webinspire.ro/contact/",
+              "title": "Contact - Webinspire.ro",
+              "publisher": "WebInspire",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Cont Trezoreria Tg Neamt: RO19TREZ4935069XXX004412"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO19TREZ4935069XXX004412",
+          "iban_masked_for_client": "RO19…4412"
+        }
+      ]
+    },
+    {
+      "brand_id": "zeedo_media",
+      "display_name": "Zeedo Media",
+      "legal_name": "ZEEDO MEDIA S.R.L.",
+      "cui": "32062869",
+      "category": "it_ecommerce_software",
+      "aliases": [
+        "Zeedo Media",
+        "ZEEDO MEDIA S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_comenzi_it_ecommerce_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://www.zeedoshop.ro/modalitati-de-plata-5",
+              "title": "Modalitati de plata - Zeedo Shop",
+              "publisher": "Zeedo Shop",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "SC ZEEDO MEDIA SRL ... IBAN: RO57BTRLRONCRT0224021101"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO57BTRLRONCRT0224021101",
+          "iban_masked_for_client": "RO57…1101"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_comenzi_it_ecommerce_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "UniCredit Bank",
+          "source_refs": [
+            {
+              "url": "https://www.zeedoshop.ro/modalitati-de-plata-5",
+              "title": "Modalitati de plata - Zeedo Shop",
+              "publisher": "Zeedo Shop",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "SC ZEEDO MEDIA SRL ... IBAN: RO63BACX0000001551685000"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO63BACX0000001551685000",
+          "iban_masked_for_client": "RO63…5000"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_comenzi_it_ecommerce_prin_cont_trezorerie",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Trezoreria Statului",
+          "source_refs": [
+            {
+              "url": "https://www.zeedoshop.ro/modalitati-de-plata-5",
+              "title": "Modalitati de plata - Zeedo Shop",
+              "publisher": "Zeedo Shop",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "IBAN: RO54TREZ7005069XXX015198 Banca: TREZORERIA STATULUI"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO54TREZ7005069XXX015198",
+          "iban_masked_for_client": "RO54…5198"
+        }
+      ]
+    },
+    {
+      "brand_id": "zeus_service",
+      "display_name": "Zeus Service",
+      "legal_name": "ZEUS SERVICE S.R.L.",
+      "cui": "9843830",
+      "category": "echipamente_comerciale_service_it",
+      "aliases": [
+        "Zeus Service",
+        "ZEUS SERVICE S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_comenzi_echipamente_comerciale_service_prin_cont_trezorerie",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Trezoreria Statului",
+          "source_refs": [
+            {
+              "url": "https://www.zeusservice.ro/metode-de-plata/",
+              "title": "Metode de plata - Zeus Service",
+              "publisher": "Zeus Service",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Banca:Trezorerie Cont IBAN:RO11 TREZ 7065 069X XX00 7452"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO11TREZ7065069XXX007452",
+          "iban_masked_for_client": "RO11…7452"
+        }
+      ]
+    },
+    {
+      "brand_id": "concris",
+      "display_name": "Concris",
+      "legal_name": "CONCRIS COGRUP DISTRIBUTION S.R.L.",
+      "cui": "39119881",
+      "category": "materiale_constructii",
+      "aliases": [
+        "Concris",
+        "CONCRIS COGRUP DISTRIBUTION S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_comenzi_materiale_constructii_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://www.concris.ro/metode-de-plata",
+              "title": "Metode de Plata - Concris",
+              "publisher": "Concris",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "SC CONCRIS COGRUP DISTRIBUTION SRL ... RO44BTRLRONCRT0511469001"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO44BTRLRONCRT0511469001",
+          "iban_masked_for_client": "RO44…9001"
+        }
+      ]
+    },
+    {
+      "brand_id": "mostools",
+      "display_name": "MosTools",
+      "legal_name": "MOSTOOLS DISTRIB S.R.L.",
+      "cui": "39002287",
+      "category": "scule_echipamente",
+      "aliases": [
+        "MosTools",
+        "MOSTOOLS DISTRIB S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_comenzi_scule_echipamente_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://www.mostools.ro/contact/",
+              "title": "Contactați-ne - MosTools",
+              "publisher": "MosTools",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "MOSTOOLS DISTRIB SRL ... Cont IBAN: RO51BTRLRONCRT0444059501"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO51BTRLRONCRT0444059501",
+          "iban_masked_for_client": "RO51…9501"
+        }
+      ]
+    },
+    {
+      "brand_id": "scule_ro_grup_edelweiss",
+      "display_name": "Scule.ro - Grup Edelweiss",
+      "legal_name": "GRUP EDELWEISS S.R.L.",
+      "cui": "13203708",
+      "category": "scule_echipamente",
+      "aliases": [
+        "Scule.ro - Grup Edelweiss",
+        "GRUP EDELWEISS S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_comenzi_scule_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "UniCredit Bank",
+          "source_refs": [
+            {
+              "url": "https://www.scule.ro/despre-noi-footer",
+              "title": "Techno Pro - scule.ro - Despre noi",
+              "publisher": "Scule.ro",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "SC GRUP EDELWEISS SRL ... Cont: RO45BACX0000000871202000"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO45BACX0000000871202000",
+          "iban_masked_for_client": "RO45…2000"
+        }
+      ]
+    },
+    {
+      "brand_id": "scule_ro_maxi_tools_serv",
+      "display_name": "Scule.ro - Maxi Tools Serv",
+      "legal_name": "MAXI TOOLS SERV S.R.L.",
+      "cui": "26122265",
+      "category": "scule_echipamente",
+      "aliases": [
+        "Scule.ro - Maxi Tools Serv",
+        "MAXI TOOLS SERV S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_comenzi_scule_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://www.scule.ro/despre-noi-footer",
+              "title": "Techno Pro - scule.ro - Despre noi",
+              "publisher": "Scule.ro",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "SC MAXI TOOLS SERV SRL ... Cont: RO68BTRLRONCRT0V06811102"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO68BTRLRONCRT0V06811102",
+          "iban_masked_for_client": "RO68…1102"
+        }
+      ]
+    },
+    {
+      "brand_id": "mobila_ditu",
+      "display_name": "Mobila Ditu",
+      "legal_name": "DIȚU PROD 2010 S.R.L.",
+      "cui": "27485552",
+      "category": "mobilier",
+      "aliases": [
+        "Mobila Ditu",
+        "DIȚU PROD 2010 S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_comenzi_mobilier_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BRD",
+          "source_refs": [
+            {
+              "url": "https://www.mobiladitu.ro/metode-de-plata",
+              "title": "Metode de Plata - Mobiladitu",
+              "publisher": "Mobila Ditu",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "SC DIŢU PROD 2010 SRL ... RO97BRDE180SV73963541800"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO97BRDE180SV73963541800",
+          "iban_masked_for_client": "RO97…1800"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_comenzi_mobilier_prin_cont_trezorerie",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Trezoreria Statului",
+          "source_refs": [
+            {
+              "url": "https://www.mobiladitu.ro/metode-de-plata",
+              "title": "Metode de Plata - Mobiladitu",
+              "publisher": "Mobila Ditu",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Cont Trezonerie: RO52TREZ3065069XXX011823"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO52TREZ3065069XXX011823",
+          "iban_masked_for_client": "RO52…1823"
+        }
+      ]
+    },
+    {
+      "brand_id": "wexa_horeca",
+      "display_name": "Wexa HoReCa",
+      "legal_name": "WEXA INTERNATIONAL S.R.L.",
+      "cui": "15101062",
+      "category": "echipamente_comerciale_horeca",
+      "aliases": [
+        "Wexa HoReCa",
+        "WEXA INTERNATIONAL S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_comenzi_echipamente_horeca_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "UniCredit Bank",
+          "source_refs": [
+            {
+              "url": "https://www.wexahoreca.ro/metode-de-plata",
+              "title": "Metode de Plata - WexaHoReCa",
+              "publisher": "Wexa HoReCa",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "SC WEXA INTERNATIONAL SRL ... Lei: RO66 BACX 0000 0010 0891 0000"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO66BACX0000001008910000",
+          "iban_masked_for_client": "RO66…0000"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_comenzi_echipamente_horeca_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "UniCredit Bank",
+          "source_refs": [
+            {
+              "url": "https://www.wexahoreca.ro/metode-de-plata",
+              "title": "Metode de Plata - WexaHoReCa",
+              "publisher": "Wexa HoReCa",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "SC WEXA INTERNATIONAL SRL ... EURO: RO39 BACX 0000 0010 0891 0001"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO39BACX0000001008910001",
+          "iban_masked_for_client": "RO39…0001"
+        }
+      ]
+    },
+    {
+      "brand_id": "eco_tec",
+      "display_name": "Eco-Tec",
+      "legal_name": "HEXTECHINDUSTRIAL S.R.L.",
+      "cui": "36235687",
+      "category": "scule_echipamente_industriale",
+      "aliases": [
+        "Eco-Tec",
+        "HEXTECHINDUSTRIAL S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_comenzi_echipamente_industriale_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://www.eco-tec.ro/metode-de-plata",
+              "title": "Metode de plată ECO-TEC",
+              "publisher": "Eco-Tec",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "SC HEXTECHINDUSTRIAL SRL ... Cont IBAN:RO93BTRLRONCRT0353562401"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO93BTRLRONCRT0353562401",
+          "iban_masked_for_client": "RO93…2401"
+        }
+      ]
+    },
+    {
+      "brand_id": "classmob",
+      "display_name": "Classmob",
+      "legal_name": "TRAZACON S.R.L.",
+      "cui": "6333063",
+      "category": "mobilier",
+      "aliases": [
+        "Classmob",
+        "TRAZACON S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_comenzi_mobilier_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BRD",
+          "source_refs": [
+            {
+              "url": "https://www.classmob.ro/metode-de-plata",
+              "title": "Metode de Plata - Classmob",
+              "publisher": "Classmob",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "SC TRAZACON SRL ... Banca BRD Cont IBAN:RO86BRDE380SV41565073800"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO86BRDE380SV41565073800",
+          "iban_masked_for_client": "RO86…3800"
+        }
+      ]
+    },
+    {
+      "brand_id": "contemporary_furniture",
+      "display_name": "Contemporary Furniture",
+      "legal_name": "CONTEMPORARY SOFA S.R.L.",
+      "cui": "46080261",
+      "category": "mobilier",
+      "aliases": [
+        "Contemporary Furniture",
+        "CONTEMPORARY SOFA S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_comenzi_mobilier_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Raiffeisen Bank",
+          "source_refs": [
+            {
+              "url": "https://www.contemporaryfurniture.ro/metode-de-plata",
+              "title": "Metode de Plata - Contemporary Furniture",
+              "publisher": "Contemporary Furniture",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "SC CONTEMPORARY SOFA SRL ... Cont IBAN(RON): RO41RZBR0000060026144065"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO41RZBR0000060026144065",
+          "iban_masked_for_client": "RO41…4065"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_comenzi_mobilier_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BCR",
+          "source_refs": [
+            {
+              "url": "https://www.contemporaryfurniture.ro/metode-de-plata",
+              "title": "Metode de Plata - Contemporary Furniture",
+              "publisher": "Contemporary Furniture",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "SC CONTEMPORARY SOFA SRL ... Cont IBAN(EUR): RO72RNCB0175175078300002"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO72RNCB0175175078300002",
+          "iban_masked_for_client": "RO72…0002"
+        }
+      ]
+    },
+    {
+      "brand_id": "erustic",
+      "display_name": "eRustic",
+      "legal_name": "WOOD RUSTIC ART S.R.L.",
+      "cui": "41253191",
+      "category": "mobilier",
+      "aliases": [
+        "eRustic",
+        "WOOD RUSTIC ART S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_comenzi_mobilier_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://www.e-rustic.ro/metode-de-plata",
+              "title": "Metode de Plata - eRustic",
+              "publisher": "eRustic",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "SC Wood Rustic Art SRL ... Cont IBAN:RO14BTRLRONCRT0505036501"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO14BTRLRONCRT0505036501",
+          "iban_masked_for_client": "RO14…6501"
+        }
+      ]
+    },
+    {
+      "brand_id": "nuka",
+      "display_name": "Nuka",
+      "legal_name": "QUASAR EXPRESS S.R.L.",
+      "cui": "38746939",
+      "category": "mobilier",
+      "aliases": [
+        "Nuka",
+        "QUASAR EXPRESS S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_comenzi_mobilier_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://www.nuka.ro/metode-de-plata",
+              "title": "Metode de Plata - Nuka",
+              "publisher": "Nuka",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "SC QUASAR EXPRESS SRL ... Cont IBAN: RO94BTRLRONCRT0435226101"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO94BTRLRONCRT0435226101",
+          "iban_masked_for_client": "RO94…6101"
+        }
+      ]
+    },
+    {
+      "brand_id": "nzebshop",
+      "display_name": "nZEBshop",
+      "legal_name": "NZEBSHOP S.R.L.",
+      "cui": "49529269",
+      "category": "materiale_constructii_eficienta_energetica",
+      "aliases": [
+        "nZEBshop",
+        "NZEBSHOP S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_comenzi_materiale_echipamente_nzeb_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://nzebshop.ro/modalitati-de-plata",
+              "title": "Modalități de plată - nZEBshop",
+              "publisher": "nZEBshop",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "NZEBSHOP S.R.L. ... IBAN: RO90BTRLRONCRT0DD2510601"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO90BTRLRONCRT0DD2510601",
+          "iban_masked_for_client": "RO90…0601"
+        }
+      ]
+    },
+    {
+      "brand_id": "marketmob",
+      "display_name": "MarketMob",
+      "legal_name": "IULSTAR S.R.L.",
+      "cui": "16223130",
+      "category": "mobilier",
+      "aliases": [
+        "MarketMob",
+        "IULSTAR S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_comenzi_mobilier_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://www.marketmob.ro/metode-de-plata",
+              "title": "Metode de Plata - MarketMob",
+              "publisher": "MarketMob",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "SC IULSTAR SRL ... Cont IBAN: RO72BTRLRONCRT0P73425102"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO72BTRLRONCRT0P73425102",
+          "iban_masked_for_client": "RO72…5102"
+        }
+      ]
+    },
+    {
+      "brand_id": "shop_bgs",
+      "display_name": "Shop BGS",
+      "legal_name": "BGS MAGAZIN ONLINE S.R.L.",
+      "cui": "46910403",
+      "category": "echipamente_comerciale_securitate",
+      "aliases": [
+        "Shop BGS",
+        "BGS MAGAZIN ONLINE S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "plata_comenzi_echipamente_securitate_comerciale_prin_transfer_bancar",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BCR",
+          "source_refs": [
+            {
+              "url": "https://shopbgs.ro/modalitati-de-plata/",
+              "title": "Modalități de plată | Shop BGS",
+              "publisher": "Shop BGS",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "BGS MAGAZIN ONLINE SRL ... IBAN: RO20RNCB0075173848470001"
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO20RNCB0075173848470001",
+          "iban_masked_for_client": "RO20…0001"
+        }
+      ]
+    }
+  ]
+}
