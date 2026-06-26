@@ -527,6 +527,9 @@ def brand_has_destinations(
     registry = _registry()
     if canonical and canonical in registry["brands_with_destinations"]:
         return True
+    claimed_name_key = _name_key(claimed_brand)
+    if claimed_name_key and claimed_name_key in registry["brands_by_name"]:
+        return True
     cui_key = _norm_cui(cui)
     if cui_key and cui_key in registry["brands_by_cui"]:
         return True

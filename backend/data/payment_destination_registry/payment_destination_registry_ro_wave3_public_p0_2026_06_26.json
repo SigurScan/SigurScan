@@ -1,0 +1,1648 @@
+{
+  "version": "pdr-ro-wave3-public-p0-2026.06.26",
+  "generated_at": "2026-06-26T00:00:00Z",
+  "purpose": "Wave 3 URL-backed public official payment destinations for utilities, medical/dental, hosting/IT, and education/training. Delta only; no inferred IBANs.",
+  "rules": {
+    "include_safe": "Official public source, complete valid IBAN, CUI present, high confidence; duplicates already loaded in earlier atlas files omitted.",
+    "contextual_not_safe": "Official but restricted-scope accounts such as public-sector treasury or cash-deposit-only are retained with can_contribute_to_safe=false.",
+    "excluded": "Rows without CUI, P1/conflict/gap rows, and duplicate active IBANs already present in the atlas."
+  },
+  "entries": [
+    {
+      "brand_id": "compania_apa_brasov",
+      "display_name": "Compania Apa Brașov",
+      "legal_name": "Compania Apa Brașov S.A.",
+      "cui": "1090816",
+      "category": "utility_water",
+      "aliases": [
+        "Compania Apa Brasov",
+        "Compania Apa Brașov",
+        "Compania Apa Brașov S.A."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "water_bill_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BCR",
+          "source_refs": [
+            {
+              "url": "https://www.apabrasov.ro/informatii-clienti/modalitati-de-plata/",
+              "publisher": "Compania Apa Brașov S.A.",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficială listează beneficiarul Compania Apa Brașov S.A., conturile pentru ordin de plată și datele bancare din footer."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO27RNCB0053051410440001",
+          "iban_masked_for_client": "RO27 RNCB **** **** **** 0001"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "water_bill_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "ING Bank",
+          "source_refs": [
+            {
+              "url": "https://www.apabrasov.ro/informatii-clienti/modalitati-de-plata/",
+              "publisher": "Compania Apa Brașov S.A.",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficială listează beneficiarul Compania Apa Brașov S.A., conturile pentru ordin de plată și datele bancare din footer."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO39INGB0001008199998918",
+          "iban_masked_for_client": "RO39 INGB **** **** **** 8918"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "water_bill_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "literal_x_iban": true,
+          "bank_name": "Trezoreria Brașov",
+          "source_refs": [
+            {
+              "url": "https://www.apabrasov.ro/informatii-clienti/modalitati-de-plata/",
+              "publisher": "Compania Apa Brașov S.A.",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficială listează beneficiarul Compania Apa Brașov S.A., conturile pentru ordin de plată și datele bancare din footer."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO63TREZ1315069XXX000650",
+          "iban_masked_for_client": "RO63 TREZ **** **** **** 0650"
+        }
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "apavital",
+      "display_name": "APAVITAL",
+      "legal_name": "APAVITAL S.A.",
+      "cui": "1959768",
+      "category": "utility_water",
+      "aliases": [
+        "APAVITAL",
+        "APAVITAL S.A."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "water_bill_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "literal_x_iban": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://www.apavital.ro/alte-modalitati-de-plata",
+              "publisher": "APAVITAL S.A.",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficială cere menționarea numelui, codului de client, numărului și datei facturii și listează conturile bancare."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO56BTRL02401202E61068XX",
+          "iban_masked_for_client": "RO56 BTRL **** **** **** 68XX"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "water_bill_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "literal_x_iban": true,
+          "bank_name": "Trezoreria Iași",
+          "source_refs": [
+            {
+              "url": "https://www.apavital.ro/alte-modalitati-de-plata",
+              "publisher": "APAVITAL S.A.",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficială cere menționarea numelui, codului de client, numărului și datei facturii și listează conturile bancare."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO17TREZ4065069XXX002179",
+          "iban_masked_for_client": "RO17 TREZ **** **** **** 2179"
+        }
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "rer_vest",
+      "display_name": "RER Vest",
+      "legal_name": "RER Vest S.A.",
+      "cui": "8309690",
+      "category": "utility_waste",
+      "aliases": [
+        "RER Vest",
+        "RER Vest S.A."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "waste_bill_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BCR Oradea",
+          "source_refs": [
+            {
+              "url": "https://rervest.ro/utile/modalitati-de-plata/",
+              "publisher": "RER Vest S.A.",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficială listează conturile pentru transfer bancar și cere codul de client de pe factură."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO96RNCB0032046470340001",
+          "iban_masked_for_client": "RO96 RNCB **** **** **** 0001"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "waste_bill_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BRD Oradea",
+          "source_refs": [
+            {
+              "url": "https://rervest.ro/utile/modalitati-de-plata/",
+              "publisher": "RER Vest S.A.",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficială listează conturile pentru transfer bancar și cere codul de client de pe factură."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO54BRDE050SV53686950500",
+          "iban_masked_for_client": "RO54 BRDE **** **** **** 0500"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "waste_bill_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "literal_x_iban": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://rervest.ro/utile/modalitati-de-plata/",
+              "publisher": "RER Vest S.A.",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficială listează conturile pentru transfer bancar și cere codul de client de pe factură."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO19BTRL00501202U05750XX",
+          "iban_masked_for_client": "RO19 BTRL **** **** **** 50XX"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "waste_bill_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "UniCredit Bank",
+          "source_refs": [
+            {
+              "url": "https://rervest.ro/utile/modalitati-de-plata/",
+              "publisher": "RER Vest S.A.",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficială listează conturile pentru transfer bancar și cere codul de client de pe factură."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO26BACX0000000783506000",
+          "iban_masked_for_client": "RO26 BACX **** **** **** 6000"
+        }
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "medicalmagazin_terra_distrimed",
+      "display_name": "MedicalMagazin.ro",
+      "legal_name": "SC Terra Distrimed SRL",
+      "cui": "27820118",
+      "category": "medical_supplier_ecommerce",
+      "aliases": [
+        "MedicalMagazin.ro",
+        "Medical Magazin",
+        "Terra Distrimed",
+        "SC Terra Distrimed SRL"
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "medical_products_order_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "literal_x_iban": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://www.medicalmagazin.ro/index.php/termeni/",
+              "publisher": "SC Terra Distrimed SRL",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficiala de termeni publica plata prin transfer bancar/ordin de plata si IBAN-ul SC Terra Distrimed SRL."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO25BTRL04501202443679XX",
+          "iban_masked_for_client": "RO25 BTRL **** **** **** 79XX"
+        }
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "dentotal_protect",
+      "display_name": "Dentotal",
+      "legal_name": "SC Dentotal Protect SRL",
+      "cui": "6812309",
+      "category": "dental_supplier_ecommerce",
+      "aliases": [
+        "Dentotal",
+        "Dentotal Protect",
+        "SC Dentotal Protect SRL"
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "dental_goods_services_order_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Garanti Bank S.A.",
+          "source_refs": [
+            {
+              "url": "https://www.dentotal.ro/termeni-si-conditii.html",
+              "publisher": "SC Dentotal Protect SRL",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Termenii Dentotal publica legal name, CUI, cont bancar si transfer bancar pentru bunuri/servicii Dentotal."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO67UGBI0000652001335RON",
+          "iban_masked_for_client": "RO67 UGBI **** **** **** 5RON"
+        }
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "hosterion",
+      "display_name": "Hosterion",
+      "legal_name": "HOSTERION SRL",
+      "cui": "16104008",
+      "category": "hosting_it_services",
+      "aliases": [
+        "Hosterion",
+        "HOSTERION SRL"
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "hosting_it_services_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "ING Bank",
+          "source_refs": [
+            {
+              "url": "https://hosterion.ro/contact",
+              "publisher": "HOSTERION SRL",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficiala Hosterion publica datele firmei si plata facturii prin OP."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO74INGB0000999905003809",
+          "iban_masked_for_client": "RO74 INGB **** **** **** 3809"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "hosting_it_services_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "literal_x_iban": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://hosterion.ro/contact",
+              "publisher": "HOSTERION SRL",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficiala Hosterion publica contul BT pentru plata facturii prin OP."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO72BTRL01301202934274XX",
+          "iban_masked_for_client": "RO72 BTRL **** **** **** 74XX"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "public_sector_treasury_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": false,
+          "literal_x_iban": true,
+          "bank_name": "Trezoreria Cluj-Napoca",
+          "source_refs": [
+            {
+              "url": "https://hosterion.ro/contact",
+              "publisher": "HOSTERION SRL",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Cont separat pentru institutii bugetare publicat oficial."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO37TREZ2165069XXX015636",
+          "iban_masked_for_client": "RO37 TREZ **** **** **** 5636"
+        }
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "claus_web",
+      "display_name": "Claus Web",
+      "legal_name": "Claus Web SRL",
+      "cui": "17759260",
+      "category": "hosting_it_services",
+      "aliases": [
+        "Claus Web",
+        "Claus Web SRL"
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "hosting_it_services_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "literal_x_iban": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://www.clausweb.ro/contact.html",
+              "publisher": "Claus Web SRL",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficiala de contact Claus Web listeaza firma, CUI/RC si conturile IBAN."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO12BTRL03101202A56122XX",
+          "iban_masked_for_client": "RO12 BTRL **** **** **** 22XX"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "public_sector_treasury_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": false,
+          "literal_x_iban": true,
+          "bank_name": "Trezoreria Satu Mare",
+          "source_refs": [
+            {
+              "url": "https://www.clausweb.ro/contact.html",
+              "publisher": "Claus Web SRL",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Cont Trezorerie publicat oficial de Claus Web; folosit contextual pentru institutii."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO60TREZ5465069XXX003492",
+          "iban_masked_for_client": "RO60 TREZ **** **** **** 3492"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "hosting_it_services_payment_eur",
+          "currency": "EUR",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "literal_x_iban": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://www.clausweb.ro/contact.html",
+              "publisher": "Claus Web SRL",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficiala de contact Claus Web listeaza contul EUR BT."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO84BTRL03104202A56122XX",
+          "iban_masked_for_client": "RO84 BTRL **** **** **** 22XX"
+        }
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "namebox",
+      "display_name": "Namebox",
+      "legal_name": "NAMEBOX S.R.L.",
+      "cui": "29508628",
+      "category": "hosting_it_services",
+      "aliases": [
+        "Namebox",
+        "NAMEBOX.RO",
+        "NAMEBOX S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "hosting_it_services_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "ING Bank Romania",
+          "source_refs": [
+            {
+              "url": "https://www.namebox.ro/termeni-si-conditii/",
+              "publisher": "NAMEBOX S.R.L.",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Termenii oficiali Namebox publica datele fiscale si contul IBAN."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO32INGB0000999902838749",
+          "iban_masked_for_client": "RO32 INGB **** **** **** 8749"
+        }
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "spatiul_ro",
+      "display_name": "Spatiul.Ro",
+      "legal_name": "Space Ro SRL",
+      "cui": "22097592",
+      "category": "hosting_it_services",
+      "aliases": [
+        "Spatiul.Ro",
+        "Space Ro SRL",
+        "Spatiul Ro"
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "hosting_it_services_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Libra Bank Iasi",
+          "source_refs": [
+            {
+              "url": "https://www.spatiul.ro/contact/",
+              "publisher": "Space Ro SRL",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficiala de contact Spatiul.Ro publica datele societatii si conturile de plata."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO21BREL0002000731310100",
+          "iban_masked_for_client": "RO21 BREL **** **** **** 0100"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "hosting_it_services_payment_eur",
+          "currency": "EUR",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Libra Bank Iasi",
+          "source_refs": [
+            {
+              "url": "https://www.spatiul.ro/contact/",
+              "publisher": "Space Ro SRL",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficiala de contact Spatiul.Ro publica contul EUR Libra Bank."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO10BREL0002000731310201",
+          "iban_masked_for_client": "RO10 BREL **** **** **** 0201"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "public_sector_treasury_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": false,
+          "literal_x_iban": true,
+          "bank_name": "Trezorerie",
+          "source_refs": [
+            {
+              "url": "https://www.spatiul.ro/contact/",
+              "publisher": "Space Ro SRL",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Cont Trezorerie publicat oficial pentru institutii bugetare."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO36TREZ4065069XXX013283",
+          "iban_masked_for_client": "RO36 TREZ **** **** **** 3283"
+        }
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "chroot_network",
+      "display_name": "chroot.ro",
+      "legal_name": "CHROOT NETWORK SRL",
+      "cui": "21052851",
+      "category": "hosting_it_services",
+      "aliases": [
+        "chroot.ro",
+        "CHROOT NETWORK SRL",
+        "chroot"
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "hosting_it_services_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "ING Bank",
+          "source_refs": [
+            {
+              "url": "https://www.chroot.ro/contact/",
+              "publisher": "CHROOT NETWORK SRL",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficiala chroot.ro publica firma, CUI/RC, contul IBAN si banca."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO22INGB5551999900541063",
+          "iban_masked_for_client": "RO22 INGB **** **** **** 1063"
+        }
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "megaserver_megahost",
+      "display_name": "MegaHost",
+      "legal_name": "Megaserver SRL",
+      "cui": "33231770",
+      "category": "hosting_it_services",
+      "aliases": [
+        "MegaHost",
+        "Megaserver SRL",
+        "megahost.ro"
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "hosting_it_services_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BRD",
+          "source_refs": [
+            {
+              "url": "https://megahost.ro/contact.php",
+              "publisher": "Megaserver SRL",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficiala MegaHost publica datele firmei si conturile bancare."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO17BRDE410SV73032714100",
+          "iban_masked_for_client": "RO17 BRDE **** **** **** 4100"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "public_sector_treasury_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": false,
+          "literal_x_iban": true,
+          "bank_name": "Trezorerie",
+          "source_refs": [
+            {
+              "url": "https://megahost.ro/contact.php",
+              "publisher": "Megaserver SRL",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Cont Trezorerie publicat oficial de MegaHost; folosit contextual."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO24TREZ4215069XXX008980",
+          "iban_masked_for_client": "RO24 TREZ **** **** **** 8980"
+        }
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "hostriver_technology",
+      "display_name": "HostRiver",
+      "legal_name": "HOSTRIVER TECHNOLOGY SRL",
+      "cui": "41088868",
+      "category": "hosting_it_services",
+      "aliases": [
+        "HostRiver",
+        "HostRiver Technology",
+        "HOSTRIVER TECHNOLOGY SRL"
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "hosting_it_services_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://hostriver.ro/modalitati-de-plata/",
+              "publisher": "HOSTRIVER TECHNOLOGY SRL",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficiala Modalitati de plata publica beneficiarul, CUI-ul, IBAN-ul si banca."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO05BTRLRONCRT0500240401",
+          "iban_masked_for_client": "RO05 BTRL **** **** **** 0401"
+        }
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "digital_keez",
+      "display_name": "Keez",
+      "legal_name": "Digital Keez SRL",
+      "cui": "37888790",
+      "category": "accounting_online",
+      "aliases": [
+        "Keez",
+        "Digital Keez",
+        "Digital Keez SRL"
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "accounting_online_services_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Libra Bank",
+          "source_refs": [
+            {
+              "url": "https://www.keez.ro/termeni-si-conditii",
+              "publisher": "Digital Keez SRL",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Termenii Keez publica Digital Keez SRL, CUI/RC si IBAN."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO02BREL0002001766680100",
+          "iban_masked_for_client": "RO02 BREL **** **** **** 0100"
+        }
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "apsap_centrul_de_formare_srl",
+      "display_name": "Centrul de Formare APSAP S.R.L.",
+      "legal_name": "Centrul de Formare APSAP S.R.L.",
+      "cui": "46015336",
+      "category": "training_services",
+      "aliases": [
+        "Centrul de Formare APSAP S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "training_services_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "literal_x_iban": true,
+          "bank_name": "Trezoreria Statului Sector 3",
+          "source_refs": [
+            {
+              "url": "https://cursuri-functionari.ro/termeni-si-conditii/",
+              "publisher": "Centrul de Formare APSAP S.R.L.",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Cont oficial publicat in termeni APSAP; entitatea trebuie potrivita cu factura."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO33TREZ7035069XXX022568",
+          "iban_masked_for_client": "RO33 TREZ **** **** **** 2568"
+        }
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "apsap_training_center",
+      "display_name": "APSAP Training Center S.R.L.",
+      "legal_name": "APSAP Training Center S.R.L.",
+      "cui": "46774824",
+      "category": "training_services",
+      "aliases": [
+        "APSAP Training Center S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "training_services_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "literal_x_iban": true,
+          "bank_name": "Trezoreria Statului Sector 3",
+          "source_refs": [
+            {
+              "url": "https://cursuri-functionari.ro/termeni-si-conditii/",
+              "publisher": "APSAP Training Center S.R.L.",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Cont oficial publicat in termeni APSAP; entitatea trebuie potrivita cu factura."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO47TREZ7035069XXX022801",
+          "iban_masked_for_client": "RO47 TREZ **** **** **** 2801"
+        }
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "umf_victor_babes_timisoara",
+      "display_name": "UMF Victor Babeș Timișoara",
+      "legal_name": "Universitatea de Medicină și Farmacie Victor Babeș Timișoara",
+      "cui": "4269215",
+      "category": "university_public",
+      "aliases": [
+        "UMF Victor Babeș Timișoara",
+        "UMF Timisoara",
+        "Universitatea de Medicina si Farmacie Victor Babes Timisoara"
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "tuition_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "literal_x_iban": true,
+          "bank_name": "Trezoreria Municipiului Timisoara",
+          "source_refs": [
+            {
+              "url": "https://www.umft.ro/ro/plati-si-taxe-online-umfvbt/",
+              "publisher": "UMF Victor Babeș Timișoara",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficiala spune ca taxa de studii se achita in acest cont."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO21TREZ62120F330500XXXX",
+          "iban_masked_for_client": "RO21 TREZ **** **** **** XXXX"
+        }
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "universitatea_transilvania_brasov",
+      "display_name": "Universitatea Transilvania din Brașov",
+      "legal_name": "Universitatea Transilvania din Brașov",
+      "cui": "4317754",
+      "category": "university_public",
+      "aliases": [
+        "UNITBV",
+        "Universitatea Transilvania din Brasov",
+        "Universitatea Transilvania din Brașov"
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "tuition_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "literal_x_iban": true,
+          "bank_name": "Trezoreria Municipiului Brasov",
+          "source_refs": [
+            {
+              "url": "https://www.unitbv.ro/documente/Studenti/Taxe/informatii_privind_pl%C4%83%C8%9Bile_catre_universitate.pdf",
+              "publisher": "Universitatea Transilvania din Brașov",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Document oficial privind achitarea taxelor catre universitate."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO08TREZ13120F330500XXXX",
+          "iban_masked_for_client": "RO08 TREZ **** **** **** XXXX"
+        }
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "universitatea_babes_bolyai",
+      "display_name": "UBB Cluj",
+      "legal_name": "Universitatea Babeș-Bolyai",
+      "cui": "4305849",
+      "category": "university_public",
+      "aliases": [
+        "UBB Cluj",
+        "Universitatea Babes-Bolyai",
+        "Universitatea Babeș-Bolyai"
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "tuition_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "literal_x_iban": true,
+          "bank_name": "Trezoreria Cluj",
+          "source_refs": [
+            {
+              "url": "https://www.ubbcluj.ro/ro/taxe/plata_taxelor",
+              "publisher": "Universitatea Babeș-Bolyai",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficiala UBB publica plata taxelor de scolarizare in lei in acest cont."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO35TREZ21620F330500XXXX",
+          "iban_masked_for_client": "RO35 TREZ **** **** **** XXXX"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "tuition_payment_eur",
+          "currency": "EUR",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BCR",
+          "source_refs": [
+            {
+              "url": "https://www.ubbcluj.ro/ro/taxe/plata_taxelor",
+              "publisher": "Universitatea Babeș-Bolyai",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficiala UBB publica acest cont pentru taxe in EUR."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO16RNCB0106026604700008",
+          "iban_masked_for_client": "RO16 RNCB **** **** **** 0008"
+        }
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "universitatea_oradea",
+      "display_name": "Universitatea din Oradea",
+      "legal_name": "Universitatea din Oradea",
+      "cui": "4287939",
+      "category": "university_public",
+      "aliases": [
+        "Universitatea din Oradea",
+        "UOradea"
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "tuition_cash_deposit_only",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": false,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://www.uoradea.ro/info-studenti/taxe-de-scolarizare/",
+              "publisher": "Universitatea din Oradea",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Cont oficial doar pentru depunere in numerar la sucursalele BT."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO61BTRL0050160100717205",
+          "iban_masked_for_client": "RO61 BTRL **** **** **** 7205"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "tuition_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "literal_x_iban": true,
+          "bank_name": "Trezoreria Municipiului Oradea",
+          "source_refs": [
+            {
+              "url": "https://www.uoradea.ro/info-studenti/taxe-de-scolarizare/",
+              "publisher": "Universitatea din Oradea",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficiala listeaza contul pentru virament bancar si detaliile obligatorii de plata."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO59TREZ07620F330500XXXX",
+          "iban_masked_for_client": "RO59 TREZ **** **** **** XXXX"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "tuition_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "literal_x_iban": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://www.uoradea.ro/info-studenti/taxe-de-scolarizare/",
+              "publisher": "Universitatea din Oradea",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Cont oficial pentru virament bancar, pastrat exact cum este publicat."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO71BTRL00501202782511XX",
+          "iban_masked_for_client": "RO71 BTRL **** **** **** 11XX"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "tuition_payment_eur",
+          "currency": "EUR",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Banca Transilvania",
+          "source_refs": [
+            {
+              "url": "https://www.uoradea.ro/info-studenti/taxe-de-scolarizare/",
+              "publisher": "Universitatea din Oradea",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficiala publica plata in valuta, cu SWIFT BTRLRO22."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO15BTRLEURCRT0078251103",
+          "iban_masked_for_client": "RO15 BTRL **** **** **** 1103"
+        }
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "universitatea_romano_americana",
+      "display_name": "Universitatea Româno-Americană",
+      "legal_name": "Universitatea Româno-Americană",
+      "cui": "9081408",
+      "category": "university_private",
+      "aliases": [
+        "Universitatea Romano-Americana",
+        "Universitatea Româno-Americană",
+        "URA"
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "tuition_payment_ron",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BRD-GSG Sucursala Academiei Bucuresti",
+          "source_refs": [
+            {
+              "url": "https://www.rau.ro/taxe-de-studii/",
+              "publisher": "Universitatea Româno-Americană",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficiala publica plata prin transfer bancar si conturile universitatii/facultatilor."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO91BRDE410SV21861794100",
+          "iban_masked_for_client": "RO91 BRDE **** **** **** 4100"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "tuition_payment_eur",
+          "currency": "EUR",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BRD-GSG Sucursala Academiei Bucuresti",
+          "source_refs": [
+            {
+              "url": "https://www.rau.ro/taxe-de-studii/",
+              "publisher": "Universitatea Româno-Americană",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficiala publica plata prin transfer bancar si conturile universitatii/facultatilor."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO33BRDE410SV77796064100",
+          "iban_masked_for_client": "RO33 BRDE **** **** **** 4100"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "tuition_payment_faculty_account",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BRD-GSG Sucursala Academiei Bucuresti",
+          "source_refs": [
+            {
+              "url": "https://www.rau.ro/taxe-de-studii/",
+              "publisher": "Universitatea Româno-Americană",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficiala publica plata prin transfer bancar si conturile universitatii/facultatilor."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO62BRDE410SV12775414100",
+          "iban_masked_for_client": "RO62 BRDE **** **** **** 4100"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "tuition_payment_faculty_account",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BRD-GSG Sucursala Academiei Bucuresti",
+          "source_refs": [
+            {
+              "url": "https://www.rau.ro/taxe-de-studii/",
+              "publisher": "Universitatea Româno-Americană",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficiala publica plata prin transfer bancar si conturile universitatii/facultatilor."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO09BRDE410SV12775504100",
+          "iban_masked_for_client": "RO09 BRDE **** **** **** 4100"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "tuition_payment_faculty_account",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BRD-GSG Sucursala Academiei Bucuresti",
+          "source_refs": [
+            {
+              "url": "https://www.rau.ro/taxe-de-studii/",
+              "publisher": "Universitatea Româno-Americană",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficiala publica plata prin transfer bancar si conturile universitatii/facultatilor."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO26BRDE410SV12776134100",
+          "iban_masked_for_client": "RO26 BRDE **** **** **** 4100"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "tuition_payment_faculty_account",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BRD-GSG Sucursala Academiei Bucuresti",
+          "source_refs": [
+            {
+              "url": "https://www.rau.ro/taxe-de-studii/",
+              "publisher": "Universitatea Româno-Americană",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficiala publica plata prin transfer bancar si conturile universitatii/facultatilor."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO57BRDE410SV12776484100",
+          "iban_masked_for_client": "RO57 BRDE **** **** **** 4100"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "tuition_payment_faculty_account",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BRD-GSG Sucursala Academiei Bucuresti",
+          "source_refs": [
+            {
+              "url": "https://www.rau.ro/taxe-de-studii/",
+              "publisher": "Universitatea Româno-Americană",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficiala publica plata prin transfer bancar si conturile universitatii/facultatilor."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO97BRDE410SV12775684100",
+          "iban_masked_for_client": "RO97 BRDE **** **** **** 4100"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "tuition_payment_faculty_account",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BRD-GSG Sucursala Academiei Bucuresti",
+          "source_refs": [
+            {
+              "url": "https://www.rau.ro/taxe-de-studii/",
+              "publisher": "Universitatea Româno-Americană",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficiala publica plata prin transfer bancar si conturile universitatii/facultatilor."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO85BRDE410SV12775924100",
+          "iban_masked_for_client": "RO85 BRDE **** **** **** 4100"
+        }
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "universitatea_spiru_haret",
+      "display_name": "Universitatea Spiru Haret",
+      "legal_name": "Universitatea Spiru Haret",
+      "cui": "14871616",
+      "category": "university_private",
+      "aliases": [
+        "Universitatea Spiru Haret",
+        "Spiru Haret"
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "tuition_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Raiffeisen Bank",
+          "source_refs": [
+            {
+              "url": "https://www.spiruharet.ro/taxe.html",
+              "publisher": "Universitatea Spiru Haret",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficiala de taxe publica acest cont pentru taxa de studiu si taxe de disciplina."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO08RZBR0000060004669150",
+          "iban_masked_for_client": "RO08 RZBR **** **** **** 9150"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "tuition_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BCR",
+          "source_refs": [
+            {
+              "url": "https://www.spiruharet.ro/taxe.html",
+              "publisher": "Universitatea Spiru Haret",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Al doilea cont oficial publicat pentru taxa de studiu si taxe de disciplina."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO27RNCB0090013617400001",
+          "iban_masked_for_client": "RO27 RNCB **** **** **** 0001"
+        }
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "telecom_academy_association",
+      "display_name": "Asociația Telecom Academy",
+      "legal_name": "Asociația Telecom Academy",
+      "cui": "21577037",
+      "category": "training_it",
+      "aliases": [
+        "Telecom Academy",
+        "TelAcad",
+        "Asociația Telecom Academy",
+        "Asociatia Telecom Academy"
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "training_services_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "ING Bank",
+          "source_refs": [
+            {
+              "url": "https://www.telacad.ro/termeni-si-conditii/",
+              "publisher": "Asociația Telecom Academy",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Termenii oficiali publica prestatorul, CUI, contul si politica de acces dupa confirmarea platii."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO46INGB0000999908514064",
+          "iban_masked_for_client": "RO46 INGB **** **** **** 4064"
+        }
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "cloud_trading_telacad",
+      "display_name": "Cloud Trading S.R.L.",
+      "legal_name": "Cloud Trading S.R.L.",
+      "cui": "34632192",
+      "category": "training_it",
+      "aliases": [
+        "Cloud Trading S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "training_services_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "ING Bank",
+          "source_refs": [
+            {
+              "url": "https://www.telacad.ro/termeni-si-conditii/",
+              "publisher": "Cloud Trading S.R.L.",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Cont oficial pentru unul dintre prestatorii Telecom Academy; trebuie potrivit cu factura/contractul."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO51INGB0000999908513780",
+          "iban_masked_for_client": "RO51 INGB **** **** **** 3780"
+        }
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "eleven_brain_club_telacad",
+      "display_name": "Eleven Brain Club S.R.L.",
+      "legal_name": "Eleven Brain Club S.R.L.",
+      "cui": "40802496",
+      "category": "training_it",
+      "aliases": [
+        "Eleven Brain Club S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "training_services_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "ING Bank",
+          "source_refs": [
+            {
+              "url": "https://www.telacad.ro/termeni-si-conditii/",
+              "publisher": "Eleven Brain Club S.R.L.",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Cont oficial pentru unul dintre prestatorii Telecom Academy; trebuie potrivit cu factura/contractul."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO03INGB0000999908984900",
+          "iban_masked_for_client": "RO03 INGB **** **** **** 4900"
+        }
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "fourteen_brain_challenge_telacad",
+      "display_name": "Fourteen Brain Challenge S.R.L.",
+      "legal_name": "Fourteen Brain Challenge S.R.L.",
+      "cui": "44283820",
+      "category": "training_it",
+      "aliases": [
+        "Fourteen Brain Challenge S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "training_services_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "ING Bank",
+          "source_refs": [
+            {
+              "url": "https://www.telacad.ro/termeni-si-conditii/",
+              "publisher": "Fourteen Brain Challenge S.R.L.",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Cont oficial pentru unul dintre prestatorii Telecom Academy; trebuie potrivit cu factura/contractul."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO30INGB0000999911490991",
+          "iban_masked_for_client": "RO30 INGB **** **** **** 0991"
+        }
+      ],
+      "review_status": "active"
+    }
+  ],
+  "summary": {
+    "entries": 25,
+    "destinations": 50,
+    "safe_destinations": 45,
+    "contextual_destinations": 5
+  }
+}
