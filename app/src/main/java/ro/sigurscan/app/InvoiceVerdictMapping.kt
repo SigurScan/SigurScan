@@ -68,21 +68,26 @@ fun invoiceVerdict(result: InvoiceScanResponse): InvoiceVerdictResult {
     val truth = result.invoiceTruth
     val beneficiaryMismatch = invoiceBeneficiaryMismatch(result.fields)
 
-    // 1) Periculos — fraud-grade, from the engine's collapsed signals.
-    val periculos = (truth?.hardConflicts?.isNotEmpty() == true) ||
+    // 1) Periculos (hard) — fraud-grade triggers win over everything, even a confirmed safe_to_pay.
+    val hardPericulos = (truth?.hardConflicts?.isNotEmpty() == true) ||
         ((truth?.primaryReasonCode ?: "") in STOP_REASON_CODES) ||
-        (result.brandMatch?.impersonationRisk == true) ||
-        beneficiaryMismatch
-    if (periculos) {
+        (result.brandMatch?.impersonationRisk == true)
+    if (hardPericulos) {
         return InvoiceVerdictResult(InvoiceVerdict.PERICULOS, beneficiaryMismatch = beneficiaryMismatch)
     }
 
-    // 2) Sigur — the engine confirmed the destination (atlas/SANB + name match).
+    // 2) Sigur — the engine confirmed the destination (atlas/SANB + name match). A confirmed
+    //    safe_to_pay wins over a bare beneficiary name mismatch (e.g. legit factoring in atlas).
     if (truth?.safeToPay == true) {
         return InvoiceVerdictResult(InvoiceVerdict.SIGUR, beneficiaryMismatch = false)
     }
 
-    // 3) Suspect — a real bad verifiable signal, not merely an unconfirmed IBAN.
+    // 3) Periculos (beneficiary) — beneficiary != issuer escalates only when not confirmed safe.
+    if (beneficiaryMismatch) {
+        return InvoiceVerdictResult(InvoiceVerdict.PERICULOS, beneficiaryMismatch = true)
+    }
+
+    // 4) Suspect — a real bad verifiable signal, not merely an unconfirmed IBAN.
     val suspect = (result.coherence?.allOk == false) ||
         ibanMissingOrInvalid(result) ||
         anafCheckedNotFound(result.anaf)
@@ -90,7 +95,7 @@ fun invoiceVerdict(result: InvoiceScanResponse): InvoiceVerdictResult {
         return InvoiceVerdictResult(InvoiceVerdict.SUSPECT, beneficiaryMismatch = false)
     }
 
-    // 4) Neverificat — everything verifiable is clean; only the IBAN owner is unconfirmed.
+    // 5) Neverificat — everything verifiable is clean; only the IBAN owner is unconfirmed.
     return InvoiceVerdictResult(InvoiceVerdict.NEVERIFICAT, beneficiaryMismatch = false)
 }
 

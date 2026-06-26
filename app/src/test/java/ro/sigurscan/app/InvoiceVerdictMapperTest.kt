@@ -117,6 +117,31 @@ class InvoiceVerdictMapperTest {
     }
 
     @Test
+    fun safeToPayTrueWithBeneficiaryMismatchStaysSigur() {
+        // Engine confirmed the destination (e.g. legit factoring in atlas): beneficiary != issuer,
+        // BUT safe_to_pay=true and no hard trigger. The display layer must not override the engine —
+        // only a hard fraud trigger may win over a confirmed safe_to_pay.
+        val r = invoiceVerdict(
+            fromJson(
+                """
+                {
+                  "fields": {"emitent": "ALFA DISTRIB SRL", "payment_beneficiary": "OMEGA FACTORING IFN SA",
+                             "iban": "RO17BTRL0000456789012345"},
+                  "coherence": {"totals_match": true, "tva_rate_plausible": true, "dates_plausible": true, "all_ok": true},
+                  "invoice_truth": {"verdict": "VERIFY_BEFORE_PAYING", "safe_to_pay": true,
+                                    "primary_reason_code": "UNCONFIRMED_DESTINATION", "hard_conflicts": []}
+                }
+                """
+            )
+        )
+        assertEquals(InvoiceVerdict.SIGUR, r.verdict)
+        assertEquals(
+            "Poți plăti. Pentru siguranță, confirmă și în SANB.",
+            invoiceVerdictPresentation(r).action,
+        )
+    }
+
+    @Test
     fun beneficiaryWithoutLegalFormSuffixIsNotAMismatch() {
         // "ALFA DISTRIB" (beneficiary) vs "ALFA DISTRIB SRL" (emitent): same entity, legal form omitted.
         // Must not be read as beneficiary != emitent -> stays Neverificat, not Periculos.
