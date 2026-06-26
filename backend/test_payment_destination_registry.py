@@ -570,6 +570,90 @@ def test_registry_loads_salubris_official_destination():
     assert match["can_contribute_to_safe"] is True
 
 
+def test_registry_loads_daily_life_delta_utility_destinations():
+    from services.payment_destination_registry import match_payment_destination
+
+    retim = match_payment_destination(
+        "RO55 RNCB 0249 0135 2437 0002",
+        claimed_brand="retim",
+        cui="9112229",
+    )
+    apa_oltenia = match_payment_destination(
+        "RO58 UGBI 0000 3220 1083 3RON",
+        claimed_brand="Compania de Apa Oltenia",
+        cui="11400673",
+    )
+
+    assert retim["matched"] is True
+    assert retim["brand_matches"] is True
+    assert retim["cui_matches"] is True
+    assert retim["brand_id"] == "retim_ecologic_service"
+    assert retim["scope"] == "waste_bill_payment"
+    assert retim["can_contribute_to_safe"] is True
+    assert apa_oltenia["matched"] is True
+    assert apa_oltenia["brand_matches"] is True
+    assert apa_oltenia["cui_matches"] is True
+    assert apa_oltenia["brand_id"] == "compania_apa_oltenia"
+    assert apa_oltenia["scope"] == "water_bill_payment"
+    assert apa_oltenia["can_contribute_to_safe"] is True
+
+
+def test_registry_loads_daily_life_delta_insurance_and_ifn_destinations():
+    from services.payment_destination_registry import match_payment_destination
+
+    grawe = match_payment_destination(
+        "RO26 CECE B000 44RO N039 2355",
+        claimed_brand="grawe",
+        cui="8398697",
+    )
+    credius = match_payment_destination(
+        "RO70 REVO 0000 3132 8640 0915",
+        claimed_brand="credius",
+        cui="31534882",
+    )
+
+    assert grawe["matched"] is True
+    assert grawe["brand_matches"] is True
+    assert grawe["cui_matches"] is True
+    assert grawe["brand_id"] == "grawe_romania"
+    assert grawe["scope"] == "insurance_premium_payment"
+    assert grawe["can_contribute_to_safe"] is True
+    assert credius["matched"] is True
+    assert credius["brand_matches"] is True
+    assert credius["cui_matches"] is True
+    assert credius["brand_id"] == "credius_ifn"
+    assert credius["scope"] == "loan_repayment"
+    assert credius["can_contribute_to_safe"] is True
+
+
+def test_registry_loads_daily_life_delta_imm_services_destinations():
+    from services.payment_destination_registry import match_payment_destination
+
+    hzone = match_payment_destination(
+        "RO21 BTRL RONC RT03 1160 4601",
+        claimed_brand="HZone",
+        cui="34886123",
+    )
+    toolsbox = match_payment_destination(
+        "RO68 INGB 0000 9999 1291 3976",
+        claimed_brand="Toolsbox Services",
+        cui="31487381",
+    )
+
+    assert hzone["matched"] is True
+    assert hzone["brand_matches"] is True
+    assert hzone["cui_matches"] is True
+    assert hzone["brand_id"] == "hzone"
+    assert hzone["scope"] == "hosting_it_services_payment"
+    assert hzone["can_contribute_to_safe"] is True
+    assert toolsbox["matched"] is True
+    assert toolsbox["brand_matches"] is True
+    assert toolsbox["cui_matches"] is True
+    assert toolsbox["brand_id"] == "toolsbox_services"
+    assert toolsbox["scope"] == "tools_and_services_payment"
+    assert toolsbox["can_contribute_to_safe"] is True
+
+
 def test_registry_loads_contextual_utility_destinations_without_safe_contribution():
     from services.payment_destination_registry import match_payment_destination
 

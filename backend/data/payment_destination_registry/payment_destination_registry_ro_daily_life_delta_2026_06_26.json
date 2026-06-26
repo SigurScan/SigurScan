@@ -1,0 +1,261 @@
+{
+  "version": "pdr-ro-daily-life-delta-2026.06.26",
+  "generated_at": "2026-06-26T00:00:00Z",
+  "purpose": "P0 public-official daily-life payment destinations gathered from official merchant/provider pages. Backend-only exact IBAN seeds; do not ship raw IBANs to clients.",
+  "rules": {
+    "include_only": "Official public source, complete exact IBAN, valid MOD-97 structure, active entity/CUI from source research.",
+    "exclude": "Masked IBANs, campaign-only unclear payment targets, lot/procedure-specific accounts, conflict cases, entries without legal entity confidence.",
+    "user_copy": "A match can help mark the payment destination as confirmed for that legal entity; unknown destinations remain a guided bank/SANB check, not automatic fraud."
+  },
+  "entries": [
+    {
+      "brand_id": "retim_ecologic_service",
+      "display_name": "RETIM Ecologic Service",
+      "legal_name": "RETIM ECOLOGIC SERVICE S.A.",
+      "cui": "9112229",
+      "category": "utility_waste",
+      "aliases": ["retim", "retim ecologic service"],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "waste_bill_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "BCR",
+          "source_refs": [{"url": "https://retim.ro/utile-timis/modalitati-de-plata/", "publisher": "RETIM Ecologic Service S.A.", "accessed_at": "2026-06-26", "confidence": "high"}],
+          "iban_normalized_backend_seed_only": "RO55RNCB0249013524370002",
+          "iban_masked_for_client": "RO55 RNCB **** **** **** 0002"
+        }
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "compania_apa_oltenia",
+      "display_name": "Compania de Apa Oltenia",
+      "legal_name": "COMPANIA DE APA OLTENIA S.A.",
+      "cui": "11400673",
+      "category": "utility_water",
+      "aliases": ["compania apa oltenia", "compania de apa oltenia", "apa oltenia"],
+      "payment_destinations": [
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "water_bill_payment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "Garanti BBVA", "source_refs": [{"url": "https://www.apaoltenia.ro/index.php/informatii-utile/unde-si-cum-puteti-plati/", "publisher": "Compania de Apa Oltenia S.A.", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO58UGBI0000322010833RON", "iban_masked_for_client": "RO58 UGBI **** **** **** 3RON"},
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "water_bill_payment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "BRD", "source_refs": [{"url": "https://www.apaoltenia.ro/index.php/informatii-utile/unde-si-cum-puteti-plati/", "publisher": "Compania de Apa Oltenia S.A.", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO71BRDE170SV04270711700", "iban_masked_for_client": "RO71 BRDE **** **** **** 1700"},
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "water_bill_payment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "BCR", "source_refs": [{"url": "https://www.apaoltenia.ro/index.php/informatii-utile/unde-si-cum-puteti-plati/", "publisher": "Compania de Apa Oltenia S.A.", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO58RNCB0134023651680001", "iban_masked_for_client": "RO58 RNCB **** **** **** 0001"},
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "water_bill_payment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "Raiffeisen", "source_refs": [{"url": "https://www.apaoltenia.ro/index.php/informatii-utile/unde-si-cum-puteti-plati/", "publisher": "Compania de Apa Oltenia S.A.", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO36RZBR0000060003323644", "iban_masked_for_client": "RO36 RZBR **** **** **** 3644"},
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "water_bill_payment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "CEC Bank", "source_refs": [{"url": "https://www.apaoltenia.ro/index.php/informatii-utile/unde-si-cum-puteti-plati/", "publisher": "Compania de Apa Oltenia S.A.", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO86CECEDJ0130RON1154323", "iban_masked_for_client": "RO86 CECE **** **** **** 4323"}
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "vital_baia_mare",
+      "display_name": "VITAL",
+      "legal_name": "VITAL S.A.",
+      "cui": "9710087",
+      "category": "utility_water",
+      "aliases": ["vital", "vital baia mare"],
+      "payment_destinations": [
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "water_bill_payment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "UniCredit", "source_refs": [{"url": "https://www.vitalmm.ro/ro/modalitati-de-plata", "publisher": "VITAL S.A.", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO29BACX0000000288041004", "iban_masked_for_client": "RO29 BACX **** **** **** 1004"},
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "water_bill_payment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "BCR", "source_refs": [{"url": "https://www.vitalmm.ro/ro/modalitati-de-plata", "publisher": "VITAL S.A.", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO78RNCB0182034147570001", "iban_masked_for_client": "RO78 RNCB **** **** **** 0001"},
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "water_bill_payment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "BRD", "source_refs": [{"url": "https://www.vitalmm.ro/ro/modalitati-de-plata", "publisher": "VITAL S.A.", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO54BRDE250SV06755722500", "iban_masked_for_client": "RO54 BRDE **** **** **** 2500"},
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "water_bill_payment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "CEC Bank", "source_refs": [{"url": "https://www.vitalmm.ro/ro/modalitati-de-plata", "publisher": "VITAL S.A.", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO49CECEMM0130RON0451084", "iban_masked_for_client": "RO49 CECE **** **** **** 1084"},
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "water_bill_payment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "ING", "source_refs": [{"url": "https://www.vitalmm.ro/ro/modalitati-de-plata", "publisher": "VITAL S.A.", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO93INGB5023999910619653", "iban_masked_for_client": "RO93 INGB **** **** **** 9653"},
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "water_bill_payment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "Raiffeisen", "source_refs": [{"url": "https://www.vitalmm.ro/ro/modalitati-de-plata", "publisher": "VITAL S.A.", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO89RZBR0000060002797532", "iban_masked_for_client": "RO89 RZBR **** **** **** 7532"}
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "grawe_romania",
+      "display_name": "GRAWE Romania",
+      "legal_name": "GRAWE ROMANIA ASIGURARE S.A.",
+      "cui": "8398697",
+      "category": "insurance",
+      "aliases": ["grawe", "grawe romania"],
+      "payment_destinations": [
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "insurance_premium_payment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "CEC Bank", "source_refs": [{"url": "https://www.grawe.ro/date-bancare/", "publisher": "GRAWE Romania Asigurare S.A.", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO26CECEB00044RON0392355", "iban_masked_for_client": "RO26 CECE **** **** **** 2355"},
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "insurance_premium_payment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "Raiffeisen", "source_refs": [{"url": "https://www.grawe.ro/date-bancare/", "publisher": "GRAWE Romania Asigurare S.A.", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO50RZBR0000060011508058", "iban_masked_for_client": "RO50 RZBR **** **** **** 8058"},
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "insurance_premium_payment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "BCR", "source_refs": [{"url": "https://www.grawe.ro/date-bancare/", "publisher": "GRAWE Romania Asigurare S.A.", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO22RNCB0072049717900012", "iban_masked_for_client": "RO22 RNCB **** **** **** 0012"}
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "credius_ifn",
+      "display_name": "Credius",
+      "legal_name": "CREDIUS IFN S.A.",
+      "cui": "31534882",
+      "category": "ifn_loan",
+      "aliases": ["credius", "credius ifn"],
+      "payment_destinations": [
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "loan_repayment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "CEC Bank", "source_refs": [{"url": "https://www.credius.ro/transfer-bancar", "publisher": "Credius IFN S.A.", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO53CECEB20030RON3553136", "iban_masked_for_client": "RO53 CECE **** **** **** 3136"},
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "loan_repayment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "BCR", "source_refs": [{"url": "https://www.credius.ro/transfer-bancar", "publisher": "Credius IFN S.A.", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO39RNCB0072158370290001", "iban_masked_for_client": "RO39 RNCB **** **** **** 0001"},
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "loan_repayment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "UniCredit", "source_refs": [{"url": "https://www.credius.ro/transfer-bancar", "publisher": "Credius IFN S.A.", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO25BACX0000001561757000", "iban_masked_for_client": "RO25 BACX **** **** **** 7000"},
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "loan_repayment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "Libra Internet Bank", "source_refs": [{"url": "https://www.credius.ro/transfer-bancar", "publisher": "Credius IFN S.A.", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO58BREL0002000720870100", "iban_masked_for_client": "RO58 BREL **** **** **** 0100"},
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "loan_repayment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "Revolut Bank", "source_refs": [{"url": "https://www.credius.ro/transfer-bancar", "publisher": "Credius IFN S.A.", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO70REVO0000313286400915", "iban_masked_for_client": "RO70 REVO **** **** **** 0915"}
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "hzone",
+      "display_name": "HZone",
+      "legal_name": "HZONE S.R.L.",
+      "cui": "34886123",
+      "category": "hosting_it_services",
+      "aliases": ["hzone", "h-zone"],
+      "payment_destinations": [
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "hosting_it_services_payment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "Banca Transilvania", "source_refs": [{"url": "https://www.hzone.ro/contact", "publisher": "HZone S.R.L.", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO21BTRLRONCRT0311604601", "iban_masked_for_client": "RO21 BTRL **** **** **** 4601"},
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "hosting_it_services_payment_eur", "currency": "EUR", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "Banca Transilvania", "source_refs": [{"url": "https://www.hzone.ro/contact", "publisher": "HZone S.R.L.", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO68BTRLEURCRT0311604601", "iban_masked_for_client": "RO68 BTRL **** **** **** 4601"}
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "toolsbox_services",
+      "display_name": "Toolsbox",
+      "legal_name": "PACURAR FLORIN PFA",
+      "cui": "31487381",
+      "category": "tools_and_services",
+      "aliases": ["toolsbox", "toolsbox services"],
+      "payment_destinations": [
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "tools_and_services_payment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "ING", "source_refs": [{"url": "https://toolsboxservices.ro/contact/", "publisher": "Toolsbox Services", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO68INGB0000999912913976", "iban_masked_for_client": "RO68 INGB **** **** **** 3976"},
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "tools_and_services_payment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "BCR", "source_refs": [{"url": "https://toolsboxservices.ro/contact/", "publisher": "Toolsbox Services", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO09RNCB0857172887410001", "iban_masked_for_client": "RO09 RNCB **** **** **** 0001"},
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "tools_and_services_payment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "Banca Transilvania", "source_refs": [{"url": "https://toolsboxservices.ro/contact/", "publisher": "Toolsbox Services", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO43BTRLRONCRT0DD2228401", "iban_masked_for_client": "RO43 BTRL **** **** **** 8401"}
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "arabesque",
+      "display_name": "Arabesque / MatHaus",
+      "legal_name": "ARABESQUE S.R.L.",
+      "cui": "5340801",
+      "category": "retail_construction",
+      "aliases": ["arabesque", "mathaus"],
+      "payment_destinations": [
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "retail_order_payment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "ING", "source_refs": [{"url": "https://arabesque.ro/public/termeni-si-conditii", "publisher": "Arabesque S.R.L.", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO47INGB0010000005128991", "iban_masked_for_client": "RO47 INGB **** **** **** 8991"}
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "forit",
+      "display_name": "ForIT",
+      "legal_name": "PMC GROUP DISTRIBUTIE S.R.L.",
+      "cui": "17116469",
+      "category": "retail_it",
+      "aliases": ["forit"],
+      "payment_destinations": [
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "retail_order_payment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "ING", "source_refs": [{"url": "https://www.forit.ro/ventilatoare-si-accesorii/lian-li/461563-sc-t31b-12-buc/", "publisher": "ForIT / PMC Group Distributie S.R.L.", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO07INGB0000999905206872", "iban_masked_for_client": "RO07 INGB **** **** **** 6872"}
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "clinica_sante",
+      "display_name": "Clinica Sante",
+      "legal_name": "CLINICA SANTE S.R.L.",
+      "cui": "11963146",
+      "category": "healthcare",
+      "aliases": ["clinica sante", "sante"],
+      "payment_destinations": [
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "medical_services_payment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "Raiffeisen", "source_refs": [{"url": "https://clinica-sante.ro/contact/", "publisher": "Clinica Sante S.R.L.", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO85RZBR0000060018915609", "iban_masked_for_client": "RO85 RZBR **** **** **** 5609"}
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "bootcamp_as_training",
+      "display_name": "Bootcamp AS",
+      "legal_name": "BOOTCAMP AS TRAINING & COACHING S.R.L.",
+      "cui": "14417580",
+      "category": "education_training",
+      "aliases": ["bootcamp", "bootcamp as"],
+      "payment_destinations": [
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "training_services_payment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "ING", "source_refs": [{"url": "https://www.bootcamp.ro/contact/", "publisher": "Bootcamp AS Training & Coaching S.R.L.", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO80INGB0000999903925546", "iban_masked_for_client": "RO80 INGB **** **** **** 5546"}
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "apsap",
+      "display_name": "APSAP",
+      "legal_name": "FUNDATIA CENTRUL DE FORMARE APSAP",
+      "cui": "33269758",
+      "category": "education_training",
+      "aliases": ["apsap"],
+      "payment_destinations": [
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "training_services_payment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "BRD", "source_refs": [{"url": "https://www.apsap.ro/contact/", "publisher": "Fundatia Centrul de Formare APSAP", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO10BRDE410SV14133484100", "iban_masked_for_client": "RO10 BRDE **** **** **** 4100"}
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "tbi_bank",
+      "display_name": "TBI Bank",
+      "legal_name": "TBI BANK EAD SOFIA - SUCURSALA BUCURESTI",
+      "cui": "30771201",
+      "category": "bank_loan",
+      "aliases": ["tbi", "tbi bank"],
+      "payment_destinations": [
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "loan_repayment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "TBI Bank", "source_refs": [{"url": "https://tbibank.ro/repayment-method/prin-transfer-bancar-sau-depozit-in-numerar/", "publisher": "TBI Bank", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO67TBIB9311001900031103", "iban_masked_for_client": "RO67 TBIB **** **** **** 1103"}
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "it_genetics",
+      "display_name": "IT Genetics / ITGStore",
+      "legal_name": "IT GENETICS S.A.",
+      "cui": "21310535",
+      "category": "retail_it_b2b",
+      "aliases": ["it genetics", "itgstore"],
+      "payment_destinations": [
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "it_retail_b2b_payment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "UniCredit", "source_refs": [{"url": "https://www.itgstore.ro/contact", "publisher": "IT Genetics S.A.", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO80BACX0000000538374000", "iban_masked_for_client": "RO80 BACX **** **** **** 4000"},
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "it_retail_b2b_payment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "ING", "source_refs": [{"url": "https://www.itgstore.ro/contact", "publisher": "IT Genetics S.A.", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO83INGB0000999905589430", "iban_masked_for_client": "RO83 INGB **** **** **** 9430"}
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "rsd_grup",
+      "display_name": "RSD Grup",
+      "legal_name": "RSD GRUP S.R.L.",
+      "cui": "16397269",
+      "category": "retail_it_b2b",
+      "aliases": ["rsd", "rsd grup"],
+      "payment_destinations": [
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "it_retail_b2b_payment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "ING", "source_refs": [{"url": "https://www.rsd.ro/contact", "publisher": "RSD Grup S.R.L.", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO22INGB0000999901864564", "iban_masked_for_client": "RO22 INGB **** **** **** 4564"},
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "it_retail_b2b_payment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "BCR", "source_refs": [{"url": "https://www.rsd.ro/contact", "publisher": "RSD Grup S.R.L.", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO78RNCB0082044169130001", "iban_masked_for_client": "RO78 RNCB **** **** **** 0001"}
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "aer_conzal",
+      "display_name": "Aer Conzal",
+      "legal_name": "AER CONZAL S.R.L.",
+      "cui": "24825897",
+      "category": "hvac_services",
+      "aliases": ["aer conzal"],
+      "payment_destinations": [
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "hvac_services_payment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "Garanti BBVA", "source_refs": [{"url": "https://aerconzal.ro/contact/", "publisher": "Aer Conzal S.R.L.", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO82UGBI0000082009343RON", "iban_masked_for_client": "RO82 UGBI **** **** **** 3RON"},
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "hvac_services_payment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "Raiffeisen", "source_refs": [{"url": "https://aerconzal.ro/contact/", "publisher": "Aer Conzal S.R.L.", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO20RZBR0000060020134905", "iban_masked_for_client": "RO20 RZBR **** **** **** 4905"}
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "kival_blue",
+      "display_name": "Kival",
+      "legal_name": "KIVAL BLUE S.R.L.",
+      "cui": "29910659",
+      "category": "tools_and_industrial_supplies",
+      "aliases": ["kival", "kival blue"],
+      "payment_destinations": [
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "tools_and_industrial_supplies_payment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "Banca Transilvania", "source_refs": [{"url": "https://www.kival.ro/contact", "publisher": "Kival Blue S.R.L.", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO75BTRLRONCRT0244836201", "iban_masked_for_client": "RO75 BTRL **** **** **** 6201"},
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "tools_and_industrial_supplies_payment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "BCR", "source_refs": [{"url": "https://www.kival.ro/contact", "publisher": "Kival Blue S.R.L.", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO56RNCB0128126545450001", "iban_masked_for_client": "RO56 RNCB **** **** **** 0001"},
+        {"kind": "iban", "trust_tier": "T1_PUBLIC_OFFICIAL", "source_kind": "official_webpage", "scope": "tools_and_industrial_supplies_payment", "currency": "RON", "confidence": "high", "review_status": "active", "client_distribution_allowed": false, "hashing_required": true, "match_policy": "exact_hmac_match_required", "can_contribute_to_safe": true, "bank_name": "ING", "source_refs": [{"url": "https://www.kival.ro/contact", "publisher": "Kival Blue S.R.L.", "accessed_at": "2026-06-26", "confidence": "high"}], "iban_normalized_backend_seed_only": "RO87INGB0000999904641280", "iban_masked_for_client": "RO87 INGB **** **** **** 1280"}
+      ],
+      "review_status": "active"
+    }
+  ],
+  "summary": {
+    "entries_added": 17,
+    "exact_ibans_added": 40,
+    "safe_contributors_added": 40,
+    "categories": ["utility_water", "utility_waste", "insurance", "ifn_loan", "bank_loan", "retail_construction", "retail_it", "healthcare", "education_training", "hosting_it_services", "retail_it_b2b", "hvac_services", "tools_and_services", "tools_and_industrial_supplies"]
+  }
+}
