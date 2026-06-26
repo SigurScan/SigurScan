@@ -1,0 +1,267 @@
+{
+  "source_type": "pdf",
+  "fields": {
+    "emitent": "MARKETING GROWTH HUB S.R.L.",
+    "cui": "45758405",
+    "iban": "RO39RNCB0000123456789012",
+    "nr_factura": null,
+    "data_emitere": "2026-06-10",
+    "scadenta": "2026-06-25",
+    "subtotal": 5700.0,
+    "tva": 1083.0,
+    "total": 6783.0,
+    "currency": "RON",
+    "invoice_profile": "ro",
+    "all_ibans": [
+      "RO39RNCB0000123456789012"
+    ],
+    "payment_beneficiary": "TECH SOLUTIONS PRO S.R.L"
+  },
+  "readiness": {
+    "state": "ready_for_analysis",
+    "blocks_safe_verdict": false,
+    "items": []
+  },
+  "coherence": {
+    "totals_match": true,
+    "tva_rate_plausible": true,
+    "dates_plausible": true,
+    "all_ok": true
+  },
+  "iban": {
+    "valid": true,
+    "bank": "BCR",
+    "is_trezorerie": false
+  },
+  "brand": null,
+  "brand_match": null,
+  "payment_destination": {
+    "matched": false,
+    "brand_matches": null,
+    "cui_matches": null,
+    "brand_id": null,
+    "claimed_brand": null,
+    "registry_has_brand_destinations": false,
+    "trust_tier": "T4_STRUCTURALLY_VALID_UNKNOWN",
+    "confidence": "unknown",
+    "can_contribute_to_safe": false,
+    "client_distribution_allowed": false,
+    "iban_masked_for_client": null,
+    "source_kind": null,
+    "source_refs": [],
+    "display": "IBAN valid, dar destinație neconfirmată"
+  },
+  "beneficiary_name_check": {
+    "recommended": true,
+    "method": "bank_app_beneficiary_name_check",
+    "local_service_hint": "SANB/BNDS dacă ambele bănci îl oferă",
+    "title": "Verifică numele beneficiarului în aplicația băncii",
+    "reason": "Nu avem o sursă publică suficientă care să confirme proprietarul IBAN-ului. Banca beneficiarului apare în lista Transfond SANB; afișarea depinde și de banca din care plătești.",
+    "expected_beneficiary": "MARKETING GROWTH HUB S.R.L.",
+    "iban_masked_for_client": "RO39...9012",
+    "bank_code": "RNCB",
+    "bank": "BCR",
+    "sanb": {
+      "payee_bank_participant": true,
+      "participant_name": "BANCA COMERCIALA ROMANA S.A.",
+      "bic": "RNCBROBU",
+      "source": "https://www.transfond.ro/pdf/Lista_bancilor_care_ofera_SANB.pdf",
+      "source_accessed_at": "2026-06-15",
+      "requires_payer_bank_participation": true
+    },
+    "steps": [
+      "În aplicația băncii, începe o plată nouă către IBAN-ul de pe factură.",
+      "Înainte să autorizezi plata, verifică numele beneficiarului afișat de bancă.",
+      "Continuă doar dacă numele afișat seamănă clar cu firma emitentă de pe factură.",
+      "Dacă banca nu afișează numele, banca ta sau banca beneficiarului poate să nu ofere SANB; confirmă direct cu furnizorul pe un canal oficial.",
+      "Dacă numele afișat nu se potrivește, oprește plata."
+    ],
+    "privacy_note": "SigurScan nu îți cere acces la banca ta, parolă, OTP, PIN sau captură de ecran."
+  },
+  "official_document_check": {
+    "provided": false,
+    "status": "not_provided"
+  },
+  "anaf": {
+    "exists": true,
+    "checked": true,
+    "denumire": "MARKETING GROWTH HUB S.R.L.",
+    "activ": true,
+    "platitor_tva": false,
+    "source": "anaf"
+  },
+  "fraud_flags": [
+    "HIGH_VALUE_UNCONFIRMED_PAYMENT_DESTINATION",
+    "ACCOUNT_CHANGE_LANGUAGE"
+  ],
+  "evidence_bundle": {
+    "schema": "sigurscan_evidence_bundle_v2",
+    "input": {
+      "type": "invoice",
+      "redacted_text": "FACTURA FISCALA\nSeria/Nr: MGH-2026-0142\nData emiterii: 10.06.2026\nScadenta: 25.06.2026\nFURNIZOR\nMARKETING GROWTH HUB S.R.L.\nCUI: RO45758405\nStr. Exemplu 10, Bucuresti\nDetalii produse/servicii\nDenumire\nCant\nPret\nValoare\nServicii marketing digital - iunie 2026\n1\n4200.00\n4200.00\nAdministrare campanii Google Ads\n1\n1500.00\n1500.00\nSubtotal:\n5700.00 RON\nTVA (19%):\n1083.00 RON\nTOTAL:\n6783.00 RON\nModalitate de plata\nBeneficiar: TECH SOLUTIONS PRO S.R.L.\nBanca: Banca Comerciala Romana\nIBAN: RO39RNCB0000123456789012\nVa rugam folositi NOUL cont bancar actualizat pentru aceasta plata."
+    },
+    "resolution": {
+      "status": "not_required",
+      "completeness": true
+    },
+    "providers": {
+      "verdict": "clean",
+      "anaf": {
+        "status": "clean",
+        "verdict": "clean",
+        "reasons": [],
+        "completeness": true,
+        "source": "anaf"
+      },
+      "iban": {
+        "status": "clean",
+        "verdict": "clean",
+        "reasons": [],
+        "completeness": true
+      },
+      "coherence": {
+        "status": "clean",
+        "verdict": "clean",
+        "reasons": [],
+        "completeness": true
+      },
+      "payment_destination": {
+        "status": "unknown",
+        "verdict": "unknown",
+        "trust_tier": "T4_STRUCTURALLY_VALID_UNKNOWN",
+        "matched": false,
+        "brand_matches": null,
+        "reasons": [
+          "IBAN valid structural, dar neconfirmat ca destinație oficială"
+        ]
+      }
+    },
+    "identity": {
+      "status": "unknown",
+      "claimed_brand": "Nespecificat",
+      "domain_reputation": "unknown",
+      "reason": "Brand nedeclarat",
+      "completeness": true,
+      "violated_never_asks": []
+    },
+    "request": {
+      "sensitive": "transfer",
+      "channel": "invoice",
+      "completeness": true
+    },
+    "semantic_review": {
+      "status": "done",
+      "risk_class": "medium",
+      "reasons": [
+        "Semnal de fraudă pe destinația plății"
+      ],
+      "completeness": true
+    },
+    "context": {
+      "urgency": false,
+      "passive_payment": true,
+      "apk_or_remote_mention": false,
+      "b2b_invoice_signals": [
+        "HIGH_VALUE_UNCONFIRMED_PAYMENT_DESTINATION"
+      ]
+    },
+    "evidence_hash": "sha256:27c911c53bfbfb2e5b635deda31335c632ff14d5bb3fb988f4a07f821d77f1dd"
+  },
+  "verdict_gate": {
+    "label": "SUSPECT",
+    "risk_level": "medium",
+    "risk_score": 55,
+    "reason_codes": [
+      "value_request_needs_verification"
+    ],
+    "confidence": 70,
+    "is_final": true
+  },
+  "invoice_truth": {
+    "schema": "sigurscan_invoice_truth_v4",
+    "ruleset_version": "invoice-truth-v4.0",
+    "verdict": "VERIFY_BEFORE_PAYING",
+    "decision_status": "ACTION_REQUIRED",
+    "safe_to_pay": false,
+    "primary_reason_code": "CHANGED_IBAN_OR_CHANNEL",
+    "policy_profile": "high_value_payment",
+    "display": {
+      "title": "Verifică plata",
+      "message": "Am găsit semnale de cont sau canal schimbat. Nu autoriza plata până nu confirmi direct cu furnizorul pe un număr sau o adresă pe care o cunoști deja.",
+      "tone": "warning"
+    },
+    "verified_items": [
+      {
+        "code": "ISSUER_CONFIRMED",
+        "label": "Firma este verificată"
+      },
+      {
+        "code": "IBAN_STRUCTURE_VALID",
+        "label": "IBAN-ul are format valid"
+      },
+      {
+        "code": "DOCUMENT_COHERENT",
+        "label": "Suma și datele facturii sunt coerente"
+      }
+    ],
+    "unconfirmed_items": [
+      {
+        "code": "PAYMENT_BENEFICIARY_UNCONFIRMED",
+        "label": "Verifică numele beneficiarului afișat de bancă înainte să autorizezi plata"
+      },
+      {
+        "code": "INVOICE_OBLIGATION_UNCONFIRMED",
+        "label": "Nu putem confirma automat că datorezi această factură"
+      },
+      {
+        "code": "CHANNEL_OR_PAYMENT_CHANGED",
+        "label": "Canalul sau datele de plată par schimbate"
+      }
+    ],
+    "hard_conflicts": [],
+    "proofs": {
+      "issuer_identity": {
+        "state": "CONFIRMED",
+        "source": "anaf"
+      },
+      "invoice_obligation": {
+        "state": "PLAUSIBLE",
+        "source": "scanned_document_only"
+      },
+      "payment_destination": {
+        "state": "UNCONFIRMED_VALID",
+        "trust_tier": "T4_STRUCTURALLY_VALID_UNKNOWN",
+        "iban_masked": "RO39...9012"
+      },
+      "channel_change": {
+        "state": "CHANGED"
+      }
+    },
+    "assurance": {
+      "required": [
+        "issuer_identity",
+        "invoice_obligation",
+        "payment_destination",
+        "channel_change"
+      ],
+      "missing_requirements": [
+        "PAYMENT_BENEFICIARY_UNCONFIRMED",
+        "INVOICE_OBLIGATION_UNCONFIRMED",
+        "CHANNEL_OR_PAYMENT_CHANGED"
+      ]
+    },
+    "next_action": {
+      "type": "CALL_SUPPLIER_KNOWN_NUMBER",
+      "title": "Sună furnizorul pe numărul cunoscut",
+      "requires_authorization": false
+    }
+  },
+  "sanb_attestation": null,
+  "warnings": [
+    "Valoarea facturii este mare, iar proprietarul IBAN-ului nu poate fi confirmat din surse publice. Verifică numele beneficiarului în aplicația băncii sau direct cu furnizorul.",
+    "Textul anunță cont bancar/IBAN schimbat; confirmă pe un canal separat."
+  ],
+  "error": null,
+  "ocr_warning": "Lipsește GOOGLE_CLOUD_VISION_API_KEY. Se folosește scenariu mock pe nume fișier.",
+  "qr_payloads": []
+}

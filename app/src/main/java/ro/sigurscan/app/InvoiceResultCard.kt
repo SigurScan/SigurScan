@@ -99,47 +99,16 @@ fun InvoiceResultCard(
     onSanbAttestation: (String) -> Unit = {},
     onBack: () -> Unit
 ) {
-    val readinessState = result.readiness?.state ?: "unknown"
-    val isReady = readinessState == "ready_for_analysis"
     val isError = result.error != null
-    val hasWarnings = result.warnings?.isNotEmpty() == true
-    val impersonation = result.brandMatch?.impersonationRisk == true
-    val gateLabel = result.verdictGate?.label?.uppercase(Locale.getDefault())
     val fraudFlags = result.fraudFlags.orEmpty()
     val reasonCodes = result.verdictGate?.reasonCodes.orEmpty()
     val invoiceTruth = result.invoiceTruth
-    val truthVerdict = invoiceTruth?.verdict?.uppercase(Locale.getDefault())
 
-    val tone = when {
-        isError -> DSChipTone.Danger
-        truthVerdict == "NU_PLATI" -> DSChipTone.Danger
-        truthVerdict == "DATE_CONFIRMATE" -> DSChipTone.Safe
-        truthVerdict == "VERIFY_BEFORE_PAYING" -> DSChipTone.Pending
-        gateLabel == "DANGEROUS" -> DSChipTone.Danger
-        gateLabel == "SUSPECT" -> DSChipTone.Suspect
-        gateLabel == "UNVERIFIED" -> DSChipTone.Pending
-        gateLabel == "SAFE" -> DSChipTone.Safe
-        impersonation -> DSChipTone.Danger
-        fraudFlags.isNotEmpty() -> DSChipTone.Suspect
-        hasWarnings -> DSChipTone.Suspect
-        isReady -> DSChipTone.Safe
-        else -> DSChipTone.Pending
-    }
-    val verdictText = when {
-        isError -> "Eroare"
-        !invoiceTruth?.display?.title.isNullOrBlank() -> invoiceTruth?.display?.title ?: "Verifică"
-        truthVerdict == "NU_PLATI" -> "Nu plăti"
-        truthVerdict == "DATE_CONFIRMATE" -> "Date confirmate"
-        truthVerdict == "VERIFY_BEFORE_PAYING" -> "Verifică înainte"
-        gateLabel == "DANGEROUS" -> "Periculos"
-        gateLabel == "SUSPECT" -> "Suspect"
-        gateLabel == "UNVERIFIED" -> "Neverificat"
-        gateLabel == "SAFE" -> "Sigur"
-        impersonation -> "Pericol"
-        fraudFlags.isNotEmpty() || hasWarnings -> "Atenție"
-        isReady -> "Verificat"
-        else -> "Incert"
-    }
+    // FIX-10: one verdict in the app's vocabulary (Sigur / Neverificat / Suspect / Periculos),
+    // derived from the engine signals — not the uniform verdict_gate label.
+    val presentation = if (isError) null else invoiceVerdictPresentation(invoiceVerdict(result))
+    val tone = if (isError) DSChipTone.Danger else presentation?.tone ?: DSChipTone.Pending
+    val verdictText = if (isError) "Eroare" else presentation?.headline ?: "Verifică"
 
     Card(
         colors = CardDefaults.cardColors(containerColor = SigurColors.BackgroundCard),
@@ -174,9 +143,25 @@ fun InvoiceResultCard(
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
-            invoiceTruth?.display?.message?.takeIf { it.isNotBlank() }?.let { message ->
-                Text(message, color = SigurColors.TextPrimary, fontSize = 14.sp, lineHeight = 20.sp)
-                Spacer(modifier = Modifier.height(12.dp))
+            presentation?.let { p ->
+                val accent = when (p.tone) {
+                    DSChipTone.Danger -> SigurColors.Dangerous
+                    DSChipTone.Suspect -> SigurColors.Suspect
+                    DSChipTone.Safe -> SigurColors.Safe
+                    else -> SigurColors.Pending
+                }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(accent.copy(alpha = 0.12f))
+                        .padding(14.dp)
+                ) {
+                    Text(p.headline, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = accent)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(p.action, color = SigurColors.TextPrimary, fontSize = 14.sp, lineHeight = 20.sp)
+                }
+                Spacer(modifier = Modifier.height(14.dp))
             }
 
             invoiceTruth?.hardConflicts?.takeIf { it.isNotEmpty() }?.let { items ->
@@ -214,6 +199,38 @@ fun InvoiceResultCard(
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
+            // SANB beneficiary check stays visible — it is the user's actionable next step.
+            result.beneficiaryNameCheck?.takeIf { it.recommended }?.let { check ->
+                InvoiceBeneficiaryNameCheck(check = check, onAttestation = onSanbAttestation)
+            }
+            sanbStatus?.takeIf { it.isNotBlank() }?.let { status ->
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(status, fontSize = 12.sp, color = SigurColors.TextSecondary, lineHeight = 16.sp)
+            }
+
+            // Technical fields (IBAN, CUI, totals, raw signals) collapse under one toggle —
+            // the verdict + decision above is all a non-technical user needs.
+            var detailsExpanded by remember { mutableStateOf(false) }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { detailsExpanded = !detailsExpanded }
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    if (detailsExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = null,
+                    tint = SigurColors.TextSecondary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Detalii tehnice (CUI, IBAN, sume)", fontSize = 13.sp, color = SigurColors.TextSecondary)
+            }
+
+            if (detailsExpanded) {
             result.fields?.let { f ->
                 val currency = f.currency ?: "RON"
                 val profileLabel = when (f.invoiceProfile) {
@@ -300,18 +317,6 @@ fun InvoiceResultCard(
                 }
             }
 
-            result.beneficiaryNameCheck?.takeIf { it.recommended }?.let { check ->
-                InvoiceBeneficiaryNameCheck(
-                    check = check,
-                    onAttestation = onSanbAttestation
-                )
-            }
-
-            sanbStatus?.takeIf { it.isNotBlank() }?.let { status ->
-                Spacer(modifier = Modifier.height(10.dp))
-                Text(status, fontSize = 12.sp, color = SigurColors.TextSecondary, lineHeight = 16.sp)
-            }
-
             result.officialDocumentCheck?.takeIf { it.provided }?.let { check ->
                 Spacer(modifier = Modifier.height(12.dp))
                 val xmlTone = when (check.status) {
@@ -364,6 +369,7 @@ fun InvoiceResultCard(
                     Text("• $w", fontSize = 12.sp, color = SigurColors.TextSecondary, modifier = Modifier.padding(start = 8.dp, top = 4.dp))
                 }
             }
+            } // end Detalii tehnice (collapsible)
 
             Spacer(modifier = Modifier.height(16.dp))
             Button(
