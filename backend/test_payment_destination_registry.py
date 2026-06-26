@@ -654,6 +654,115 @@ def test_registry_loads_daily_life_delta_imm_services_destinations():
     assert toolsbox["can_contribute_to_safe"] is True
 
 
+def test_registry_loads_wave2_auto_payment_destinations():
+    from services.payment_destination_registry import match_payment_destination
+
+    epiesa = match_payment_destination(
+        "RO84 RZBR 0000 0600 1417 7662",
+        claimed_brand="ePiesa",
+        cui="29405223",
+    )
+    autohut = match_payment_destination(
+        "RO84 RZBR 0000 0600 1417 7662",
+        claimed_brand="AutoHut",
+        cui="29405223",
+    )
+    anvelope = match_payment_destination(
+        "RO83 BACX 0000 0008 0981 7000",
+        claimed_brand="Anvelope.ro",
+        cui="28555370",
+    )
+
+    assert epiesa["matched"] is True
+    assert epiesa["brand_matches"] is True
+    assert epiesa["cui_matches"] is True
+    assert epiesa["brand_id"] == "euro_parts_distribution"
+    assert epiesa["scope"] == "auto_parts_order"
+    assert epiesa["can_contribute_to_safe"] is True
+    assert autohut["brand_id"] == "euro_parts_distribution"
+    assert autohut["brand_matches"] is True
+    assert autohut["can_contribute_to_safe"] is True
+    assert anvelope["matched"] is True
+    assert anvelope["brand_id"] == "webtrade_marketing_anvelope"
+    assert anvelope["scope"] == "tire_order_payment"
+    assert anvelope["can_contribute_to_safe"] is True
+
+
+def test_registry_loads_literal_x_local_tax_treasury_destinations():
+    from services.payment_destination_registry import match_payment_destination
+
+    timisoara = match_payment_destination(
+        "RO37 TREZ 6212 1070 2010 1XXX",
+        claimed_brand="Primaria Timisoara",
+        cui="14756536",
+    )
+    cluj = match_payment_destination(
+        "RO74 TREZ 2162 1070 2010 1XXX",
+        claimed_brand="Primaria Cluj-Napoca",
+        cui="4305857",
+    )
+
+    assert timisoara["matched"] is True
+    assert timisoara["brand_matches"] is True
+    assert timisoara["cui_matches"] is True
+    assert timisoara["brand_id"] == "primaria_timisoara"
+    assert timisoara["scope"] == "local_tax_payment"
+    assert timisoara["can_contribute_to_safe"] is True
+    assert cluj["matched"] is True
+    assert cluj["brand_matches"] is True
+    assert cluj["cui_matches"] is True
+    assert cluj["brand_id"] == "primaria_cluj_napoca"
+    assert cluj["can_contribute_to_safe"] is True
+
+
+def test_literal_x_iban_is_not_loaded_without_explicit_literal_flag(tmp_path, monkeypatch):
+    from services import payment_destination_registry as registry
+    from services.payment_destination_registry import match_payment_destination
+
+    iban = "RO37TREZ6212107020101XXX"
+    seed = {
+        "entries": [
+            {
+                "brand_id": "test_trezorerie",
+                "display_name": "Test Trezorerie",
+                "legal_name": "Test Trezorerie",
+                "cui": "123",
+                "payment_destinations": [
+                    {
+                        "kind": "iban",
+                        "trust_tier": "T1_PUBLIC_OFFICIAL",
+                        "source_kind": "official_webpage",
+                        "scope": "local_tax_payment",
+                        "confidence": "high",
+                        "review_status": "active",
+                        "client_distribution_allowed": False,
+                        "match_policy": "exact_hmac_match_required",
+                        "can_contribute_to_safe": True,
+                        "iban_normalized_backend_seed_only": iban,
+                        "iban_masked_for_client": "RO37 TREZ **** **** **** 1XXX",
+                    }
+                ],
+            }
+        ]
+    }
+    seed_path = tmp_path / "payment_registry_literal_x_guard.json"
+    seed_path.write_text(json.dumps(seed), encoding="utf-8")
+    monkeypatch.setenv("PAYMENT_DESTINATION_REGISTRY_PATHS", str(seed_path))
+    registry.reload_registry()
+    try:
+        without_flag = match_payment_destination(iban, claimed_brand="test_trezorerie", cui="123")
+        seed["entries"][0]["payment_destinations"][0]["literal_x_iban"] = True
+        seed_path.write_text(json.dumps(seed), encoding="utf-8")
+        registry.reload_registry()
+        with_flag = match_payment_destination(iban, claimed_brand="test_trezorerie", cui="123")
+    finally:
+        registry.reload_registry()
+
+    assert without_flag["matched"] is False
+    assert with_flag["matched"] is True
+    assert with_flag["can_contribute_to_safe"] is True
+
+
 def test_registry_loads_contextual_utility_destinations_without_safe_contribution():
     from services.payment_destination_registry import match_payment_destination
 
