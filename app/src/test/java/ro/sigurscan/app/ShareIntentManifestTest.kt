@@ -76,7 +76,6 @@ class ShareIntentManifestTest {
             "android.permission.SEND_SMS",
             "android.permission.READ_CALL_LOG",
             "android.permission.READ_CONTACTS",
-            "android.permission.POST_NOTIFICATIONS",
             "android.permission.READ_PHONE_NUMBERS",
             "android.permission.ANSWER_PHONE_CALLS",
             "android.permission.PROCESS_OUTGOING_CALLS"
@@ -88,6 +87,38 @@ class ShareIntentManifestTest {
                 manifest.contains("""android:name="$permission"""")
             )
         }
+    }
+
+    @Test
+    fun callTimeSpeakerGuardPromptCanUseNotificationsButNotOverlays() {
+        assertTrue(
+            "Incoming-call Speaker Guard needs a user-visible system prompt; Android 13+ requires POST_NOTIFICATIONS for that prompt.",
+            manifest.contains("""android:name="android.permission.POST_NOTIFICATIONS"""")
+        )
+        assertTrue(
+            "Speaker Guard call-time prompts must run through a foreground service before any microphone flow can start.",
+            manifest.contains("""android:name="android.permission.FOREGROUND_SERVICE"""")
+        )
+        assertTrue(
+            "The call-time prompt may need a full-screen intent when the app is closed and the phone is ringing.",
+            manifest.contains("""android:name="android.permission.USE_FULL_SCREEN_INTENT"""")
+        )
+        val speakerGuardForegroundService = Regex(
+            """<service[\s\S]*?android:name="\.SpeakerGuardForegroundService"[\s\S]*?/?>"""
+        ).find(manifest)?.value.orEmpty()
+        assertTrue(
+            "SpeakerGuardForegroundService must be declared as an internal prompt carrier.",
+            speakerGuardForegroundService.contains("""android:name=".SpeakerGuardForegroundService"""") &&
+                speakerGuardForegroundService.contains("""android:exported="false"""")
+        )
+        assertFalse(
+            "SpeakerGuardForegroundService is only the prompt carrier and must not claim microphone foreground type before user consent.",
+            speakerGuardForegroundService.contains("foregroundServiceType")
+        )
+        assertFalse(
+            "Speaker Guard must not use overlay permission for call-time prompts.",
+            manifest.contains("""android:name="android.permission.SYSTEM_ALERT_WINDOW"""")
+        )
     }
 
     @Test

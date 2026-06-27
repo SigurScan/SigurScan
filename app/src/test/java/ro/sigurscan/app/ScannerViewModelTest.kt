@@ -981,7 +981,7 @@ class ScannerViewModelTest {
     }
 
     @Test
-    fun audioShareIsAcceptedButFallsBackToTranscriptUntilAsrIsEnabled() {
+    fun audioShareUsesOnDeviceAsrPipelineInsteadOfTranscriptDeadEnd() {
         val manifestSource = File("src/main/AndroidManifest.xml").readText()
         val activitySource = uiPackageSource()
         val classifierSource = File("src/main/java/ro/sigurscan/app/FileImportClassifier.kt").readText()
@@ -995,15 +995,19 @@ class ScannerViewModelTest {
         assertTrue("Audio shares should be labeled distinctly in the pending-file UI.", activitySource.contains("Audio partajat"))
         assertTrue("Audio MIME/extensions need a dedicated classifier result, not generic unsupported.", classifierSource.contains("FileImportKind.AUDIO"))
         assertTrue(
-            "Audio files must not be sent through PDF/image extraction while ASR is disabled.",
+            "Audio files must not be sent through PDF/image extraction.",
             fileFlow.indexOf("FileImportKind.AUDIO") in 0 until fileFlow.indexOf("FileImportKind.TEXT")
         )
         assertTrue(
-            "Audio share fallback must tell the user to provide a transcript instead of silently failing.",
-            fileFlow.contains("Audio primit. Transcrierea audio nu este activă încă; poți lipi transcriptul.")
+            "Audio shares must run the on-device ASR pipeline, not stop at a transcript fallback.",
+            fileFlow.contains("scanSharedAudioFile(uri, context, fileName)")
+        )
+        assertFalse(
+            "The old transcript-required dead end must not be the primary audio-share flow.",
+            fileFlow.contains("publishAudioShareRequiresTranscript(fileName)")
         )
         assertTrue(
-            "Audio share fallback should use explicit audio telemetry.",
+            "Audio share pipeline should use explicit audio telemetry.",
             fileFlow.contains("""inputKind = "import_audio_file"""") &&
                 fileFlow.contains("""channel = "audio_share"""")
         )

@@ -41,7 +41,8 @@ data class SpeakerGuardUpdate(
 
 class SpeakerGuardSession(
     private val context: Context,
-    private val asrEngine: WhisperCppAsrEngine = WhisperCppAsrEngine()
+    private val asrEngine: WhisperCppAsrEngine = WhisperCppAsrEngine(),
+    private val semanticReviewer: AudioSemanticReviewer = NoopAudioSemanticReviewer
 ) {
     private var job: Job? = null
     @Volatile
@@ -71,7 +72,7 @@ class SpeakerGuardSession(
                         phase = SpeakerGuardPhase.ERROR,
                         active = false,
                         reasonCode = throwable.javaClass.simpleName,
-                        status = "Speaker Guard s-a oprit: ${throwable.message ?: "eroare audio"}."
+                        status = "Urechea s-a oprit: ${throwable.message ?: "eroare audio"}."
                     )
                 )
             }
@@ -152,6 +153,7 @@ class SpeakerGuardSession(
         )
         var chunksAnalyzed = 0
         var chunksDropped = 0
+        val evidenceAggregator = AudioEvidenceSessionAggregator()
 
         try {
             activeAudioRecord = audioRecord
@@ -207,7 +209,7 @@ class SpeakerGuardSession(
                         )
                     )
                     val started = System.currentTimeMillis()
-                    val result = withContext(Dispatchers.Default) {
+                    val rawResult = withContext(Dispatchers.Default) {
                         asrEngine.transcribe(
                             LocalAsrRequest(
                                 pcm16Mono = chunk,
@@ -217,6 +219,8 @@ class SpeakerGuardSession(
                             )
                         )
                     }
+                    val semanticResult = rawResult.withSemanticReview()
+                    val result = semanticResult.withSessionEvidence(evidenceAggregator)
                     chunksAnalyzed += 1
                     val latency = System.currentTimeMillis() - started
                     onUpdate(
@@ -248,7 +252,7 @@ class SpeakerGuardSession(
                     active = false,
                     chunksAnalyzed = chunksAnalyzed,
                     chunksDropped = chunksDropped,
-                    status = "Speaker Guard este oprit."
+                    status = "Urechea este oprită."
                 )
             )
         }
@@ -269,11 +273,34 @@ class SpeakerGuardSession(
     private fun statusFor(result: LocalAsrResult): String {
         val evidence = result.evidence
         return when {
+            !result.success && result.reasonCode == "empty_transcript" -> "Nu am prins voce clară în ultimul fragment. Ține telefonul aproape de difuzor."
             !result.success -> "Nu am putut transcrie fragmentul: ${result.reasonCode ?: "eroare ASR"}."
             evidence?.verdict == AudioEvidenceVerdict.DANGEROUS -> "Semnale puternice de fraudă în conversație."
             evidence?.verdict == AudioEvidenceVerdict.SUSPECT -> "Semnale suspecte în conversație. Verifică înainte să continui."
-            else -> "Nu sunt suficiente dovezi în fragmentul analizat."
+            else -> "Am analizat vocea, dar încă nu sunt suficiente dovezi."
         }
+    }
+
+    private fun LocalAsrResult.withSessionEvidence(
+        aggregator: AudioEvidenceSessionAggregator
+    ): LocalAsrResult {
+        val currentEvidence = evidence ?: return this
+        val aggregatedEvidence = aggregator.absorb(currentEvidence)
+        return if (aggregatedEvidence == currentEvidence) {
+            this
+        } else {
+            copy(evidence = aggregatedEvidence)
+        }
+    }
+
+    private suspend fun LocalAsrResult.withSemanticReview(): LocalAsrResult {
+        if (!success || transcript.isBlank()) return this
+        val redacted = AudioTranscriptRedactor.redact(transcript)
+        val review = withContext(Dispatchers.IO) {
+            semanticReviewer.review(redacted, evidence)
+        }
+        val fused = AudioSemanticReviewFusion.fuse(evidence, review)
+        return copy(evidence = fused)
     }
 
     companion object {

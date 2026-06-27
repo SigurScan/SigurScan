@@ -84,6 +84,93 @@ class RadarHotCacheTest {
     }
 
     @Test
+    fun callScreeningWarnsWithSpeakerGuardPrompt() {
+        val serviceSource = java.io.File("src/main/java/ro/sigurscan/app/SigurScanCallScreeningService.kt").readText()
+        val notifierSource = java.io.File("src/main/java/ro/sigurscan/app/SpeakerGuardCallPromptNotifier.kt").takeIf { it.exists() }?.readText().orEmpty()
+        val foregroundServiceSource = java.io.File("src/main/java/ro/sigurscan/app/SpeakerGuardForegroundService.kt").takeIf { it.exists() }?.readText().orEmpty()
+
+        assertTrue(
+            "CallScreeningService must hand call-time Speaker Guard prompts to a foreground service so the app-closed case is covered.",
+            serviceSource.contains("SpeakerGuardForegroundService.startForCallPrompt(applicationContext, decision)")
+        )
+        assertTrue(
+            "The call-time prompt must deep-link to Speaker Guard with autostart, not to a generic Radar page.",
+            notifierSource.contains("sigurscan://speaker-guard") &&
+                notifierSource.contains("autostart=1") &&
+                notifierSource.contains("source=call_screening")
+        )
+        assertTrue(
+            "The call-time prompt should be allowed to surface as a full-screen/high-priority call prompt when the app is closed.",
+            notifierSource.contains(".setFullScreenIntent(pendingIntent, true)")
+        )
+        assertTrue(
+            "The prompt must be gated behind the reviewed local ASR feature flag.",
+            notifierSource.contains("BuildConfig.SIGURSCAN_ENABLE_AUDIO_ASR")
+        )
+        assertTrue(
+            "Speaker Guard call prompt eligibility must use the unknown-contact policy, not only Radar WARN.",
+            notifierSource.contains("SpeakerGuardCallPromptPolicy.shouldOffer(decision)") &&
+                foregroundServiceSource.contains("SpeakerGuardCallPromptPolicy.shouldOffer(decision)")
+        )
+        assertFalse(
+            "The old WARN-only gate would miss fresh unsaved-number scams.",
+            notifierSource.contains("decision.action != RadarCallAction.WARN") ||
+                foregroundServiceSource.contains("decision.action != RadarCallAction.WARN")
+        )
+        assertTrue(
+            "CallScreeningService must propagate the system contact-display signal without requiring READ_CONTACTS.",
+            serviceSource.contains("callDetails.contactDisplayName") &&
+                serviceSource.contains("isKnownContact")
+        )
+        assertTrue(
+            "SpeakerGuardForegroundService must show a foreground notification promptly before delegating to the explicit-consent prompt.",
+            foregroundServiceSource.contains("startForeground(") &&
+                foregroundServiceSource.contains("SpeakerGuardCallPromptNotifier.fromContext(applicationContext).showIfNeeded(decision)")
+        )
+        assertFalse(
+            "SpeakerGuardForegroundService must not start microphone capture before the user taps the prompt.",
+            foregroundServiceSource.contains("AudioRecord") ||
+                foregroundServiceSource.contains("startSpeakerGuard(") ||
+                foregroundServiceSource.contains("SpeakerGuardSession(")
+        )
+    }
+
+    @Test
+    fun speakerGuardPromptPolicyOffersForUnsavedNumberWithoutRadarHit() {
+        val decision = RadarCallDecision(
+            action = RadarCallAction.ALLOW,
+            reason = "no_radar_hit",
+            isKnownContact = false
+        )
+
+        assertTrue(SpeakerGuardCallPromptPolicy.shouldOffer(decision))
+    }
+
+    @Test
+    fun speakerGuardPromptPolicyExcludesSavedContactsEvenWhenRadarWarns() {
+        val decision = RadarCallDecision(
+            action = RadarCallAction.WARN,
+            reason = "reported_number_bucket_5-24",
+            family = "CONV_BANK_SAFE_ACCOUNT",
+            isKnownContact = true
+        )
+
+        assertFalse(SpeakerGuardCallPromptPolicy.shouldOffer(decision))
+    }
+
+    @Test
+    fun speakerGuardPromptPolicyKeepsWarnForUnsavedRadarHits() {
+        val decision = RadarCallDecision(
+            action = RadarCallAction.WARN,
+            reason = "campaign_hash_prefix_match",
+            family = "CONV_BANK_SAFE_ACCOUNT",
+            isKnownContact = false
+        )
+
+        assertTrue(SpeakerGuardCallPromptPolicy.shouldOffer(decision))
+    }
+
+    @Test
     fun campaignHashPrefixWarnsOffline() {
         val phoneHash = PhoneNumberHasher.hashPhone("+40 721 123 456")
         val cache = RadarHotCacheSnapshot(
