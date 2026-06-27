@@ -276,7 +276,7 @@ fun ScannerViewModel.onFilePicked(uri: Uri, context: Context) {
     }
 
     if (importKind == FileImportKind.AUDIO) {
-        publishAudioShareRequiresTranscript(fileName)
+        scanSharedAudioFile(uri, context, fileName)
         return
     }
 
@@ -527,8 +527,58 @@ fun ScannerViewModel.onFilePicked(uri: Uri, context: Context) {
     }
 }
 
-internal fun ScannerViewModel.publishAudioShareRequiresTranscript(fileName: String) {
-    val reason = "Audio primit. Transcrierea audio nu este activă încă; poți lipi transcriptul."
+internal fun ScannerViewModel.scanSharedAudioFile(uri: Uri, context: Context, fileName: String) {
+    stagedEvidenceHtml = null
+    stagedEvidenceLinks = emptyList()
+    stagedEvidenceText = null
+    stagedEvidenceInputKind = "import_audio_file"
+    stagedEvidenceChannel = "audio_share"
+    text = ""
+    loading = true
+    loadingMsg = "Transcriem audio local, pe telefon..."
+
+    viewModelScope.launch {
+        try {
+            if (!BuildConfig.SIGURSCAN_ENABLE_AUDIO_ASR) {
+                publishAudioShareRequiresTranscript(fileName, "feature_flag_disabled")
+                return@launch
+            }
+            if (!WhisperCppNativeBridge.available) {
+                publishAudioShareRequiresTranscript(fileName, "asr_native_runtime_missing")
+                return@launch
+            }
+            val modelFile = withContext(Dispatchers.IO) {
+                runCatching { prepareWhisperModelFile() }.getOrElse {
+                    throw AudioDecodeException("asr_model_missing", it)
+                }
+            }
+            val decoded = withContext(Dispatchers.IO) {
+                AudioFileDecoder.decodeToWhisperPcm(context, uri)
+            }
+            val result = withContext(Dispatchers.Default) {
+                AudioFileScanPipeline().scan(decoded, modelFile.absolutePath)
+            }
+            audioEvidenceResult = result.evidence
+            assessment = result.toOfflineAssessment(fileName)
+            loading = false
+            loadingMsg = ""
+        } catch (e: Exception) {
+            publishAudioShareRequiresTranscript(fileName, e.message ?: e.javaClass.simpleName)
+        }
+    }
+}
+
+internal fun ScannerViewModel.publishAudioShareRequiresTranscript(fileName: String, reasonCode: String = "audio_asr_unavailable") {
+    val reason = when (reasonCode) {
+        "feature_flag_disabled" -> "Audio primit. Transcrierea locală nu este activată în această versiune; poți lipi transcriptul."
+        "asr_native_runtime_missing" -> "Audio primit. Runtime-ul local de transcriere lipsește; poți lipi transcriptul."
+        "asr_model_missing" -> "Audio primit. Modelul local de transcriere lipsește; poți lipi transcriptul."
+        "audio_decode_empty_pcm",
+        "audio_track_missing",
+        "audio_file_open_failed",
+        "audio_decode_failed" -> "Audio primit, dar nu am putut decoda fișierul; poți lipi transcriptul."
+        else -> "Audio primit. Transcrierea audio nu este disponibilă acum; poți lipi transcriptul."
+    }
     stagedEvidenceHtml = null
     stagedEvidenceLinks = emptyList()
     stagedEvidenceText = null
@@ -548,7 +598,7 @@ internal fun ScannerViewModel.publishAudioShareRequiresTranscript(fileName: Stri
             keyDangers = listOf("Fișierul audio nu a fost transcris, deci nu avem dovezi suficiente pentru verdict."),
             originalText = "Audio primit, transcriere necesară: $fileName."
         ),
-        rawInput = "Audio primit, transcriere necesară: $fileName",
+        rawInput = "Audio primit, transcriere necesară: $fileName ($reasonCode)",
         inputKind = "import_audio_file",
         channel = "audio_share",
         providerStates = unavailableProviderStates(),

@@ -66,6 +66,7 @@ class SpeakerGuardCallPromptNotifier private constructor(
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
+            .setFullScreenIntent(pendingIntent, true)
             .addAction(R.drawable.ic_launcher_foreground, prompt.primaryCta, pendingIntent)
             .build()
         NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification)

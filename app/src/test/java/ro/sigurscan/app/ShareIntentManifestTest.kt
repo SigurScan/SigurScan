@@ -95,6 +95,21 @@ class ShareIntentManifestTest {
             "Incoming-call Speaker Guard needs a user-visible system prompt; Android 13+ requires POST_NOTIFICATIONS for that prompt.",
             manifest.contains("""android:name="android.permission.POST_NOTIFICATIONS"""")
         )
+        assertTrue(
+            "Speaker Guard call-time prompts must run through a foreground service before any microphone flow can start.",
+            manifest.contains("""android:name="android.permission.FOREGROUND_SERVICE"""") &&
+                manifest.contains("""android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE"""")
+        )
+        assertTrue(
+            "The call-time prompt may need a full-screen intent when the app is closed and the phone is ringing.",
+            manifest.contains("""android:name="android.permission.USE_FULL_SCREEN_INTENT"""")
+        )
+        assertTrue(
+            "SpeakerGuardForegroundService must be declared with foregroundServiceType=microphone for the later consented live-listening session.",
+            manifest.contains("""android:name=".SpeakerGuardForegroundService"""") &&
+                manifest.contains("""android:foregroundServiceType="microphone"""") &&
+                manifest.contains("""android:exported="false"""")
+        )
         assertFalse(
             "Speaker Guard must not use overlay permission for call-time prompts.",
             manifest.contains("""android:name="android.permission.SYSTEM_ALERT_WINDOW"""")

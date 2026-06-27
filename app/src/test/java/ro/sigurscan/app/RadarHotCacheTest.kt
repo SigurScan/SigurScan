@@ -87,10 +87,11 @@ class RadarHotCacheTest {
     fun callScreeningWarnsWithSpeakerGuardPrompt() {
         val serviceSource = java.io.File("src/main/java/ro/sigurscan/app/SigurScanCallScreeningService.kt").readText()
         val notifierSource = java.io.File("src/main/java/ro/sigurscan/app/SpeakerGuardCallPromptNotifier.kt").takeIf { it.exists() }?.readText().orEmpty()
+        val foregroundServiceSource = java.io.File("src/main/java/ro/sigurscan/app/SpeakerGuardForegroundService.kt").takeIf { it.exists() }?.readText().orEmpty()
 
         assertTrue(
-            "CallScreeningService must surface a user-controlled Speaker Guard prompt for WARN decisions.",
-            serviceSource.contains("SpeakerGuardCallPromptNotifier.fromContext(applicationContext).showIfNeeded(decision)")
+            "CallScreeningService must hand call-time Speaker Guard prompts to a foreground service so the app-closed case is covered.",
+            serviceSource.contains("SpeakerGuardForegroundService.startForCallPrompt(applicationContext, decision)")
         )
         assertTrue(
             "The call-time prompt must deep-link to Speaker Guard with autostart, not to a generic Radar page.",
@@ -99,8 +100,23 @@ class RadarHotCacheTest {
                 notifierSource.contains("source=call_screening")
         )
         assertTrue(
+            "The call-time prompt should be allowed to surface as a full-screen/high-priority call prompt when the app is closed.",
+            notifierSource.contains(".setFullScreenIntent(pendingIntent, true)")
+        )
+        assertTrue(
             "The prompt must be gated behind the reviewed local ASR feature flag.",
             notifierSource.contains("BuildConfig.SIGURSCAN_ENABLE_AUDIO_ASR")
+        )
+        assertTrue(
+            "SpeakerGuardForegroundService must show a foreground notification promptly before delegating to the explicit-consent prompt.",
+            foregroundServiceSource.contains("startForeground(") &&
+                foregroundServiceSource.contains("SpeakerGuardCallPromptNotifier.fromContext(applicationContext).showIfNeeded(decision)")
+        )
+        assertFalse(
+            "SpeakerGuardForegroundService must not start microphone capture before the user taps the prompt.",
+            foregroundServiceSource.contains("AudioRecord") ||
+                foregroundServiceSource.contains("startSpeakerGuard(") ||
+                foregroundServiceSource.contains("SpeakerGuardSession(")
         )
     }
 
