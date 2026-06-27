@@ -174,4 +174,11 @@ class AudioSafetyPolicyTest {
         assertFalse(source.contains("transcript=${'$'}{result.transcript}"))
         assertFalse(source.contains("assertTrue(result.transcript,"))
     }
+
+    @Test
+    fun nativeWhisperBridgeDoesNotReturnTranscriptWithNewStringUtf() {
+        val source = File("src/main/cpp/sigurscan_whisper_jni.cpp").readText()
+
+        assertFalse(source.contains("NewStringUTF(transcript.c_str())"))
+    }
 }
