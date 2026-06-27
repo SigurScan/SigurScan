@@ -90,4 +90,41 @@ class SpeakerGuardPresentationTest {
         assertEquals("Pune apelul pe difuzor și lasă analiza locală pornită.", presentation.primaryAction)
         assertFalse(presentation.showHangUpCta)
     }
+
+    @Test
+    fun activePresentationShowsPrivacySafeProgressWithoutTranscript() {
+        val snapshot = SpeakerGuardSnapshot(
+            active = true,
+            phase = SpeakerGuardPhase.LISTENING,
+            chunksAnalyzed = 3,
+            chunksDropped = 1,
+            latestReasonCode = "empty_transcript",
+            status = "Nu am prins voce clară în ultimul fragment.",
+            startedAtEpochMillis = 1_000L
+        )
+
+        val presentation = speakerGuardPresentation(snapshot, evidence = null, nowMillis = 10_000L)
+
+        assertTrue(presentation.diagnosticLine!!.contains("3 fragmente"))
+        assertTrue(presentation.diagnosticLine.contains("voce neclară"))
+        assertTrue(presentation.diagnosticLine.contains("1 sărit"))
+        assertFalse(presentation.diagnosticLine.contains("cont sigur"))
+    }
+
+    @Test
+    fun activeUnverifiedEvidenceExplainsThatNoClearSignalsWereFound() {
+        val snapshot = SpeakerGuardSnapshot(
+            active = true,
+            phase = SpeakerGuardPhase.LISTENING,
+            chunksAnalyzed = 2,
+            latestVerdict = AudioEvidenceVerdict.UNVERIFIED,
+            status = "Am analizat vocea, dar încă nu sunt suficiente dovezi.",
+            startedAtEpochMillis = 1_000L
+        )
+
+        val presentation = speakerGuardPresentation(snapshot, evidence = null, nowMillis = 10_000L)
+
+        assertTrue(presentation.diagnosticLine!!.contains("2 fragmente"))
+        assertTrue(presentation.diagnosticLine.contains("fără semnale clare"))
+    }
 }

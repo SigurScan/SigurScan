@@ -17,6 +17,7 @@ data class SpeakerGuardPresentation(
     val verdictTitle: String,
     val primaryAction: String,
     val showHangUpCta: Boolean,
+    val diagnosticLine: String?,
     val reasons: List<SpeakerGuardReasonPresentation>
 )
 
@@ -47,6 +48,7 @@ fun speakerGuardPresentation(
         verdictTitle = verdictTitle(verdict),
         primaryAction = primaryAction(verdict),
         showHangUpCta = verdict == AudioEvidenceVerdict.DANGEROUS,
+        diagnosticLine = diagnosticLine(snapshot),
         reasons = reasonsFor(evidence, snapshot)
     )
 }
@@ -83,6 +85,48 @@ private fun primaryAction(verdict: AudioEvidenceVerdict?): String {
         AudioEvidenceVerdict.SUSPECT -> "Nu da date sau bani până nu verifici pe canal oficial."
         AudioEvidenceVerdict.UNVERIFIED -> "Continuă doar dacă ești sigur. Nu oferi date sensibile."
         null -> "Pune apelul pe difuzor și lasă analiza locală pornită."
+    }
+}
+
+private fun diagnosticLine(snapshot: SpeakerGuardSnapshot): String? {
+    if (!snapshot.active && snapshot.chunksAnalyzed == 0 && snapshot.chunksDropped == 0) return null
+    val parts = mutableListOf<String>()
+    if (snapshot.chunksAnalyzed == 0) {
+        parts += "Aștept primul fragment audio clar"
+    } else {
+        parts += "Am analizat ${snapshot.chunksAnalyzed} ${fragmentLabel(snapshot.chunksAnalyzed)} local"
+    }
+    val latestReason = reasonLabel(snapshot.latestReasonCode)
+        ?: verdictDiagnosticLabel(snapshot.latestVerdict)
+    latestReason?.let { parts += "ultimul: $it" }
+    if (snapshot.chunksDropped > 0) {
+        parts += "${snapshot.chunksDropped} sărit"
+    }
+    return parts.joinToString(" · ")
+}
+
+private fun fragmentLabel(count: Int): String {
+    return if (count == 1) "fragment" else "fragmente"
+}
+
+private fun reasonLabel(reasonCode: String?): String? {
+    return when (reasonCode) {
+        "empty_transcript" -> "voce neclară"
+        "unsupported_audio_format" -> "format audio neacceptat"
+        "whisper_native_unavailable" -> "motor audio indisponibil"
+        "microphone_permission_missing" -> "microfon nepermis"
+        "audio_record_unavailable", "audio_record_init_failed" -> "microfon indisponibil"
+        null, "" -> null
+        else -> "verificare locală"
+    }
+}
+
+private fun verdictDiagnosticLabel(verdict: AudioEvidenceVerdict?): String? {
+    return when (verdict) {
+        AudioEvidenceVerdict.UNVERIFIED -> "fără semnale clare"
+        AudioEvidenceVerdict.SUSPECT -> "semnale suspecte"
+        AudioEvidenceVerdict.DANGEROUS -> "semnale puternice"
+        null -> null
     }
 }
 

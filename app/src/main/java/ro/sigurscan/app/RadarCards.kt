@@ -677,6 +677,10 @@ internal fun SpeakerGuardStatusBlock(
 
             Spacer(modifier = Modifier.height(10.dp))
             Text(presentation.status, color = SigurColors.TextSecondary, fontSize = 11.sp, lineHeight = 15.sp)
+            presentation.diagnosticLine?.let {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(it, color = SigurColors.TextMuted, fontSize = 10.sp, lineHeight = 14.sp)
+            }
 
             if (presentation.reasons.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(10.dp))
