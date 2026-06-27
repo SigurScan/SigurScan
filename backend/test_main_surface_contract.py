@@ -94,6 +94,17 @@ def test_runtime_layers_do_not_import_main_module():
 def test_required_scan_routes_are_registered():
     from app import app
 
-    actual = {route.path for route in app.routes if hasattr(route, "path")}
+    actual = set()
+    for route in app.routes:
+        if hasattr(route, "path"):
+            actual.add(route.path)
+            continue
+        included_router = getattr(route, "original_router", None)
+        if included_router is not None:
+            actual.update(
+                nested.path
+                for nested in getattr(included_router, "routes", [])
+                if hasattr(nested, "path")
+            )
     missing = sorted(REQUIRED_CORE_ROUTES - actual)
     assert not missing, f"Rute obligatorii lipsă: {missing}"

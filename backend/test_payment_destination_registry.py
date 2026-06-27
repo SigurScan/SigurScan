@@ -254,6 +254,24 @@ def test_registry_loads_orange_communications_official_destination():
     assert match["can_contribute_to_safe"] is True
 
 
+def test_registry_loads_agent_batch_cup_focsani_official_destination():
+    from services.payment_destination_registry import match_payment_destination
+
+    match = match_payment_destination(
+        "RO49 BRDE 400S V019 1767 4000",
+        claimed_brand="CUP Focsani",
+        cui="1443170",
+        issuer_name="Compania de Utilitati Publice S.A. Focsani",
+    )
+
+    assert match["matched"] is True
+    assert match["brand_matches"] is True
+    assert match["cui_matches"] is True
+    assert match["brand_id"] == "cup_focsani"
+    assert match["trust_tier"] == "T1_PUBLIC_OFFICIAL"
+    assert match["can_contribute_to_safe"] is True
+
+
 def test_registry_loads_apa_nova_official_destination_from_utility_delta():
     from services.payment_destination_registry import match_payment_destination
 
@@ -379,14 +397,14 @@ def test_eon_raiffeisen_billpay_iban_is_not_safe_contributor():
     assert match["can_contribute_to_safe"] is False
 
 
-def test_registry_loads_apavital_official_destination_but_not_masked_bt():
+def test_registry_loads_apavital_official_literal_x_bt_destination():
     from services.payment_destination_registry import match_payment_destination
 
     brd = match_payment_destination(
         "RO37 BRDE 240S V477 5717 2400",
         claimed_brand="apavital",
     )
-    masked_bt = match_payment_destination(
+    literal_bt = match_payment_destination(
         "RO56 BTRL 0240 1202 E610 68XX",
         claimed_brand="apavital",
     )
@@ -395,7 +413,10 @@ def test_registry_loads_apavital_official_destination_but_not_masked_bt():
     assert brd["brand_matches"] is True
     assert brd["brand_id"] == "apavital_iasi"
     assert brd["can_contribute_to_safe"] is True
-    assert masked_bt["matched"] is False
+    assert literal_bt["matched"] is True
+    assert literal_bt["brand_matches"] is True
+    assert literal_bt["brand_id"] == "apavital_iasi"
+    assert literal_bt["can_contribute_to_safe"] is True
 
 
 def test_registry_loads_contextual_insurance_destinations_without_safe_contribution():
@@ -570,6 +591,324 @@ def test_registry_loads_salubris_official_destination():
     assert match["can_contribute_to_safe"] is True
 
 
+def test_registry_loads_daily_life_delta_utility_destinations():
+    from services.payment_destination_registry import match_payment_destination
+
+    retim = match_payment_destination(
+        "RO55 RNCB 0249 0135 2437 0002",
+        claimed_brand="retim",
+        cui="9112229",
+    )
+    apa_oltenia = match_payment_destination(
+        "RO58 UGBI 0000 3220 1083 3RON",
+        claimed_brand="Compania de Apa Oltenia",
+        cui="11400673",
+    )
+
+    assert retim["matched"] is True
+    assert retim["brand_matches"] is True
+    assert retim["cui_matches"] is True
+    assert retim["brand_id"] == "retim_ecologic_service"
+    assert retim["scope"] == "waste_bill_payment"
+    assert retim["can_contribute_to_safe"] is True
+    assert apa_oltenia["matched"] is True
+    assert apa_oltenia["brand_matches"] is True
+    assert apa_oltenia["cui_matches"] is True
+    assert apa_oltenia["brand_id"] == "compania_apa_oltenia"
+    assert apa_oltenia["scope"] == "water_bill_payment"
+    assert apa_oltenia["can_contribute_to_safe"] is True
+
+
+def test_registry_loads_daily_life_delta_insurance_and_ifn_destinations():
+    from services.payment_destination_registry import match_payment_destination
+
+    grawe = match_payment_destination(
+        "RO26 CECE B000 44RO N039 2355",
+        claimed_brand="grawe",
+        cui="8398697",
+    )
+    credius = match_payment_destination(
+        "RO70 REVO 0000 3132 8640 0915",
+        claimed_brand="credius",
+        cui="31534882",
+    )
+
+    assert grawe["matched"] is True
+    assert grawe["brand_matches"] is True
+    assert grawe["cui_matches"] is True
+    assert grawe["brand_id"] == "grawe_romania"
+    assert grawe["scope"] == "insurance_premium_payment"
+    assert grawe["can_contribute_to_safe"] is True
+    assert credius["matched"] is True
+    assert credius["brand_matches"] is True
+    assert credius["cui_matches"] is True
+    assert credius["brand_id"] == "credius_ifn"
+    assert credius["scope"] == "loan_repayment"
+    assert credius["can_contribute_to_safe"] is True
+
+
+def test_registry_loads_daily_life_delta_imm_services_destinations():
+    from services.payment_destination_registry import match_payment_destination
+
+    hzone = match_payment_destination(
+        "RO21 BTRL RONC RT03 1160 4601",
+        claimed_brand="HZone",
+        cui="34886123",
+    )
+    toolsbox = match_payment_destination(
+        "RO68 INGB 0000 9999 1291 3976",
+        claimed_brand="Toolsbox Services",
+        cui="31487381",
+    )
+
+    assert hzone["matched"] is True
+    assert hzone["brand_matches"] is True
+    assert hzone["cui_matches"] is True
+    assert hzone["brand_id"] == "hzone"
+    assert hzone["scope"] == "hosting_it_services_payment"
+    assert hzone["can_contribute_to_safe"] is True
+    assert toolsbox["matched"] is True
+    assert toolsbox["brand_matches"] is True
+    assert toolsbox["cui_matches"] is True
+    assert toolsbox["brand_id"] == "toolsbox_services"
+    assert toolsbox["scope"] == "tools_and_services_payment"
+    assert toolsbox["can_contribute_to_safe"] is True
+
+
+def test_registry_loads_wave2_auto_payment_destinations():
+    from services.payment_destination_registry import match_payment_destination
+
+    epiesa = match_payment_destination(
+        "RO84 RZBR 0000 0600 1417 7662",
+        claimed_brand="ePiesa",
+        cui="29405223",
+    )
+    autohut = match_payment_destination(
+        "RO84 RZBR 0000 0600 1417 7662",
+        claimed_brand="AutoHut",
+        cui="29405223",
+    )
+    anvelope = match_payment_destination(
+        "RO83 BACX 0000 0008 0981 7000",
+        claimed_brand="Anvelope.ro",
+        cui="28555370",
+    )
+
+    assert epiesa["matched"] is True
+    assert epiesa["brand_matches"] is True
+    assert epiesa["cui_matches"] is True
+    assert epiesa["brand_id"] == "euro_parts_distribution"
+    assert epiesa["scope"] == "auto_parts_order"
+    assert epiesa["can_contribute_to_safe"] is True
+    assert autohut["brand_id"] == "euro_parts_distribution"
+    assert autohut["brand_matches"] is True
+    assert autohut["can_contribute_to_safe"] is True
+    assert anvelope["matched"] is True
+    assert anvelope["brand_id"] == "webtrade_marketing_anvelope"
+    assert anvelope["scope"] == "tire_order_payment"
+    assert anvelope["can_contribute_to_safe"] is True
+
+
+def test_registry_loads_literal_x_local_tax_treasury_destinations():
+    from services.payment_destination_registry import match_payment_destination
+
+    timisoara = match_payment_destination(
+        "RO37 TREZ 6212 1070 2010 1XXX",
+        claimed_brand="Primaria Timisoara",
+        cui="14756536",
+    )
+    cluj = match_payment_destination(
+        "RO74 TREZ 2162 1070 2010 1XXX",
+        claimed_brand="Primaria Cluj-Napoca",
+        cui="4305857",
+    )
+
+    assert timisoara["matched"] is True
+    assert timisoara["brand_matches"] is True
+    assert timisoara["cui_matches"] is True
+    assert timisoara["brand_id"] == "primaria_timisoara"
+    assert timisoara["scope"] == "local_tax_payment"
+    assert timisoara["can_contribute_to_safe"] is True
+    assert cluj["matched"] is True
+    assert cluj["brand_matches"] is True
+    assert cluj["cui_matches"] is True
+    assert cluj["brand_id"] == "primaria_cluj_napoca"
+    assert cluj["can_contribute_to_safe"] is True
+
+
+def test_literal_x_iban_is_not_loaded_without_explicit_literal_flag(tmp_path, monkeypatch):
+    from services import payment_destination_registry as registry
+    from services.payment_destination_registry import match_payment_destination
+
+    iban = "RO37TREZ6212107020101XXX"
+    seed = {
+        "entries": [
+            {
+                "brand_id": "test_trezorerie",
+                "display_name": "Test Trezorerie",
+                "legal_name": "Test Trezorerie",
+                "cui": "123",
+                "payment_destinations": [
+                    {
+                        "kind": "iban",
+                        "trust_tier": "T1_PUBLIC_OFFICIAL",
+                        "source_kind": "official_webpage",
+                        "scope": "local_tax_payment",
+                        "confidence": "high",
+                        "review_status": "active",
+                        "client_distribution_allowed": False,
+                        "match_policy": "exact_hmac_match_required",
+                        "can_contribute_to_safe": True,
+                        "iban_normalized_backend_seed_only": iban,
+                        "iban_masked_for_client": "RO37 TREZ **** **** **** 1XXX",
+                    }
+                ],
+            }
+        ]
+    }
+    seed_path = tmp_path / "payment_registry_literal_x_guard.json"
+    seed_path.write_text(json.dumps(seed), encoding="utf-8")
+    monkeypatch.setenv("PAYMENT_DESTINATION_REGISTRY_PATHS", str(seed_path))
+    registry.reload_registry()
+    try:
+        without_flag = match_payment_destination(iban, claimed_brand="test_trezorerie", cui="123")
+        seed["entries"][0]["payment_destinations"][0]["literal_x_iban"] = True
+        seed_path.write_text(json.dumps(seed), encoding="utf-8")
+        registry.reload_registry()
+        with_flag = match_payment_destination(iban, claimed_brand="test_trezorerie", cui="123")
+    finally:
+        registry.reload_registry()
+
+    assert without_flag["matched"] is False
+    assert with_flag["matched"] is True
+    assert with_flag["can_contribute_to_safe"] is True
+
+
+def test_registry_loads_wave3_utility_and_medical_destinations():
+    from services.payment_destination_registry import brand_has_destinations, match_payment_destination
+
+    rer_vest = match_payment_destination(
+        "RO96 RNCB 0032 0464 7034 0001",
+        claimed_brand="RER Vest",
+        cui="8309690",
+    )
+    apa_brasov_trez = match_payment_destination(
+        "RO63 TREZ 1315 069X XX00 0650",
+        claimed_brand="Compania Apa Brasov",
+        cui="1090816",
+    )
+    medical_magazin = match_payment_destination(
+        "RO25 BTRL 0450 1202 4436 79XX",
+        claimed_brand="MedicalMagazin.ro",
+        cui="27820118",
+    )
+
+    assert rer_vest["matched"] is True
+    assert rer_vest["brand_id"] == "rer_vest"
+    assert rer_vest["can_contribute_to_safe"] is True
+    assert apa_brasov_trez["matched"] is True
+    assert apa_brasov_trez["brand_id"] == "compania_apa_brasov"
+    assert apa_brasov_trez["can_contribute_to_safe"] is True
+    assert medical_magazin["matched"] is True
+    assert medical_magazin["brand_id"] == "medicalmagazin_terra_distrimed"
+    assert medical_magazin["scope"] == "medical_products_order_payment"
+    assert medical_magazin["can_contribute_to_safe"] is True
+    assert brand_has_destinations("RER Vest") is True
+    assert brand_has_destinations("MedicalMagazin.ro") is True
+
+
+def test_registry_loads_wave3_hosting_and_education_destinations():
+    from services.payment_destination_registry import match_payment_destination
+
+    hosterion = match_payment_destination(
+        "RO74 INGB 0000 9999 0500 3809",
+        claimed_brand="Hosterion",
+        cui="16104008",
+    )
+    ubb = match_payment_destination(
+        "RO35 TREZ 2162 0F33 0500 XXXX",
+        claimed_brand="UBB Cluj",
+        cui="4305849",
+    )
+    telecom_academy = match_payment_destination(
+        "RO46 INGB 0000 9999 0851 4064",
+        claimed_brand="Telecom Academy",
+        cui="21577037",
+    )
+
+    assert hosterion["matched"] is True
+    assert hosterion["brand_id"] == "hosterion"
+    assert hosterion["scope"] == "hosting_it_services_payment"
+    assert hosterion["can_contribute_to_safe"] is True
+    assert ubb["matched"] is True
+    assert ubb["brand_id"] == "universitatea_babes_bolyai"
+    assert ubb["scope"] == "tuition_payment"
+    assert ubb["can_contribute_to_safe"] is True
+    assert telecom_academy["matched"] is True
+    assert telecom_academy["brand_id"] == "telecom_academy_association"
+    assert telecom_academy["can_contribute_to_safe"] is True
+
+
+def test_registry_loads_wave4_public_utility_tax_and_onrc_destinations():
+    from services.payment_destination_registry import match_payment_destination
+
+    termoficare_constanta = match_payment_destination(
+        "RO76 BRDE 140S V072 8591 1400",
+        claimed_brand="Termoficare Constanta",
+        cui="43709449",
+    )
+    buzau_tax = match_payment_destination(
+        "RO87 TREZ 1662 1030 218X XXXX",
+        claimed_brand="Primaria Municipiului Buzau",
+        cui="4233874",
+    )
+    onrc = match_payment_destination(
+        "RO72 TREZ 7035 032X XX01 1591",
+        claimed_brand="ONRC",
+        cui="14942091",
+    )
+
+    assert termoficare_constanta["matched"] is True
+    assert termoficare_constanta["brand_id"] == "termoficare_constanta"
+    assert termoficare_constanta["can_contribute_to_safe"] is True
+    assert buzau_tax["matched"] is True
+    assert buzau_tax["brand_id"] == "primaria_municipiului_buzau"
+    assert buzau_tax["can_contribute_to_safe"] is True
+    assert onrc["matched"] is True
+    assert onrc["brand_id"] == "onrc"
+    assert onrc["can_contribute_to_safe"] is True
+
+
+def test_registry_loads_wave4_private_services_and_retail_destinations():
+    from services.payment_destination_registry import match_payment_destination
+
+    royal_hospital = match_payment_destination(
+        "RO12 BTRL 0410 1202 N821 94XX",
+        claimed_brand="Royal Hospital",
+        cui="16140205",
+    )
+    autochelu = match_payment_destination(
+        "RO10 INGB 0000 9999 0739 0967",
+        claimed_brand="AutoChelu",
+        cui="19236542",
+    )
+    unimat = match_payment_destination(
+        "RO59 BRDE 330S V022 5920 3300",
+        claimed_brand="Unimat",
+        cui="10152375",
+    )
+
+    assert royal_hospital["matched"] is True
+    assert royal_hospital["brand_id"] == "royal_hospital"
+    assert royal_hospital["can_contribute_to_safe"] is True
+    assert autochelu["matched"] is True
+    assert autochelu["brand_id"] == "autochelu"
+    assert autochelu["can_contribute_to_safe"] is True
+    assert unimat["matched"] is True
+    assert unimat["brand_id"] == "unimat"
+    assert unimat["can_contribute_to_safe"] is True
+
+
 def test_registry_loads_contextual_utility_destinations_without_safe_contribution():
     from services.payment_destination_registry import match_payment_destination
 
@@ -603,7 +942,7 @@ def test_registry_loads_contextual_utility_destinations_without_safe_contributio
     assert emag_ads["can_contribute_to_safe"] is False
 
 
-def test_registry_loads_compania_apa_brasov_official_destination_but_not_masked_trezorerie():
+def test_registry_loads_compania_apa_brasov_literal_x_trezorerie_but_blocks_wrong_cui():
     from services.payment_destination_registry import match_payment_destination
 
     unicredit = match_payment_destination(
@@ -611,7 +950,7 @@ def test_registry_loads_compania_apa_brasov_official_destination_but_not_masked_
         claimed_brand="apa_brasov",
         cui="1096128",
     )
-    masked_trezorerie = match_payment_destination(
+    wrong_cui_trezorerie = match_payment_destination(
         "RO63 TREZ 1315 069X XX00 0650",
         claimed_brand="apa_brasov",
         cui="1096128",
@@ -622,7 +961,10 @@ def test_registry_loads_compania_apa_brasov_official_destination_but_not_masked_
     assert unicredit["cui_matches"] is True
     assert unicredit["brand_id"] == "compania_apa_brasov"
     assert unicredit["can_contribute_to_safe"] is True
-    assert masked_trezorerie["matched"] is False
+    assert wrong_cui_trezorerie["matched"] is True
+    assert wrong_cui_trezorerie["brand_id"] == "compania_apa_brasov"
+    assert wrong_cui_trezorerie["cui_matches"] is False
+    assert wrong_cui_trezorerie["can_contribute_to_safe"] is False
 
 
 def test_registry_knows_brand_destinations_by_cui_when_brand_detection_misses():

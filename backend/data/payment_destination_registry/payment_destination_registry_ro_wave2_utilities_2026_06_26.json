@@ -1,0 +1,92 @@
+{
+  "version": "pdr-ro-wave2-utilities-2026.06.26",
+  "generated_at": "2026-06-26T00:00:00Z",
+  "purpose": "Wave 2 URL-backed utility payment destinations not already present in the atlas.",
+  "entries": [
+    {
+      "brand_id": "eon_energie_romania",
+      "display_name": "E.ON",
+      "legal_name": "E.ON Energie România S.A.",
+      "cui": "22043010",
+      "category": "utilities_energy",
+      "aliases": [
+        "E.ON",
+        "E.ON Energie România S.A."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "utility_bill_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "literal_x_iban": true,
+          "bank_name": "Trezoreria Târgu Mureș",
+          "source_refs": [
+            {
+              "url": "https://www.eon.ro/modalitati-de-plata-factura",
+              "publisher": "E.ON Energie România S.A.",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficială listează conturile bancare/IBAN E.ON Energie România, inclusiv Trezoreria Târgu Mureș RO14 TREZ 4765 069X XX00 7593."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO14TREZ4765069XXX007593",
+          "iban_masked_for_client": "RO14 TREZ **** **** **** 7593"
+        }
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "orange_romania",
+      "display_name": "Orange",
+      "legal_name": "Orange Romania S.A.",
+      "cui": "9010105",
+      "category": "telecom",
+      "aliases": [
+        "Orange",
+        "Orange Romania S.A."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "utility_bill_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "literal_x_iban": true,
+          "bank_name": "Trezorerie",
+          "source_refs": [
+            {
+              "url": "https://www.orange.ro/help/care-sunt-conturile-n-care-pot-face-plata-facturii-prin-virament-bancar-5568",
+              "publisher": "Orange Romania S.A.",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficială Orange Help listează Trezorerie - IBAN RO02TREZ7005069XXX000711, pentru instituții bugetare."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO02TREZ7005069XXX000711",
+          "iban_masked_for_client": "RO02 TREZ **** **** **** 0711"
+        }
+      ],
+      "review_status": "active"
+    }
+  ],
+  "summary": {
+    "entries_added": 2,
+    "exact_ibans_added": 2,
+    "source_dataset": "pasted-text-8dbefeae"
+  }
+}

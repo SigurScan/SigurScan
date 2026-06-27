@@ -1,0 +1,256 @@
+{
+  "version": "pdr-ro-wave2-auto-2026.06.26",
+  "generated_at": "2026-06-26T00:00:00Z",
+  "purpose": "Wave 2 P0 public-official auto/tires/parts payment destinations with URL+CUI, deduped against existing atlas.",
+  "entries": [
+    {
+      "brand_id": "euro_parts_distribution",
+      "display_name": "ePiesa / AutoHut / piese-auto.ro",
+      "legal_name": "SC EURO PARTS DISTRIBUTION SRL",
+      "cui": "29405223",
+      "category": "auto_parts",
+      "aliases": [
+        "AutoHut",
+        "SC EURO PARTS DISTRIBUTION SRL",
+        "ePiesa",
+        "piese-auto.ro"
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "auto_parts_order",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Raiffeisen Bank",
+          "source_refs": [
+            {
+              "url": "https://www.epiesa.ro/cum-platesc/",
+              "publisher": "SC EURO PARTS DISTRIBUTION SRL",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficială de plată menționează ordin de plată/transfer bancar pentru comandă și publică IBAN-ul; footerul identifică SC EURO PARTS DISTRIBUTION SRL, CUI RO29405223."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO84RZBR0000060014177662",
+          "iban_masked_for_client": "RO84 RZBR **** **** **** 7662"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "auto_parts_order",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Raiffeisen Bank",
+          "source_refs": [
+            {
+              "url": "https://www.autohut.ro/cum-platesc/",
+              "publisher": "SC EURO PARTS DISTRIBUTION SRL",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficială de plată menționează ordin de plată/transfer bancar pentru comandă și publică IBAN-ul; footerul identifică SC EURO PARTS DISTRIBUTION SRL, CUI RO29405223."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO84RZBR0000060014177662",
+          "iban_masked_for_client": "RO84 RZBR **** **** **** 7662"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "auto_parts_order",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Raiffeisen Bank",
+          "source_refs": [
+            {
+              "url": "https://www.piese-auto.ro/cum-platesc/",
+              "publisher": "SC EURO PARTS DISTRIBUTION SRL",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficială de plată menționează ordin de plată/transfer bancar pentru comandă și publică IBAN-ul; footerul identifică SC EURO PARTS DISTRIBUTION SRL, CUI RO29405223."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO84RZBR0000060014177662",
+          "iban_masked_for_client": "RO84 RZBR **** **** **** 7662"
+        }
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "autosoft_tires_parts",
+      "display_name": "AutoSoft",
+      "legal_name": "TIRES AND PARTS S.R.L.",
+      "cui": "35056829",
+      "category": "tires_auto_service",
+      "aliases": [
+        "AutoSoft",
+        "TIRES AND PARTS S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "tire_order_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "ING",
+          "source_refs": [
+            {
+              "url": "https://www.auto-soft.ro/cum-cumpar",
+              "publisher": "TIRES AND PARTS S.R.L.",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficială explică plata prin ordin de plată/transfer bancar în contul firmei TIRES AND PARTS S.R.L. și publică IBAN-ul, CIF și Registrul Comerțului."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO20INGB5029008227358910",
+          "iban_masked_for_client": "RO20 INGB **** **** **** 8910"
+        }
+      ],
+      "review_status": "active"
+    },
+    {
+      "brand_id": "webtrade_marketing_anvelope",
+      "display_name": "Anvelope.ro",
+      "legal_name": "S.C. WEBTRADE MARKETING S.R.L.",
+      "cui": "28555370",
+      "category": "tires",
+      "aliases": [
+        "Anvelope.ro",
+        "S.C. WEBTRADE MARKETING S.R.L."
+      ],
+      "payment_destinations": [
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "tire_order_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "UniCredit",
+          "source_refs": [
+            {
+              "url": "https://www.anvelope.ro/ajutor/cum-platesc",
+              "publisher": "S.C. WEBTRADE MARKETING S.R.L.",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficială menționează plata prin ordin de plată pe baza facturii proforme și publică datele fiscale + conturi bancare."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO83BACX0000000809817000",
+          "iban_masked_for_client": "RO83 BACX **** **** **** 7000"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "tire_order_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Raiffeisen",
+          "source_refs": [
+            {
+              "url": "https://www.anvelope.ro/ajutor/cum-platesc",
+              "publisher": "S.C. WEBTRADE MARKETING S.R.L.",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficială menționează plata prin ordin de plată pe baza facturii proforme și publică datele fiscale + conturi bancare."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO40RZBR0000060018734544",
+          "iban_masked_for_client": "RO40 RZBR **** **** **** 4544"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "tire_order_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Credit Europe",
+          "source_refs": [
+            {
+              "url": "https://www.anvelope.ro/ajutor/cum-platesc",
+              "publisher": "S.C. WEBTRADE MARKETING S.R.L.",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficială menționează plata prin ordin de plată pe baza facturii proforme și publică datele fiscale + conturi bancare."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO96FNNB003902922281RO01",
+          "iban_masked_for_client": "RO96 FNNB **** **** **** RO01"
+        },
+        {
+          "kind": "iban",
+          "trust_tier": "T1_PUBLIC_OFFICIAL",
+          "source_kind": "official_webpage",
+          "scope": "tire_order_payment",
+          "currency": "RON",
+          "confidence": "high",
+          "review_status": "active",
+          "client_distribution_allowed": false,
+          "hashing_required": true,
+          "match_policy": "exact_hmac_match_required",
+          "can_contribute_to_safe": true,
+          "bank_name": "Libra Internet Bank",
+          "source_refs": [
+            {
+              "url": "https://www.anvelope.ro/ajutor/cum-platesc",
+              "publisher": "S.C. WEBTRADE MARKETING S.R.L.",
+              "accessed_at": "2026-06-26",
+              "confidence": "high",
+              "source_excerpt": "Pagina oficială menționează plata prin ordin de plată pe baza facturii proforme și publică datele fiscale + conturi bancare."
+            }
+          ],
+          "iban_normalized_backend_seed_only": "RO07BREL0002003193450100",
+          "iban_masked_for_client": "RO07 BREL **** **** **** 0100"
+        }
+      ],
+      "review_status": "active"
+    }
+  ],
+  "summary": {
+    "entries_added": 3,
+    "exact_ibans_added": 8,
+    "source_dataset": "ro_auto_public_official_ibans_2026-06-26.json"
+  }
+}

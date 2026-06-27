@@ -281,6 +281,64 @@ _BRAND_ALIASES.update({
     "primaria timisoara": "primaria_timisoara",
     "primaria_iasi": "primaria_iasi",
     "primaria iasi": "primaria_iasi",
+    "compania_apa_oltenia": "compania_apa_oltenia",
+    "compania apa oltenia": "compania_apa_oltenia",
+    "compania de apa oltenia": "compania_apa_oltenia",
+    "apa oltenia": "compania_apa_oltenia",
+    "vital": "vital_baia_mare",
+    "vital baia mare": "vital_baia_mare",
+    "arabesque": "arabesque",
+    "mathaus": "arabesque",
+    "forit": "forit",
+    "clinica sante": "clinica_sante",
+    "sante": "clinica_sante",
+    "bootcamp": "bootcamp_as_training",
+    "bootcamp as": "bootcamp_as_training",
+    "bootcamp education": "bootcamp_education",
+    "apsap": "apsap",
+    "grawe": "grawe_romania",
+    "grawe romania": "grawe_romania",
+    "metlife": "metlife_romania",
+    "metlife romania": "metlife_romania",
+    "metropolitan life": "metlife_romania",
+    "credius": "credius_ifn",
+    "credius ifn": "credius_ifn",
+    "tbi": "tbi_bank",
+    "tbi bank": "tbi_bank",
+    "hzone": "hzone",
+    "h-zone": "hzone",
+    "it genetics": "it_genetics",
+    "itgstore": "it_genetics",
+    "rsd": "rsd_grup",
+    "rsd grup": "rsd_grup",
+    "aer conzal": "aer_conzal",
+    "kival": "kival_blue",
+    "kival blue": "kival_blue",
+    "toolsbox": "toolsbox_services",
+    "toolsbox services": "toolsbox_services",
+    "epiesa": "euro_parts_distribution",
+    "autohut": "euro_parts_distribution",
+    "piese-auto.ro": "euro_parts_distribution",
+    "piese auto": "euro_parts_distribution",
+    "euro parts distribution": "euro_parts_distribution",
+    "autosoft": "autosoft_tires_parts",
+    "auto soft": "autosoft_tires_parts",
+    "anvelope.ro": "webtrade_marketing_anvelope",
+    "anvelope": "webtrade_marketing_anvelope",
+    "webtrade marketing": "webtrade_marketing_anvelope",
+    "primaria_constanta": "primaria_constanta",
+    "primaria constanta": "primaria_constanta",
+    "spit constanta": "primaria_constanta",
+    "primaria_baia_mare": "primaria_baia_mare",
+    "primaria baia mare": "primaria_baia_mare",
+    "primaria_piatra_neamt": "primaria_piatra_neamt",
+    "primaria piatra neamt": "primaria_piatra_neamt",
+    "primaria piatra neamț": "primaria_piatra_neamt",
+    "primaria_sibiu": "primaria_sibiu",
+    "primaria sibiu": "primaria_sibiu",
+    "primaria_ploiesti": "primaria_ploiesti",
+    "primaria ploiesti": "primaria_ploiesti",
+    "primaria ploiești": "primaria_ploiesti",
 })
 
 
@@ -355,12 +413,31 @@ def _entry_name_keys(entry: Dict[str, Any], brand_id: str) -> set[str]:
     return keys
 
 
+def _entry_brand_match_keys(entry: Dict[str, Any], brand_id: str) -> set[str]:
+    keys: set[str] = set()
+    for value in (
+        brand_id,
+        str(brand_id or "").replace("_", " "),
+        entry.get("display_name"),
+    ):
+        key = _name_key(value)
+        if key:
+            keys.add(key)
+    for alias in entry.get("aliases") or []:
+        key = _name_key(alias)
+        if key:
+            keys.add(key)
+    return keys
+
+
 def _identity_key(candidate: Dict[str, Any]) -> tuple[str, str]:
     return (str(candidate.get("brand_id") or ""), str(candidate.get("cui") or ""))
 
 
-def _looks_masked_iban_seed(raw: Any) -> bool:
+def _looks_masked_iban_seed(raw: Any, *, literal_x_iban: bool = False) -> bool:
     normalized = str(raw or "").strip().upper().replace(" ", "")
+    if literal_x_iban:
+        return False
     return "XX" in normalized
 
 
@@ -395,7 +472,10 @@ def _registry() -> Dict[str, Any]:
                 brands_by_name.setdefault(name_key, set()).add(brand_id)
         for destination in destinations:
             raw = destination.get("iban_normalized_backend_seed_only")
-            if _looks_masked_iban_seed(raw) or destination.get("match_policy") == "reference_only_not_exact_match":
+            if (
+                _looks_masked_iban_seed(raw, literal_x_iban=bool(destination.get("literal_x_iban")))
+                or destination.get("match_policy") == "reference_only_not_exact_match"
+            ):
                 continue
             normalized = normalize_iban(str(raw or ""))
             if not normalized or not validate_iban(normalized).valid_structure:
@@ -412,6 +492,8 @@ def _registry() -> Dict[str, Any]:
                 "display_name": entry.get("display_name"),
                 "legal_name": entry.get("legal_name"),
                 "cui": _norm_cui(entry.get("cui")),
+                "name_keys": _entry_name_keys(entry, brand_id),
+                "brand_match_keys": _entry_brand_match_keys(entry, brand_id),
                 "trust_tier": destination.get("trust_tier"),
                 "confidence": destination.get("confidence") or "unknown",
                 "can_contribute_to_safe": bool(can_safe),
@@ -444,6 +526,9 @@ def brand_has_destinations(
     canonical = _canonical_brand(claimed_brand)
     registry = _registry()
     if canonical and canonical in registry["brands_with_destinations"]:
+        return True
+    claimed_name_key = _name_key(claimed_brand)
+    if claimed_name_key and claimed_name_key in registry["brands_by_name"]:
         return True
     cui_key = _norm_cui(cui)
     if cui_key and cui_key in registry["brands_by_cui"]:
@@ -503,7 +588,10 @@ def match_payment_destination(
 
     brand_matches = True
     if canonical_claim:
-        brand_matches = entry["brand_id"] == canonical_claim
+        claimed_name_key = _name_key(claimed_brand)
+        brand_matches = entry["brand_id"] == canonical_claim or (
+            bool(claimed_name_key) and claimed_name_key in (entry.get("brand_match_keys") or set())
+        )
     entry_cui = entry.get("cui") or ""
     cui_matches = None
     if entry_cui and _norm_cui(cui):
