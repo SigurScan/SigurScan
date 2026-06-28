@@ -12,7 +12,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.isActive
@@ -147,10 +146,7 @@ class SpeakerGuardSession(
             return@coroutineScope
         }
 
-        val chunks = Channel<ShortArray>(
-            capacity = 1,
-            onBufferOverflow = BufferOverflow.DROP_OLDEST
-        )
+        val chunks = Channel<ShortArray>(capacity = CHUNK_QUEUE_CAPACITY)
         var chunksAnalyzed = 0
         var chunksDropped = 0
         val evidenceAggregator = AudioEvidenceSessionAggregator()
@@ -188,8 +184,7 @@ class SpeakerGuardSession(
                         consumed += copyCount
 
                         if (offset == chunk.size) {
-                            val sent = chunks.trySend(chunk).isSuccess
-                            if (!sent) chunksDropped += 1
+                            chunks.send(chunk)
                             chunk = ShortArray(chunkSamples)
                             offset = 0
                         }
@@ -306,6 +301,7 @@ class SpeakerGuardSession(
     companion object {
         const val SAMPLE_RATE_HZ = 16_000
         const val CHUNK_SECONDS = 6
+        private const val CHUNK_QUEUE_CAPACITY = 8
         private const val BYTES_PER_SAMPLE = 2
     }
 }

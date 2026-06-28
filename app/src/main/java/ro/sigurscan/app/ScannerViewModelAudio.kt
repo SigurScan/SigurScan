@@ -205,7 +205,7 @@ internal fun ScannerViewModel.applySpeakerGuardUpdate(update: SpeakerGuardUpdate
         chunksAnalyzed = update.chunksAnalyzed,
         chunksDropped = update.chunksDropped,
         latestVerdict = evidence?.verdict ?: speakerGuardSnapshot.latestVerdict,
-        latestReasonCode = update.reasonCode ?: update.result?.reasonCode,
+        latestReasonCode = update.reasonCode ?: update.result?.reasonCode ?: speakerGuardSnapshot.latestReasonCode,
         latestArcFamily = evidence?.arcFamily ?: speakerGuardSnapshot.latestArcFamily,
         latestLatencyMs = update.latencyMs ?: speakerGuardSnapshot.latestLatencyMs,
         startedAtEpochMillis = startedAt,

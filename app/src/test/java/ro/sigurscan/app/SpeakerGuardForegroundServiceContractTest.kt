@@ -79,4 +79,36 @@ class SpeakerGuardForegroundServiceContractTest {
                 promptActivitySource.contains("Cardul stă jos")
         )
     }
+
+    @Test
+    fun liveCallCaptureDoesNotDropAudioChunksUnderSlowAsrBackpressure() {
+        val sessionSource = File("src/main/java/ro/sigurscan/app/SpeakerGuardSession.kt").readText()
+
+        assertFalse(
+            "Live-call recall must prefer latency over losing the exact sentence with the scam.",
+            sessionSource.contains("BufferOverflow.DROP_OLDEST")
+        )
+        assertFalse(
+            "trySend hides overflow when the channel is configured to drop; capture must suspend/backpressure instead.",
+            sessionSource.contains("trySend(chunk)")
+        )
+        assertTrue(
+            "Capture must enqueue chunks with a suspending send so slow ASR cannot silently discard audio.",
+            sessionSource.contains("chunks.send(chunk)")
+        )
+        assertTrue(
+            "The queue must buffer several 6s chunks so first-run Whisper latency on Nokia does not erase the call.",
+            sessionSource.contains("CHUNK_QUEUE_CAPACITY")
+        )
+    }
+
+    @Test
+    fun stoppedUpdateKeepsLastAsrReasonInsteadOfMaskingItAsCleanUnverified() {
+        val viewModelAudioSource = File("src/main/java/ro/sigurscan/app/ScannerViewModelAudio.kt").readText()
+
+        assertTrue(
+            "Stopping after an empty transcript must still tell the user we did not hear clear voice.",
+            viewModelAudioSource.contains("speakerGuardSnapshot.latestReasonCode")
+        )
+    }
 }
