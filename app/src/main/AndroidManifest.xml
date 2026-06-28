@@ -107,6 +107,10 @@
             android:name=".SpeakerGuardForegroundService"
             android:exported="false"
             android:foregroundServiceType="microphone" />
+
+        <service
+            android:name=".SpeakerGuardPromptForegroundService"
+            android:exported="false" />
     </application>
 
 </manifest>

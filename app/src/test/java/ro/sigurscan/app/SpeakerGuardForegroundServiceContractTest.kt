@@ -27,6 +27,10 @@ class SpeakerGuardForegroundServiceContractTest {
     @Test
     fun foregroundServiceOwnsCaptureSessionOnlyAfterExplicitStartAction() {
         val serviceSource = File("src/main/java/ro/sigurscan/app/SpeakerGuardForegroundService.kt").readText()
+        val promptServiceSource = File("src/main/java/ro/sigurscan/app/SpeakerGuardPromptForegroundService.kt")
+            .takeIf { it.exists() }
+            ?.readText()
+            .orEmpty()
 
         assertTrue(serviceSource.contains("ACTION_START_CAPTURE"))
         assertTrue(serviceSource.contains("ACTION_STOP_CAPTURE"))
@@ -36,10 +40,27 @@ class SpeakerGuardForegroundServiceContractTest {
             serviceSource.contains("FOREGROUND_SERVICE_TYPE_MICROPHONE") ||
                 serviceSource.contains("ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE")
         )
+        assertFalse(
+            "The microphone capture service must not own the call-screening prompt action; the prompt starts from background before consent.",
+            serviceSource.contains("ACTION_SHOW_CALL_PROMPT") ||
+                serviceSource.contains("handleCallPrompt")
+        )
         assertTrue(
-            "Prompt action must stay separated from capture action so call screening cannot start the mic before consent.",
-            serviceSource.contains("ACTION_SHOW_CALL_PROMPT") &&
-                serviceSource.contains("ACTION_START_CAPTURE")
+            "A separate prompt-only foreground service must own the call-screening prompt.",
+            promptServiceSource.contains("ACTION_SHOW_CALL_PROMPT") &&
+                promptServiceSource.contains("handleCallPrompt") &&
+                promptServiceSource.contains("SpeakerGuardCallPromptNotifier.fromContext(applicationContext).showIfNeeded(decision)")
+        )
+        assertFalse(
+            "The prompt-only foreground service must not own microphone capture.",
+            promptServiceSource.contains("ACTION_START_CAPTURE") ||
+                promptServiceSource.contains("SpeakerGuardSession(")
+        )
+        assertTrue(
+            "Prompt/capture lifecycle must be observable in live-call QA without logging audio or phone numbers.",
+            promptServiceSource.contains("speaker_guard_prompt_toast_shown") &&
+                serviceSource.contains("speaker_guard_capture_started") &&
+                serviceSource.contains("speaker_guard_capture_stopped")
         )
     }
 }

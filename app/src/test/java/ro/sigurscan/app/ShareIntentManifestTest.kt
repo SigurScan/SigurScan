@@ -107,17 +107,29 @@ class ShareIntentManifestTest {
             "The call-time prompt may need a full-screen intent when the app is closed and the phone is ringing.",
             manifest.contains("""android:name="android.permission.USE_FULL_SCREEN_INTENT"""")
         )
-        val speakerGuardForegroundService = Regex(
-            """<service[\s\S]*?android:name="\.SpeakerGuardForegroundService"[\s\S]*?/?>"""
+        val speakerGuardPromptService = Regex(
+            """<service[^>]*android:name="\.SpeakerGuardPromptForegroundService"[^>]*/>"""
+        ).find(manifest)?.value.orEmpty()
+        val speakerGuardCaptureService = Regex(
+            """<service[^>]*android:name="\.SpeakerGuardForegroundService"[^>]*/>"""
         ).find(manifest)?.value.orEmpty()
         assertTrue(
-            "SpeakerGuardForegroundService must be declared as an internal prompt carrier.",
-            speakerGuardForegroundService.contains("""android:name=".SpeakerGuardForegroundService"""") &&
-                speakerGuardForegroundService.contains("""android:exported="false"""")
+            "Call-screening prompts must use an internal prompt-only foreground service.",
+            speakerGuardPromptService.contains("""android:name=".SpeakerGuardPromptForegroundService"""") &&
+                speakerGuardPromptService.contains("""android:exported="false"""")
+        )
+        assertFalse(
+            "The prompt-only foreground service must not declare microphone type before user consent.",
+            speakerGuardPromptService.contains("""android:foregroundServiceType="microphone"""")
+        )
+        assertTrue(
+            "SpeakerGuardForegroundService must be declared as the internal microphone capture service.",
+            speakerGuardCaptureService.contains("""android:name=".SpeakerGuardForegroundService"""") &&
+                speakerGuardCaptureService.contains("""android:exported="false"""")
         )
         assertTrue(
             "After user consent, SpeakerGuardForegroundService must claim microphone foreground type for live-call capture.",
-            speakerGuardForegroundService.contains("""android:foregroundServiceType="microphone"""")
+            speakerGuardCaptureService.contains("""android:foregroundServiceType="microphone"""")
         )
         assertFalse(
             "Speaker Guard must not use overlay permission for call-time prompts.",

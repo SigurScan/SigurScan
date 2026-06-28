@@ -87,11 +87,12 @@ class RadarHotCacheTest {
     fun callScreeningWarnsWithSpeakerGuardPrompt() {
         val serviceSource = java.io.File("src/main/java/ro/sigurscan/app/SigurScanCallScreeningService.kt").readText()
         val notifierSource = java.io.File("src/main/java/ro/sigurscan/app/SpeakerGuardCallPromptNotifier.kt").takeIf { it.exists() }?.readText().orEmpty()
+        val promptServiceSource = java.io.File("src/main/java/ro/sigurscan/app/SpeakerGuardPromptForegroundService.kt").takeIf { it.exists() }?.readText().orEmpty()
         val foregroundServiceSource = java.io.File("src/main/java/ro/sigurscan/app/SpeakerGuardForegroundService.kt").takeIf { it.exists() }?.readText().orEmpty()
 
         assertTrue(
             "CallScreeningService must hand call-time Speaker Guard prompts to a foreground service so the app-closed case is covered.",
-            serviceSource.contains("SpeakerGuardForegroundService.startForCallPrompt(applicationContext, decision)")
+            serviceSource.contains("SpeakerGuardPromptForegroundService.startForCallPrompt(applicationContext, decision)")
         )
         assertTrue(
             "The call-time prompt must deep-link to Speaker Guard with autostart, not to a generic Radar page.",
@@ -101,7 +102,16 @@ class RadarHotCacheTest {
         )
         assertTrue(
             "The call-time prompt should be allowed to surface as a full-screen/high-priority call prompt when the app is closed.",
-            notifierSource.contains(".setFullScreenIntent(pendingIntent, true)")
+            notifierSource.contains(".setFullScreenIntent(pendingIntent, true)") &&
+                notifierSource.contains("NotificationCompat.PRIORITY_MAX") &&
+                notifierSource.contains("NotificationCompat.VISIBILITY_PUBLIC") &&
+                notifierSource.contains(".setTimeoutAfter(")
+        )
+        assertTrue(
+            "When the unlocked incoming-call UI covers the heads-up card, the prompt service must also show a lower-screen nudge so the user knows SigurScan is available.",
+            promptServiceSource.contains("Toast.makeText") &&
+                promptServiceSource.contains("notificare") &&
+                promptServiceSource.contains("Urechea")
         )
         assertTrue(
             "The prompt must be gated behind the reviewed local ASR feature flag.",
@@ -110,12 +120,12 @@ class RadarHotCacheTest {
         assertTrue(
             "Speaker Guard call prompt eligibility must use the unknown-contact policy, not only Radar WARN.",
             notifierSource.contains("SpeakerGuardCallPromptPolicy.shouldOffer(decision)") &&
-                foregroundServiceSource.contains("SpeakerGuardCallPromptPolicy.shouldOffer(decision)")
+                promptServiceSource.contains("SpeakerGuardCallPromptPolicy.shouldOffer(decision)")
         )
         assertFalse(
             "The old WARN-only gate would miss fresh unsaved-number scams.",
             notifierSource.contains("decision.action != RadarCallAction.WARN") ||
-                foregroundServiceSource.contains("decision.action != RadarCallAction.WARN")
+                promptServiceSource.contains("decision.action != RadarCallAction.WARN")
         )
         assertTrue(
             "CallScreeningService must propagate the system contact-display signal without requiring READ_CONTACTS.",
@@ -123,17 +133,22 @@ class RadarHotCacheTest {
                 serviceSource.contains("isKnownContact")
         )
         assertTrue(
-            "SpeakerGuardForegroundService must show a foreground notification promptly before delegating to the explicit-consent prompt.",
-            foregroundServiceSource.contains("startForeground(") &&
-                foregroundServiceSource.contains("SpeakerGuardCallPromptNotifier.fromContext(applicationContext).showIfNeeded(decision)")
+            "SpeakerGuardPromptForegroundService must show a prompt-only foreground notification before delegating to the explicit-consent prompt.",
+            promptServiceSource.contains("startForeground(") &&
+                promptServiceSource.contains("SpeakerGuardCallPromptNotifier.fromContext(applicationContext).showIfNeeded(decision)")
         )
         val promptHandler = Regex(
             """private fun handleCallPrompt[\s\S]*?return START_NOT_STICKY"""
-        ).find(foregroundServiceSource)?.value.orEmpty()
+        ).find(promptServiceSource)?.value.orEmpty()
         assertFalse(
             "The call prompt branch must not start microphone capture before the user taps the prompt.",
             promptHandler.contains("SpeakerGuardSession(") ||
                 promptHandler.contains("ACTION_START_CAPTURE")
+        )
+        assertFalse(
+            "The microphone capture service must not carry the background call-screening prompt action; Android treats the class as microphone-sensitive.",
+            foregroundServiceSource.contains("ACTION_SHOW_CALL_PROMPT") ||
+                foregroundServiceSource.contains("startForCallPrompt")
         )
         assertTrue(
             "After explicit consent, live-call microphone capture must be owned by the foreground service.",

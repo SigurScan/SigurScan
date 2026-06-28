@@ -61,13 +61,14 @@ class SpeakerGuardCallPromptNotifier private constructor(
             .setContentTitle(prompt.title)
             .setContentText(prompt.body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(prompt.body))
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_CALL)
-            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
             .setFullScreenIntent(pendingIntent, true)
             .addAction(R.drawable.ic_launcher_foreground, prompt.primaryCta, pendingIntent)
+            .setTimeoutAfter(PROMPT_TIMEOUT_MS)
             .build()
         NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification)
     }
@@ -76,6 +77,7 @@ class SpeakerGuardCallPromptNotifier private constructor(
         private const val CHANNEL_ID = "speaker_guard_call_prompt"
         private const val NOTIFICATION_ID = 4721
         private const val REQUEST_CODE = 4721
+        private const val PROMPT_TIMEOUT_MS = 120_000L
         private const val DEEP_LINK = "sigurscan://speaker-guard?autostart=1&source=call_screening"
 
         fun fromContext(context: Context): SpeakerGuardCallPromptNotifier {

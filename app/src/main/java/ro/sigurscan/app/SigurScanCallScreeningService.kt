@@ -13,7 +13,7 @@ class SigurScanCallScreeningService : CallScreeningService() {
             .copy(isKnownContact = !callDetails.contactDisplayName.isNullOrBlank())
         RadarScreeningAuditStore.fromContext(applicationContext).save(RadarScreeningAudit.fromDecision(decision))
         runCatching {
-            SpeakerGuardForegroundService.startForCallPrompt(applicationContext, decision)
+            SpeakerGuardPromptForegroundService.startForCallPrompt(applicationContext, decision)
         }.onFailure {
             Log.w(TAG, "speaker_guard_prompt_failed reason=${it.javaClass.simpleName}")
         }
