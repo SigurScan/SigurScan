@@ -40,13 +40,13 @@ fun speakerGuardPresentation(
         else -> rawVerdict
     }
     return SpeakerGuardPresentation(
-        title = "Urechea ascultă",
+        title = if (snapshot.active) "Urechea ascultă" else "Urechea oprită",
         listeningLabel = if (snapshot.active) "Ascult pe difuzor" else "Oprit",
         elapsedLabel = elapsedLabel(snapshot.startedAtEpochMillis, nowMillis),
-        privacyLine = "Analizez pe telefonul tău. Nimic nu pleacă de pe el.",
+        privacyLine = "Audio-ul brut rămâne pe telefon. Pentru verdict trimitem doar transcriere redactată.",
         status = snapshot.status,
-        verdictTitle = verdictTitle(verdict),
-        primaryAction = primaryAction(verdict),
+        verdictTitle = verdictTitle(verdict, snapshot.active),
+        primaryAction = primaryAction(verdict, snapshot.active),
         showHangUpCta = verdict == AudioEvidenceVerdict.DANGEROUS,
         diagnosticLine = diagnosticLine(snapshot),
         reasons = reasonsFor(evidence, snapshot)
@@ -58,7 +58,7 @@ fun speakerGuardCallPrompt(decision: RadarCallDecision): SpeakerGuardCallPromptP
     return SpeakerGuardCallPromptPresentation(
         title = if (warned) "Te sună un număr suspect" else "Te sună un număr necunoscut",
         body = "Vrei să-l pui pe difuzor și să ascult împreună cu tine, ca să-ți spun dacă pare o țeapă?",
-        privacyLine = "Pornește doar dacă apeși. Analiza se face pe telefonul tău — nimic nu pleacă de pe el.",
+        privacyLine = "Pornește doar dacă apeși. Audio-ul brut rămâne pe telefon; pentru verdict trimitem doar transcriere redactată.",
         primaryCta = "Ascultă pe difuzor",
         secondaryCta = "Nu acum"
     )
@@ -70,21 +70,25 @@ private fun elapsedLabel(startedAtEpochMillis: Long?, nowMillis: Long): String {
     return String.format(Locale.US, "%d:%02d", totalSeconds / 60L, totalSeconds % 60L)
 }
 
-private fun verdictTitle(verdict: AudioEvidenceVerdict?): String {
+private fun verdictTitle(verdict: AudioEvidenceVerdict?, active: Boolean): String {
     return when (verdict) {
         AudioEvidenceVerdict.DANGEROUS -> "Pare o țeapă"
         AudioEvidenceVerdict.SUSPECT -> "Pare suspect"
         AudioEvidenceVerdict.UNVERIFIED -> "Încă verific"
-        null -> "Ascult conversația"
+        null -> if (active) "Ascult conversația" else "Oprit"
     }
 }
 
-private fun primaryAction(verdict: AudioEvidenceVerdict?): String {
+private fun primaryAction(verdict: AudioEvidenceVerdict?, active: Boolean): String {
     return when (verdict) {
         AudioEvidenceVerdict.DANGEROUS -> "Închide apelul. Nu da date și nu transfera bani."
         AudioEvidenceVerdict.SUSPECT -> "Nu da date sau bani până nu verifici pe canal oficial."
         AudioEvidenceVerdict.UNVERIFIED -> "Continuă doar dacă ești sigur. Nu oferi date sensibile."
-        null -> "Pune apelul pe difuzor și lasă analiza locală pornită."
+        null -> if (active) {
+            "Pune apelul pe difuzor și lasă analiza locală pornită."
+        } else {
+            "Pornește Urechea doar dacă vrei să analizăm apelul pe difuzor."
+        }
     }
 }
 

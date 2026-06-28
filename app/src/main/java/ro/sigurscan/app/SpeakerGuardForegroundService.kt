@@ -137,7 +137,7 @@ class SpeakerGuardForegroundService : Service() {
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle("Urechea ascultă")
             .setContentText("Analiza rulează local. Ține apelul pe difuzor.")
-            .setStyle(NotificationCompat.BigTextStyle().bigText("Analiza rulează local. Nimic audio brut nu pleacă de pe telefon."))
+            .setStyle(NotificationCompat.BigTextStyle().bigText("Audio-ul brut rămâne pe telefon. Pentru verdict trimitem doar transcriere redactată."))
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)

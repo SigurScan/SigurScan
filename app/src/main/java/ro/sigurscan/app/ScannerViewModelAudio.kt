@@ -123,7 +123,7 @@ fun ScannerViewModel.startSpeakerGuard() {
         speakerGuardSnapshot = SpeakerGuardSnapshot(
             active = true,
             phase = SpeakerGuardPhase.LISTENING,
-            status = "Pornește serviciul vizibil de microfon. Ține apelul pe difuzor.",
+            status = "Urechea începe să asculte. Pune apelul pe difuzor și nu oferi date sensibile.",
             rawAudioStored = false
         )
         audioReadinessStatus = speakerGuardSnapshot.status
@@ -186,6 +186,7 @@ fun ScannerViewModel.stopSpeakerGuard() {
         phase = SpeakerGuardPhase.STOPPED,
         status = "Urechea este oprită."
     )
+    audioReadinessStatus = "Urechea este oprită."
 }
 
 internal fun ScannerViewModel.applySpeakerGuardUpdate(update: SpeakerGuardUpdate) {

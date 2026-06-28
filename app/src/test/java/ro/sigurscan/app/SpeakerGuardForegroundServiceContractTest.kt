@@ -62,5 +62,11 @@ class SpeakerGuardForegroundServiceContractTest {
                 serviceSource.contains("speaker_guard_capture_started") &&
                 serviceSource.contains("speaker_guard_capture_stopped")
         )
+        assertTrue(
+            "The unlocked-call fallback must tell the user the real action sequence, not just mention a hidden notification.",
+            promptServiceSource.contains("Răspunde") &&
+                promptServiceSource.contains("pune pe difuzor") &&
+                promptServiceSource.contains("atinge notificarea SigurScan")
+        )
     }
 }

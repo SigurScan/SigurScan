@@ -21,9 +21,26 @@ class SpeakerGuardPresentationTest {
         assertEquals("Urechea ascultă", presentation.title)
         assertEquals("Ascult pe difuzor", presentation.listeningLabel)
         assertEquals("0:42", presentation.elapsedLabel)
-        assertEquals("Analizez pe telefonul tău. Nimic nu pleacă de pe el.", presentation.privacyLine)
+        assertEquals("Ascult conversația", presentation.verdictTitle)
+        assertEquals(
+            "Audio-ul brut rămâne pe telefon. Pentru verdict trimitem doar transcriere redactată.",
+            presentation.privacyLine
+        )
         assertEquals("Ascultă prin microfon. Ține apelul pe difuzor.", presentation.status)
         assertFalse(presentation.showHangUpCta)
+    }
+
+    @Test
+    fun startupAndListeningCopyUseHumanCallStepsInsteadOfTechnicalServiceLanguage() {
+        val source = java.io.File("src/main/java/ro/sigurscan/app/ScannerViewModelAudio.kt").readText()
+        val sessionSource = java.io.File("src/main/java/ro/sigurscan/app/SpeakerGuardSession.kt").readText()
+
+        assertTrue(source.contains("Pune apelul pe difuzor"))
+        assertTrue(source.contains("Urechea începe să asculte"))
+        assertFalse(source.contains("serviciul vizibil de microfon"))
+        assertTrue(sessionSource.contains("Ascult conversația. Ține apelul pe difuzor."))
+        assertTrue(sessionSource.contains("Analizez conversația. Ține apelul pe difuzor."))
+        assertFalse(sessionSource.contains("Analizează local ultimul fragment audio."))
     }
 
     @Test
@@ -55,6 +72,36 @@ class SpeakerGuardPresentationTest {
     }
 
     @Test
+    fun dangerousHangUpCtaIsRenderedAsProminentActionInRadarCard() {
+        val cardSource = java.io.File("src/main/java/ro/sigurscan/app/RadarCards.kt").readText()
+
+        assertTrue(cardSource.contains("presentation.showHangUpCta"))
+        assertTrue(cardSource.contains("Închide apelul acum"))
+        assertTrue(cardSource.contains("Icons.Default.CallEnd"))
+    }
+
+    @Test
+    fun activeStopControlIsVisibleBeforeTheLargeStatusCardOnSmallPhones() {
+        val cardSource = java.io.File("src/main/java/ro/sigurscan/app/RadarCards.kt").readText()
+        val activeStopIndex = cardSource.indexOf("if (speakerGuard.active) {")
+        val statusBlockIndex = cardSource.indexOf("SpeakerGuardStatusBlock(presentation")
+
+        assertTrue(activeStopIndex >= 0)
+        assertTrue(statusBlockIndex > activeStopIndex)
+        assertTrue(cardSource.contains("SpeakerGuardCaptureControlButton"))
+        assertTrue(cardSource.contains("Oprește Urechea"))
+    }
+
+    @Test
+    fun callPromptStateDoesNotLookBrokenBeforeUserStartsListening() {
+        val cardSource = java.io.File("src/main/java/ro/sigurscan/app/RadarCards.kt").readText()
+
+        assertTrue(cardSource.contains("callPrompt != null"))
+        assertTrue(cardSource.contains("apel în curs"))
+        assertFalse(cardSource.contains("analiza rămâne pe telefon"))
+    }
+
+    @Test
     fun callPromptCopyIsConsentFirstAndOnDeviceOnly() {
         val decision = RadarCallDecision(
             action = RadarCallAction.WARN,
@@ -71,7 +118,9 @@ class SpeakerGuardPresentationTest {
         assertEquals("Nu acum", prompt.secondaryCta)
         assertTrue(prompt.body.contains("pui pe difuzor"))
         assertTrue(prompt.privacyLine.contains("Pornește doar dacă apeși"))
-        assertTrue(prompt.privacyLine.contains("telefonul tău"))
+        assertTrue(prompt.privacyLine.contains("Audio-ul brut rămâne pe telefon"))
+        assertTrue(prompt.privacyLine.contains("transcriere redactată"))
+        assertFalse(prompt.privacyLine.contains("nimic nu pleacă"))
     }
 
     @Test
@@ -85,10 +134,18 @@ class SpeakerGuardPresentationTest {
 
         val presentation = speakerGuardPresentation(snapshot, evidence = null, nowMillis = 10_000L)
 
+        assertEquals("Urechea oprită", presentation.title)
         assertEquals("Oprit", presentation.listeningLabel)
-        assertEquals("Ascult conversația", presentation.verdictTitle)
-        assertEquals("Pune apelul pe difuzor și lasă analiza locală pornită.", presentation.primaryAction)
+        assertEquals("Oprit", presentation.verdictTitle)
+        assertEquals("Pornește Urechea doar dacă vrei să analizăm apelul pe difuzor.", presentation.primaryAction)
         assertFalse(presentation.showHangUpCta)
+    }
+
+    @Test
+    fun manualStopClearsProcessingStatusText() {
+        val source = java.io.File("src/main/java/ro/sigurscan/app/ScannerViewModelAudio.kt").readText()
+
+        assertTrue(source.contains("audioReadinessStatus = \"Urechea este oprită.\""))
     }
 
     @Test

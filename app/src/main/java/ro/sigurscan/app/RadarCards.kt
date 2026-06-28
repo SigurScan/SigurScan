@@ -483,6 +483,17 @@ internal fun AudioAsrReadinessCard(
         }
     }
     val presentation = speakerGuardPresentation(speakerGuard, evidenceResult, nowMillis)
+    val chipText = when {
+        speakerGuard.active -> "live"
+        callPrompt != null -> "apel în curs"
+        blocked -> "nepregătit"
+        else -> "pregătit"
+    }
+    val chipTone = when {
+        speakerGuard.active || callPrompt != null -> DSChipTone.Brand
+        blocked -> DSChipTone.Suspect
+        else -> DSChipTone.Safe
+    }
     Card(
         colors = CardDefaults.cardColors(containerColor = SigurColors.BackgroundCard),
         border = DSCardBorder,
@@ -495,9 +506,9 @@ internal fun AudioAsrReadinessCard(
                 Spacer(modifier = Modifier.width(8.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text("Urechea SigurScan", color = SigurColors.TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    Text("Pentru apeluri nesigure: pui pe difuzor, apeși start, iar analiza rămâne pe telefon.", color = SigurColors.TextMuted, fontSize = 11.sp, lineHeight = 15.sp)
+                    Text("Pentru apeluri nesigure: pui pe difuzor, apeși start, iar audio-ul brut rămâne pe telefon.", color = SigurColors.TextMuted, fontSize = 11.sp, lineHeight = 15.sp)
                 }
-                DSChip(if (speakerGuard.active) "live" else if (blocked) "nepregătit" else "pregătit", tone = if (speakerGuard.active) DSChipTone.Brand else if (blocked) DSChipTone.Suspect else DSChipTone.Safe)
+                DSChip(chipText, tone = chipTone)
             }
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -511,32 +522,24 @@ internal fun AudioAsrReadinessCard(
                 Text(it, color = SigurColors.TextSecondary, fontSize = 11.sp, lineHeight = 15.sp)
             }
 
+            if (speakerGuard.active) {
+                Spacer(modifier = Modifier.height(10.dp))
+                SpeakerGuardCaptureControlButton(
+                    active = true,
+                    onStartSpeakerGuard = onStartSpeakerGuard,
+                    onStopSpeakerGuard = onStopSpeakerGuard
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
             SpeakerGuardStatusBlock(presentation, speakerGuard.latestVerdict ?: evidenceResult?.verdict)
 
-            Spacer(modifier = Modifier.height(12.dp))
-            Button(
-                onClick = if (speakerGuard.active) onStopSpeakerGuard else onStartSpeakerGuard,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (speakerGuard.active) SigurColors.DangerousLight else SigurColors.SafeLight
-                ),
-                border = BorderStroke(
-                    1.dp,
-                    if (speakerGuard.active) SigurColors.DangerousBorder else SigurColors.SafeBorder
-                ),
-                shape = DSPillShape
-            ) {
-                Icon(
-                    if (speakerGuard.active) Icons.Default.Stop else Icons.Default.Mic,
-                    contentDescription = null,
-                    tint = if (speakerGuard.active) SigurColors.Dangerous else SigurColors.Safe,
-                    modifier = Modifier.size(14.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    if (speakerGuard.active) "Oprește Urechea" else "Ascultă pe difuzor",
-                    color = if (speakerGuard.active) SigurColors.Dangerous else SigurColors.Safe,
-                    fontSize = 11.sp
+            if (!speakerGuard.active) {
+                Spacer(modifier = Modifier.height(12.dp))
+                SpeakerGuardCaptureControlButton(
+                    active = false,
+                    onStartSpeakerGuard = onStartSpeakerGuard,
+                    onStopSpeakerGuard = onStopSpeakerGuard
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))
@@ -588,6 +591,39 @@ internal fun AudioAsrReadinessCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SpeakerGuardCaptureControlButton(
+    active: Boolean,
+    onStartSpeakerGuard: () -> Unit,
+    onStopSpeakerGuard: () -> Unit
+) {
+    Button(
+        onClick = if (active) onStopSpeakerGuard else onStartSpeakerGuard,
+        modifier = Modifier.fillMaxWidth(),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (active) SigurColors.DangerousLight else SigurColors.SafeLight
+        ),
+        border = BorderStroke(
+            1.dp,
+            if (active) SigurColors.DangerousBorder else SigurColors.SafeBorder
+        ),
+        shape = DSPillShape
+    ) {
+        Icon(
+            if (active) Icons.Default.Stop else Icons.Default.Mic,
+            contentDescription = null,
+            tint = if (active) SigurColors.Dangerous else SigurColors.Safe,
+            modifier = Modifier.size(14.dp)
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(
+            if (active) "Oprește Urechea" else "Ascultă pe difuzor",
+            color = if (active) SigurColors.Dangerous else SigurColors.Safe,
+            fontSize = 11.sp
+        )
     }
 }
 
@@ -677,6 +713,24 @@ internal fun SpeakerGuardStatusBlock(
 
             Spacer(modifier = Modifier.height(10.dp))
             Text(presentation.status, color = SigurColors.TextSecondary, fontSize = 11.sp, lineHeight = 15.sp)
+            if (presentation.showHangUpCta) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(SigurColors.DangerousLight, DSPillShape)
+                        .border(1.dp, SigurColors.DangerousBorder, DSPillShape)
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.CallEnd, contentDescription = null, tint = SigurColors.Dangerous, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Închide apelul acum", color = SigurColors.Dangerous, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text("Nu da coduri, parole, carduri sau bani.", color = SigurColors.TextSecondary, fontSize = 11.sp, lineHeight = 15.sp)
+                    }
+                }
+            }
             presentation.diagnosticLine?.let {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(it, color = SigurColors.TextMuted, fontSize = 10.sp, lineHeight = 14.sp)

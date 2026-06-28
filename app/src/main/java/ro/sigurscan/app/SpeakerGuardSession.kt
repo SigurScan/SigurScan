@@ -162,7 +162,7 @@ class SpeakerGuardSession(
                 SpeakerGuardUpdate(
                     phase = SpeakerGuardPhase.LISTENING,
                     active = true,
-                    status = "Ascultă prin microfon. Ține apelul pe difuzor."
+                    status = "Ascult conversația. Ține apelul pe difuzor."
                 )
             )
 
@@ -205,7 +205,7 @@ class SpeakerGuardSession(
                             active = true,
                             chunksAnalyzed = chunksAnalyzed,
                             chunksDropped = chunksDropped,
-                            status = "Analizează local ultimul fragment audio."
+                            status = "Analizez conversația. Ține apelul pe difuzor."
                         )
                     )
                     val started = System.currentTimeMillis()

@@ -50,7 +50,7 @@ class SpeakerGuardPromptForegroundService : Service() {
     private fun showUnlockedIncomingCallNudge() {
         Toast.makeText(
             applicationContext,
-            "SigurScan: după ce răspunzi, deschide Urechea din notificare.",
+            "SigurScan: Răspunde, pune pe difuzor, apoi atinge notificarea SigurScan.",
             Toast.LENGTH_LONG
         ).show()
         Log.i(TAG, "speaker_guard_prompt_toast_shown")
