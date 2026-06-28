@@ -16,6 +16,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -28,11 +29,16 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 object SpeakerGuardForegroundServiceEvents {
-    private val _updates = MutableSharedFlow<SpeakerGuardUpdate>(extraBufferCapacity = 64)
+    private val _updates = MutableSharedFlow<SpeakerGuardUpdate>(replay = 1, extraBufferCapacity = 64)
     val updates: SharedFlow<SpeakerGuardUpdate> = _updates.asSharedFlow()
 
     fun publish(update: SpeakerGuardUpdate) {
         _updates.tryEmit(update)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun clear() {
+        _updates.resetReplayCache()
     }
 }
 
@@ -47,8 +53,10 @@ class SpeakerGuardForegroundService : Service() {
         return when (intent?.action) {
             ACTION_START_CAPTURE -> handleStartCapture(intent, startId)
             ACTION_STOP_CAPTURE -> {
-                stopCaptureSession()
-                stopSelf(startId)
+                requestStopCaptureSession()
+                if (captureSession == null) {
+                    stopSelf(startId)
+                }
                 START_NOT_STICKY
             }
             else -> {
@@ -59,7 +67,7 @@ class SpeakerGuardForegroundService : Service() {
     }
 
     override fun onDestroy() {
-        stopCaptureSession(removeForeground = false)
+        forceStopCaptureSession(removeForeground = false)
         serviceScope.cancel()
         super.onDestroy()
     }
@@ -92,7 +100,7 @@ class SpeakerGuardForegroundService : Service() {
         session.start(serviceScope, modelPath) { update ->
             SpeakerGuardForegroundServiceEvents.publish(update)
             if (!update.active && update.phase != SpeakerGuardPhase.PROCESSING) {
-                stopCaptureSession()
+                finishCaptureSession()
                 stopSelf(startId)
             }
         }
@@ -146,11 +154,28 @@ class SpeakerGuardForegroundService : Service() {
             .build()
     }
 
-    private fun stopCaptureSession(removeForeground: Boolean = true) {
+    private fun requestStopCaptureSession() {
+        if (captureSession != null) {
+            Log.i(TAG, "speaker_guard_capture_stop_requested")
+        }
+        captureSession?.stop()
+    }
+
+    private fun finishCaptureSession(removeForeground: Boolean = true) {
         if (captureSession != null) {
             Log.i(TAG, "speaker_guard_capture_stopped")
         }
-        captureSession?.stop()
+        captureSession = null
+        if (removeForeground) {
+            runCatching { stopForeground(STOP_FOREGROUND_REMOVE) }
+        }
+    }
+
+    private fun forceStopCaptureSession(removeForeground: Boolean = true) {
+        if (captureSession != null) {
+            Log.i(TAG, "speaker_guard_capture_stopped")
+        }
+        captureSession?.cancel()
         captureSession = null
         if (removeForeground) {
             runCatching { stopForeground(STOP_FOREGROUND_REMOVE) }

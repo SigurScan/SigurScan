@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
+import android.util.Log
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CancellationException
@@ -80,6 +81,11 @@ class SpeakerGuardSession(
 
     fun stop() {
         stopRequested = true
+        releaseActiveAudioRecord()
+    }
+
+    fun cancel() {
+        stopRequested = true
         job?.cancel()
         releaseActiveAudioRecord()
         job = null
@@ -149,6 +155,9 @@ class SpeakerGuardSession(
         val chunks = Channel<ShortArray>(capacity = CHUNK_QUEUE_CAPACITY)
         var chunksAnalyzed = 0
         var chunksDropped = 0
+        var lastResult: LocalAsrResult? = null
+        var lastLatencyMs: Long? = null
+        var lastReasonCode: String? = null
         val evidenceAggregator = AudioEvidenceSessionAggregator()
 
         try {
@@ -167,8 +176,14 @@ class SpeakerGuardSession(
                 var chunk = ShortArray(chunkSamples)
                 var offset = 0
 
-                while (isActive) {
-                    val read = audioRecord.read(readBuffer, 0, readBuffer.size)
+                while (isActive && !stopRequested) {
+                    val read = try {
+                        audioRecord.read(readBuffer, 0, readBuffer.size)
+                    } catch (throwable: Throwable) {
+                        if (stopRequested) break
+                        throw throwable
+                    }
+                    if (stopRequested) break
                     if (read <= 0) continue
 
                     var consumed = 0
@@ -190,10 +205,19 @@ class SpeakerGuardSession(
                         }
                     }
                 }
+
+                if (offset >= MIN_PARTIAL_CHUNK_SAMPLES) {
+                    chunks.send(chunk.copyOf(offset))
+                }
+                chunks.close()
             }
 
             val processor = launch(Dispatchers.Default) {
                 for (chunk in chunks) {
+                    Log.i(
+                        TAG,
+                        "speaker_guard_chunk_processing index=${chunksAnalyzed + 1} samples=${chunk.size}"
+                    )
                     onUpdate(
                         SpeakerGuardUpdate(
                             phase = SpeakerGuardPhase.PROCESSING,
@@ -218,6 +242,19 @@ class SpeakerGuardSession(
                     val result = semanticResult.withSessionEvidence(evidenceAggregator)
                     chunksAnalyzed += 1
                     val latency = System.currentTimeMillis() - started
+                    lastResult = result
+                    lastLatencyMs = latency
+                    lastReasonCode = result.reasonCode
+                    Log.i(
+                        TAG,
+                        "speaker_guard_chunk_result index=$chunksAnalyzed " +
+                            "transcript_present=${rawResult.transcript.isNotBlank()} " +
+                            "success=${result.success} " +
+                            "reason=${result.reasonCode.orEmpty()} " +
+                            "verdict=${result.evidence?.verdict?.name ?: "NONE"} " +
+                            "processing=${result.evidence?.processing ?: "none"} " +
+                            "latency_ms=$latency"
+                    )
                     onUpdate(
                         SpeakerGuardUpdate(
                             phase = SpeakerGuardPhase.LISTENING,
@@ -234,7 +271,7 @@ class SpeakerGuardSession(
             }
 
             recorder.join()
-            processor.cancel()
+            processor.join()
         } finally {
             chunks.close()
             if (activeAudioRecord === audioRecord) {
@@ -247,9 +284,13 @@ class SpeakerGuardSession(
                     active = false,
                     chunksAnalyzed = chunksAnalyzed,
                     chunksDropped = chunksDropped,
-                    status = "Urechea este oprită."
+                    result = lastResult,
+                    latencyMs = lastLatencyMs,
+                    reasonCode = lastReasonCode ?: if (chunksAnalyzed == 0) "no_audio_chunk" else null,
+                    status = stoppedStatus(chunksAnalyzed, lastResult)
                 )
             )
+            job = null
         }
     }
 
@@ -276,6 +317,13 @@ class SpeakerGuardSession(
         }
     }
 
+    private fun stoppedStatus(chunksAnalyzed: Int, lastResult: LocalAsrResult?): String {
+        if (chunksAnalyzed == 0) {
+            return "Urechea s-a oprit fără fragment audio clar. Pune apelul pe difuzor și încearcă din nou."
+        }
+        return lastResult?.let { statusFor(it) } ?: "Urechea este oprită."
+    }
+
     private fun LocalAsrResult.withSessionEvidence(
         aggregator: AudioEvidenceSessionAggregator
     ): LocalAsrResult {
@@ -291,9 +339,16 @@ class SpeakerGuardSession(
     private suspend fun LocalAsrResult.withSemanticReview(): LocalAsrResult {
         if (!success || transcript.isBlank()) return this
         val redacted = AudioTranscriptRedactor.redact(transcript)
+        Log.i(TAG, "speaker_guard_semantic_review_requested transcript_chars=${redacted.length}")
         val review = withContext(Dispatchers.IO) {
             semanticReviewer.review(redacted, evidence)
         }
+        Log.i(
+            TAG,
+            "speaker_guard_semantic_review_result received=${review != null} " +
+                "risk=${review?.semanticReview?.riskClass ?: "none"} " +
+                "escalates=${review?.escalates ?: false}"
+        )
         val fused = AudioSemanticReviewFusion.fuse(evidence, review)
         return copy(evidence = fused)
     }
@@ -303,5 +358,8 @@ class SpeakerGuardSession(
         const val CHUNK_SECONDS = 6
         private const val CHUNK_QUEUE_CAPACITY = 8
         private const val BYTES_PER_SAMPLE = 2
+        private const val MIN_PARTIAL_CHUNK_SECONDS = 2
+        private const val MIN_PARTIAL_CHUNK_SAMPLES = SAMPLE_RATE_HZ * MIN_PARTIAL_CHUNK_SECONDS
+        private const val TAG = "SpeakerGuardSession"
     }
 }

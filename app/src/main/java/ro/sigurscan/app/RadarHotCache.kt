@@ -58,8 +58,21 @@ data class RadarScreeningAudit(
 }
 
 object SpeakerGuardCallPromptPolicy {
+    const val PROMPT_VISIBLE_MS: Long = 180_000L
+
     fun shouldOffer(decision: RadarCallDecision): Boolean {
         return !decision.isKnownContact
+    }
+
+    fun shouldOffer(
+        decision: RadarCallDecision,
+        checkedAtEpochMillis: Long,
+        nowMillis: Long = System.currentTimeMillis()
+    ): Boolean {
+        if (!shouldOffer(decision)) return false
+        if (checkedAtEpochMillis <= 0L) return false
+        val ageMs = nowMillis - checkedAtEpochMillis
+        return ageMs in 0L..PROMPT_VISIBLE_MS
     }
 }
 

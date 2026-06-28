@@ -71,6 +71,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import coil.compose.SubcomposeAsyncImage
+import kotlinx.coroutines.delay
 import ro.sigurscan.app.ui.theme.SigurScanTheme
 import ro.sigurscan.app.ui.theme.SigurColors
 import org.json.JSONArray
@@ -144,6 +145,15 @@ fun RadarTab(viewModel: ScannerViewModel) {
             ?: viewModel.familyMembers.firstOrNull { it.isProtected }
             ?: viewModel.familyMembers.firstOrNull()
     }
+    val callAuditCheckedAt = viewModel.radarScreeningAudit?.checkedAtEpochMillis
+    var callPromptNowMillis by remember { mutableStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(callAuditCheckedAt, viewModel.speakerGuardSnapshot.active) {
+        callPromptNowMillis = System.currentTimeMillis()
+        while (callAuditCheckedAt != null && !viewModel.speakerGuardSnapshot.active) {
+            delay(1_000L)
+            callPromptNowMillis = System.currentTimeMillis()
+        }
+    }
 
     Column(modifier = Modifier.fillMaxSize().padding(20.dp).verticalScroll(rememberScrollState())) {
         Text("Radar Scam", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = SigurColors.TextPrimary)
@@ -175,17 +185,23 @@ fun RadarTab(viewModel: ScannerViewModel) {
 
         if (BuildConfig.SIGURSCAN_ENABLE_AUDIO_ASR) {
             val speakerGuardPrompt = viewModel.radarScreeningAudit
-                ?.let {
+                ?.let { audit ->
                     RadarCallDecision(
-                        action = it.action,
-                        reason = it.reason,
-                        family = it.family,
-                        isKnownContact = it.isKnownContact
-                    )
+                        action = audit.action,
+                        reason = audit.reason,
+                        family = audit.family,
+                        isKnownContact = audit.isKnownContact
+                    ) to audit.checkedAtEpochMillis
                 }
-                ?.takeIf { SpeakerGuardCallPromptPolicy.shouldOffer(it) && !viewModel.speakerGuardSnapshot.active }
-                ?.let {
-                    speakerGuardCallPrompt(it)
+                ?.takeIf { (decision, checkedAt) ->
+                    SpeakerGuardCallPromptPolicy.shouldOffer(
+                        decision = decision,
+                        checkedAtEpochMillis = checkedAt,
+                        nowMillis = callPromptNowMillis
+                    ) && !viewModel.speakerGuardSnapshot.active
+                }
+                ?.let { (decision, _) ->
+                    speakerGuardCallPrompt(decision)
             }
             val startSpeakerGuardWithConsent = {
                 viewModel.acceptSpeakerGuardConsent()

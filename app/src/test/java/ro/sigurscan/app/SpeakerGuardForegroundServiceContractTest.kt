@@ -103,6 +103,58 @@ class SpeakerGuardForegroundServiceContractTest {
     }
 
     @Test
+    fun foregroundServiceReplaysLatestUpdateAfterActivityRecreation() {
+        val serviceSource = File("src/main/java/ro/sigurscan/app/SpeakerGuardForegroundService.kt").readText()
+        val viewModelAudioSource = File("src/main/java/ro/sigurscan/app/ScannerViewModelAudio.kt").readText()
+
+        assertTrue(
+            "Live-call verdict updates must survive Activity/ViewModel recreation while the dialer owns the screen.",
+            serviceSource.contains("MutableSharedFlow<SpeakerGuardUpdate>(replay = 1")
+        )
+        assertTrue(
+            "Starting a fresh session must not replay an old STOPPED update and cancel the new collector.",
+            serviceSource.contains("resetReplayCache()") &&
+                viewModelAudioSource.contains("SpeakerGuardForegroundServiceEvents.clear()")
+        )
+    }
+
+    @Test
+    fun stopDrainsQueuedAudioInsteadOfCancellingTheProcessor() {
+        val sessionSource = File("src/main/java/ro/sigurscan/app/SpeakerGuardSession.kt").readText()
+
+        assertFalse(
+            "Normal live-call stop must not cancel the session job before queued chunks reach ASR/Mistral.",
+            sessionSource.contains("fun stop() {\n        stopRequested = true\n        job?.cancel()")
+        )
+        assertTrue(
+            "Normal stop should only request stop and release AudioRecord so recorder can close the queue gracefully.",
+            sessionSource.contains("fun stop() {\n        stopRequested = true\n        releaseActiveAudioRecord()\n    }")
+        )
+        assertFalse(
+            "The processor must not be cancelled after recorder.join(); it must drain the closed channel.",
+            sessionSource.contains("processor.cancel()")
+        )
+        assertTrue(
+            "The recorder should close the chunk channel and the processor should finish by join().",
+            sessionSource.contains("processor.join()")
+        )
+    }
+
+    @Test
+    fun liveCallDebugLogsArePrivacySafeAndShowChunkAndSemanticProgress() {
+        val sessionSource = File("src/main/java/ro/sigurscan/app/SpeakerGuardSession.kt").readText()
+
+        assertTrue(sessionSource.contains("speaker_guard_chunk_processing"))
+        assertTrue(sessionSource.contains("speaker_guard_chunk_result"))
+        assertTrue(sessionSource.contains("speaker_guard_semantic_review_requested"))
+        assertTrue(sessionSource.contains("speaker_guard_semantic_review_result"))
+        assertFalse(
+            "Never log the raw transcript from a live call.",
+            sessionSource.contains("Log.i(TAG, \"") && sessionSource.contains("\$transcript")
+        )
+    }
+
+    @Test
     fun stoppedUpdateKeepsLastAsrReasonInsteadOfMaskingItAsCleanUnverified() {
         val viewModelAudioSource = File("src/main/java/ro/sigurscan/app/ScannerViewModelAudio.kt").readText()
 

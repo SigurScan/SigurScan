@@ -258,4 +258,28 @@ class RadarHotCacheTest {
         assertEquals("CONV_BANK_SAFE_ACCOUNT", audit.family)
         assertNull(RadarScreeningAudit::class.java.declaredFields.firstOrNull { it.name.contains("phone", ignoreCase = true) })
     }
+
+    @Test
+    fun speakerGuardCallPromptExpiresSoUiDoesNotKeepShowingCallInProgressAfterCallEnds() {
+        val decision = RadarCallDecision(
+            action = RadarCallAction.ALLOW,
+            reason = "radar_cache_missing_or_expired",
+            isKnownContact = false
+        )
+
+        assertTrue(
+            SpeakerGuardCallPromptPolicy.shouldOffer(
+                decision = decision,
+                checkedAtEpochMillis = 10_000L,
+                nowMillis = 45_000L
+            )
+        )
+        assertFalse(
+            SpeakerGuardCallPromptPolicy.shouldOffer(
+                decision = decision,
+                checkedAtEpochMillis = 10_000L,
+                nowMillis = 190_001L
+            )
+        )
+    }
 }
