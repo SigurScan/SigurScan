@@ -58,6 +58,41 @@ class SpeakerGuardForegroundServiceContractTest {
     }
 
     @Test
+    fun foregroundServiceAudioSemanticClientUsesFullBackendAuth() {
+        val serviceSource = File("src/main/java/ro/sigurscan/app/SpeakerGuardForegroundService.kt").readText()
+
+        assertTrue(
+            "Live-call Mistral must use the same backend client path as normal scans so Play Integrity enforcement does not kill Urechea.",
+            serviceSource.contains("buildSigurScanApiClient(")
+        )
+        assertTrue(
+            "Live-call semantic review must send a stable client instance id.",
+            serviceSource.contains("clientInstanceId = clientInstanceId")
+        )
+        assertTrue(
+            "Live-call semantic review must attach Play Integrity tokens when enabled.",
+            serviceSource.contains("integrityTokenProvider = { playIntegrityTokenProvider.currentToken() }")
+        )
+    }
+
+    @Test
+    fun viewModelClearDoesNotStopLiveCaptureOwnedByForegroundService() {
+        val viewModelSource = File("src/main/java/ro/sigurscan/app/ScannerViewModel.kt").readText()
+        val onClearedBody = Regex(
+            """override fun onCleared\(\) \{([\s\S]*?)\n    \}"""
+        ).find(viewModelSource)?.groupValues?.get(1).orEmpty()
+
+        assertFalse(
+            "Activity/ViewModel recycling behind the dialer must not stop the microphone foreground service.",
+            onClearedBody.contains("SpeakerGuardForegroundService.stopCapture(")
+        )
+        assertTrue(
+            "onCleared should only detach update collection; explicit UI/call-end paths own stopCapture.",
+            onClearedBody.contains("speakerGuardServiceUpdatesJob?.cancel()")
+        )
+    }
+
+    @Test
     fun speakerGuardSessionDoesNotBlockAsrLoopOnSemanticReview() {
         val sessionSource = File("src/main/java/ro/sigurscan/app/SpeakerGuardSession.kt").readText()
 

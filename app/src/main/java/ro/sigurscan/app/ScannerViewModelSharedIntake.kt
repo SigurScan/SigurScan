@@ -528,6 +528,7 @@ fun ScannerViewModel.onFilePicked(uri: Uri, context: Context) {
 }
 
 internal fun ScannerViewModel.scanSharedAudioFile(uri: Uri, context: Context, fileName: String) {
+    Log.i("SharedAudioIntake", "Starting shared audio scan: scheme=${uri.scheme}, fileName=$fileName")
     stagedEvidenceHtml = null
     stagedEvidenceLinks = emptyList()
     stagedEvidenceText = null
@@ -573,6 +574,7 @@ internal fun ScannerViewModel.scanSharedAudioFile(uri: Uri, context: Context, fi
             loading = false
             loadingMsg = ""
         } catch (e: Exception) {
+            Log.w("SharedAudioIntake", "Shared audio scan failed: ${e.message ?: e.javaClass.simpleName}", e)
             publishAudioShareRequiresTranscript(fileName, e.message ?: e.javaClass.simpleName)
         }
     }

@@ -104,6 +104,21 @@ class ApiKeyInterceptorTest {
     }
 
     @Test
+    fun `adds play integrity header for audio semantic review endpoint`() {
+        val forwarded = requestThrough(
+            ApiKeyInterceptor(
+                rawApiKey = "secret-key",
+                clientInstanceId = "android-install-1",
+                integrityTokenProvider = { "integrity-token" }
+            ),
+            path = "/v1/audio/semantic-review"
+        )
+
+        assertEquals("android-install-1", forwarded.header(SIGURSCAN_CLIENT_INSTANCE_HEADER))
+        assertEquals("integrity-token", forwarded.header(SIGURSCAN_PLAY_INTEGRITY_HEADER))
+    }
+
+    @Test
     fun `does not add play integrity header when token provider is blank`() {
         val forwarded = requestThrough(
             ApiKeyInterceptor(
