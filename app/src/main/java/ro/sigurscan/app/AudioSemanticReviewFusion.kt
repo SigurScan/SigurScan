@@ -1,6 +1,10 @@
 package ro.sigurscan.app
 
 import kotlinx.coroutines.CancellationException
+import java.io.IOException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
+import retrofit2.HttpException
 
 interface AudioSemanticReviewer {
     suspend fun review(
@@ -86,12 +90,22 @@ class BackendAudioSemanticReviewer(
             )
         } catch (cancelled: CancellationException) {
             throw cancelled
-        } catch (_: Exception) {
+        } catch (error: Exception) {
             AudioSemanticReviewOutcome(
                 response = null,
                 status = VerificationPillarStatus.ERROR,
-                reasonCode = "semantic:backend_unavailable"
+                reasonCode = reasonCodeFor(error)
             )
+        }
+    }
+
+    private fun reasonCodeFor(error: Exception): String {
+        return when (error) {
+            is SocketTimeoutException -> "semantic:timeout"
+            is UnknownHostException -> "semantic:network_unavailable"
+            is HttpException -> "semantic:http_${error.code()}"
+            is IOException -> "semantic:io_error"
+            else -> "semantic:backend_unavailable"
         }
     }
 }

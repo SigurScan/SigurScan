@@ -203,6 +203,7 @@ class SpeakerGuardSession(
         val chunks = SpeakerGuardChunkQueue(capacity = CHUNK_QUEUE_CAPACITY)
         var chunksAnalyzed = 0
         val evidenceAggregator = AudioEvidenceSessionAggregator()
+        val semanticCoordinator = SpeakerGuardSemanticReviewCoordinator()
         var heardVoice = false
 
         try {
@@ -303,6 +304,7 @@ class SpeakerGuardSession(
                     launchSemanticReview(
                         result = result,
                         evidenceAggregator = evidenceAggregator,
+                        semanticCoordinator = semanticCoordinator,
                         chunksAnalyzed = chunksAnalyzed,
                         chunksDropped = chunks.chunksDropped,
                         latencyMs = latency,
@@ -382,19 +384,38 @@ class SpeakerGuardSession(
     private fun CoroutineScope.launchSemanticReview(
         result: LocalAsrResult,
         evidenceAggregator: AudioEvidenceSessionAggregator,
+        semanticCoordinator: SpeakerGuardSemanticReviewCoordinator,
         chunksAnalyzed: Int,
         chunksDropped: Int,
         latencyMs: Long,
         onUpdate: (SpeakerGuardUpdate) -> Unit
     ): Job {
-        if (!result.success || result.transcript.isBlank()) {
-            return launch { }
-        }
+        val semanticRequest = synchronized(semanticCoordinator) {
+            semanticCoordinator.offer(result)
+        } ?: return launch { }
         return launch(Dispatchers.IO) {
-            val redacted = AudioTranscriptRedactor.redact(result.transcript)
-            if (redacted.isBlank()) return@launch
-            val review = semanticReviewer.review(redacted, result.evidence)
-            val fusedEvidence = AudioSemanticReviewFusion.fuse(result.evidence, review)
+            val outcome = semanticReviewer.review(
+                redactedTranscript = semanticRequest.redactedTranscript,
+                localEvidence = semanticRequest.localEvidence
+            )
+            if (outcome.response == null) {
+                val reasonCode = outcome.reasonCode ?: "semantic:unavailable"
+                onUpdate(
+                    SpeakerGuardUpdate(
+                        phase = SpeakerGuardPhase.LISTENING,
+                        active = true,
+                        chunksAnalyzed = chunksAnalyzed,
+                        chunksDropped = chunksDropped,
+                        result = result,
+                        latencyMs = latencyMs,
+                        reasonCode = reasonCode,
+                        status = "Verificarea semantică nu a răspuns încă: $reasonCode."
+                    )
+                )
+                return@launch
+            }
+
+            val fusedEvidence = AudioSemanticReviewFusion.fuse(result.evidence, outcome.response)
             if (fusedEvidence == result.evidence) return@launch
             val aggregatedEvidence = synchronized(evidenceAggregator) {
                 evidenceAggregator.absorb(fusedEvidence)

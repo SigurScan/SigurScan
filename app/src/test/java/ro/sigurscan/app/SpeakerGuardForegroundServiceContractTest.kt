@@ -123,4 +123,23 @@ class SpeakerGuardForegroundServiceContractTest {
             sessionSource.contains("hasVoiceEnergy(")
         )
     }
+
+    @Test
+    fun audioSemanticReviewerDoesNotSilentlySwallowBackendFailures() {
+        val reviewerSource = File("src/main/java/ro/sigurscan/app/AudioSemanticReviewFusion.kt").readText()
+        val sessionSource = File("src/main/java/ro/sigurscan/app/SpeakerGuardSession.kt").readText()
+
+        assertTrue(
+            "Audio semantic review must return a diagnostic outcome, not just null, when backend calls fail.",
+            reviewerSource.contains("AudioSemanticReviewOutcome")
+        )
+        assertFalse(
+            "BackendAudioSemanticReviewer must not hide timeout/HTTP failures behind runCatching().getOrNull().",
+            reviewerSource.contains("}.getOrNull()")
+        )
+        assertTrue(
+            "Listener session must use diagnostic semantic review so provider failures have a reason code.",
+            sessionSource.contains("semanticReviewer.review(")
+        )
+    }
 }
