@@ -1,10 +1,26 @@
 import json
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 
 import main as app_main
 from services import audio_semantic_review
 from services.audio_scam_context import build_audio_scam_context
+
+
+def test_audio_scam_atlas_v2_has_unique_ids_and_provenance():
+    atlas_path = Path(__file__).parent / "data" / "audio_scam_atlas_v2.json"
+    payload = json.loads(atlas_path.read_text(encoding="utf-8"))
+    families = payload["families"]
+    family_ids = [family["id"] for family in families]
+
+    assert len(family_ids) == len(set(family_ids))
+    missing_sources = [
+        family["id"]
+        for family in families
+        if not family.get("sources") or not all(source.get("url") and source.get("source_type") for source in family["sources"])
+    ]
+    assert missing_sources == []
 
 
 def test_audio_semantic_review_uses_mistral_without_echoing_redacted_transcript(monkeypatch):

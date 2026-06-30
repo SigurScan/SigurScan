@@ -190,4 +190,15 @@ class AudioTranscriptEvidenceCoreAtlasV2Test {
 
         assertTrue("Official-policy safe controls became dangerous: $dangerous", dangerous.isEmpty())
     }
+
+    @Test
+    fun legitimateIngSafecallThatNeverAsksForSecretsIsNotDangerous() {
+        val result = AudioTranscriptEvidence.analyze(
+            "Buna ziua, va sunam automat de la ING pentru confirmarea unei tranzactii. " +
+                "Nu va cerem niciun cod, parola, PIN sau date de card. Daca nu recunoasteti tranzactia, " +
+                "inchideti si verificati direct in aplicatia ING."
+        )
+
+        assertFalse(result.verdict == AudioEvidenceVerdict.DANGEROUS)
+    }
 }
