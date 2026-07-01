@@ -43,7 +43,7 @@ fun speakerGuardPresentation(
         privacyLine = "Analizez pe telefonul tău. Nimic nu pleacă de pe el.",
         status = snapshot.status,
         verdictTitle = verdictTitle(verdict, snapshot.active),
-        primaryAction = primaryAction(verdict, snapshot.active),
+        primaryAction = primaryAction(verdict, snapshot.active, snapshot.latestReasonCode),
         showHangUpCta = verdict == AudioEvidenceVerdict.DANGEROUS,
         diagnosticLine = diagnosticLine(snapshot),
         reasons = reasonsFor(evidence, snapshot)
@@ -76,12 +76,14 @@ private fun verdictTitle(verdict: AudioEvidenceVerdict?, active: Boolean): Strin
     }
 }
 
-private fun primaryAction(verdict: AudioEvidenceVerdict?, active: Boolean): String {
+private fun primaryAction(verdict: AudioEvidenceVerdict?, active: Boolean, reasonCode: String?): String {
     return when (verdict) {
         AudioEvidenceVerdict.DANGEROUS -> "Închide apelul. Nu da date și nu transfera bani."
         AudioEvidenceVerdict.SUSPECT -> "Nu da date sau bani până nu verifici pe canal oficial."
         AudioEvidenceVerdict.UNVERIFIED -> if (active) {
             "Continuă doar dacă ești sigur. Nu oferi date sensibile."
+        } else if (reasonCode == "call_ended_recording_silenced") {
+            "Android nu ne-a lăsat să ascultăm apelul live pe acest telefon. Nu da bani sau date; verifică pe canal oficial."
         } else {
             "Nu am prins suficient audio clar. Verifică pe canal oficial înainte să dai bani sau date."
         }
@@ -117,6 +119,7 @@ private fun reasonLabel(reasonCode: String?): String? {
     return when (reasonCode) {
         "call_ended" -> "apel încheiat"
         "call_ended_no_capture" -> "captură neconfirmată"
+        "call_ended_recording_silenced", "recording_silenced_by_android" -> "microfon blocat de Android în apel"
         "call_ended_no_clear_audio" -> "fără voce clară înainte de închidere"
         "empty_transcript" -> "voce neclară"
         "unsupported_audio_format" -> "format audio neacceptat"

@@ -113,6 +113,29 @@ class SpeakerGuardPresentationTest {
     }
 
     @Test
+    fun stoppedCallWithAndroidSilencedRecordingExplainsSystemBlockedMicrophone() {
+        val snapshot = SpeakerGuardSnapshot(
+            active = false,
+            phase = SpeakerGuardPhase.STOPPED,
+            chunksAnalyzed = 0,
+            chunksDropped = 0,
+            latestVerdict = AudioEvidenceVerdict.UNVERIFIED,
+            latestReasonCode = "call_ended_recording_silenced",
+            status = "Apelul s-a încheiat. Android a blocat microfonul în timpul apelului."
+        )
+
+        val presentation = speakerGuardPresentation(snapshot, evidence = null, nowMillis = 10_000L)
+
+        assertEquals("Neverificat", presentation.verdictTitle)
+        assertEquals(
+            "Android nu ne-a lăsat să ascultăm apelul live pe acest telefon. Nu da bani sau date; verifică pe canal oficial.",
+            presentation.primaryAction
+        )
+        assertTrue(presentation.diagnosticLine!!.contains("nu am analizat fragmente audio clare"))
+        assertTrue(presentation.diagnosticLine.contains("microfon blocat de Android în apel"))
+    }
+
+    @Test
     fun activePresentationShowsPrivacySafeProgressWithoutTranscript() {
         val snapshot = SpeakerGuardSnapshot(
             active = true,

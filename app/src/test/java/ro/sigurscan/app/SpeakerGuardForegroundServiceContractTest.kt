@@ -254,6 +254,34 @@ class SpeakerGuardForegroundServiceContractTest {
     }
 
     @Test
+    fun speakerGuardSurfacesAndroidRecordingSilenceDuringPhoneCalls() {
+        val serviceSource = File("src/main/java/ro/sigurscan/app/SpeakerGuardForegroundService.kt").readText()
+        val sessionSource = File("src/main/java/ro/sigurscan/app/SpeakerGuardSession.kt").readText()
+        val presentationSource = File("src/main/java/ro/sigurscan/app/SpeakerGuardPresentation.kt").readText()
+
+        assertTrue(
+            "Live-call capture must register Android's recording callback so system-side microphone silencing is visible.",
+            sessionSource.contains("registerAudioRecordingCallback")
+        )
+        assertTrue(
+            "The session must inspect AudioRecordingConfiguration.isClientSilenced; otherwise a muted recorder looks like vague silence.",
+            sessionSource.contains("isClientSilenced")
+        )
+        assertTrue(
+            "The capture session must publish a specific reason when Android silences SigurScan during a call.",
+            sessionSource.contains("recording_silenced_by_android")
+        )
+        assertTrue(
+            "Call-end reporting must preserve Android-silenced microphone evidence instead of collapsing it to unclear voice.",
+            serviceSource.contains("call_ended_recording_silenced")
+        )
+        assertTrue(
+            "The user-facing card must explain that Android blocked live-call capture on this phone.",
+            presentationSource.contains("microfon blocat de Android")
+        )
+    }
+
+    @Test
     fun sharedIntentIntakeLogsPlanForRealDeviceTriage() {
         val sharedIntentSource = File("src/main/java/ro/sigurscan/app/SharedIntentHandling.kt").readText()
 

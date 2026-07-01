@@ -5,8 +5,13 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.media.AudioFormat
+import android.media.AudioManager
 import android.media.AudioRecord
+import android.media.AudioRecordingConfiguration
 import android.media.MediaRecorder
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.CoroutineScope
@@ -234,9 +239,41 @@ class SpeakerGuardSession(
         val evidenceAggregator = AudioEvidenceSessionAggregator()
         val semanticCoordinator = SpeakerGuardSemanticReviewCoordinator()
         var heardVoice = false
+        var recordingSilencedByAndroid = false
+        val audioManager = context.getSystemService(AudioManager::class.java)
+        val recordingCallback =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && audioManager != null) {
+                object : AudioManager.AudioRecordingCallback() {
+                    override fun onRecordingConfigChanged(configs: List<AudioRecordingConfiguration>) {
+                        val thisRecordSilenced = configs.any { config ->
+                            config.clientAudioSessionId == audioRecord.audioSessionId &&
+                                config.isClientSilenced
+                        }
+                        if (thisRecordSilenced && !recordingSilencedByAndroid) {
+                            recordingSilencedByAndroid = true
+                            Log.w(TAG, "recording_silenced_by_android session=${audioRecord.audioSessionId}")
+                            onUpdate(
+                                SpeakerGuardUpdate(
+                                    phase = SpeakerGuardPhase.LISTENING,
+                                    active = true,
+                                    chunksAnalyzed = chunksAnalyzed,
+                                    chunksDropped = chunks.chunksDropped,
+                                    reasonCode = "recording_silenced_by_android",
+                                    status = "Android blochează microfonul SigurScan în timpul apelului pe acest telefon."
+                                )
+                            )
+                        }
+                    }
+                }
+            } else {
+                null
+            }
 
         try {
             activeAudioRecord = audioRecord
+            recordingCallback?.let { callback ->
+                audioManager?.registerAudioRecordingCallback(callback, Handler(Looper.getMainLooper()))
+            }
             audioRecord.startRecording()
             Log.i(
                 TAG,
@@ -386,6 +423,9 @@ class SpeakerGuardSession(
             recorder.join()
             processor.cancel()
         } finally {
+            recordingCallback?.let { callback ->
+                runCatching { audioManager?.unregisterAudioRecordingCallback(callback) }
+            }
             chunks.close()
             if (activeAudioRecord === audioRecord) {
                 activeAudioRecord = null

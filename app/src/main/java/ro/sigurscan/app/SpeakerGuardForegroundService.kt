@@ -239,11 +239,13 @@ class SpeakerGuardForegroundService : Service() {
         val latest = latestCaptureUpdate
         val reasonCode = when {
             latest == null -> "call_ended_no_capture"
+            latest.reasonCode == "recording_silenced_by_android" -> "call_ended_recording_silenced"
             latest.chunksAnalyzed == 0 && latest.result == null -> "call_ended_no_clear_audio"
             else -> latest.result?.reasonCode ?: latest.reasonCode ?: "call_ended"
         }
         val status = when (reasonCode) {
             "call_ended_no_capture" -> "Apelul s-a încheiat. Nu am putut confirma captura audio."
+            "call_ended_recording_silenced" -> "Apelul s-a încheiat. Android a blocat microfonul în timpul apelului."
             "call_ended_no_clear_audio" -> "Apelul s-a încheiat. Nu am prins suficientă voce clară."
             else -> "Apelul s-a încheiat. Urechea s-a oprit."
         }
