@@ -184,6 +184,24 @@ class RadarHotCacheTest {
     }
 
     @Test
+    fun speakerGuardPromptPolicyDoesNotOfferStaleCallAuditAfterCallWindow() {
+        val freshAudit = RadarScreeningAudit.fromDecision(
+            RadarCallDecision(
+                action = RadarCallAction.ALLOW,
+                reason = "radar_cache_missing_or_expired",
+                isKnownContact = false
+            ),
+            checkedAtEpochMillis = 1_000L
+        )
+        val staleAudit = freshAudit.copy(
+            checkedAtEpochMillis = 1_000L - SpeakerGuardCallPromptPolicy.PROMPT_TTL_MS - 1L
+        )
+
+        assertTrue(SpeakerGuardCallPromptPolicy.shouldOffer(freshAudit, nowMillis = 1_000L))
+        assertFalse(SpeakerGuardCallPromptPolicy.shouldOffer(staleAudit, nowMillis = 1_000L))
+    }
+
+    @Test
     fun campaignHashPrefixWarnsOffline() {
         val phoneHash = PhoneNumberHasher.hashPhone("+40 721 123 456")
         val cache = RadarHotCacheSnapshot(

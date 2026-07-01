@@ -40,7 +40,7 @@ fun speakerGuardPresentation(
         else -> rawVerdict
     }
     return SpeakerGuardPresentation(
-        title = "Urechea ascultă",
+        title = if (snapshot.active) "Urechea ascultă" else "Urechea este oprită",
         listeningLabel = if (snapshot.active) "Ascult pe difuzor" else "Oprit",
         elapsedLabel = elapsedLabel(snapshot.startedAtEpochMillis, nowMillis),
         privacyLine = "Analizez pe telefonul tău. Nimic nu pleacă de pe el.",

@@ -212,6 +212,26 @@ class SpeakerGuardForegroundServiceContractTest {
     }
 
     @Test
+    fun foregroundServiceStopsCaptureWhenCallAudioModeEnds() {
+        val serviceSource = File("src/main/java/ro/sigurscan/app/SpeakerGuardForegroundService.kt").readText()
+
+        assertTrue(
+            "Live-call capture must watch call audio mode and stop itself after the phone call ends.",
+            serviceSource.contains("startCallAudioModeWatcher(startId)")
+        )
+        assertTrue(
+            "The call-end watcher must use the dedicated tracker so normal audio before a call cannot stop capture.",
+            serviceSource.contains("SpeakerGuardCallAudioModeTracker(")
+        )
+        assertTrue(
+            "The watcher must stop the microphone foreground service on confirmed call end.",
+            serviceSource.contains("reasonCode = \"call_ended\"") &&
+                serviceSource.contains("stopCaptureSession()") &&
+                serviceSource.contains("stopSelf(startId)")
+        )
+    }
+
+    @Test
     fun sharedIntentIntakeLogsPlanForRealDeviceTriage() {
         val sharedIntentSource = File("src/main/java/ro/sigurscan/app/SharedIntentHandling.kt").readText()
 

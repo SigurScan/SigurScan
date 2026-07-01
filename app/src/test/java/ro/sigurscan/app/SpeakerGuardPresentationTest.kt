@@ -85,6 +85,7 @@ class SpeakerGuardPresentationTest {
 
         val presentation = speakerGuardPresentation(snapshot, evidence = null, nowMillis = 10_000L)
 
+        assertEquals("Urechea este oprită", presentation.title)
         assertEquals("Oprit", presentation.listeningLabel)
         assertEquals("Ascult conversația", presentation.verdictTitle)
         assertEquals("Pune apelul pe difuzor și lasă analiza locală pornită.", presentation.primaryAction)

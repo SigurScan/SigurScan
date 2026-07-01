@@ -115,6 +115,7 @@ fun ScannerViewModel.startSpeakerGuard() {
             audioReadinessStatus = "Urechea nu poate porni încă: ${audioReadinessReasonLabels(reasons).joinToString(", ")}."
             return@launch
         }
+        radarScreeningAudit = null
         val modelFile = withContext(Dispatchers.IO) { prepareWhisperModelFile() }
         speakerGuardServiceUpdatesJob?.cancel()
         SpeakerGuardForegroundServiceEvents.clear()

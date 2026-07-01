@@ -8,6 +8,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.media.AudioManager
 import android.net.Uri
 import android.os.Build
 import android.os.Handler
@@ -42,6 +43,7 @@ class SpeakerGuardForegroundService : Service() {
     private val handler = Handler(Looper.getMainLooper())
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var captureSession: SpeakerGuardSession? = null
+    private var callAudioModeWatcher: Runnable? = null
     private val clientInstanceId: String by lazy {
         SigurScanClientIdentity.loadOrCreateClientInstanceId(applicationContext)
     }
@@ -125,6 +127,7 @@ class SpeakerGuardForegroundService : Service() {
                 stopSelf(startId)
             }
         }
+        startCallAudioModeWatcher(startId)
         return START_STICKY
     }
 
@@ -198,11 +201,44 @@ class SpeakerGuardForegroundService : Service() {
     }
 
     private fun stopCaptureSession(removeForeground: Boolean = true) {
+        stopCallAudioModeWatcher()
         captureSession?.stop()
         captureSession = null
         if (removeForeground) {
             runCatching { stopForeground(STOP_FOREGROUND_REMOVE) }
         }
+    }
+
+    private fun startCallAudioModeWatcher(startId: Int) {
+        stopCallAudioModeWatcher()
+        val audioManager = getSystemService(AudioManager::class.java) ?: return
+        val tracker = SpeakerGuardCallAudioModeTracker()
+        val watcher = object : Runnable {
+            override fun run() {
+                val mode = runCatching { audioManager.mode }.getOrDefault(AudioManager.MODE_NORMAL)
+                if (tracker.shouldStopForMode(mode)) {
+                    SpeakerGuardForegroundServiceEvents.publish(
+                        SpeakerGuardUpdate(
+                            phase = SpeakerGuardPhase.STOPPED,
+                            active = false,
+                            reasonCode = "call_ended",
+                            status = "Apelul s-a încheiat. Urechea s-a oprit."
+                        )
+                    )
+                    stopCaptureSession()
+                    stopSelf(startId)
+                    return
+                }
+                handler.postDelayed(this, CALL_AUDIO_MODE_POLL_MS)
+            }
+        }
+        callAudioModeWatcher = watcher
+        handler.post(watcher)
+    }
+
+    private fun stopCallAudioModeWatcher() {
+        callAudioModeWatcher?.let { handler.removeCallbacks(it) }
+        callAudioModeWatcher = null
     }
 
     private fun buildAudioSemanticApi(): SigurScanApi {
@@ -235,6 +271,7 @@ class SpeakerGuardForegroundService : Service() {
         private const val FOREGROUND_REQUEST_CODE = 4731
         private const val CAPTURE_REQUEST_CODE = 4732
         private const val PROMPT_SERVICE_WINDOW_MS = 12_000L
+        private const val CALL_AUDIO_MODE_POLL_MS = 1_000L
         private const val DEEP_LINK = "sigurscan://speaker-guard?autostart=1&source=call_screening"
 
         fun startForCallPrompt(context: Context, decision: RadarCallDecision) {
