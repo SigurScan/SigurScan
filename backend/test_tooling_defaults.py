@@ -135,6 +135,18 @@ def test_cloud_run_deploy_enables_play_integrity_monitor_rollout():
     assert "UPSTASH_REDIS_REST_TOKEN=upstash-redis-rest-token:latest" in script
 
 
+def test_cloud_run_deploy_wires_twilio_protected_call_config():
+    script = (ROOT_DIR / "tools" / "deploy_cloud_run_backend.sh").read_text(encoding="utf-8")
+
+    assert 'TWILIO_AUTH_TOKEN_SECRET="${TWILIO_AUTH_TOKEN_SECRET:-}"' in script
+    assert 'TWILIO_PUBLIC_BASE_URL="${TWILIO_PUBLIC_BASE_URL:-}"' in script
+    assert 'TWILIO_PROTECTED_CALL_FORWARD_TO="${TWILIO_PROTECTED_CALL_FORWARD_TO:-}"' in script
+    assert "TWILIO_PUBLIC_BASE_URL=$TWILIO_PUBLIC_BASE_URL" in script
+    assert "TWILIO_PROTECTED_CALL_FORWARD_TO=$TWILIO_PROTECTED_CALL_FORWARD_TO" in script
+    assert "TWILIO_AUTH_TOKEN=$TWILIO_AUTH_TOKEN_SECRET" in script
+    assert "TWILIO_AUTH_TOKEN=twilio-auth-token:latest" not in script
+
+
 def test_cloud_run_deploy_fails_closed_on_rate_limit_backend_errors():
     script = (ROOT_DIR / "tools" / "deploy_cloud_run_backend.sh").read_text(encoding="utf-8")
 
