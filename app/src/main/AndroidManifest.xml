@@ -94,6 +94,12 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".ui.v2.SigurScanV2GalleryActivity"
+            android:exported="true"
+            android:label="SigurScan v2 — Galerie"
+            android:theme="@style/Theme.SigurScan" />
+
         <service
             android:name=".SigurScanCallScreeningService"
             android:exported="true"
