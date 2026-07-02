@@ -313,6 +313,14 @@ def _remember_preview_cache_entry(
     _trim_preview_cache(cache, max_entries)
 
 
+def _screenshot_uuid_from_path(path: str) -> str:
+    # Path shape: /v1/sandbox/urlscan/{uuid}/screenshot
+    parts = [part for part in str(path or "").split("/") if part]
+    if len(parts) >= 5 and parts[-1] == "screenshot":
+        return parts[-2]
+    return ""
+
+
 def _normalize_screenshot_proxy_url(raw_url: Any) -> str:
     value = str(raw_url or "").strip()
     if not value:
@@ -326,11 +334,19 @@ def _normalize_screenshot_proxy_url(raw_url: Any) -> str:
         if _SCREENSHOT_PROXY_PATH_RE.match(parsed.path) and (
             host in _LEGACY_SCREENSHOT_PROXY_HOSTS or host == public_host
         ):
-            return f"{SIGURSCAN_PUBLIC_API_BASE_URL}{parsed.path}"
+            # #80: the rebuild drops any query string, so mint a fresh access
+            # token for the normalized proxy URL (cache entries stay usable).
+            return _with_screenshot_token(
+                f"{SIGURSCAN_PUBLIC_API_BASE_URL}{parsed.path}",
+                _screenshot_uuid_from_path(parsed.path),
+            )
         return value
 
     if value.startswith("/") and _SCREENSHOT_PROXY_PATH_RE.match(value):
-        return f"{SIGURSCAN_PUBLIC_API_BASE_URL}{value}"
+        return _with_screenshot_token(
+            f"{SIGURSCAN_PUBLIC_API_BASE_URL}{value}",
+            _screenshot_uuid_from_path(value),
+        )
 
     return value
 
@@ -355,12 +371,25 @@ def _supabase_signed_preview_object_path(raw_url: Any, *, bucket: str = "preview
     return urllib.parse.unquote(object_path)
 
 
+def _with_screenshot_token(url: str, uuid: str) -> str:
+    """#80: append a signed, expiring access token to screenshot proxy URLs."""
+    from core.screenshot_token import mint_screenshot_token, secret_configured
+
+    if not uuid or not secret_configured():
+        return url
+    separator = "&" if "?" in url else "?"
+    return f"{url}{separator}st={mint_screenshot_token(uuid)}"
+
+
 def _public_route_url(request: Request, route_name: str, **path_params: Any) -> str:
     generated = str(request.url_for(route_name, **path_params))
     parsed = urllib.parse.urlparse(generated)
     path = parsed.path or "/"
     query = f"?{parsed.query}" if parsed.query else ""
-    return f"{SIGURSCAN_PUBLIC_API_BASE_URL}{path}{query}"
+    url = f"{SIGURSCAN_PUBLIC_API_BASE_URL}{path}{query}"
+    if route_name == "urlscan_screenshot":
+        url = _with_screenshot_token(url, str(path_params.get("uuid") or ""))
+    return url
 
 
 def _normalize_urlscan_preview_cache_entry(entry: Any) -> Optional[Dict[str, Any]]:
