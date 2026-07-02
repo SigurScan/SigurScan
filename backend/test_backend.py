@@ -3750,7 +3750,13 @@ def test_public_route_url_rewrites_internal_cloud_run_host_for_android_preview(m
             uuid="urlscan-yoxo-1",
         )
 
-    assert rewritten == "https://api.sigurscan.com/v1/sandbox/urlscan/urlscan-yoxo-1/screenshot"
+    # #80: screenshot proxy URLs now carry a signed, expiring access token.
+    from core.screenshot_token import verify_screenshot_token
+
+    base, _, query = rewritten.partition("?")
+    assert base == "https://api.sigurscan.com/v1/sandbox/urlscan/urlscan-yoxo-1/screenshot"
+    token = urllib.parse.parse_qs(query)["st"][0]
+    assert verify_screenshot_token("urlscan-yoxo-1", token) is True
 
 
 def _poll_orchestrated(client: TestClient, scan_id: str, count: int = 1):
@@ -5798,10 +5804,13 @@ def test_urlscan_preview_cache_rewrites_legacy_screenshot_proxy_url():
     normalized = app_main._normalize_urlscan_preview_cache_entry(row)
 
     assert normalized is not None
-    assert (
-        normalized["screenshot_url"]
-        == "https://api.sigurscan.com/v1/sandbox/urlscan/legacy-cache-1/screenshot"
-    )
+    # #80: normalization re-signs the proxy URL with a fresh access token.
+    from core.screenshot_token import verify_screenshot_token
+
+    base, _, query = normalized["screenshot_url"].partition("?")
+    assert base == "https://api.sigurscan.com/v1/sandbox/urlscan/legacy-cache-1/screenshot"
+    token = urllib.parse.parse_qs(query)["st"][0]
+    assert verify_screenshot_token("legacy-cache-1", token) is True
     assert normalized["screenshot_ready"] is False
 
 
@@ -9675,11 +9684,16 @@ def test_urlscan_sandbox_screenshot_is_proxied_without_exposing_key(monkeypatch)
         captured["headers"] = headers
         return _FakeUrlscanResponse(content=b"\x89PNG\r\n", headers={"content-type": "image/png"})
 
+    # #80: the GET proxy requires a signed, expiring access token.
+    from core.screenshot_token import mint_screenshot_token
+
+    token = mint_screenshot_token("scan-123")
+
     with monkeypatch.context() as patched:
         patched.setattr(app_main, "URLSCAN_API_KEY", "server-only-key")
         patched.setattr(app_main, "PRIVACY_SAFE_MODE", False)
         patched.setattr(app_main.requests, "get", fake_get)
-        response = client.get("/v1/sandbox/urlscan/scan-123/screenshot")
+        response = client.get(f"/v1/sandbox/urlscan/scan-123/screenshot?st={token}")
 
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("image/png")
