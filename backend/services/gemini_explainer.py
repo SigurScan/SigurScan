@@ -90,6 +90,13 @@ def _call_mistral(prompt: str) -> Dict[str, Any]:
     if not MISTRAL_API_KEY:
         return {}
 
+    # Cost guard (#82): budget exhaustion falls back to the template generator.
+    from services.paid_provider_budgets import consume_mistral
+
+    if not consume_mistral():
+        logger.warning("Mistral monthly budget exhausted; using fallback explanation.")
+        return {}
+
     response = requests.post(
         MISTRAL_ENDPOINT,
         headers={
