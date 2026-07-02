@@ -21,10 +21,25 @@
 #-renamesourcefileattribute SourceFile
 
 # Retrofit and Gson both rely on generic signatures and runtime annotations.
-# Keep the app package stable while still enabling R8/resource shrinking for the
-# release pipeline; this avoids silent JSON contract regressions.
 -keepattributes Signature,*Annotation*,InnerClasses,EnclosingMethod,RuntimeVisibleAnnotations,RuntimeVisibleParameterAnnotations,AnnotationDefault
--keep class ro.sigurscan.app.** { *; }
+
+# #83: the previous rule (-keep class ro.sigurscan.app.** { *; }) disabled
+# obfuscation/shrinking for the whole app, leaving the local detection logic
+# (EvidenceGate, ScamRules, EvidenceGatePolicy) readable in a decompiled APK.
+# Gson maps JSON keys to FIELD NAMES via reflection, so field names (and the
+# classes that own them) must survive; method names and bodies elsewhere may
+# be obfuscated and dead code shrunk. If a class is reflected on by NAME at
+# runtime, annotate it with @androidx.annotation.Keep instead of widening this.
+-keepclassmembers class ro.sigurscan.app.** {
+    <fields>;
+}
+-keepnames class ro.sigurscan.app.**
+
+# Keep anything explicitly annotated for reflection.
+-keep @androidx.annotation.Keep class ro.sigurscan.app.** { *; }
+-keepclassmembers class ro.sigurscan.app.** {
+    @androidx.annotation.Keep *;
+}
 
 # Retrofit official full-mode rules for suspend service interfaces and generic
 # return types. Without these, release builds can lose the parameterized
