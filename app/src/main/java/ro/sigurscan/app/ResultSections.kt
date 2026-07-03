@@ -95,20 +95,39 @@ import kotlin.math.pow
 // Result detail sections extracted from ResultCard.kt for cohesion.
 
 @Composable
-fun ResultSection(title: String, items: List<String>, icon: ImageVector) {
+fun ResultSection(title: String, items: List<String>, icon: ImageVector, accent: Color = SigurColors.TextMuted) {
+    if (items.isEmpty()) return
     Column(modifier = Modifier.padding(vertical = 8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, contentDescription = null, tint = SigurColors.TextMuted, modifier = Modifier.size(16.dp))
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(title, fontWeight = FontWeight.Bold, color = SigurColors.TextPrimary, fontSize = 14.sp)
+            Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(14.dp))
+            Text(
+                title.uppercase(Locale.getDefault()),
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = 0.8.sp,
+                color = accent,
+                fontSize = 11.sp,
+                modifier = Modifier.padding(start = 7.dp)
+            )
         }
         items.forEach { item ->
-            Text(
-                text = "• $item",
-                color = SigurColors.TextSecondary,
-                fontSize = 13.sp,
-                modifier = Modifier.padding(start = 22.dp, top = 2.dp)
-            )
+            Row(modifier = Modifier.padding(top = 11.dp), verticalAlignment = Alignment.Top) {
+                Box(
+                    modifier = Modifier
+                        .padding(top = 1.dp)
+                        .size(22.dp)
+                        .background(accent.copy(alpha = 0.14f), RoundedCornerShape(7.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(14.dp))
+                }
+                Text(
+                    text = item,
+                    color = SigurColors.TextSecondary,
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp,
+                    modifier = Modifier.padding(start = 10.dp)
+                )
+            }
         }
     }
 }

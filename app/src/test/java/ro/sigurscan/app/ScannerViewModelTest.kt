@@ -642,7 +642,7 @@ class ScannerViewModelTest {
         )
         assertTrue(
             "Cached results must show a clear rescan action for a fresh provider run.",
-            activitySource.contains("Text(\"Rescanează acum\"")
+            activitySource.contains("label = \"Rescanează acum\"")
         )
         assertTrue(
             "Cached results must be labelled as previously verified, not as a new live scan.",
@@ -1369,9 +1369,7 @@ class ScannerViewModelTest {
         val bottomNavSource = activitySource.substring(bottomNavStart, bottomNavEnd)
         assertTrue(
             "Bottom navigation must reserve navigation bar inset on gesture-navigation phones and keep the central scan slot tappable beyond the icon itself.",
-            bottomNavSource.contains("WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()") &&
-                bottomNavSource.contains(".height(80.dp + navigationBarInset)") &&
-                bottomNavSource.contains(".padding(bottom = navigationBarInset)") &&
+            bottomNavSource.contains(".navigationBarsPadding()") &&
                 bottomNavSource.contains(".fillMaxHeight()") &&
                 bottomNavSource.contains(".clickable { onTabClick(\"scan\") }")
         )

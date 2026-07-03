@@ -106,6 +106,19 @@ fun EvidenceSectionPreview() {
     }
 }
 
+private fun verdictToneFor(level: String): ro.sigurscan.app.ui.v2.theme.VerdictTone = when (level) {
+    "Sigur" -> ro.sigurscan.app.ui.v2.theme.VerdictTone.SIGUR
+    "Suspect" -> ro.sigurscan.app.ui.v2.theme.VerdictTone.SUSPECT
+    "Periculos" -> ro.sigurscan.app.ui.v2.theme.VerdictTone.PERICULOS
+    else -> ro.sigurscan.app.ui.v2.theme.VerdictTone.NEVERIFICAT // "Neverificat" and the transient "Se verifică..." state
+}
+
+private fun verdictReasonSeverityFor(level: String): ro.sigurscan.app.ui.v2.components.ReasonSeverity = when (level) {
+    "Sigur" -> ro.sigurscan.app.ui.v2.components.ReasonSeverity.GOOD
+    "Suspect", "Periculos" -> ro.sigurscan.app.ui.v2.components.ReasonSeverity.ALERT
+    else -> ro.sigurscan.app.ui.v2.components.ReasonSeverity.NEUTRAL
+}
+
 @Composable
 fun ResultCard(
     assessment: OfflineAssessment,
@@ -138,124 +151,69 @@ fun ResultCard(
     var showTechnicalDetails by remember { mutableStateOf(false) }
 
     val hasRiskVerdict = riskUi.level == "Suspect" || riskUi.level == "Periculos"
-    val verdictLightBg = when (riskUi.level) {
-        "Sigur" -> SigurColors.SafeLight
-        "Periculos" -> SigurColors.DangerousLight
-        "Suspect" -> SigurColors.SuspectLight
-        else -> SigurColors.PendingLight
-    }
-    val verdictBorder = when (riskUi.level) {
-        "Sigur" -> SigurColors.SafeBorder
-        "Periculos" -> SigurColors.DangerousBorder
-        "Suspect" -> SigurColors.SuspectBorder
-        else -> SigurColors.Pending.copy(alpha = 0.32f)
-    }
+    val tone = verdictToneFor(riskUi.level)
+    val reasonSeverity = verdictReasonSeverityFor(riskUi.level)
     val isCheckingFurther = assessment.gateResult?.asyncExpected == true ||
         assessment.gateResult?.finality == GateFinality.PROVISIONAL
 
     Column(modifier = Modifier.fillMaxWidth()) {
-        // VerdictCard — DS hero block (icon circle + title + subtitle + message)
-        Card(
-            colors = CardDefaults.cardColors(containerColor = verdictLightBg),
-            shape = RoundedCornerShape(16.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(1.5.dp, verdictBorder, RoundedCornerShape(16.dp))
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth().padding(20.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .background(riskUi.color, CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = resultIconFor(assessment.gateResult?.action, riskUi.level),
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(30.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.height(14.dp))
-                Text(
-                    text = decision.headline.uppercase(Locale.getDefault()),
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.04.em,
-                    color = riskUi.color,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = decision.supportText,
-                    color = SigurColors.TextSecondary,
-                    fontSize = 16.sp,
-                    lineHeight = 24.sp,
-                    textAlign = TextAlign.Center
-                )
-                if (isCheckingFurther) {
-                    Spacer(modifier = Modifier.height(12.dp))
+        ro.sigurscan.app.ui.v2.components.VerdictCardV2(
+            tone = tone,
+            badgeLabel = riskUi.label.uppercase(Locale.getDefault()),
+            title = decision.headline,
+            subtitle = decision.supportText,
+            headerIcon = resultIconFor(assessment.gateResult?.action, riskUi.level),
+            reasons = topReasons.map { ro.sigurscan.app.ui.v2.components.VerdictReason(it, reasonSeverity) },
+            extraHeaderContent = if (isCheckingFurther) {
+                {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier
-                            .background(SigurColors.BackgroundCard, RoundedCornerShape(12.dp))
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .fillMaxWidth()
+                            .background(SigurColors.BackgroundCard)
+                            .padding(horizontal = 17.dp, vertical = 10.dp)
                     ) {
                         CircularProgressIndicator(
                             color = SigurColors.Pending,
                             strokeWidth = 2.dp,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(14.dp)
                         )
                         Text(
                             text = "Verificare suplimentară în curs",
                             color = SigurColors.Pending,
-                            fontSize = 14.sp,
+                            fontSize = 12.5.sp,
                             fontWeight = FontWeight.SemiBold
                         )
                     }
                 }
-            }
-        }
+            } else null
+        )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
+
+        finalDomain?.let { domain ->
+            ro.sigurscan.app.ui.v2.components.DestinationRowV2(
+                icon = Icons.Default.Link,
+                accent = riskUi.color,
+                label = "Te duce către",
+                value = domain
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+        }
 
     Card(
         colors = CardDefaults.cardColors(containerColor = SigurColors.BackgroundCard),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(SigurColors.RadiusCard.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, SigurColors.GlassBorder, RoundedCornerShape(16.dp))
+            .border(1.dp, SigurColors.GlassBorder, RoundedCornerShape(SigurColors.RadiusCard.dp))
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
+        Column(modifier = Modifier.padding(18.dp)) {
 
             GateEvidenceSummary(assessment, riskUi)
 
             EvidenceSection(assessment.screenshotUrl, assessment.serverInfo, assessment.finalUrl)
-
-            finalDomain?.let { domain ->
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = SigurColors.BackgroundSurface),
-                    border = BorderStroke(1.dp, SigurColors.GlassBorder),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp).fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Default.Link, contentDescription = null, tint = SigurColors.Brand, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Column {
-                            Text("Te duce către", color = SigurColors.TextMuted, fontSize = 11.sp)
-                            Text(domain, color = SigurColors.TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        }
-                    }
-                }
-            }
 
             Text(
                 text = "Clasificare: ${assessment.family}",
@@ -269,17 +227,15 @@ fun ResultCard(
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
-            ResultSection(title = "De ce spunem asta", items = topReasons, icon = Icons.AutoMirrored.Filled.List)
-
             if (assessment.offerAnalysis != null) {
                 OfferAnalysisSection(assessment.offerAnalysis)
             }
 
             if (assessment.keyDangers.isNotEmpty() && hasRiskVerdict) {
-                ResultSection(title = "Riscuri principale", items = assessment.keyDangers.take(3), icon = Icons.Default.Warning)
+                ResultSection(title = "Riscuri principale", items = assessment.keyDangers.take(3), icon = Icons.Default.Warning, accent = riskUi.color)
             }
 
-            ResultSection(title = "Ce să faci acum", items = nextActions, icon = Icons.Default.CheckCircle)
+            ResultSection(title = "Ce să faci acum", items = nextActions, icon = Icons.Default.CheckCircle, accent = riskUi.color)
 
             assessment.actionPlan?.let { plan ->
                 ActionPlanSection(plan)
@@ -348,28 +304,14 @@ fun ResultCard(
                 Text(
                     "A fost util acest verdict?",
                     color = SigurColors.TextPrimary,
-                    fontSize = 14.sp,
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 8.dp)
+                    modifier = Modifier.padding(bottom = 10.dp)
                 )
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(
-                        onClick = { onFeedback("correct"); feedbackSent = true },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = SigurColors.SafeLight),
-                        border = BorderStroke(1.dp, SigurColors.SafeBorder)
-                    ) {
-                        Text("DA", color = SigurColors.Safe)
-                    }
-                    Button(
-                        onClick = { onFeedback("false_positive"); feedbackSent = true },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = SigurColors.DangerousLight),
-                        border = BorderStroke(1.dp, SigurColors.DangerousBorder)
-                    ) {
-                        Text("NU", color = SigurColors.Dangerous)
-                    }
-                }
+                ro.sigurscan.app.ui.v2.components.FeedbackRowV2(
+                    onYes = { onFeedback("correct"); feedbackSent = true },
+                    onNo = { onFeedback("false_positive"); feedbackSent = true }
+                )
                 Spacer(modifier = Modifier.height(16.dp))
             } else {
                 Text(
@@ -381,76 +323,51 @@ fun ResultCard(
                 )
             }
 
-            Button(
-                onClick = onFamilyAlert,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = SigurColors.BrandTint),
-                shape = RoundedCornerShape(10.dp),
-                border = BorderStroke(1.dp, SigurColors.Brand)
-            ) {
-                Icon(Icons.Default.People, contentDescription = null, tint = SigurColors.Brand, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Trimite alertă Familie", color = SigurColors.Brand, fontSize = 12.sp)
-            }
-            Spacer(modifier = Modifier.height(12.dp))
+            ro.sigurscan.app.ui.v2.components.SecondaryButtonV2(
+                label = "Trimite alertă Familie",
+                icon = Icons.Default.People,
+                accent = SigurColors.Brand,
+                onClick = onFamilyAlert
+            )
+            Spacer(modifier = Modifier.height(10.dp))
 
             if (hasRiskVerdict) {
-                Button(
-                    onClick = onOfficialReport,
-                    enabled = !officialReportLoading,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = SigurColors.SuspectLight),
-                    shape = RoundedCornerShape(10.dp),
-                    border = BorderStroke(1.dp, SigurColors.SuspectBorder)
-                ) {
-                    Icon(Icons.Default.AssignmentTurnedIn, contentDescription = null, tint = SigurColors.Suspect, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(if (officialReportLoading) "Se pregătește..." else "Pregătește raport oficial", color = SigurColors.Suspect, fontSize = 12.sp)
-                }
+                ro.sigurscan.app.ui.v2.components.SecondaryButtonV2(
+                    label = if (officialReportLoading) "Se pregătește..." else "Pregătește raport oficial",
+                    icon = Icons.Default.AssignmentTurnedIn,
+                    accent = SigurColors.Suspect,
+                    onClick = onOfficialReport
+                )
                 officialReportStatus?.takeIf { it.isNotBlank() }?.let {
                     Text(it, color = SigurColors.TextMuted, fontSize = 11.sp, modifier = Modifier.padding(top = 6.dp, bottom = 8.dp))
                 }
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
             }
 
             if (riskUi.level == "Periculos") {
-                Button(
-                    onClick = onReport,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = SigurColors.SafeLight),
-                    shape = RoundedCornerShape(10.dp),
-                    border = BorderStroke(1.dp, SigurColors.SafeBorder)
-                ) {
-                    Icon(Icons.Default.Share, contentDescription = null, tint = SigurColors.Safe, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Raportează către comunitatea SigurScan", color = SigurColors.Safe, fontSize = 12.sp)
-                }
-                Spacer(modifier = Modifier.height(12.dp))
+                ro.sigurscan.app.ui.v2.components.SecondaryButtonV2(
+                    label = "Raportează către comunitatea SigurScan",
+                    icon = Icons.Default.Share,
+                    accent = SigurColors.Safe,
+                    onClick = onReport
+                )
+                Spacer(modifier = Modifier.height(10.dp))
             }
 
             if (assessment.cacheStatus != null) {
-                Button(
-                    onClick = onRescan,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = SigurColors.BrandTint),
-                    shape = RoundedCornerShape(10.dp),
-                    border = BorderStroke(1.dp, SigurColors.Brand)
-                ) {
-                    Icon(Icons.Default.Refresh, contentDescription = null, tint = SigurColors.Brand, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Rescanează acum", color = SigurColors.Brand, fontSize = 12.sp)
-                }
-                Spacer(modifier = Modifier.height(12.dp))
+                ro.sigurscan.app.ui.v2.components.SecondaryButtonV2(
+                    label = "Rescanează acum",
+                    icon = Icons.Default.Refresh,
+                    accent = SigurColors.Brand,
+                    onClick = onRescan
+                )
+                Spacer(modifier = Modifier.height(10.dp))
             }
 
-            Button(
-                onClick = onBack,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = SigurColors.BackgroundSurface),
-                shape = RoundedCornerShape(10.dp)
-            ) {
-                Text("Înapoi la scanare", color = SigurColors.TextPrimary)
-            }
+            ro.sigurscan.app.ui.v2.components.SubtleButtonV2(
+                label = "Înapoi la scanare",
+                onClick = onBack
+            )
         }
     }
     }

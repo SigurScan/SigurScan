@@ -33,6 +33,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -97,116 +98,124 @@ internal fun BottomNavItem(
     icon: ImageVector,
     label: String,
     isActive: Boolean,
-    activeColor: Color = SigurColors.Brand,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val contentColor = if (isActive) Color.White else Color.White.copy(alpha = 0.74f)
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
         modifier = modifier
             .fillMaxHeight()
-            .clickable(onClick = onClick)
-            .padding(top = 12.dp),
+            .clickable(onClick = onClick),
     ) {
         Icon(
             imageVector = icon,
             contentDescription = label,
-            tint = if (isActive) activeColor else SigurColors.TextMuted,
+            tint = contentColor,
             modifier = Modifier.size(24.dp)
         )
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = label,
-            fontSize = 12.sp,
-            fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
-            color = if (isActive) activeColor else SigurColors.TextMuted
+            fontSize = 11.sp,
+            fontWeight = if (isActive) FontWeight.Bold else FontWeight.SemiBold,
+            color = contentColor
         )
     }
 }
 
+/** Floating pill nav bar — Radar / Protecție(education) / [Scanează FAB] / Urgență(triage) / Mai mult. */
 @Composable
 fun BottomNavigationBar(activeTab: String, onTabClick: (String) -> Unit) {
-    val navigationBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-
-    Row(
+    val navGradient = androidx.compose.ui.graphics.Brush.linearGradient(
+        colors = listOf(Color(0xFF0FA877), Color(0xFF067A50))
+    )
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(80.dp + navigationBarInset)
-            .background(SigurColors.BackgroundCard)
-            .border(BorderStroke(1.dp, SigurColors.BorderSubtle))
-            .padding(bottom = navigationBarInset),
-        verticalAlignment = Alignment.Top
+            .navigationBarsPadding()
+            .padding(horizontal = 16.dp, vertical = 18.dp)
+            .height(64.dp + 28.dp)
     ) {
-        BottomNavItem(
-            icon = Icons.Default.Radar,
-            label = "Radar",
-            isActive = activeTab == "radar",
-            onClick = { onTabClick("radar") },
-            modifier = Modifier.weight(1f)
-        )
-        BottomNavItem(
-            icon = Icons.Default.Warning,
-            label = "Urgență",
-            isActive = activeTab == "triage",
-            activeColor = SigurColors.Dangerous,
-            onClick = { onTabClick("triage") },
-            modifier = Modifier.weight(1f)
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(64.dp)
+                .align(Alignment.BottomCenter)
+                .shadow(6.dp, RoundedCornerShape(26.dp), ambientColor = SigurColors.BrandDeep.copy(alpha = 0.16f), spotColor = SigurColors.BrandDeep.copy(alpha = 0.16f))
+                .clip(RoundedCornerShape(26.dp))
+                .background(navGradient)
+                .padding(horizontal = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            BottomNavItem(
+                icon = Icons.Default.Radar,
+                label = "Radar",
+                isActive = activeTab == "radar",
+                onClick = { onTabClick("radar") },
+                modifier = Modifier.weight(1f)
+            )
+            BottomNavItem(
+                icon = Icons.Default.VerifiedUser,
+                label = "Protecție",
+                isActive = activeTab == "education",
+                onClick = { onTabClick("education") },
+                modifier = Modifier.weight(1f)
+            )
 
-        // Central FAB — scan action, raised above the bar (DS BottomNav)
+            // Central FAB — scan action, docked above the bar (DS BottomNav)
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) { /* FAB docked below */ }
+
+            BottomNavItem(
+                icon = Icons.Default.Warning,
+                label = "Urgență",
+                isActive = activeTab == "triage",
+                onClick = { onTabClick("triage") },
+                modifier = Modifier.weight(1f)
+            )
+            BottomNavItem(
+                icon = Icons.Default.MoreHoriz,
+                label = "Mai mult",
+                isActive = activeTab == "more",
+                onClick = { onTabClick("more") },
+                modifier = Modifier.weight(1f)
+            )
+        }
+
         Box(
             modifier = Modifier
-                .weight(1f)
+                .align(Alignment.TopCenter)
+                .width(88.dp)
                 .fillMaxHeight()
                 .clickable { onTabClick("scan") },
             contentAlignment = Alignment.TopCenter
         ) {
-            Box(
-                modifier = Modifier
-                    .offset(y = (-28).dp)
-                    .size(56.dp)
-                    .border(4.dp, SigurColors.Canvas, CircleShape)
-                    .clip(CircleShape)
-                    .background(
-                        brush = androidx.compose.ui.graphics.Brush.linearGradient(
-                            colors = listOf(Color(0xFF5B86FF), SigurColors.Brand, Color(0xFF3552D6))
-                        )
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.QrCodeScanner,
-                    contentDescription = "Scanează",
-                    tint = Color.White,
-                    modifier = Modifier.size(24.dp)
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(
+                    modifier = Modifier
+                        .size(54.dp)
+                        .shadow(4.dp, CircleShape, ambientColor = SigurColors.BrandDeep.copy(alpha = 0.30f), spotColor = SigurColors.BrandDeep.copy(alpha = 0.30f))
+                        .clip(CircleShape)
+                        .background(Color.White),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.QrCodeScanner,
+                        contentDescription = "Scanează",
+                        tint = SigurColors.Brand,
+                        modifier = Modifier.size(25.dp)
+                    )
+                }
+                Text(
+                    text = "Scanează",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = SigurColors.TextPrimary,
+                    modifier = Modifier.padding(top = 34.dp)
                 )
             }
-            Text(
-                text = "Scanează",
-                fontSize = 12.sp,
-                fontWeight = if (activeTab == "scan") FontWeight.Bold else FontWeight.Medium,
-                color = if (activeTab == "scan") SigurColors.Brand else SigurColors.TextMuted,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 12.dp)
-            )
         }
-
-        BottomNavItem(
-            icon = Icons.Default.School,
-            label = "Educație",
-            isActive = activeTab == "education",
-            onClick = { onTabClick("education") },
-            modifier = Modifier.weight(1f)
-        )
-        BottomNavItem(
-            icon = Icons.Default.MoreHoriz,
-            label = "Mai mult",
-            isActive = activeTab == "more",
-            onClick = { onTabClick("more") },
-            modifier = Modifier.weight(1f)
-        )
     }
 }
 

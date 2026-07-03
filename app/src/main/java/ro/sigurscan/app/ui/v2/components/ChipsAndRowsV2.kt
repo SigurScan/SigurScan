@@ -66,14 +66,14 @@ fun IconChipV2(
     }
 }
 
-/** "Te duce către <domain>" row with an icon chip and a trailing status pill. */
+/** "Te duce către <domain>" row with an icon chip and an optional trailing status pill. */
 @Composable
 fun DestinationRowV2(
     icon: ImageVector,
     accent: Color,
     label: String,
     value: String,
-    pillLabel: String,
+    pillLabel: String? = null,
     modifier: Modifier = Modifier,
 ) {
     CardOutlinedV2(modifier = modifier.fillMaxWidth(), radius = SigurTokensV2.RadiusCardAlt, padding = 13.dp) {
@@ -90,7 +90,9 @@ fun DestinationRowV2(
                     modifier = Modifier.padding(top = 3.dp),
                 )
             }
-            StatusPillV2(pillLabel, color = accent, modifier = Modifier.padding(start = 8.dp))
+            if (pillLabel != null) {
+                StatusPillV2(pillLabel, color = accent, modifier = Modifier.padding(start = 8.dp))
+            }
         }
     }
 }

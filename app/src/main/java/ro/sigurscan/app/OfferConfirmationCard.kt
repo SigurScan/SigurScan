@@ -128,7 +128,7 @@ fun OfferConfirmationCard(
                         .size(48.dp)
                         .background(
                             brush = androidx.compose.ui.graphics.Brush.linearGradient(
-                                colors = listOf(Color(0xFF5B86FF), SigurColors.Brand, Color(0xFF3552D6))
+                                colors = listOf(Color(0xFF14BE86), SigurColors.Brand, Color(0xFF06875A))
                             ),
                             shape = RoundedCornerShape(16.dp)
                         ),
