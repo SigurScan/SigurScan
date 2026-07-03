@@ -207,12 +207,12 @@ fun BottomNavigationBar(activeTab: String, onTabClick: (String) -> Unit) {
                         modifier = Modifier.size(25.dp)
                     )
                 }
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "Scanează",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = SigurColors.TextPrimary,
-                    modifier = Modifier.padding(top = 34.dp)
+                    color = Color.White
                 )
             }
         }
