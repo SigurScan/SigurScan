@@ -211,7 +211,12 @@ fun ResultCard(
     ) {
         Column(modifier = Modifier.padding(18.dp)) {
 
-            GateEvidenceSummary(assessment, riskUi)
+            // Once the verdict is final, this box's text duplicates the reasons already
+            // listed in the verdict card above — it only earns its place while the scan
+            // is still running (live "Așteaptă verdictul final." status).
+            if (assessment.gateResult?.let { GateResultPresentation.isScanInProgress(it) } == true) {
+                GateEvidenceSummary(assessment, riskUi)
+            }
 
             EvidenceSection(assessment.screenshotUrl, assessment.serverInfo, assessment.finalUrl)
 
