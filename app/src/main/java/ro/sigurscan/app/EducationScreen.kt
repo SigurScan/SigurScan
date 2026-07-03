@@ -73,6 +73,7 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import coil.compose.SubcomposeAsyncImage
 import ro.sigurscan.app.ui.theme.SigurScanTheme
 import ro.sigurscan.app.ui.theme.SigurColors
+import ro.sigurscan.app.ui.v2.components.AppHeaderV2
 import org.json.JSONArray
 import org.json.JSONObject
 import android.webkit.WebResourceRequest
@@ -204,10 +205,167 @@ fun EducationTab(viewModel: ScannerViewModel) {
 
     var selectedLesson by remember { mutableStateOf(lessons.first()) }
 
+    val context = LocalContext.current
+    var hasMicrophonePermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+    var hasCallPromptNotificationPermission by remember {
+        mutableStateOf(
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+    val microphonePermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        hasMicrophonePermission = granted
+        viewModel.refreshAudioReadiness()
+        if (granted) {
+            viewModel.startSpeakerGuard()
+        } else {
+            viewModel.audioReadinessStatus = "Permisiunea microfonului este necesară pentru Urechea."
+        }
+    }
+    val callPromptNotificationPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        hasCallPromptNotificationPermission = granted
+        viewModel.radarHotCacheStatus = if (granted) {
+            "Alerta Urechea poate apărea când Radar semnalează un apel."
+        } else {
+            "Fără notificări, deschide manual Urechea din Radar în timpul apelului."
+        }
+    }
+    var selectedCircleMemberId by remember { mutableStateOf<String?>(null) }
+    val selectedCircleMember = remember(viewModel.familyMembers.toList(), selectedCircleMemberId) {
+        viewModel.familyMembers.firstOrNull { it.id == selectedCircleMemberId }
+            ?: viewModel.familyMembers.firstOrNull { it.isProtected }
+            ?: viewModel.familyMembers.firstOrNull()
+    }
+    val protectionHero = androidx.compose.ui.graphics.Brush.linearGradient(
+        colors = listOf(Color(0xFF14BE86), SigurColors.Brand, Color(0xFF06875A))
+    )
+
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 120.dp)) {
-        Text("Educație", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = SigurColors.TextPrimary)
-        Spacer(modifier = Modifier.height(8.dp))
-        Text("Alege o lecție, vezi regula și apoi verifici cu un mini test.", color = SigurColors.TextSecondary, fontSize = 12.sp)
+        AppHeaderV2()
+
+        // Green hero — "Protecție continuă" (v2 · 11 · Protecție)
+        Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(protectionHero).padding(18.dp)) {
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = Color.White, modifier = Modifier.size(22.dp))
+                    Spacer(modifier = Modifier.width(9.dp))
+                    Text("Protecție continuă", color = Color.White, fontSize = 19.sp, fontWeight = FontWeight.ExtraBold)
+                }
+                Text(
+                    "Te apără și între scanări — la apeluri și când ai nevoie de o confirmare rapidă.",
+                    color = Color.White.copy(alpha = 0.9f),
+                    fontSize = 13.5.sp,
+                    lineHeight = 19.sp,
+                    modifier = Modifier.padding(top = 6.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Protection controls (relocated here from Radar so they live under Protecție)
+        RadarCallProtectionCard(
+            cache = viewModel.radarHotCache,
+            audit = viewModel.radarScreeningAudit,
+            loading = viewModel.radarHotCacheLoading,
+            status = viewModel.radarHotCacheStatus,
+            hasCallPromptNotificationPermission = hasCallPromptNotificationPermission,
+            reportPhoneInput = viewModel.radarReportPhoneInput,
+            reportPhoneLoading = viewModel.radarReportPhoneLoading,
+            reportPhoneStatus = viewModel.radarReportPhoneStatus,
+            onSync = { viewModel.syncRadarHotCache() },
+            onRefreshAudit = { viewModel.refreshRadarScreeningAudit() },
+            onEnableRole = { requestCallScreeningRole(context) },
+            onEnableCallPromptNotification = {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    callPromptNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                } else {
+                    hasCallPromptNotificationPermission = true
+                }
+            },
+            onReportPhoneInputChange = { viewModel.radarReportPhoneInput = it },
+            onReportPhone = { viewModel.reportRadarPhoneNumber() }
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+
+        if (BuildConfig.SIGURSCAN_ENABLE_AUDIO_ASR) {
+            val speakerGuardPrompt = viewModel.radarScreeningAudit
+                ?.let {
+                    RadarCallDecision(
+                        action = it.action,
+                        reason = it.reason,
+                        family = it.family,
+                        isKnownContact = it.isKnownContact
+                    )
+                }
+                ?.takeIf { SpeakerGuardCallPromptPolicy.shouldOffer(it) && !viewModel.speakerGuardSnapshot.active }
+                ?.let { speakerGuardCallPrompt(it) }
+            val startSpeakerGuardWithConsent = {
+                viewModel.acceptSpeakerGuardConsent()
+                if (!hasMicrophonePermission) {
+                    microphonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                } else {
+                    viewModel.startSpeakerGuard()
+                }
+            }
+            AudioAsrReadinessCard(
+                snapshot = viewModel.audioReadiness,
+                status = viewModel.audioReadinessStatus,
+                evidenceResult = viewModel.audioEvidenceResult,
+                hasAssessment = viewModel.assessment != null,
+                onConsentChanged = { viewModel.setAudioConsent(it) },
+                onDisclosureChanged = { viewModel.setAudioPrivacyDisclosureAccepted(it) },
+                onRefresh = { viewModel.refreshAudioReadiness() },
+                onAnalyzeTranscript = { viewModel.analyzeCurrentTextAsAudioTranscript() },
+                speakerGuard = viewModel.speakerGuardSnapshot,
+                callPrompt = speakerGuardPrompt,
+                hasMicrophonePermission = hasMicrophonePermission,
+                onStartSpeakerGuard = startSpeakerGuardWithConsent,
+                onStopSpeakerGuard = { viewModel.stopSpeakerGuard() }
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        BtrOnDeviceCard(
+            snapshot = viewModel.btrSyncSnapshot,
+            verdict = viewModel.inboxProvenanceVerdict,
+            loading = viewModel.btrSyncLoading,
+            status = viewModel.btrSyncStatus,
+            provenanceStatus = viewModel.inboxProvenanceStatus,
+            onSync = { viewModel.syncBtrManifests() },
+            onLocalCheck = { viewModel.runLocalInboxProvenanceCheck() }
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+
+        CircleGuardianCard(
+            members = viewModel.familyMembers,
+            selectedMember = selectedCircleMember,
+            onSelectedMember = { selectedCircleMemberId = it.id },
+            snapshot = viewModel.circleSnapshot,
+            circleLoading = viewModel.circleLoading,
+            circleStatus = viewModel.circleStatus,
+            guardianLoading = viewModel.guardianLoading,
+            guardianStatus = viewModel.guardianStatus,
+            hasAssessment = viewModel.assessment != null,
+            onPair = { viewModel.createCirclePair(selectedCircleMember) },
+            onPing = { viewModel.createCirclePing() },
+            onResolve = { viewModel.resolveCirclePing(it) },
+            onRevoke = { viewModel.revokeCirclePair() },
+            onGuardian = { shareLevel, consent ->
+                viewModel.requestGuardianSecondOpinion(selectedCircleMember, shareLevel, consent)
+            }
+        )
+
+        Spacer(modifier = Modifier.height(22.dp))
+
+        // Learn-to-recognise lessons kept below the protection controls
+        Text("Învață să recunoști", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = SigurColors.TextPrimary, modifier = Modifier.padding(start = 4.dp))
+        Spacer(modifier = Modifier.height(6.dp))
+        Text("Alege o lecție, vezi regula și apoi verifici cu un mini test.", color = SigurColors.TextSecondary, fontSize = 12.sp, modifier = Modifier.padding(start = 4.dp))
 
         Spacer(modifier = Modifier.height(16.dp))
 
