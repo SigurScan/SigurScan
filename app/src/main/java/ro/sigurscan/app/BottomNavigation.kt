@@ -192,12 +192,16 @@ fun BottomNavigationBar(activeTab: String, onTabClick: (String) -> Unit, modifie
             contentAlignment = Alignment.TopCenter
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                // FAB matches v2: white circle, green-tinted halo (rgba(6,135,90,.30))
+                // + 3dp Canvas ring so it reads with contrast over white content.
+                val fabGlow = Color(0xFF06875A).copy(alpha = 0.30f)
                 Box(
                     modifier = Modifier
                         .size(54.dp)
-                        .shadow(3.dp, CircleShape)
+                        .shadow(10.dp, CircleShape, ambientColor = fabGlow, spotColor = fabGlow)
                         .clip(CircleShape)
-                        .background(Color.White),
+                        .background(Color.White)
+                        .border(3.dp, SigurColors.Canvas, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
