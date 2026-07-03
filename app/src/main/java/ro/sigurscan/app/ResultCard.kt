@@ -403,20 +403,23 @@ internal fun GateEvidenceSummary(assessment: OfflineAssessment, riskUi: RiskDisp
         snapshot?.completeness == EvidenceCompleteness.PARTIAL_ONLINE &&
         !hasLocalPreview &&
         serverSuggestsPreviewGenerating
+    // "Verdict final" and the preview-completeness chip only carry real information while the
+    // scan is still running (live status). Once it's final, the big verdict card above already
+    // says so, and EvidenceSection right below already states the preview status — repeating
+    // both here as pills was pure noise stacked on top of what the user just read.
     val chips = listOfNotNull(
-        if (inProgress) "Scanare în curs" else "Verdict final",
+        "Scanare în curs".takeIf { inProgress },
         if (assessment.cacheStatus != null) "Verificat anterior" else null,
         snapshot?.completeness?.let {
             when (it) {
-                EvidenceCompleteness.FULL -> "Verificări complete"
+                EvidenceCompleteness.FULL -> "Verificări complete".takeIf { inProgress }
                 EvidenceCompleteness.PARTIAL_ONLINE -> when {
                     finalWithPreviewPending -> "Preview în curs"
-                    hasUrlEvidence && !inProgress && hasLocalPreview -> "Preview disponibil"
-                    !hasUrlEvidence -> "Verificări parțiale"
-                    !inProgress -> "Preview indisponibil"
-                    else -> "Se verifică linkul"
+                    hasUrlEvidence && inProgress -> "Se verifică linkul"
+                    !hasUrlEvidence && inProgress -> "Verificări parțiale"
+                    else -> null
                 }
-                EvidenceCompleteness.LOCAL_ONLY -> "Mai trebuie informații"
+                EvidenceCompleteness.LOCAL_ONLY -> "Mai trebuie informații".takeIf { inProgress }
             }
         }
     ).distinct()
