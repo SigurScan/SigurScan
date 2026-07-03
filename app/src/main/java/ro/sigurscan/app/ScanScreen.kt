@@ -128,7 +128,7 @@ fun ScanTab(
     ) {
         Header()
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
         if (hasActiveScanContext) {
             viewModel.sharedContentFidelity?.let { fidelity ->
@@ -297,7 +297,7 @@ fun ScanInputCard(
             )
 
             if (viewModel.loading) {
-                Box(modifier = Modifier.fillMaxWidth().height(150.dp), contentAlignment = Alignment.Center) {
+                Box(modifier = Modifier.fillMaxWidth().height(120.dp), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         CircularProgressIndicator(color = Color.White)
                         Spacer(modifier = Modifier.height(8.dp))
@@ -317,7 +317,7 @@ fun ScanInputCard(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(150.dp),
+                        .height(120.dp),
                     placeholder = {
                         Text(
                             "Lipește textul sau URL-ul aici",
@@ -500,7 +500,7 @@ fun ScanInputCard(
         }
     }
 
-    Spacer(modifier = Modifier.height(16.dp))
+    Spacer(modifier = Modifier.height(12.dp))
 
     Card(
         colors = CardDefaults.cardColors(containerColor = SigurColors.BackgroundCard),
@@ -509,8 +509,8 @@ fun ScanInputCard(
             .fillMaxWidth()
             .border(1.dp, SigurColors.GlassBorder, RoundedCornerShape(16.dp))
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 GridButton(
                     title = "Încarcă Screenshot",
                     desc = "Analiză text & OCR",
@@ -529,7 +529,7 @@ fun ScanInputCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 GridButton(
