@@ -128,6 +128,53 @@ def test_reputation_uses_phishtank_as_active_provider(monkeypatch, tmp_path):
     assert result[key]["verdict"] == "malicious"
 
 
+def test_reputation_does_not_turn_web_risk_budget_exhaustion_into_clean_consulted(monkeypatch, tmp_path):
+    cache_path = tmp_path / "url_reputation_cache.json"
+    url = "https://budget-exhausted.example/login"
+    key = url_reputation._url_hash(url)
+
+    monkeypatch.setattr(url_reputation, "ENABLE_URL_REPUTATION", True)
+    monkeypatch.setattr(url_reputation, "ENABLE_PHISHTANK", False)
+    monkeypatch.setattr(url_reputation, "ENABLE_OPENPHISH", False)
+    monkeypatch.setattr(url_reputation, "ENABLE_PHISHING_DATABASE", False)
+    monkeypatch.setattr(url_reputation, "REPUTATION_CACHE_PATH", cache_path)
+    monkeypatch.setattr(url_reputation, "_load_cache", lambda path: {})
+    monkeypatch.setattr(url_reputation, "_save_cache", lambda path, data, remote_subset=None: None)
+    monkeypatch.setattr(url_reputation, "has_web_risk_key", lambda: True)
+    monkeypatch.setattr(
+        url_reputation,
+        "check_urls_against_web_risk",
+        lambda urls: {
+            key: {
+                "status": "error",
+                "consulted": False,
+                "threat_type": "budget_exhausted",
+                "score": 0,
+                "error": "budget_exhausted",
+                "details": {"provider": "google_web_risk", "status": "budget_exhausted"},
+            }
+        },
+    )
+
+    result = url_reputation.get_reputation_for_urls(
+        [url],
+        include_asf_investor_alerts=False,
+        include_phishing_database=False,
+        include_phishtank=False,
+        include_openphish=False,
+        include_urlhaus=False,
+        include_scam_blocklist_nrd=False,
+        include_phishdestroy=False,
+    )
+
+    web_risk = result[key]["sources"]["google_web_risk"]
+    assert web_risk["status"] == "error"
+    assert web_risk["consulted"] is False
+    assert web_risk["error"] == "budget_exhausted"
+    assert web_risk["details"]["status"] == "budget_exhausted"
+    assert result[key]["verdict"] == "unknown"
+
+
 def test_urlhaus_recent_feed_is_used_without_auth_key(monkeypatch):
     url = "https://malware.example/path/dropper"
     key = url_reputation._url_hash(url)

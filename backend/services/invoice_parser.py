@@ -22,8 +22,10 @@ RO_IBAN_OCR_PATTERN = re.compile(
     re.IGNORECASE,
 )
 BENEFICIAR_PATTERN = re.compile(
-    r"(?:beneficiar|titular(?:\s*cont)?|c[ăa]tre|in\s*contul(?:\s*lui)?|"
-    r"[iî]n\s*contul(?:\s*lui)?)\s*[:\-]?\s*(.+?)(?:\n|$|,|;)",
+    r"(?:beneficiar(?:[^\S\n]+(?:plat[ăa]|plata|cont|final))?|"
+    r"titular(?:[^\S\n]*cont)?|c[ăa]tre|in[^\S\n]*contul(?:[^\S\n]*lui)?|"
+    r"[iî]n[^\S\n]*contul(?:[^\S\n]*lui)?)"
+    r"[^\S\n]*[:\-]?[^\S\n]*([^\n\r,;]+)",
     re.IGNORECASE,
 )
 MONTHS = {
@@ -202,7 +204,7 @@ def _extract_payment_beneficiary(text: str) -> str | None:
     candidate = match.group(1).strip(" \t\r\n.:-")
     if len(candidate) < 3:
         return None
-    if IBAN_PATTERN.search(candidate) or re.fullmatch(r"[\d\s./-]+", candidate):
+    if ANY_IBAN_PATTERN.search(candidate) or re.fullmatch(r"[\d\s./-]+", candidate):
         return None
     lower = candidate.lower()
     if lower in {"iban", "cont", "cont bancar", "cui", "cif", "factura"}:

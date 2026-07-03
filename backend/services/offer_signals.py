@@ -85,10 +85,10 @@ GUARANTEED_PROFIT = re.compile(
     re.IGNORECASE,
 )
 UPFRONT_FEE = re.compile(
-    r"\b(?:tax[ăa]|avans|depozit|garan[țt]ie|comision)\b[^.\n]{0,80}"
+    r"\b(?:tax[ăa]|avans(?:ul)?|depozit|garan[țt]ie|comision)\b[^.\n]{0,80}"
     r"\b(?:activare|validare|deblocare|[îi]nscriere|procesare|rezervare|confirmare|loc|job|cont)\b"
     r"|\b(?:pl[ăa]te[șs]te|plati[țt]i|achit[ăa]|achita[țt]i|trimite|transfer[ăa])\b[^.\n]{0,80}"
-    r"\b(?:tax[ăa]|avans|depozit|garan[țt]ie|comision)\b",
+    r"\b(?:tax[ăa]|avans(?:ul)?|depozit|garan[țt]ie|comision)\b",
     re.IGNORECASE,
 )
 

@@ -26,6 +26,28 @@ def test_web_risk_budget_allows_until_limit(monkeypatch):
     assert consume_web_risk() is False
 
 
+def test_web_risk_lookup_reports_budget_exhaustion_without_calling_api(monkeypatch):
+    from services import google_web_risk
+
+    url = "https://example.test/login"
+    key = google_web_risk.hashlib.sha256(url.encode("utf-8")).hexdigest()
+
+    monkeypatch.setenv("GOOGLE_WEB_RISK_API_KEY", "fake-key")
+    monkeypatch.setenv("WEB_RISK_MONTHLY_BUDGET", "0")
+
+    def _fail_if_called(*_args, **_kwargs):
+        raise AssertionError("Web Risk API must not be called once budget is exhausted.")
+
+    monkeypatch.setattr(google_web_risk.requests, "get", _fail_if_called)
+
+    result = google_web_risk.check_urls_against_web_risk([url])
+
+    assert result[key]["status"] == "error"
+    assert result[key]["error"] == "budget_exhausted"
+    assert result[key]["consulted"] is False
+    assert result[key]["details"]["status"] == "budget_exhausted"
+
+
 def test_zero_budget_disables_provider(monkeypatch):
     monkeypatch.setenv("MISTRAL_MONTHLY_BUDGET", "0")
     assert consume_mistral() is False

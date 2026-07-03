@@ -204,6 +204,11 @@ class Tier1Classifier:
         normalized = _strip_diacritics(text).lower()
         return bool(
             re.search(r"\b(introdu|completeaza|trimite|confirma|valideaza)\b.{0,80}\b(card|cvv|cvc|otp|parola|pin|iban|cnp)\b", normalized)
+            or re.search(
+                r"\b(spune(?:ti)?(?:[-\s]?mi)?|cititi(?:[-\s]?mi)?|comunica(?:ti)?(?:[-\s]?mi)?|dictati(?:[-\s]?mi)?|raspunde(?:ti)?)\b"
+                r".{0,100}\b(cod(?:ul)?|otp)\b.{0,80}\b(sms|whatsapp|verificare|confirmare|autentificare)\b",
+                normalized,
+            )
             or re.search(r"\b(anydesk|teamviewer|rustdesk|cont sigur|transfera banii|profit garantat)\b", normalized)
             or (
                 re.search(r"\b(fan|curier|courier|colet|awb|livrare|relivrare)\b", normalized)

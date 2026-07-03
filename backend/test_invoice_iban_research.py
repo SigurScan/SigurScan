@@ -58,6 +58,29 @@ class TestInvoiceIbanParser:
 
         assert fields.payment_beneficiary == "Popescu Ion Marian"
 
+    def test_extracts_beneficiar_plata_person_name_without_generic_prefix(self):
+        fields = parse_invoice(
+            "Furnizor: SC REAL SRL\n"
+            "CUI: RO12345678\n"
+            "Beneficiar plata: Marinescu Adrian\n"
+            "IBAN RO83BTRLRONCRT0299335701\n"
+            "Total 8500 RON"
+        )
+
+        assert fields.payment_beneficiary == "Marinescu Adrian"
+
+    def test_payment_instruction_line_followed_by_foreign_iban_is_not_beneficiary_name(self):
+        fields = parse_invoice(
+            "Invoice\n"
+            "Furnizor: SaaS Vendor GmbH\n"
+            "Plata prin transfer bancar in contul:\n"
+            "IBAN: DE89370400440532013000\n"
+            "Total: 120 EUR"
+        )
+
+        assert fields.payment_beneficiary is None
+        assert fields.all_ibans == ["DE89370400440532013000"]
+
     def test_collects_spaced_iban_from_ocr(self):
         fields = parse_invoice(
             "Furnizor: SC REAL SRL\n"
@@ -181,6 +204,38 @@ class TestInvoiceFraudSignals:
 
         assert "BENEFICIARY_PERSON_MISMATCH" in result.fraud_flags
         assert any("persoan" in warning.lower() for warning in result.warnings)
+
+    @pytest.mark.asyncio
+    async def test_beneficiar_plata_person_on_company_invoice_is_dangerous(self):
+        from services.invoice_orchestrator import evaluate_invoice_verdict
+
+        result = await scan_invoice(
+            "Furnizor: SC REAL SRL\n"
+            "CUI: RO12345678\n"
+            "Beneficiar plata: Marinescu Adrian\n"
+            "IBAN RO49AAAA1B31007593840000\n"
+            "Total 8500 RON"
+        )
+        verdict = evaluate_invoice_verdict(result, result.raw_text, source_channel="email_invoice")
+
+        assert result.fields.payment_beneficiary == "Marinescu Adrian"
+        assert "BENEFICIARY_PERSON_MISMATCH" in result.fraud_flags
+        assert verdict["gate"]["label"] == "DANGEROUS"
+
+    @pytest.mark.asyncio
+    async def test_foreign_iban_payment_line_is_not_person_beneficiary_mismatch(self):
+        result = await scan_invoice(
+            "Invoice\n"
+            "Furnizor: SaaS Vendor GmbH\n"
+            "Plata prin transfer bancar in contul:\n"
+            "IBAN: DE89370400440532013000\n"
+            "Total: 120 EUR"
+        )
+
+        assert result.fields.payment_beneficiary is None
+        assert result.fields.all_ibans == ["DE89370400440532013000"]
+        assert "FOREIGN_IBAN" in result.fraud_flags
+        assert "BENEFICIARY_PERSON_MISMATCH" not in result.fraud_flags
 
     @pytest.mark.asyncio
     async def test_account_change_plus_foreign_iban_is_dangerous(self):

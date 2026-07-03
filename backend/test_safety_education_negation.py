@@ -115,6 +115,10 @@ OTP_PHONE_REQUEST = (
     "Sunt de la banca. Am detectat o tranzactie suspecta. "
     "Dati-mi codul OTP pentru a o bloca."
 )
+VERBAL_SMS_CODE_PHONE_REQUEST = (
+    "Sunt de la banca, departamentul antifrauda. Pentru anularea tranzactiei suspecte, "
+    "spuneti-mi codul din 6 cifre primit prin SMS."
+)
 
 
 def _label(text, channel="email", with_urls=False):
@@ -224,6 +228,10 @@ def test_non_http_deeplink_without_sensitive_request_is_not_dangerous():
 
 def test_explicit_otp_request_on_wrong_channel_stays_dangerous():
     assert _label(OTP_PHONE_REQUEST, channel="phone") == "DANGEROUS"
+
+
+def test_verbal_sms_code_request_on_phone_is_dangerous():
+    assert _label(VERBAL_SMS_CODE_PHONE_REQUEST, channel="phone") == "DANGEROUS"
 
 
 def test_mistral_intent_analysis_can_suppress_non_action_keyword_noise():

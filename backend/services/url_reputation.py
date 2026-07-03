@@ -1874,8 +1874,20 @@ def _aggregate_reputation(url: str, per_source: Dict[str, Dict[str, Any]]) -> Di
 
     consulted_count = len(consulted_sources)
     active_sources = sorted(set(reasons))
+    provider_errors = [
+        source_name
+        for source_name, source_payload in source_summary.items()
+        if isinstance(source_payload, dict) and source_payload.get("status") == "error"
+    ]
 
-    if consulted_count == 0:
+    if active_sources:
+        if risk_score >= 78 or confidence >= 0.75:
+            verdict = "malicious"
+        else:
+            verdict = "suspicious"
+    elif provider_errors:
+        verdict = "unknown"
+    elif consulted_count == 0:
         verdict = "clean"
     elif risk_score >= 78 or confidence >= 0.75:
         verdict = "malicious"
@@ -1896,6 +1908,7 @@ def _aggregate_reputation(url: str, per_source: Dict[str, Dict[str, Any]]) -> Di
         "source_count": len(SOURCE_ORDER),
         "consulted_sources": sorted(consulted_sources),
         "consulted_source_count": consulted_count,
+        "provider_errors": sorted(provider_errors),
     }
 
 
@@ -2125,16 +2138,23 @@ def get_reputation_for_urls(
 
             web_risk_entry_raw = web_risk_matches.get(key) if web_risk_enabled else None
             web_risk_entry = web_risk_entry_raw if isinstance(web_risk_entry_raw, dict) else {}
+            web_risk_error = str(web_risk_entry.get("status") or "").strip().lower() == "error"
+            web_risk_hit = bool(web_risk_entry) and not web_risk_error
             per_source[WEB_RISK_SOURCE] = {
-                "status": "malicious" if web_risk_entry else "clean",
-                "consulted": web_risk_enabled,
+                "status": "error" if web_risk_error else ("malicious" if web_risk_hit else "clean"),
+                "consulted": bool(web_risk_entry.get("consulted", web_risk_enabled)) if web_risk_entry else web_risk_enabled,
                 "threat_type": web_risk_entry.get("threat_type", "unknown"),
+                "error": web_risk_entry.get("error"),
                 "details": {
                     "cache_duration": web_risk_entry.get("cache_duration", ""),
                     "provider": "google_web_risk",
-                    "status": "match" if web_risk_entry else "no_match",
+                    "status": (
+                        str(web_risk_entry.get("details", {}).get("status") or web_risk_entry.get("error") or "error")
+                        if web_risk_error
+                        else ("match" if web_risk_hit else "no_match")
+                    ),
                 },
-                "score": 100 if web_risk_entry else 0,
+                "score": 100 if web_risk_hit else 0,
             }
 
             asf_default_error = "skipped_fast_scan" if not include_asf_investor_alerts else "not_scanned"
