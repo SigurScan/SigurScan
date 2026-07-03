@@ -2109,8 +2109,14 @@ def _local_high_risk_semantic_review(raw_text: str) -> Optional[Dict[str, Any]]:
         (
             "semantic:otp_code_exfiltration",
             "otp_code_exfiltration",
-            r"(\b(cod|otp)\b.{0,80}\b(sms|whatsapp|verificare|confirmare)\b.{0,100}\b(trimite|spune|comunic[ăa]|d[ăa][-\s]?mi|da[-\s]?mi)\b)"
-            r"|(\b(trimite|spune|comunic[ăa]|d[ăa][-\s]?mi|da[-\s]?mi)\b.{0,100}\b(cod|otp)\b.{0,80}\b(sms|whatsapp|verificare|confirmare)\b)",
+            r"(\b(cod(?:ul)?|otp)\b.{0,80}\b(sms|whatsapp|verificare|confirmare)\b.{0,100}\b"
+            r"(trimite|spune(?:[țt]i)?(?:[-\s]?mi)?|citi[țt]i(?:[-\s]?mi)?|"
+            r"comunic[ăa](?:[țt]i)?(?:[-\s]?mi)?|dicta[țt]i(?:[-\s]?mi)?|"
+            r"r[ăa]spunde(?:[țt]i)?|d[ăa][-\s]?mi|da[-\s]?mi)\b)"
+            r"|(\b(trimite|spune(?:[țt]i)?(?:[-\s]?mi)?|citi[țt]i(?:[-\s]?mi)?|"
+            r"comunic[ăa](?:[țt]i)?(?:[-\s]?mi)?|dicta[țt]i(?:[-\s]?mi)?|"
+            r"r[ăa]spunde(?:[țt]i)?|d[ăa][-\s]?mi|da[-\s]?mi)\b"
+            r".{0,100}\b(cod(?:ul)?|otp)\b.{0,80}\b(sms|whatsapp|verificare|confirmare)\b)",
         ),
         (
             "semantic:esim_qr_exfiltration",
@@ -5062,6 +5068,5 @@ async def _run_offer_web_claim_enrichment(job: Dict[str, Any]) -> Dict[str, Any]
     job["analysis"] = analysis
     orchestrated_engine._emit_orchestrated_telemetry("orchestrated_offer_web_claim", job, claim_status=claim.get("status"))
     return orchestrated_engine._persist_orchestrated_job(job)
-
 
 

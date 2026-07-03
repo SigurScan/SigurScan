@@ -92,6 +92,18 @@ class TestPericulosCombos:
         out = await _run(text)
         assert out["gate"]["label"] == "DANGEROUS"
 
+    @pytest.mark.asyncio
+    async def test_santorini_off_platform_advance_to_personal_iban_periculos(self):
+        text = (
+            "Am vila in Santorini disponibila, pret foarte bun. "
+            "Nu rezerva prin platforma ca se blocheaza comisionul. "
+            "Hai pe WhatsApp si plateste avansul azi in contul meu personal.\n"
+            "Beneficiar plata: Popescu Mihai\n"
+            "IBAN: RO49AAAA1B31007593840000"
+        )
+        out = await _run(text)
+        assert out["gate"]["label"] == "DANGEROUS"
+
 
 class TestSuspectNotPericulos:
     @pytest.mark.asyncio

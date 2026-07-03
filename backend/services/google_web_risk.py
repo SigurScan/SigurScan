@@ -1,6 +1,6 @@
 import hashlib
 import os
-from typing import Dict, List
+from typing import Any, Dict, List
 
 import requests
 
@@ -40,7 +40,27 @@ def _threat_types() -> List[str]:
     return threat_types
 
 
-def check_urls_against_web_risk(urls: List[str]) -> Dict[str, Dict[str, str]]:
+def _url_hash(url: str) -> str:
+    return hashlib.sha256(url.encode("utf-8")).hexdigest()
+
+
+def _provider_error(url: str, reason: str, *, consulted: bool) -> Dict[str, Any]:
+    return {
+        "url": url,
+        "provider": "google_web_risk",
+        "status": "error",
+        "consulted": bool(consulted),
+        "threat_type": reason,
+        "score": 0,
+        "error": reason,
+        "details": {
+            "provider": "google_web_risk",
+            "status": reason,
+        },
+    }
+
+
+def check_urls_against_web_risk(urls: List[str]) -> Dict[str, Dict[str, Any]]:
     """
     Checks URLs against Google Web Risk Lookup API.
 
@@ -55,15 +75,21 @@ def check_urls_against_web_risk(urls: List[str]) -> Dict[str, Dict[str, str]]:
     if not unique_urls:
         return {}
 
-    results: Dict[str, Dict[str, str]] = {}
+    results: Dict[str, Dict[str, Any]] = {}
     threat_types = _threat_types()
     # Cost guard (#82): each lookup is a paid API call. On budget exhaustion we
     # stop; missing provider data is treated conservatively by the verdict gate
     # (blocks SAFE), so this can never make a scam look safe.
     from services.paid_provider_budgets import consume_web_risk
 
-    for url in unique_urls:
+    for index, url in enumerate(unique_urls):
         if not consume_web_risk():
+            for remaining_url in unique_urls[index:]:
+                results[_url_hash(remaining_url)] = _provider_error(
+                    remaining_url,
+                    "budget_exhausted",
+                    consulted=False,
+                )
             break
         params = [("uri", url), ("key", api_key)]
         params.extend(("threatTypes", threat_type) for threat_type in threat_types)
@@ -74,9 +100,18 @@ def check_urls_against_web_risk(urls: List[str]) -> Dict[str, Dict[str, str]]:
                 timeout=WEB_RISK_TIMEOUT_SECONDS,
             )
             if response.status_code != 200:
+                results[_url_hash(url)] = _provider_error(
+                    url,
+                    f"http_{response.status_code}",
+                    consulted=True,
+                )
                 continue
             data = response.json()
-        except (requests.RequestException, ValueError):
+        except requests.RequestException:
+            results[_url_hash(url)] = _provider_error(url, "request_error", consulted=True)
+            continue
+        except ValueError:
+            results[_url_hash(url)] = _provider_error(url, "invalid_json", consulted=True)
             continue
 
         threat = data.get("threat") if isinstance(data, dict) else None
@@ -87,7 +122,7 @@ def check_urls_against_web_risk(urls: List[str]) -> Dict[str, Dict[str, str]]:
         if not isinstance(matched_types, list) or not matched_types:
             continue
 
-        key = hashlib.sha256(url.encode("utf-8")).hexdigest()
+        key = _url_hash(url)
         results[key] = {
             "url": url,
             "threat_type": ",".join(str(item) for item in matched_types),

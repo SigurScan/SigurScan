@@ -15,8 +15,8 @@ from dataclasses import dataclass, field
 from typing import List, Literal, Optional
 
 from services.invoice_parser import (
+    ANY_IBAN_PATTERN,
     CUI_PATTERN,
-    IBAN_PATTERN,
     InvoiceFields,
     parse_invoice,
 )
@@ -36,7 +36,9 @@ LICENSE_PATTERN = re.compile(
     re.IGNORECASE,
 )
 BENEFICIAR_PATTERN = re.compile(
-    r"(?:beneficiar|titular(?:\s*cont)?|c[ăa]tre|in\s*contul(?:\s*lui)?)\s*[:\-]?\s*(.+?)(?:\n|$|,|;)",
+    r"(?:beneficiar(?:[^\S\n]+(?:plat[ăa]|plata|cont|final))?|"
+    r"titular(?:[^\S\n]*cont)?|c[ăa]tre|in[^\S\n]*contul(?:[^\S\n]*lui)?)"
+    r"[^\S\n]*[:\-]?[^\S\n]*([^\n\r,;]+)",
     re.IGNORECASE,
 )
 
@@ -149,16 +151,21 @@ def _extract_email_domains(text: str) -> List[str]:
 
 
 def _extract_beneficiary(text: str) -> Optional[str]:
-    match = BENEFICIAR_PATTERN.search(text)
-    if not match:
+    candidates: list[tuple[int, str]] = []
+    for match in BENEFICIAR_PATTERN.finditer(text):
+        value = match.group(1).strip().rstrip(".,;")
+        # Evită capturarea liniilor cu CUI/IBAN ca „beneficiar".
+        if not value or CUI_PATTERN.search(value) or ANY_IBAN_PATTERN.search(value):
+            continue
+        if len(value) < 2 or len(value) > 80:
+            continue
+        trigger = match.group(0).split(value, 1)[0].lower()
+        priority = 0 if "beneficiar" in trigger or "titular" in trigger else 1
+        candidates.append((priority, value))
+    if not candidates:
         return None
-    value = match.group(1).strip().rstrip(".,;")
-    # Evită capturarea liniilor cu CUI/IBAN ca „beneficiar".
-    if not value or CUI_PATTERN.search(value) or IBAN_PATTERN.search(value):
-        return None
-    if len(value) < 2 or len(value) > 80:
-        return None
-    return value
+    candidates.sort(key=lambda item: item[0])
+    return candidates[0][1]
 
 
 def _extract_vin(text: str) -> Optional[str]:
