@@ -61,6 +61,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
@@ -264,21 +265,60 @@ fun RedirectChainSection(chain: List<String>, finalUrl: String?) {
     }
 }
 
+/**
+ * Destination domain + secure preview, merged into one card: both are "what we found at the
+ * link", and having them as two separate cards back-to-back read as unrelated. The domain
+ * doubles as the preview box's caption, so the preview box itself no longer needs its own
+ * "Preview securizat" title.
+ */
 @Composable
-fun EvidenceSection(screenshotUrl: String?, serverInfo: String?, finalUrl: String?) {
-    if (screenshotUrl != null || finalUrl != null) {
+fun DestinationPreviewCard(
+    domain: String?,
+    accent: Color,
+    screenshotUrl: String?,
+    serverInfo: String?,
+    finalUrl: String?,
+) {
+    if (domain == null && screenshotUrl == null && finalUrl == null) return
+    val hasPreviewEvidence = screenshotUrl != null || finalUrl != null
+
+    Card(
+        colors = CardDefaults.cardColors(containerColor = SigurColors.BackgroundCard),
+        shape = RoundedCornerShape(SigurColors.RadiusCard.dp),
+        border = BorderStroke(1.dp, SigurColors.GlassBorder),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            if (domain != null) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(accent.copy(alpha = 0.13f), RoundedCornerShape(11.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.Link, contentDescription = null, tint = accent, modifier = Modifier.size(20.dp))
+                    }
+                    Column(modifier = Modifier.padding(start = 12.dp)) {
+                        Text("Te duce către", color = SigurColors.TextMuted, fontSize = 10.5.sp, fontWeight = FontWeight.Bold)
+                        Text(domain, color = SigurColors.TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    }
+                }
+            }
+
+            if (hasPreviewEvidence) {
+                EvidencePreviewBox(screenshotUrl, serverInfo, finalUrl, topSpacing = if (domain != null) 12.dp else 0.dp)
+            }
+        }
+    }
+}
+
+@Composable
+private fun EvidencePreviewBox(screenshotUrl: String?, serverInfo: String?, finalUrl: String?, topSpacing: Dp) {
         val screenshotModel = sandboxScreenshotModel(screenshotUrl)
         val previewPending = screenshotUrl == null && serverInfo?.contains("genere", ignoreCase = true) == true
 
-        Column(modifier = Modifier.padding(vertical = 12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Visibility, contentDescription = null, tint = SigurColors.Brand, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("Preview securizat", fontWeight = FontWeight.Bold, color = SigurColors.TextPrimary, fontSize = 14.sp)
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
+        Column(modifier = Modifier.padding(top = topSpacing)) {
             Card(
                 shape = RoundedCornerShape(12.dp),
                 border = BorderStroke(1.dp, SigurColors.GlassBorder),
@@ -376,7 +416,6 @@ fun EvidenceSection(screenshotUrl: String?, serverInfo: String?, finalUrl: Strin
                 )
             }
         }
-    }
 }
 
 internal fun sandboxScreenshotModel(screenshotUrl: String?): String? {

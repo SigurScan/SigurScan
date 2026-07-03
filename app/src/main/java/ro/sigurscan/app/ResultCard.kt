@@ -97,7 +97,9 @@ import kotlin.math.pow
 fun EvidenceSectionPreview() {
     SigurScanTheme {
         Column(modifier = Modifier.padding(16.dp)) {
-            EvidenceSection(
+            DestinationPreviewCard(
+                domain = "exemplu.invalid",
+                accent = SigurColors.Dangerous,
                 screenshotUrl = null,
                 serverInfo = "Preview disponibil pentru pagina finală.",
                 finalUrl = "https://exemplu.invalid"
@@ -192,12 +194,15 @@ fun ResultCard(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        finalDomain?.let { domain ->
-            ro.sigurscan.app.ui.v2.components.DestinationRowV2(
-                icon = Icons.Default.Link,
+        // Domain + secure preview live in one card now — both answer "what did we find at
+        // the link", so showing them as two separate back-to-back cards read as unrelated.
+        if (finalDomain != null || assessment.screenshotUrl != null || assessment.finalUrl != null) {
+            DestinationPreviewCard(
+                domain = finalDomain,
                 accent = riskUi.color,
-                label = "Te duce către",
-                value = domain
+                screenshotUrl = assessment.screenshotUrl,
+                serverInfo = assessment.serverInfo,
+                finalUrl = assessment.finalUrl
             )
             Spacer(modifier = Modifier.height(12.dp))
         }
@@ -215,9 +220,8 @@ fun ResultCard(
             // state duplicated the verdict header's own progress row (isCheckingFurther in
             // VerdictCardV2's extraHeaderContent — same asyncExpected/PROVISIONAL condition,
             // just worded differently), and its "final" state duplicated the reasons already
-            // listed in the verdict card above.
-
-            EvidenceSection(assessment.screenshotUrl, assessment.serverInfo, assessment.finalUrl)
+            // listed in the verdict card above. The destination + preview card that used to
+            // follow it also moved — merged with "Te duce către" above (DestinationPreviewCard).
 
             assessment.offerEvidence?.let { offer ->
                 OfferEvidenceSection(offer)
