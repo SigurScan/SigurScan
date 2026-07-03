@@ -2,6 +2,7 @@ package ro.sigurscan.app.ui.v2.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -122,16 +123,19 @@ fun BottomNavBarV2(
                     .size(54.dp)
                     .fabShadowV2(54.dp)
                     .clip(CircleShape)
-                    .background(Color.White),
+                    .background(Color.White)
+                    .border(3.dp, SigurTokensV2.Canvas, CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(Icons.Rounded.QrCodeScanner, contentDescription = "Scanează", tint = SigurTokensV2.Sigur.accent, modifier = Modifier.size(25.dp))
             }
+            // Label sits on the green pill below the FAB (v2: white, ~10px from pill edge).
+            // padding(top) here is measured from the FAB's bottom edge, not the Column top.
             Text(
                 "Scanează",
                 style = TypeV2.Eyebrow.copy(fontSize = 11.sp, letterSpacing = 0.sp),
-                color = SigurTokensV2.Ink,
-                modifier = Modifier.padding(top = 34.dp),
+                color = Color.White,
+                modifier = Modifier.padding(top = 8.dp),
             )
         }
     }

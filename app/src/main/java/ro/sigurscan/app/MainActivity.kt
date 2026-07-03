@@ -73,6 +73,8 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import coil.compose.SubcomposeAsyncImage
 import ro.sigurscan.app.ui.theme.SigurScanTheme
 import ro.sigurscan.app.ui.theme.SigurColors
+import ro.sigurscan.app.ui.v2.components.BottomNavBarV2
+import ro.sigurscan.app.ui.v2.components.BottomNavTabV2
 import org.json.JSONArray
 import org.json.JSONObject
 import android.webkit.WebResourceRequest
@@ -256,10 +258,26 @@ fun MainScreen(viewModel: ScannerViewModel) {
                 )
             }
 
-            BottomNavigationBar(
-                activeTab = viewModel.currentTab,
-                onTabClick = { viewModel.currentTab = it },
-                modifier = Modifier.align(Alignment.BottomCenter)
+            // v2 nav bar (ChromeV2.BottomNavBarV2) mapped onto the app's string tab keys.
+            val selectedNavTab = when (viewModel.currentTab) {
+                "radar" -> BottomNavTabV2.RADAR
+                "education" -> BottomNavTabV2.PROTECTIE
+                "triage" -> BottomNavTabV2.URGENTA
+                "more" -> BottomNavTabV2.MAI_MULT
+                else -> BottomNavTabV2.SCANEAZA
+            }
+            BottomNavBarV2(
+                selected = selectedNavTab,
+                onSelect = { tab ->
+                    viewModel.currentTab = when (tab) {
+                        BottomNavTabV2.RADAR -> "radar"
+                        BottomNavTabV2.PROTECTIE -> "education"
+                        BottomNavTabV2.SCANEAZA -> "scan"
+                        BottomNavTabV2.URGENTA -> "triage"
+                        BottomNavTabV2.MAI_MULT -> "more"
+                    }
+                },
+                modifier = Modifier.align(Alignment.BottomCenter),
             )
 
             if (showQrScanner) {

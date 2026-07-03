@@ -1363,16 +1363,16 @@ class ScannerViewModelTest {
     @Test
     fun bottomNavigationKeepsTabsAboveSystemGestureArea() {
         val activitySource = uiPackageSource()
-        val bottomNavStart = activitySource.indexOf("fun BottomNavigationBar(activeTab: String, onTabClick: (String) -> Unit")
-        val bottomNavEnd = activitySource.indexOf("// ─────────────────────────────────────────────────────────────", bottomNavStart)
-        assertTrue("BottomNavigationBar must exist.", bottomNavStart >= 0 && bottomNavEnd > bottomNavStart)
+        val bottomNavStart = activitySource.indexOf("fun BottomNavBarV2(")
+        assertTrue("BottomNavBarV2 must exist.", bottomNavStart >= 0)
+        val bottomNavEnd = activitySource.indexOf("private fun NavTabV2(", bottomNavStart)
+        assertTrue("BottomNavBarV2 body must be bounded.", bottomNavEnd > bottomNavStart)
 
         val bottomNavSource = activitySource.substring(bottomNavStart, bottomNavEnd)
         assertTrue(
-            "Bottom navigation must reserve navigation bar inset on gesture-navigation phones and keep the central scan slot tappable beyond the icon itself.",
+            "Bottom navigation must reserve the navigation bar inset on gesture-navigation phones and keep the central scan action tappable.",
             bottomNavSource.contains(".navigationBarsPadding()") &&
-                bottomNavSource.contains(".fillMaxHeight()") &&
-                bottomNavSource.contains(".clickable { onTabClick(\"scan\") }")
+                bottomNavSource.contains("onSelect(BottomNavTabV2.SCANEAZA)")
         )
     }
 
