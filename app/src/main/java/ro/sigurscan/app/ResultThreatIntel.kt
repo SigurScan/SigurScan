@@ -278,6 +278,8 @@ fun DestinationPreviewCard(
     screenshotUrl: String?,
     serverInfo: String?,
     finalUrl: String?,
+    badgeLabel: String? = null,
+    badgeAccent: Color = accent,
 ) {
     if (domain == null && screenshotUrl == null && finalUrl == null) return
     val hasPreviewEvidence = screenshotUrl != null || finalUrl != null
@@ -299,9 +301,20 @@ fun DestinationPreviewCard(
                     ) {
                         Icon(Icons.Default.Link, contentDescription = null, tint = accent, modifier = Modifier.size(20.dp))
                     }
-                    Column(modifier = Modifier.padding(start = 12.dp)) {
+                    Column(modifier = Modifier.padding(start = 12.dp).weight(1f)) {
                         Text("Te duce către", color = SigurColors.TextMuted, fontSize = 10.5.sp, fontWeight = FontWeight.Bold)
                         Text(domain, color = SigurColors.TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    }
+                    if (badgeLabel != null) {
+                        Box(
+                            modifier = Modifier
+                                .padding(start = 8.dp)
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(badgeAccent.copy(alpha = 0.15f))
+                                .padding(horizontal = 9.dp, vertical = 3.dp)
+                        ) {
+                            Text(badgeLabel, color = badgeAccent, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+                        }
                     }
                 }
             }

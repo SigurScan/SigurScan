@@ -197,12 +197,31 @@ fun ResultCard(
         // Domain + secure preview live in one card now — both answer "what did we find at
         // the link", so showing them as two separate back-to-back cards read as unrelated.
         if (finalDomain != null || assessment.screenshotUrl != null || assessment.finalUrl != null) {
+            // Domain badge from real evidence (v2 "Domeniu oficial" / "Imită…" pill).
+            // Fine-grained codes come from the local evidence gate; the orchestrated
+            // backend path only carries the coarse verdict, but its SAFE verdict already
+            // asserts an official/delegated destination — so mirror that as the badge.
+            val destCodes = assessment.gateResult?.reasonCodes?.toSet() ?: emptySet()
+            val destAction = assessment.gateResult?.action
+            val destBadge: Pair<String, Color>? = when {
+                "OFFICIAL_DOMAIN_EXACT" in destCodes || "DELEGATED_DOMAIN_EXACT" in destCodes ->
+                    "Domeniu oficial" to SigurColors.Safe
+                destAction == GateAction.CONTINUE_WITH_CAUTION && finalDomain != null ->
+                    "Domeniu oficial" to SigurColors.Safe
+                "OFFICIAL_DOMAIN_MISMATCH" in destCodes ->
+                    "Imită un brand oficial" to SigurColors.Suspect
+                "COURIER_UNOFFICIAL_DOMAIN" in destCodes ->
+                    "Domeniu neoficial" to SigurColors.Suspect
+                else -> null
+            }
             DestinationPreviewCard(
                 domain = finalDomain,
                 accent = riskUi.color,
                 screenshotUrl = assessment.screenshotUrl,
                 serverInfo = assessment.serverInfo,
-                finalUrl = assessment.finalUrl
+                finalUrl = assessment.finalUrl,
+                badgeLabel = destBadge?.first,
+                badgeAccent = destBadge?.second ?: riskUi.color
             )
             Spacer(modifier = Modifier.height(12.dp))
         }
