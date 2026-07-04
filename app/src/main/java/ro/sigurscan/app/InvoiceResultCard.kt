@@ -256,19 +256,32 @@ fun InvoiceResultCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(SigurColors.BackgroundSurface)
                     .clickable { detailsExpanded = !detailsExpanded }
-                    .padding(vertical = 8.dp),
+                    .padding(horizontal = 13.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    if (detailsExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    Icons.Default.DataObject,
                     contentDescription = null,
                     tint = SigurColors.TextSecondary,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    "Detalii tehnice (CUI, IBAN, sume)",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = SigurColors.TextPrimary,
+                    modifier = Modifier.weight(1f)
+                )
+                Icon(
+                    if (detailsExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = null,
+                    tint = SigurColors.TextMuted,
                     modifier = Modifier.size(20.dp)
                 )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Detalii tehnice (CUI, IBAN, sume)", fontSize = 13.sp, color = SigurColors.TextSecondary)
             }
 
             if (detailsExpanded) {
