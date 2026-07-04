@@ -233,5 +233,36 @@ fun TriageTab(viewModel: ScannerViewModel) {
                 }
             }
         }
+
+        // Așteaptă decizia ta — pending invoice SANB confirmation (v2 mockup 12).
+        viewModel.invoiceResult?.beneficiaryNameCheck?.takeIf { it.recommended }?.let { _ ->
+            val supplier = viewModel.invoiceResult?.fields?.emitent?.takeIf { it.isNotBlank() }
+            Spacer(modifier = Modifier.height(18.dp))
+            Text("Așteaptă decizia ta", fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, color = SigurColors.TextPrimary, modifier = Modifier.padding(start = 4.dp))
+            Spacer(modifier = Modifier.height(9.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(SigurColors.Suspect.copy(alpha = 0.10f))
+                    .clickable { viewModel.currentTab = "scan" }
+                    .padding(horizontal = 14.dp, vertical = 13.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier.size(40.dp).clip(RoundedCornerShape(11.dp)).background(SigurColors.Suspect.copy(alpha = 0.16f)),
+                    contentAlignment = Alignment.Center
+                ) { Icon(Icons.Default.AccountBalance, contentDescription = null, tint = Color(0xFFB26B00), modifier = Modifier.size(20.dp)) }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Confirmă în SANB", color = SigurColors.TextPrimary, fontSize = 13.5.sp, fontWeight = FontWeight.ExtraBold)
+                    Text(
+                        if (supplier != null) "Factură $supplier — verifică numele beneficiarului înainte să plătești." else "Verifică numele beneficiarului înainte să plătești.",
+                        color = SigurColors.TextMuted, fontSize = 12.sp, lineHeight = 17.sp
+                    )
+                }
+                Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Color(0xFFB26B00), modifier = Modifier.size(22.dp))
+            }
+        }
     }
 }
