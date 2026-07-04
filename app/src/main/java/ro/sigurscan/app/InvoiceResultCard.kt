@@ -111,33 +111,70 @@ fun InvoiceResultCard(
     val tone = if (isError) DSChipTone.Danger else presentation?.tone ?: DSChipTone.Pending
     val verdictText = if (isError) "Eroare" else presentation?.headline ?: "Verifică"
 
-    Card(
-        colors = CardDefaults.cardColors(containerColor = SigurColors.BackgroundCard),
-        shape = RoundedCornerShape(16.dp),
-        modifier = Modifier.fillMaxWidth().border(1.dp, SigurColors.GlassBorder, RoundedCornerShape(16.dp))
-    ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Receipt, contentDescription = null, tint = SigurColors.Brand, modifier = Modifier.size(24.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    "Scanare Factură",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    color = SigurColors.TextPrimary,
-                    modifier = Modifier.weight(1f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                DSChip(
-                    verdictText,
-                    tone = tone,
-                    modifier = Modifier.widthIn(max = 210.dp)
-                )
-            }
+    // v2 invoice verdict (mockups 06-09): themed hero + supplier card + support card.
+    val invoiceTone = when (tone) {
+        DSChipTone.Safe -> ro.sigurscan.app.ui.v2.theme.VerdictTone.SIGUR
+        DSChipTone.Suspect -> ro.sigurscan.app.ui.v2.theme.VerdictTone.SUSPECT
+        DSChipTone.Danger -> ro.sigurscan.app.ui.v2.theme.VerdictTone.PERICULOS
+        else -> ro.sigurscan.app.ui.v2.theme.VerdictTone.NEVERIFICAT
+    }
+    val heroReasons = buildList {
+        invoiceTruth?.hardConflicts?.forEach { c -> c.label?.takeIf { it.isNotBlank() }?.let { add(ro.sigurscan.app.ui.v2.components.VerdictReason(it, ro.sigurscan.app.ui.v2.components.ReasonSeverity.ALERT)) } }
+        invoiceTruth?.verifiedItems?.forEach { v -> v.label?.takeIf { it.isNotBlank() }?.let { add(ro.sigurscan.app.ui.v2.components.VerdictReason(it, ro.sigurscan.app.ui.v2.components.ReasonSeverity.GOOD)) } }
+        invoiceTruth?.unconfirmedItems?.forEach { u -> u.label?.takeIf { it.isNotBlank() }?.let { add(ro.sigurscan.app.ui.v2.components.VerdictReason(it, ro.sigurscan.app.ui.v2.components.ReasonSeverity.NEUTRAL)) } }
+    }.take(5)
+    val heroIcon = when (tone) {
+        DSChipTone.Safe -> Icons.Default.CheckCircle
+        DSChipTone.Danger -> Icons.Default.Dangerous
+        DSChipTone.Suspect -> Icons.Default.Warning
+        else -> Icons.Default.HelpOutline
+    }
+    val supplierAccent = when (tone) {
+        DSChipTone.Danger -> SigurColors.Dangerous
+        DSChipTone.Suspect -> SigurColors.Suspect
+        DSChipTone.Safe -> SigurColors.Safe
+        else -> SigurColors.Pending
+    }
+    val supplierName = result.fields?.emitent?.takeIf { it.isNotBlank() }
+    val supplierIban = result.paymentDestination?.ibanMaskedForClient?.takeIf { it.isNotBlank() }
+        ?: result.fields?.iban?.takeIf { it.isNotBlank() }
+        ?: ""
+    val xmlBadge = when {
+        result.officialDocumentCheck?.provided == true && result.officialDocumentCheck?.status == "match" -> "XML verificat"
+        result.officialDocumentCheck?.provided == true && result.officialDocumentCheck?.status == "mismatch" -> "XML ≠"
+        else -> "doc scanat"
+    }
 
-            Spacer(modifier = Modifier.height(16.dp))
+    Column(modifier = Modifier.fillMaxWidth()) {
+        if (!isError && presentation != null) {
+            ro.sigurscan.app.ui.v2.components.VerdictCardV2(
+                tone = invoiceTone,
+                badgeLabel = verdictText.uppercase(Locale.getDefault()),
+                title = presentation.headline,
+                subtitle = presentation.action,
+                headerIcon = heroIcon,
+                reasons = heroReasons
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        if (supplierName != null) {
+            ro.sigurscan.app.ui.v2.components.InvoiceSupplierCardV2(
+                accent = supplierAccent,
+                supplierName = supplierName,
+                iban = supplierIban,
+                sourceBadge = xmlBadge,
+                sourceLine = invoiceSourceLabel(result.officialDocumentCheck)
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        Card(
+            colors = CardDefaults.cardColors(containerColor = SigurColors.BackgroundCard),
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth().border(1.dp, SigurColors.GlassBorder, RoundedCornerShape(16.dp))
+        ) {
+        Column(modifier = Modifier.padding(20.dp)) {
 
             Text(
                 invoiceSourceLabel(result.officialDocumentCheck),
@@ -180,57 +217,6 @@ fun InvoiceResultCard(
             result.error?.let { err ->
                 Text(err, color = SigurColors.Dangerous, fontSize = 14.sp)
                 Spacer(modifier = Modifier.height(12.dp))
-            }
-
-            presentation?.let { p ->
-                val accent = when (p.tone) {
-                    DSChipTone.Danger -> SigurColors.Dangerous
-                    DSChipTone.Suspect -> SigurColors.Suspect
-                    DSChipTone.Safe -> SigurColors.Safe
-                    else -> SigurColors.Pending
-                }
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(accent.copy(alpha = 0.12f))
-                        .padding(14.dp)
-                ) {
-                    Text(p.headline, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = accent)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(p.action, color = SigurColors.TextPrimary, fontSize = 14.sp, lineHeight = 20.sp)
-                }
-                Spacer(modifier = Modifier.height(14.dp))
-            }
-
-            invoiceTruth?.hardConflicts?.takeIf { it.isNotEmpty() }?.let { items ->
-                Text("Problemă găsită", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = SigurColors.Dangerous)
-                items.take(4).forEach { item ->
-                    item.label?.takeIf { it.isNotBlank() }?.let { label ->
-                        Text("• $label", fontSize = 12.sp, color = SigurColors.TextSecondary, modifier = Modifier.padding(start = 8.dp, top = 3.dp))
-                    }
-                }
-                Spacer(modifier = Modifier.height(10.dp))
-            }
-
-            invoiceTruth?.verifiedItems?.takeIf { it.isNotEmpty() }?.let { items ->
-                Text("Am verificat", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = SigurColors.Safe)
-                items.take(4).forEach { item ->
-                    item.label?.takeIf { it.isNotBlank() }?.let { label ->
-                        Text("• $label", fontSize = 12.sp, color = SigurColors.TextSecondary, modifier = Modifier.padding(start = 8.dp, top = 3.dp))
-                    }
-                }
-                Spacer(modifier = Modifier.height(10.dp))
-            }
-
-            invoiceTruth?.unconfirmedItems?.takeIf { it.isNotEmpty() }?.let { items ->
-                Text("Mai verifică", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = SigurColors.Pending)
-                items.take(4).forEach { item ->
-                    item.label?.takeIf { it.isNotBlank() }?.let { label ->
-                        Text("• $label", fontSize = 12.sp, color = SigurColors.TextSecondary, modifier = Modifier.padding(start = 8.dp, top = 3.dp))
-                    }
-                }
-                Spacer(modifier = Modifier.height(10.dp))
             }
 
             invoiceTruth?.nextAction?.title?.takeIf { it.isNotBlank() }?.let { action ->
@@ -419,6 +405,7 @@ fun InvoiceResultCard(
             ) {
                 Text("Scanează altă factură", color = Color.White)
             }
+        }
         }
     }
 }
