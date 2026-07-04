@@ -113,10 +113,21 @@ fun DetailRowV2(key: String, value: String, showTopDivider: Boolean = true, modi
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 9.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.Top,
         ) {
-            Text(key, style = TypeV2.Body.copy(color = SigurTokensV2.Muted, fontSize = 13.sp))
-            Text(value, style = TypeV2.Mono, color = SigurTokensV2.Ink)
+            Text(
+                key,
+                style = TypeV2.Body.copy(color = SigurTokensV2.Muted, fontSize = 13.sp),
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                value,
+                style = TypeV2.Mono,
+                color = SigurTokensV2.Ink,
+                textAlign = androidx.compose.ui.text.style.TextAlign.End,
+                modifier = Modifier.weight(1.35f),
+            )
         }
     }
 }

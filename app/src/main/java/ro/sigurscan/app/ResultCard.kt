@@ -258,7 +258,18 @@ fun ResultCard(
                 ResultSection(title = "Riscuri principale", items = keyDangersDeduped.take(3), icon = Icons.Default.Warning, accent = riskUi.color)
             }
 
-            ResultSection(title = "Ce să faci acum", items = nextActions, icon = Icons.Default.CheckCircle, accent = riskUi.color)
+            ro.sigurscan.app.ui.v2.components.ActionPlanCardV2(
+                accent = riskUi.color,
+                icon = Icons.Default.CheckCircle,
+                actions = nextActions,
+                techDetails = if (finalDomain != null) listOf(
+                    "Reputație domeniu" to assessment.reputationVerdict,
+                    "Vârstă domeniu" to assessment.domainAgeText,
+                    "Certificat SSL" to assessment.sslStatus,
+                    "Încredere AI" to assessment.aiConfidence,
+                    "Scor de risc" to "${assessment.riskScore} / 100"
+                ) else emptyList()
+            )
 
             assessment.actionPlan?.let { plan ->
                 ActionPlanSection(plan)
@@ -294,7 +305,7 @@ fun ResultCard(
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
                 ) {
                     Text(
-                        text = if (showTechnicalDetails) "Ascunde detalii tehnice" else "Arată detalii tehnice",
+                        text = if (showTechnicalDetails) "Ascunde semnalele avansate" else "Vezi toate semnalele (avansat)",
                         color = SigurColors.Brand,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
@@ -316,7 +327,12 @@ fun ResultCard(
                             )
                         }
 
-                    SincerityPillarsSection(assessment)
+                    // The 4 reputation/domain/SSL/AI pillars already render as the clean
+                    // "Detalii tehnice" rows in the action card above whenever there is a
+                    // domain. Only fall back to the full pillar breakdown for text-only scans.
+                    if (finalDomain == null) {
+                        SincerityPillarsSection(assessment)
+                    }
 
                     if (assessment.threatIntel.isNotEmpty()) {
                         ThreatIntelSection(assessment.threatIntel, assessment.sandboxReportUrl)

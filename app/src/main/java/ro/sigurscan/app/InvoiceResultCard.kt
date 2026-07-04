@@ -118,11 +118,22 @@ fun InvoiceResultCard(
         DSChipTone.Danger -> ro.sigurscan.app.ui.v2.theme.VerdictTone.PERICULOS
         else -> ro.sigurscan.app.ui.v2.theme.VerdictTone.NEVERIFICAT
     }
+    // Mockups 06-09: the hero carries WHY this verdict (conflicts + unconfirmed). The list
+    // of what we positively checked lives in its own "Am verificat" section below, so we
+    // don't duplicate it. Exception: a clean verdict with no conflicts surfaces the
+    // positives in the hero ("De ce poți plăti") and skips the separate section.
+    val hasHeroConflicts = !invoiceTruth?.hardConflicts.isNullOrEmpty() ||
+        !invoiceTruth?.unconfirmedItems.isNullOrEmpty()
     val heroReasons = buildList {
         invoiceTruth?.hardConflicts?.forEach { c -> c.label?.takeIf { it.isNotBlank() }?.let { add(ro.sigurscan.app.ui.v2.components.VerdictReason(it, ro.sigurscan.app.ui.v2.components.ReasonSeverity.ALERT)) } }
-        invoiceTruth?.verifiedItems?.forEach { v -> v.label?.takeIf { it.isNotBlank() }?.let { add(ro.sigurscan.app.ui.v2.components.VerdictReason(it, ro.sigurscan.app.ui.v2.components.ReasonSeverity.GOOD)) } }
         invoiceTruth?.unconfirmedItems?.forEach { u -> u.label?.takeIf { it.isNotBlank() }?.let { add(ro.sigurscan.app.ui.v2.components.VerdictReason(it, ro.sigurscan.app.ui.v2.components.ReasonSeverity.NEUTRAL)) } }
+        if (!hasHeroConflicts) {
+            invoiceTruth?.verifiedItems?.forEach { v -> v.label?.takeIf { it.isNotBlank() }?.let { add(ro.sigurscan.app.ui.v2.components.VerdictReason(it, ro.sigurscan.app.ui.v2.components.ReasonSeverity.GOOD)) } }
+        }
     }.take(5)
+    val verifiedItemsList = if (hasHeroConflicts) {
+        invoiceTruth?.verifiedItems?.mapNotNull { it.label?.takeIf { l -> l.isNotBlank() } }.orEmpty()
+    } else emptyList()
     val heroIcon = when (tone) {
         DSChipTone.Safe -> Icons.Default.CheckCircle
         DSChipTone.Danger -> Icons.Default.Dangerous
@@ -216,6 +227,11 @@ fun InvoiceResultCard(
 
             result.error?.let { err ->
                 Text(err, color = SigurColors.Dangerous, fontSize = 14.sp)
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
+            if (verifiedItemsList.isNotEmpty()) {
+                InvoiceVerifiedBlock(items = verifiedItemsList, accent = supplierAccent)
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
@@ -430,6 +446,40 @@ internal fun invoiceSignalLabel(code: String): String = when (code) {
     "NEW_VENDOR_PUBLIC_PROCUREMENT_FEE" -> "Taxă achiziție publică/furnizor nou"
     "EFACTURA_OFFICIAL_DOCUMENT_MISMATCH" -> "Factura diferă de XML-ul oficial atașat"
     else -> code.replace('_', ' ').lowercase(Locale.getDefault()).replaceFirstChar { it.titlecase(Locale.getDefault()) }
+}
+
+/** Mockups 07-09: "Am verificat" — task_alt header + tone-colored bullet list of positive checks. */
+@Composable
+private fun InvoiceVerifiedBlock(items: List<String>, accent: Color) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.Default.TaskAlt,
+                contentDescription = null,
+                tint = accent,
+                modifier = Modifier.size(18.dp)
+            )
+            Text(
+                "Am verificat",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                color = SigurColors.TextPrimary,
+                modifier = Modifier.padding(start = 8.dp)
+            )
+        }
+        items.forEach { item ->
+            Row(modifier = Modifier.padding(top = 8.dp), verticalAlignment = Alignment.Top) {
+                Text("•", color = accent, fontSize = 15.sp, lineHeight = 21.sp)
+                Text(
+                    item,
+                    fontSize = 14.sp,
+                    color = SigurColors.TextSecondary,
+                    lineHeight = 21.sp,
+                    modifier = Modifier.padding(start = 9.dp)
+                )
+            }
+        }
+    }
 }
 
 internal fun invoiceOfficialFieldLabel(code: String?): String = when (code) {
