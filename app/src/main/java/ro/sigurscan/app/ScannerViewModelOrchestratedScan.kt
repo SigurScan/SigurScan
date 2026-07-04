@@ -664,6 +664,10 @@ internal fun ScannerViewModel.launchFinalOrchestratedPreviewRefresh(
     viewModelScope.launch {
         var response = initialResponse
         var refreshFailures = 0
+        // By design, the client keeps refreshing a pending preview until the BACKEND
+        // returns a terminal state (screenshot ready or unavailable) — it never invents
+        // a local timeout. Since the secure preview is the product's differentiator,
+        // tolerate transient network trouble persistently instead of giving up early.
         while (shouldRefreshFinalOrchestratedPreview(response)) {
             kotlinx.coroutines.delay(orchestratedPollDelayMillis(response))
             response = try {
@@ -679,9 +683,10 @@ internal fun ScannerViewModel.launchFinalOrchestratedPreviewRefresh(
                 } catch (statusError: Exception) {
                     refreshFailures += 1
                     Log.w("SigurScan", "orchestrated preview status refresh failed: ${statusError.javaClass.simpleName}")
-                    if (refreshFailures >= 3) {
+                    if (refreshFailures >= 8) {
                         return@launch
                     }
+                    kotlinx.coroutines.delay(2_000L)
                     continue
                 }
             }
