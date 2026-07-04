@@ -579,6 +579,13 @@ internal fun ScannerViewModel.shouldCacheFinalAssessment(
 ): Boolean {
     if (assessment.gateResult?.finality != GateFinality.FINAL) return false
     if (orchestratedPreviewStillPending(response.preview)) return false
+    // A URL scan without a screenshot must NOT be cached mid-generation (preview null
+    // or ready-but-empty) — otherwise it freezes on "Se generează…" on every re-open.
+    // Only cache a screenshot-less URL scan once the preview is conclusively unavailable.
+    val hasUrlTarget = assessment.finalUrl != null || assessment.redirectChain.isNotEmpty()
+    val hasScreenshot = !assessment.screenshotUrl.isNullOrBlank()
+    val previewUnavailable = response.preview?.status?.trim().equals("unavailable", ignoreCase = true)
+    if (hasUrlTarget && !hasScreenshot && !previewUnavailable) return false
     return true
 }
 

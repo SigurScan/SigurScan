@@ -633,6 +633,34 @@ class ScannerViewModelTest {
         assertTrue("Internal Cloud Run screenshot URLs must refresh.", helperFlow.contains("\".run.app/\""))
     }
 
+    /**
+     * A cached URL scan that never got its screenshot must not stay frozen on
+     * "Se generează…" forever. It must be re-fetched while the preview is still
+     * generating (even when finalUrl is null but a redirect target exists), yet
+     * must NOT re-scan a page whose preview is conclusively unavailable, and must
+     * leave text-only scans (nothing to screenshot) alone.
+     */
+    @Test
+    fun cachedPreviewRefreshHealsScreenshotlessGeneratingPreviews() {
+        fun asmt(finalUrl: String?, redirect: List<String>, shot: String?, info: String?) =
+            OfflineAssessment(
+                family = "url", riskScore = 0, riskLevel = "safe",
+                reasons = emptyList(), safeActions = emptyList(), keyDangers = emptyList(),
+                finalUrl = finalUrl, redirectChain = redirect, screenshotUrl = shot, serverInfo = info
+            )
+        val generating = "Preview-ul securizat se generează."
+        // URL scan, still generating, no screenshot → refresh (the stuck-cache bug).
+        assertTrue(cachedPreviewNeedsRefresh(asmt("https://emag.ro", emptyList(), null, generating)))
+        // finalUrl null but redirect present → previously returned false (the bug); now refresh.
+        assertTrue(cachedPreviewNeedsRefresh(asmt(null, listOf("https://emag.ro"), null, generating)))
+        // Preview conclusively unavailable → must NOT re-scan forever.
+        assertFalse(cachedPreviewNeedsRefresh(asmt("https://x.ro", emptyList(), null, "Preview-ul securizat nu este disponibil momentan.")))
+        // Text-only scan (nothing to screenshot) → no refresh.
+        assertFalse(cachedPreviewNeedsRefresh(asmt(null, emptyList(), null, "Scanarea completă a fost finalizată.")))
+        // Healthy https screenshot → no refresh.
+        assertFalse(cachedPreviewNeedsRefresh(asmt("https://x.ro", emptyList(), "https://api.sigurscan.com/v1/sandbox/urlscan/abc/screenshot", "ok")))
+    }
+
     @Test
     fun cachedResultUiClearlyOffersRescanWithoutChangingVerdictCopy() {
         val activitySource = uiPackageSource()
