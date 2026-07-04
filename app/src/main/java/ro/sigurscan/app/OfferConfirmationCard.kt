@@ -436,7 +436,7 @@ internal fun InvoiceFieldRow(label: String, value: String, valueTone: DSChipTone
             Text(
                 value,
                 fontSize = 13.sp,
-                fontWeight = FontWeight.Medium,
+                fontFamily = ro.sigurscan.app.ui.v2.theme.JetBrainsMonoV2,
                 color = SigurColors.TextPrimary,
                 textAlign = TextAlign.End,
                 lineHeight = 18.sp,
