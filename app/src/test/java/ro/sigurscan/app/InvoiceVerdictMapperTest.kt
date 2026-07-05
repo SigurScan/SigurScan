@@ -246,6 +246,26 @@ class InvoiceVerdictMapperTest {
     }
 
     @Test
+    fun neverificatWithObligationGapAcknowledgesSanbConfirmedAccountInsteadOfReCheckCopy() {
+        // Destination already confirmed (SANB matched) — the copy must not tell the user to
+        // re-check the IBAN they just checked; it acknowledges the account and flags the
+        // obligation as the only remaining, user-owned gap.
+        val withGap = invoiceVerdictPresentation(
+            InvoiceVerdictResult(InvoiceVerdict.NEVERIFICAT, beneficiaryMismatch = false, obligationOnlyGap = true)
+        )
+        assertEquals("Neverificat", withGap.headline)
+        assertTrue(withGap.action.contains("confirmat în SANB"))
+        assertTrue(withGap.action.contains("datorezi"))
+        assertFalse(withGap.action.contains("n-am putut confirma contul"))
+
+        // Pre-SANB (no confirmed destination) keeps the original "verify the IBAN" copy.
+        val withoutGap = invoiceVerdictPresentation(
+            InvoiceVerdictResult(InvoiceVerdict.NEVERIFICAT, beneficiaryMismatch = false)
+        )
+        assertTrue(withoutGap.action.contains("verifică IBAN-ul în SANB"))
+    }
+
+    @Test
     fun suspectPresentsSuspectHeadlineAndDoNotPayYetCopyInSuspectTone() {
         val p = invoiceVerdictPresentation(
             InvoiceVerdictResult(InvoiceVerdict.SUSPECT, beneficiaryMismatch = false)

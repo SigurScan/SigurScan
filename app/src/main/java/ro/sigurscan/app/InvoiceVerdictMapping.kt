@@ -27,6 +27,15 @@ data class InvoiceVerdictResult(
     val verdict: InvoiceVerdict,
     /** Periculos was (also) reached because payment beneficiary != issuer — copy adds the cession caveat. */
     val beneficiaryMismatch: Boolean,
+    /**
+     * Neverificat where the payment destination IS confirmed (e.g. the user did the SANB
+     * check and it matched) and the ONLY remaining gap is the obligation — we can't
+     * auto-confirm the user actually owes the invoice. Anti-poisoning keeps this out of
+     * Sigur (an unsolicited/fake invoice from an entity whose account is genuinely theirs
+     * still passes SANB), but the copy must acknowledge the confirmed account instead of
+     * telling the user to re-check the IBAN they just checked.
+     */
+    val obligationOnlyGap: Boolean = false,
 )
 
 /** primary_reason_code values the engine uses for the two fraud-grade pattern families. */
@@ -116,7 +125,11 @@ fun invoiceVerdict(result: InvoiceScanResponse): InvoiceVerdictResult {
     }
 
     // 5) Neverificat — everything verifiable is clean; only the IBAN owner is unconfirmed.
-    return InvoiceVerdictResult(InvoiceVerdict.NEVERIFICAT, beneficiaryMismatch = false)
+    return InvoiceVerdictResult(
+        InvoiceVerdict.NEVERIFICAT,
+        beneficiaryMismatch = false,
+        obligationOnlyGap = (truth?.primaryReasonCode == "UNEXPECTED_OBLIGATION"),
+    )
 }
 
 /** App verdict word as headline + the single pay/don't-pay instruction + chip tone. */
@@ -137,7 +150,14 @@ fun invoiceVerdictPresentation(result: InvoiceVerdictResult): InvoiceVerdictPres
     )
     InvoiceVerdict.NEVERIFICAT -> InvoiceVerdictPresentation(
         headline = "Neverificat",
-        action = "Firma e reală, dar n-am putut confirma contul — verifică IBAN-ul în SANB înainte să plătești.",
+        action = if (result.obligationOnlyGap) {
+            // Destination already confirmed (e.g. SANB match) — don't tell the user to
+            // re-check the IBAN they just checked. The remaining gap is the obligation,
+            // which only they can confirm.
+            "Contul e confirmat în SANB. Nu putem confirma automat că datorezi factura — plătește doar dacă o datorezi."
+        } else {
+            "Firma e reală, dar n-am putut confirma contul — verifică IBAN-ul în SANB înainte să plătești."
+        },
         tone = DSChipTone.Pending,
     )
     InvoiceVerdict.SUSPECT -> InvoiceVerdictPresentation(
