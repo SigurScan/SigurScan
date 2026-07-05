@@ -122,35 +122,48 @@ def collect_registry_cuis(directory: Path) -> list[dict[str, Any]]:
     return rows
 
 
+def _query_chunk(chunk: list[str], as_of: str) -> dict[str, dict[str, Any]]:
+    """Query one chunk of CUIs. If ANAF rejects the batch (a single malformed CUI
+    makes the whole POST fail with HTTP 400), split and retry recursively so the good
+    CUIs are still resolved and only the offending CUI(s) are dropped."""
+    if not chunk:
+        return {}
+    body = json.dumps([{"cui": int(c), "data": as_of} for c in chunk]).encode("utf-8")
+    req = urllib.request.Request(
+        ANAF_URL,
+        data=body,
+        headers={"Content-Type": "application/json", "User-Agent": "SigurScan-CUI-Verify/1.0"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except Exception as exc:
+        if len(chunk) == 1:
+            print(f"  drop CUI {chunk[0]} rejected by ANAF ({exc})", file=sys.stderr)
+            return {}
+        mid = len(chunk) // 2
+        time.sleep(SLEEP_BETWEEN_REQUESTS)
+        left = _query_chunk(chunk[:mid], as_of)
+        time.sleep(SLEEP_BETWEEN_REQUESTS)
+        right = _query_chunk(chunk[mid:], as_of)
+        return {**left, **right}
+    out: dict[str, dict[str, Any]] = {}
+    for rec in data.get("found", []) or []:
+        dg = rec.get("date_generale", {}) if isinstance(rec, dict) else {}
+        c = norm_cui(dg.get("cui"))
+        if c:
+            out[c] = rec
+    return out
+
+
 def query_anaf(cuis: list[str], as_of: str) -> dict[str, dict[str, Any]]:
     """Return {cui: anaf_record} for all queried CUIs (missing => not in result)."""
     out: dict[str, dict[str, Any]] = {}
     unique = sorted(set(cuis), key=int)
     for i in range(0, len(unique), BATCH_SIZE):
         chunk = unique[i : i + BATCH_SIZE]
-        body = json.dumps([{"cui": int(c), "data": as_of} for c in chunk]).encode("utf-8")
-        req = urllib.request.Request(
-            ANAF_URL,
-            data=body,
-            headers={"Content-Type": "application/json", "User-Agent": "SigurScan-CUI-Verify/1.0"},
-            method="POST",
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=30) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-        except urllib.error.HTTPError as exc:
-            print(f"ERROR: ANAF HTTP {exc.code} on batch {i//BATCH_SIZE}", file=sys.stderr)
-            time.sleep(SLEEP_BETWEEN_REQUESTS)
-            continue
-        except Exception as exc:
-            print(f"ERROR: ANAF call failed on batch {i//BATCH_SIZE}: {exc}", file=sys.stderr)
-            time.sleep(SLEEP_BETWEEN_REQUESTS)
-            continue
-        for rec in data.get("found", []) or []:
-            dg = rec.get("date_generale", {}) if isinstance(rec, dict) else {}
-            c = norm_cui(dg.get("cui"))
-            if c:
-                out[c] = rec
+        out.update(_query_chunk(chunk, as_of))
         print(f"  batch {i//BATCH_SIZE+1}: queried {len(chunk)}, cumulative found {len(out)}", file=sys.stderr)
         time.sleep(SLEEP_BETWEEN_REQUESTS)
     return out
