@@ -45,13 +45,22 @@ SophieVet / RSD Grup / SOFAMOB / CoraVet / Cu Sufletul Vet — ANAF name differs
 spacing/legal-form. Rompetrol Downstream vs Rompetrol Rafinare and the Sector 5/6 tax
 directorates are entity-relationship nuances, not necessarily wrong.
 
-## ⚠️ ANAF endpoint caveat (NOT_FOUND ≠ wrong)
-The `PlatitorTvaRest/v9/tva` endpoint is the **VAT-payer** registry. Non-VAT-paying public
-bodies (Municipiul Timișoara/Iași, some regional water companies: Apa Someș/Arad/Brașov,
-Apa Canal 2000, Distrigaz Vest, Hydrokov, Termoenergetica) can legitimately return
-"not found" while their CUI is valid. Confirm these against ANAF's general registry
-(`PlatitorTvaRest/v9/persoana` or the RECOM/OpenAPI company endpoint) before treating them
-as wrong — the README's suggested crawler integration should use that endpoint, not tva.
+## ✅ Correction: `v9/tva` returns ALL valid CUIs, not just VAT payers
+An earlier draft of this note wrongly claimed `v9/tva` is a VAT-payer-only registry and
+suggested confirming public bodies against a `v9/persoana` endpoint. **Both are wrong** —
+verified here: `webservicesp.anaf.ro/api/PlatitorTvaRest/v9/tva` returns general data
+(denumire, tip organizare, activ/radiat, address) for **any valid CUI**, with VAT status as
+one field. Proof in this very run: public, non-VAT bodies were **found** — Municipiul
+Constanța (4785631), the Sector 5/6 tax directorates (38320436, 12380248), and several
+other municipalities in the OK list. There is no `v9/persoana`; don't send anyone chasing it.
+
+**Consequence:** the public bodies that came back NOT_FOUND have **genuinely wrong/invalid
+seed CUIs** — they are not benign non-VAT-payers. Treat them like the other real wrong CUIs
+(look up the correct CUI via ANAF name search / RECOM, don't guess):
+Municipiul Timișoara (14628033), Municipiul Iași (4544954), Apa Someș (6733008),
+Apa Canal 2000 Pitești (2641670), Compania de Apă Arad (34607499), Distrigaz Vest (14488173),
+Hydrokov (21923370), Termoenergetica București (15081141), Apa Brașov (1090816),
+ASIROM (1875650).
 
 ## 🔴 Inactive / radiat (verify still-valid destination)
 | CUI | registry | ANAF status |
