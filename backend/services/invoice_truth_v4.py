@@ -449,7 +449,15 @@ def _brand_impersonation_payment_destination_mismatch(
         return False
     if getattr(brand_match, "cui_matches", None) is not False:
         return False
-    if destination_state != "UNCONFIRMED_VALID":
+    # #6 SANB-masking hardening: un raspuns de tip "match" al utilizatorului
+    # (SANB / Verification-of-Payee) promoveaza destinatia la BANK_MATCH. Fara
+    # BANK_MATCH aici, semnalul de impersonare-brand cu CUI contrazis ar fi fost
+    # anulat in tacere de un cont-mula cu nume plauzibil confirmat de utilizator.
+    # Ramanem conservatori: IBAN-ul trebuie sa NU fie printre destinatiile
+    # oficiale cunoscute ale brandului (matched is False) si sa avem efectiv
+    # destinatii pe fisa brandului, deci un IBAN legitim proaspat adaugat nu e
+    # afectat.
+    if destination_state not in {"UNCONFIRMED_VALID", "BANK_MATCH"}:
         return False
     return bool(
         payment_destination.get("matched") is False
