@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import re
+from enum import Enum
 from functools import lru_cache
 from typing import Any, Dict, Optional
 
@@ -537,6 +538,69 @@ def brand_has_destinations(
     return bool(name_key and name_key in registry["brands_by_name"])
 
 
+class PaymentDestinationState(str, Enum):
+    """Explicit outcome of matching a paid IBAN against the curated registry.
+    Names are stable and safe to surface in telemetry / verdict reasons."""
+
+    CONFIRMED_SAFE = "confirmed_safe"
+    VERIFY_DIVERGENT_CUI = "verify_divergent_cui"
+    BELONGS_ELSEWHERE = "belongs_elsewhere"
+    MATCHED_UNCONFIRMED = "matched_unconfirmed"
+
+
+def _payment_destination_state(
+    *,
+    brand_matches: bool,
+    cui_matches: Optional[bool],
+    destination_is_official: bool,
+    has_conflicting_non_safe_context: bool,
+) -> Dict[str, Any]:
+    """Pure decision matrix over the four independent payment-destination signals.
+
+    Returns the final brand-match verdict, auto-safe eligibility, and a named state
+    for observability. Behavior-preserving extraction of logic previously inlined in
+    match_payment_destination (verified identical across all 24 input combinations).
+
+    CUI rule: a divergent CUI (cui_matches is False) normally means the IBAN belongs
+    to a different entity than claimed, so the brand match is downgraded. The one
+    exception is a curated official destination whose brand_id already matches the
+    claim: there the CUI divergence is a data gap (stale/wrong seed CUI, a subsidiary,
+    an updated registration), not \"belongs elsewhere\" fraud. Paying a curated-official
+    IBAN sends money to the real brand regardless of the printed CUI, so the genuine
+    brand match is kept -- but the CUI gap still blocks auto-safe (verify, not safe).
+    """
+    final_brand_matches = brand_matches
+    if cui_matches is False and not (brand_matches and destination_is_official):
+        final_brand_matches = False
+
+    can_contribute_to_safe = bool(
+        destination_is_official
+        # Exact registry CUI match proves the SAME legal entity, standing in for a
+        # textual brand match (e.g. \"Dante International SA\" vs eMAG).
+        and (final_brand_matches or cui_matches is True)
+        # A divergent printed CUI keeps a brand-matched official destination out of
+        # auto-safe: verify instead of confirmed.
+        and cui_matches is not False
+        and not has_conflicting_non_safe_context
+    )
+
+    if can_contribute_to_safe:
+        state = PaymentDestinationState.CONFIRMED_SAFE
+    elif cui_matches is False and final_brand_matches and destination_is_official:
+        state = PaymentDestinationState.VERIFY_DIVERGENT_CUI
+    elif cui_matches is False and not final_brand_matches:
+        state = PaymentDestinationState.BELONGS_ELSEWHERE
+    else:
+        state = PaymentDestinationState.MATCHED_UNCONFIRMED
+
+    return {
+        "brand_matches": bool(final_brand_matches),
+        "cui_matches": cui_matches,
+        "can_contribute_to_safe": can_contribute_to_safe,
+        "destination_state": state.value,
+    }
+
+
 def match_payment_destination(
     iban: str | None,
     *,
@@ -586,26 +650,16 @@ def match_payment_destination(
             }
     entry = ranked[0]
 
-    brand_matches = True
+    raw_brand_matches = True
     if canonical_claim:
         claimed_name_key = _name_key(claimed_brand)
-        brand_matches = entry["brand_id"] == canonical_claim or (
+        raw_brand_matches = entry["brand_id"] == canonical_claim or (
             bool(claimed_name_key) and claimed_name_key in (entry.get("brand_match_keys") or set())
         )
     entry_cui = entry.get("cui") or ""
     cui_matches = None
     if entry_cui and _norm_cui(cui):
         cui_matches = entry_cui == _norm_cui(cui)
-    # A CUI mismatch normally means the IBAN belongs to a different entity than the
-    # one claimed. But when this destination's own brand_id already matches the
-    # claimed brand AND it is a curated official destination (can_contribute_to_safe),
-    # the CUI divergence is a data gap — a stale/wrong seed CUI, a subsidiary, or an
-    # updated registration — not a "belongs elsewhere" fraud. Paying a curated-official
-    # IBAN sends money to the real brand regardless of the printed CUI, so keep the
-    # genuine brand match; the CUI gap still blocks auto-safe below (verify, not safe).
-    destination_is_official = bool(entry.get("can_contribute_to_safe"))
-    if cui_matches is False and not (brand_matches and destination_is_official):
-        brand_matches = False
     same_identity_entries = [
         candidate
         for candidate in entries
@@ -618,26 +672,24 @@ def match_payment_destination(
     )
     distinct_identities = {_identity_key(candidate) for candidate in entries}
 
+    state = _payment_destination_state(
+        brand_matches=raw_brand_matches,
+        cui_matches=cui_matches,
+        destination_is_official=bool(entry.get("can_contribute_to_safe")),
+        has_conflicting_non_safe_context=has_conflicting_non_safe_context,
+    )
+
     return {
         "matched": True,
-        "brand_matches": bool(brand_matches),
+        "brand_matches": state["brand_matches"],
         "cui_matches": cui_matches,
         "brand_id": entry["brand_id"],
         "claimed_brand": claimed_brand,
         "registry_has_brand_destinations": has_brand_destinations,
         "trust_tier": entry["trust_tier"],
         "confidence": entry["confidence"],
-        "can_contribute_to_safe": bool(
-            entry["can_contribute_to_safe"]
-            # Exact registry CUI match proves the SAME legal entity, so it stands
-            # in for a textual brand match (e.g. "Dante International SA" vs eMAG).
-            and (brand_matches or cui_matches is True)
-            # A divergent printed CUI keeps a brand-matched official destination out
-            # of auto-safe: the payer verifies (SANB) instead of being told it is
-            # confirmed. No longer a hard conflict, just unconfirmed.
-            and cui_matches is not False
-            and not has_conflicting_non_safe_context
-        ),
+        "can_contribute_to_safe": state["can_contribute_to_safe"],
+        "destination_state": state["destination_state"],
         "client_distribution_allowed": entry["client_distribution_allowed"],
         "iban_masked_for_client": entry["iban_masked_for_client"],
         "source_kind": entry["source_kind"],
