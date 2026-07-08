@@ -484,6 +484,13 @@ def _brand_impersonation_payment_destination_mismatch(
         return False
     if getattr(brand_match, "cui_matches", None) is not False:
         return False
+    # Doar o potrivire STRICTA de brand (word-boundary / domeniu exact) poate
+    # escalada la PERICOL. O potrivire fuzzy P-MORPH (tokeni ne-adiacenti dintr-un
+    # alias multi-cuvant) poate atribui gresit un brand mare unui emitent legit
+    # fara legatura -> ar produce un fals "nu plati". Un match fuzzy da cel mult
+    # un semnal soft in amonte, niciodata un hard-conflict aici.
+    if not bool(getattr(brand_match, "claimed_brand_match_strict", True)):
+        return False
     # #6 SANB-masking hardening: un raspuns de tip "match" al utilizatorului
     # (SANB / Verification-of-Payee) promoveaza destinatia la BANK_MATCH. Fara
     # BANK_MATCH aici, semnalul de impersonare-brand cu CUI contrazis ar fi fost
