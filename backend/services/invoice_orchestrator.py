@@ -14,6 +14,7 @@ from services.invoice_readiness_gate import evaluate_readiness, ReadinessGateRes
 from services.brand_registry import detect_claimed_brand, match_brand, BrandMatchResult
 from services.anaf_cui import check_cui
 from services.invoice_orchestrator_models import InvoiceScanResult, OfferScanResult
+from services.ttl_cache_store import InMemoryTtlCacheStore, TtlCacheStore
 
 if TYPE_CHECKING:
     from services.offer_parser import OfferFields
@@ -23,8 +24,11 @@ if TYPE_CHECKING:
 CACHE_TTL = 43200  # 12 hours
 HIGH_VALUE_UNCONFIRMED_PAYMENT_RON = 5000.0
 HIGH_VALUE_UNCONFIRMED_PAYMENT_FOREIGN = 1000.0
-_cui_cache: dict[str, tuple[float, dict]] = {}
-_verdict_cache: dict[str, tuple[float, "InvoiceScanResult"]] = {}
+# R5: injectable TTL cache stores (default in-memory == previous behavior).
+# Swap these module attributes for a persistent store (Redis/Supabase) later
+# without touching the call sites below.
+_cui_cache: TtlCacheStore = InMemoryTtlCacheStore(CACHE_TTL)
+_verdict_cache: TtlCacheStore = InMemoryTtlCacheStore(CACHE_TTL)
 
 def _cache_hmac_key() -> bytes:
     key = os.getenv("INVOICE_CACHE_HMAC_KEY")
@@ -56,34 +60,20 @@ def _cui_cache_key(cui: str) -> str:
 
 
 def _get_cached_cui(cui: str) -> dict | None:
-    key = _cui_cache_key(cui)
-    entry = _cui_cache.get(key)
-    if entry and (time.time() - entry[0]) < CACHE_TTL:
-        return entry[1]
-    if entry:
-        del _cui_cache[key]
-    return None
+    return _cui_cache.get(_cui_cache_key(cui))
 
 
 def _set_cached_cui(cui: str, data: dict):
-    key = _cui_cache_key(cui)
-    _cui_cache[key] = (time.time(), data)
+    _cui_cache.set(_cui_cache_key(cui), data)
 
 
 def _get_cached_verdict(fields, links: Optional[list[str]] = None) -> InvoiceScanResult | None:
-    key = _cache_key(fields, links)
-    entry = _verdict_cache.get(key)
-    if entry and (time.time() - entry[0]) < CACHE_TTL:
-        cached = entry[1]
-        return replace(cached, from_cache=True)
-    if entry:
-        del _verdict_cache[key]
-    return None
+    cached = _verdict_cache.get(_cache_key(fields, links))
+    return replace(cached, from_cache=True) if cached is not None else None
 
 
 def _set_cached_verdict(fields, result: "InvoiceScanResult", links: Optional[list[str]] = None):
-    key = _cache_key(fields, links)
-    _verdict_cache[key] = (time.time(), replace(result, from_cache=False))
+    _verdict_cache.set(_cache_key(fields, links), replace(result, from_cache=False))
 
 
 
