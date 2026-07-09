@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 from dataclasses import dataclass, field
 from typing import List
@@ -204,6 +205,52 @@ def _extract_cui(text: str) -> str | None:
             if next_line and not re.match(r"^(?:reg\.?\s*com|adres[ăa]|iban|banca|swift)\b", next_line, re.IGNORECASE):
                 break
     return None
+
+
+# R2 — zonă emitent vs client. Când o factură are MAI MULTE CUI-uri, extractorul
+# curent ia primul din text, care poate fi al clientului (dacă blocul client apare
+# primul). Segmentarea preferă CUI-ul din zona emitentului. Gated INVOICE_ZONE_CUI
+# (default OFF); pentru un singur CUI / zonă neclară => comportamentul curent.
+_EMITTER_ZONE_RE = re.compile(
+    r"\b(?:furnizor|emitent|prestator|v[âa]nz[ăa]tor|societatea)\b", re.IGNORECASE
+)
+_CLIENT_ZONE_RE = re.compile(
+    r"\b(?:client|cump[ăa]r[ăa]tor|c[ăa]tre|delegat)\b", re.IGNORECASE
+)
+
+
+def _zone_cui_enabled() -> bool:
+    return os.getenv("INVOICE_ZONE_CUI", "0").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _nearest_preceding_zone(text: str, pos: int) -> str | None:
+    """'emitter'/'client'/None = kind of the last zone label before ``pos``."""
+    best_pos, best_kind = -1, None
+    head = text[:pos]
+    for m in _EMITTER_ZONE_RE.finditer(head):
+        if m.start() > best_pos:
+            best_pos, best_kind = m.start(), "emitter"
+    for m in _CLIENT_ZONE_RE.finditer(head):
+        if m.start() > best_pos:
+            best_pos, best_kind = m.start(), "client"
+    return best_kind
+
+
+def _extract_cui_zone_aware(text: str) -> str | None:
+    if not _zone_cui_enabled():
+        return _extract_cui(text)
+    positioned = [
+        (m.start(), c)
+        for m in CUI_PATTERN.finditer(text or "")
+        if (c := _cui_from_match(m))
+    ]
+    if len({c for _, c in positioned}) <= 1:
+        return _extract_cui(text)  # single/none -> unchanged
+    # Multiple CUIs: prefer the first whose nearest preceding label is the emitter.
+    for pos, cui in positioned:
+        if _nearest_preceding_zone(text, pos) == "emitter":
+            return cui
+    return _extract_cui(text)  # no clear emitter zone -> conservative fallback
 
 
 def _extract_payment_beneficiary(text: str) -> str | None:
@@ -563,7 +610,8 @@ def parse_invoice(
         return InvoiceFields(raw_text="")
 
     # CUI — Google Vision may split "CIF:" and the numeric value on adjacent lines.
-    cui = _extract_cui(text)
+    # R2: emitter-zone aware for multi-CUI invoices (gated INVOICE_ZONE_CUI, OFF => _extract_cui).
+    cui = _extract_cui_zone_aware(text)
 
     # IBAN
     iban_match = IBAN_PATTERN.search(text)
