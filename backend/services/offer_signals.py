@@ -39,6 +39,9 @@ OFFER_FAMILY_CLASSIFIED = "OFFER_FAMILY_CLASSIFIED"
 OFFER_REMOTE_ACCESS_REQUEST = "OFFER_REMOTE_ACCESS_REQUEST"
 OFFER_GUARANTEED_PROFIT = "OFFER_GUARANTEED_PROFIT"
 OFFER_UPFRONT_FEE_REQUEST = "OFFER_UPFRONT_FEE_REQUEST"
+# D7: pret implauzibil de mic fata de mediana pietei (soft; contribuie la SUSPECT,
+# niciodata DANGEROUS singur). Gated D7_PRICE_MEDIAN, default OFF.
+OFFER_PRICE_BELOW_MARKET_MEDIAN = "OFFER_PRICE_BELOW_MARKET_MEDIAN"
 
 # — Pattern-uri text deterministe —
 OFF_PLATFORM = re.compile(
@@ -150,6 +153,16 @@ def derive_offer_signals(
         add(OFFER_GUARANTEED_PROFIT)
     if UPFRONT_FEE.search(text):
         add(OFFER_UPFRONT_FEE_REQUEST)
+
+    # D7: pret implauzibil de mic fata de mediana pietei. Semnal soft, gated OFF,
+    # best-effort (nu arunca niciodata in calea de verdict).
+    try:
+        from services.price_median_check import too_cheap_signal
+
+        if too_cheap_signal(text, getattr(fields, "total_amount", None), getattr(fields, "currency", None)):
+            add(OFFER_PRICE_BELOW_MARKET_MEDIAN)
+    except Exception:
+        pass
 
     # Coherence
     if coherence is not None:

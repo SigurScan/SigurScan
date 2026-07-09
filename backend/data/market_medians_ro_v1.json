@@ -1,0 +1,20 @@
+{
+  "version": "market-medians-ro-2026.07-v1",
+  "note": "Static median street prices (RON) for high-value products that scam 'too-good-to-be-true' offers target. Update monthly. floor_ratio: an offer priced below floor_ratio * median_ron is implausibly cheap. Conservative: only well-known, high-value items; broad/ambiguous categories are omitted to avoid false positives on legit discounts.",
+  "default_floor_ratio": 0.35,
+  "products": [
+    {"key": "iphone_15_pro", "median_ron": 5500, "floor_ratio": 0.35, "patterns": ["iphone 15 pro", "iphone15 pro"]},
+    {"key": "iphone_15", "median_ron": 3800, "floor_ratio": 0.35, "patterns": ["iphone 15", "iphone15"]},
+    {"key": "iphone_14", "median_ron": 3000, "floor_ratio": 0.35, "patterns": ["iphone 14", "iphone14"]},
+    {"key": "iphone_generic", "median_ron": 3000, "floor_ratio": 0.3, "patterns": ["iphone"]},
+    {"key": "samsung_galaxy_s24", "median_ron": 4000, "floor_ratio": 0.35, "patterns": ["galaxy s24", "samsung s24"]},
+    {"key": "playstation_5", "median_ron": 2800, "floor_ratio": 0.35, "patterns": ["playstation 5", "ps5", "play station 5"]},
+    {"key": "xbox_series_x", "median_ron": 2500, "floor_ratio": 0.35, "patterns": ["xbox series x"]},
+    {"key": "macbook", "median_ron": 6000, "floor_ratio": 0.3, "patterns": ["macbook"]},
+    {"key": "airpods_pro", "median_ron": 1100, "floor_ratio": 0.35, "patterns": ["airpods pro"]},
+    {"key": "dyson_vacuum", "median_ron": 2800, "floor_ratio": 0.35, "patterns": ["dyson v15", "dyson v12", "aspirator dyson"]},
+    {"key": "dyson_airwrap", "median_ron": 2600, "floor_ratio": 0.35, "patterns": ["dyson airwrap", "airwrap"]},
+    {"key": "rolex", "median_ron": 40000, "floor_ratio": 0.25, "patterns": ["rolex"]},
+    {"key": "louis_vuitton_bag", "median_ron": 8000, "floor_ratio": 0.25, "patterns": ["louis vuitton", "geanta lv"]}
+  ]
+}
