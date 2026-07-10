@@ -14,6 +14,7 @@ from services.invoice_readiness_gate import evaluate_readiness, ReadinessGateRes
 from services.brand_registry import detect_claimed_brand, match_brand, BrandMatchResult
 from services.anaf_cui import check_cui
 from services.invoice_orchestrator_models import InvoiceScanResult, OfferScanResult
+from services.ttl_cache_store import InMemoryTtlCacheStore, TtlCacheStore
 
 if TYPE_CHECKING:
     from services.offer_parser import OfferFields
@@ -23,8 +24,11 @@ if TYPE_CHECKING:
 CACHE_TTL = 43200  # 12 hours
 HIGH_VALUE_UNCONFIRMED_PAYMENT_RON = 5000.0
 HIGH_VALUE_UNCONFIRMED_PAYMENT_FOREIGN = 1000.0
-_cui_cache: dict[str, tuple[float, dict]] = {}
-_verdict_cache: dict[str, tuple[float, "InvoiceScanResult"]] = {}
+# R5: injectable TTL cache stores (default in-memory == previous behavior).
+# Swap these module attributes for a persistent store (Redis/Supabase) later
+# without touching the call sites below.
+_cui_cache: TtlCacheStore = InMemoryTtlCacheStore(CACHE_TTL)
+_verdict_cache: TtlCacheStore = InMemoryTtlCacheStore(CACHE_TTL)
 
 def _cache_hmac_key() -> bytes:
     key = os.getenv("INVOICE_CACHE_HMAC_KEY")
@@ -56,34 +60,20 @@ def _cui_cache_key(cui: str) -> str:
 
 
 def _get_cached_cui(cui: str) -> dict | None:
-    key = _cui_cache_key(cui)
-    entry = _cui_cache.get(key)
-    if entry and (time.time() - entry[0]) < CACHE_TTL:
-        return entry[1]
-    if entry:
-        del _cui_cache[key]
-    return None
+    return _cui_cache.get(_cui_cache_key(cui))
 
 
 def _set_cached_cui(cui: str, data: dict):
-    key = _cui_cache_key(cui)
-    _cui_cache[key] = (time.time(), data)
+    _cui_cache.set(_cui_cache_key(cui), data)
 
 
 def _get_cached_verdict(fields, links: Optional[list[str]] = None) -> InvoiceScanResult | None:
-    key = _cache_key(fields, links)
-    entry = _verdict_cache.get(key)
-    if entry and (time.time() - entry[0]) < CACHE_TTL:
-        cached = entry[1]
-        return replace(cached, from_cache=True)
-    if entry:
-        del _verdict_cache[key]
-    return None
+    cached = _verdict_cache.get(_cache_key(fields, links))
+    return replace(cached, from_cache=True) if cached is not None else None
 
 
 def _set_cached_verdict(fields, result: "InvoiceScanResult", links: Optional[list[str]] = None):
-    key = _cache_key(fields, links)
-    _verdict_cache[key] = (time.time(), replace(result, from_cache=False))
+    _verdict_cache.set(_cache_key(fields, links), replace(result, from_cache=False))
 
 
 
@@ -102,8 +92,19 @@ from services.invoice_orchestrator_constants import (
 )
 
 
-def _txt_norm(text: str) -> str:
-    return (text or "").lower().translate(_DIACRITICS)
+# R6: name/beneficiary/identity predicates extracted to invoice_identity_helpers.
+# Re-imported here so this module's call sites AND external
+# `from services.invoice_orchestrator import <name>` imports keep working.
+from services.invoice_identity_helpers import (  # noqa: E402
+    _txt_norm,
+    _name_tokens,
+    _beneficiary_is_person,
+    _beneficiary_is_company,
+    _beneficiary_mismatch,
+    _beneficiary_company_mismatch,
+    _payment_destination_confirms_current_invoice,
+    _anaf_identity_matches_invoice,
+)
 
 
 _NEGATED_ACCOUNT_CHANGE_RE = re.compile(
@@ -178,70 +179,6 @@ def _has_fake_efactura_reconciliation_payment(normalized_text: str, *, has_payme
             normalized_text,
         )
     )
-
-
-def _name_tokens(name: str) -> set[str]:
-    cleaned = _COMPANY_MARKERS.sub(" ", _txt_norm(name))
-    return {token for token in re.findall(r"[a-z]{2,}", cleaned) if token not in _NAME_STOPWORDS}
-
-
-def _beneficiary_is_person(name: Optional[str]) -> bool:
-    if not name or _COMPANY_MARKERS.search(name):
-        return False
-    tokens = re.findall(r"[A-Za-zĂÂÎȘŞȚŢăâîșşțţ]{2,}", name.strip())
-    normalized_tokens = {token.lower().translate(_DIACRITICS) for token in tokens}
-    if normalized_tokens & _GENERIC_BENEFICIARY_TERMS:
-        return False
-    return 2 <= len(tokens) <= 4
-
-
-def _beneficiary_is_company(name: Optional[str]) -> bool:
-    return bool(name and _COMPANY_MARKERS.search(name))
-
-
-def _beneficiary_mismatch(beneficiary: Optional[str], issuer: Optional[str]) -> bool:
-    if not _beneficiary_is_person(beneficiary):
-        return False
-    beneficiary_tokens = _name_tokens(beneficiary or "")
-    issuer_tokens = _name_tokens(issuer or "")
-    if beneficiary_tokens and issuer_tokens and len(beneficiary_tokens & issuer_tokens) >= min(
-        2, len(beneficiary_tokens), len(issuer_tokens)
-    ):
-        return False
-    return True
-
-
-def _beneficiary_company_mismatch(beneficiary: Optional[str], issuer: Optional[str]) -> bool:
-    if not _beneficiary_is_company(beneficiary):
-        return False
-    beneficiary_tokens = _name_tokens(beneficiary or "")
-    issuer_tokens = _name_tokens(issuer or "")
-    if not beneficiary_tokens or not issuer_tokens:
-        return False
-    return beneficiary_tokens != issuer_tokens
-
-
-def _payment_destination_confirms_current_invoice(payment_destination: Optional[dict]) -> bool:
-    if not payment_destination:
-        return False
-    return bool(
-        payment_destination.get("matched")
-        and payment_destination.get("can_contribute_to_safe") is True
-        and (
-            payment_destination.get("brand_matches") is True
-            or payment_destination.get("cui_matches") is True
-        )
-    )
-
-
-def _anaf_identity_matches_invoice(anaf: Optional[dict], issuer: Optional[str]) -> bool:
-    if not anaf or anaf.get("checked") is False or not anaf.get("exists") or not anaf.get("activ"):
-        return False
-    anaf_tokens = _name_tokens(str(anaf.get("denumire") or ""))
-    issuer_tokens = _name_tokens(issuer or "")
-    if not anaf_tokens or not issuer_tokens:
-        return False
-    return bool(anaf_tokens & issuer_tokens)
 
 
 def _fields_to_coherence(fields: InvoiceFields) -> CoherenceResult:

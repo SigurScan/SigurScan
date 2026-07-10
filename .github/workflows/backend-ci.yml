@@ -44,3 +44,23 @@ jobs:
       - name: Run backend tests
         working-directory: backend
         run: python -m pytest -q
+
+  docker-smoke:
+    name: Docker build + import/boot smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      IMAGE_TAG: "sigurscan-backend:ci"
+      BUILD_CONTEXT: backend
+      PORT: "8080"
+      # Minimal runtime env so the app can boot in CI (mirrors the `test` job).
+      PRIVACY_SAFE_MODE: "false"
+      ENABLE_CLOUD_AI_EXPLANATION: "false"
+      ENABLE_MISTRAL_SHADOW_ADJUDICATION: "false"
+      INVOICE_CACHE_HMAC_KEY: "ci-test-hmac-key"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Docker build + import/boot smoke
+        run: bash tools/docker_smoke.sh

@@ -3,6 +3,11 @@ from __future__ import annotations
 import os
 from typing import Any, Dict, Iterable, Optional
 
+from services.invoice_readiness_gate import (
+    _card_settlement_proof_enabled,
+    _has_card_settlement_evidence,
+)
+
 
 OFFICIAL_SOURCE_CHANNELS = {
     "official_portal",
@@ -95,6 +100,22 @@ def _bank_name_iban_mismatch(fields: Any) -> bool:
         return False
 
 
+def _seller_graph_signal(fields: Any) -> Optional[Dict[str, str]]:
+    # D6 Felia 2 (seller_graph_query): does the payment IBAN link to a
+    # community-flagged high-risk phone? SOFT advisory only. Hard-gated by
+    # D6_GRAPH_SIGNAL (default OFF) and by Supabase config; best-effort, so it can
+    # never raise or produce a hard conflict. Not added to the auto-SAFE blocklist
+    # nor to _primary_missing_reason, so on its own it does NOT change severity.
+    if fields is None:
+        return None
+    try:
+        from services.seller_graph_query import iban_graph_signal
+
+        return iban_graph_signal(getattr(fields, "iban", None))
+    except Exception:
+        return None
+
+
 def evaluate_invoice_truth_v4(
     result: Any,
     *,
@@ -175,6 +196,20 @@ def evaluate_invoice_truth_v4(
         source_channel=source_channel,
         official_document_check=official_document_check,
     )
+    # Cherry-pick din #110 (Altex card-paid), sub INVOICE_CARD_SETTLEMENT_PROOF
+    # (default OFF): o chitanță deja decontată cu cardul nu mai e o obligație de
+    # plătit, deci "obligația neconfirmată" nu are sens pe ea. Promovarea cere
+    # ca AMBELE probe independente (emitent + destinație) să fie deja confirmate
+    # — dovada de settlement e text tipărit pe document, falsificabil ieftin,
+    # deci nu poate fi decât ultimul zăvor, niciodată proba principală.
+    if (
+        obligation_state != "CONFIRMED"
+        and _card_settlement_proof_enabled()
+        and _has_card_settlement_evidence(fields)
+        and issuer_state == "CONFIRMED"
+        and destination_state in {"OFFICIAL_REGISTRY_MATCH", "OFFICIAL_DOCUMENT_MATCH", "LOCAL_APPROVED_MATCH", "BANK_MATCH"}
+    ):
+        obligation_state = "CONFIRMED"
     if obligation_state == "CONFIRMED":
         verified_items.append(_item("INVOICE_OBLIGATION_CONFIRMED", "Factura este confirmată într-o sursă potrivită"))
     else:
@@ -207,6 +242,13 @@ def evaluate_invoice_truth_v4(
                 "Banca tipărită pe factură nu corespunde băncii din IBAN; verifică înainte de plată",
             )
         )
+
+    # D6 Felia 2: seller-identity graph advisory (SOFT). Not in the auto-SAFE
+    # blocklist nor in _primary_missing_reason, so it surfaces as an informational
+    # item without changing the verdict/severity (Felia 3 decides that later).
+    graph_signal = _seller_graph_signal(fields)
+    if graph_signal:
+        unconfirmed_items.append(_item(graph_signal["code"], graph_signal["message"]))
 
     hard_conflicts = _dedupe_by_code(hard_conflicts)
     verified_items = _dedupe_by_code(verified_items)

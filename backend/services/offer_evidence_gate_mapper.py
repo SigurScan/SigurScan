@@ -167,6 +167,7 @@ def _semantic_risk(
         or S.OFFER_PRICE_URGENCY in signals
         or S.OFFER_PAYMENT_METHOD_HIGH_RISK in signals
         or S.OFFER_GUARANTEED_PROFIT in signals
+        or S.OFFER_PRICE_BELOW_MARKET_MEDIAN in signals  # D7: soft -> SUSPECT, never high
     )
     if medium:
         return "medium"

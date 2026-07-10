@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 from dataclasses import dataclass, field
 from typing import List
@@ -75,6 +76,7 @@ AMOUNT_VALUE_PATTERN = re.compile(
     r"|(?:(" + _AMOUNT_NUM + r")\s*(?:RON|LEI|lei|EUR|USD|GBP|€|\$|£))",
     re.IGNORECASE,
 )
+BARE_AMOUNT_VALUE_PATTERN = re.compile(r"^\s*(" + _AMOUNT_NUM + r")\s*$", re.IGNORECASE)
 AMOUNT_PATTERN = re.compile(
     r"(?:Total|TVA|Tax|Subtotal|Amount due|Total due|Balance due|Suma|Valoare|Plata|De plata)\s*(?:factur[ai]|plat[iă]|)?[:\s]*"
     r"(" + _AMOUNT_NUM + r")",
@@ -206,6 +208,52 @@ def _extract_cui(text: str) -> str | None:
     return None
 
 
+# R2 — zonă emitent vs client. Când o factură are MAI MULTE CUI-uri, extractorul
+# curent ia primul din text, care poate fi al clientului (dacă blocul client apare
+# primul). Segmentarea preferă CUI-ul din zona emitentului. Gated INVOICE_ZONE_CUI
+# (default OFF); pentru un singur CUI / zonă neclară => comportamentul curent.
+_EMITTER_ZONE_RE = re.compile(
+    r"\b(?:furnizor|emitent|prestator|v[âa]nz[ăa]tor|societatea)\b", re.IGNORECASE
+)
+_CLIENT_ZONE_RE = re.compile(
+    r"\b(?:client|cump[ăa]r[ăa]tor|c[ăa]tre|delegat)\b", re.IGNORECASE
+)
+
+
+def _zone_cui_enabled() -> bool:
+    return os.getenv("INVOICE_ZONE_CUI", "0").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _nearest_preceding_zone(text: str, pos: int) -> str | None:
+    """'emitter'/'client'/None = kind of the last zone label before ``pos``."""
+    best_pos, best_kind = -1, None
+    head = text[:pos]
+    for m in _EMITTER_ZONE_RE.finditer(head):
+        if m.start() > best_pos:
+            best_pos, best_kind = m.start(), "emitter"
+    for m in _CLIENT_ZONE_RE.finditer(head):
+        if m.start() > best_pos:
+            best_pos, best_kind = m.start(), "client"
+    return best_kind
+
+
+def _extract_cui_zone_aware(text: str) -> str | None:
+    if not _zone_cui_enabled():
+        return _extract_cui(text)
+    positioned = [
+        (m.start(), c)
+        for m in CUI_PATTERN.finditer(text or "")
+        if (c := _cui_from_match(m))
+    ]
+    if len({c for _, c in positioned}) <= 1:
+        return _extract_cui(text)  # single/none -> unchanged
+    # Multiple CUIs: prefer the first whose nearest preceding label is the emitter.
+    for pos, cui in positioned:
+        if _nearest_preceding_zone(text, pos) == "emitter":
+            return cui
+    return _extract_cui(text)  # no clear emitter zone -> conservative fallback
+
+
 def _extract_payment_beneficiary(text: str) -> str | None:
     match = BENEFICIAR_PATTERN.search(text or "")
     if not match:
@@ -293,6 +341,21 @@ def _extract_amount_values(line: str) -> list[float]:
     return values
 
 
+def _extract_bare_amount_values(line: str) -> list[float]:
+    """Extract a standalone amount when a previous label gives the context.
+
+    OCR often emits "Total:" and the value on the next line without currency
+    (the Altex card-receipt layout). Kept separate from the general amount
+    extractor so table row quantities do not become money unless a caller is
+    explicitly in label lookahead mode.
+    """
+    match = BARE_AMOUNT_VALUE_PATTERN.match(line or "")
+    if not match:
+        return []
+    value = _parse_ro_amount(match.group(1))
+    return [value] if value is not None else []
+
+
 def _detect_currency(text: str) -> str | None:
     for match in CURRENCY_PATTERN.finditer(text):
         token = match.group(0)
@@ -360,6 +423,9 @@ def _parse_amounts(text: str) -> dict:
 def _next_amount_values(lines: list[str], index: int, lookahead: int = 3) -> list[float]:
     for next_line in lines[index + 1 : index + 1 + lookahead]:
         values = _extract_amount_values(next_line)
+        if values:
+            return values
+        values = _extract_bare_amount_values(next_line)
         if values:
             return values
     return []
@@ -527,6 +593,15 @@ def _is_emitent_candidate(line: str) -> bool:
     return bool(re.search(r"[A-Za-zĂÂÎȘŞȚŢăâîșşțţ]{3,}", candidate))
 
 
+def _plausible_invoice_number(candidate: str) -> bool:
+    # Un număr de factură conține practic întotdeauna cel puțin o cifră. Fără
+    # guard, pe layout-uri OCR pe coloane ("Număr factură  Data emiterii" cu
+    # valorile pe rândul următor) `\s` traversează newline-ul și capturează
+    # următorul CUVÂNT-etichetă ("Data") drept număr — un câmp corupt silențios,
+    # mai rău decât unul lipsă.
+    return any(ch.isdigit() for ch in candidate)
+
+
 def _extract_invoice_number(text: str) -> str | None:
     patterns = [
         r"\binvoice\s+(?:number|no\.?|#)\s*[:#]?\s*([A-Z0-9][A-Z0-9._/-]+)",
@@ -539,7 +614,30 @@ def _extract_invoice_number(text: str) -> str | None:
     for pattern in patterns:
         match = re.search(pattern, text, re.IGNORECASE)
         if match:
-            return match.group(1).strip().rstrip(".,")
+            candidate = match.group(1).strip().rstrip(".,")
+            if _plausible_invoice_number(candidate):
+                return candidate
+    # Layout pe coloane/etichetă singură pe rând: valoarea vine pe unul din
+    # rândurile imediat următoare (lookahead 3, ca la sume).
+    label_re = re.compile(
+        r"^(?:"
+        r"serie\s*(?:(?:si|și|şi)\s*)?(?:nr\.?|num[aă]r)|"
+        r"nr\.?\s*factur[ăa]|num[aă]r\s*factur[ăa]|"
+        r"invoice\s*(?:number|no\.?|#)"
+        r")\s*[:#.]?\s*$",
+        re.IGNORECASE,
+    )
+    value_re = re.compile(r"^[A-Z0-9][A-Z0-9._/-]{2,}$", re.IGNORECASE)
+    lines = [line.strip() for line in (text or "").splitlines()]
+    for i, line in enumerate(lines[:-1]):
+        if not label_re.match(line):
+            continue
+        for next_line in lines[i + 1 : i + 4]:
+            candidate = next_line.strip().rstrip(".,")
+            if value_re.match(candidate) and _plausible_invoice_number(candidate):
+                return candidate
+            if candidate:
+                break
     return None
 
 
@@ -563,7 +661,8 @@ def parse_invoice(
         return InvoiceFields(raw_text="")
 
     # CUI — Google Vision may split "CIF:" and the numeric value on adjacent lines.
-    cui = _extract_cui(text)
+    # R2: emitter-zone aware for multi-CUI invoices (gated INVOICE_ZONE_CUI, OFF => _extract_cui).
+    cui = _extract_cui_zone_aware(text)
 
     # IBAN
     iban_match = IBAN_PATTERN.search(text)
