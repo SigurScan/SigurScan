@@ -136,10 +136,25 @@ internal fun mapUserActionDecision(assessment: OfflineAssessment, riskUi: RiskDi
             supportText = "Am găsit semnale neclare. Verifică direct în aplicația sau pe site-ul oficial.",
             nextBestAction = "Intră manual în aplicația sau site-ul oficial, fără să apeși linkul primit."
         )
-        else -> UserActionDecision(
+        "Neverificat" -> UserActionDecision(
+            headline = "Neverificat",
+            supportText = "Nu avem suficiente dovezi pentru a spune că este sigur sau periculos.",
+            nextBestAction = "Verifică separat sursa înainte să trimiți bani, coduri sau date personale."
+        )
+        "Se verifică..." -> UserActionDecision(
+            headline = "Se verifică...",
+            supportText = "Verificările sunt încă în curs.",
+            nextBestAction = "Așteaptă verdictul final înainte să continui."
+        )
+        "Sigur" -> UserActionDecision(
             headline = "Sigur",
             supportText = "Scanarea a verificat destinația și nu a găsit semnale clare de risc.",
             nextBestAction = "Poți continua."
+        )
+        else -> UserActionDecision(
+            headline = "Suspect",
+            supportText = "Rezultatul nu a putut fi încadrat sigur. Verifică pe canalul oficial.",
+            nextBestAction = "Nu continua până nu confirmi separat sursa."
         )
     }
 }

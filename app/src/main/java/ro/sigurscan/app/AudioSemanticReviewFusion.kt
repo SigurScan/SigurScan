@@ -1,11 +1,41 @@
 package ro.sigurscan.app
 
+import kotlinx.coroutines.CancellationException
+
 interface AudioSemanticReviewer {
     suspend fun review(
         redactedTranscript: String,
         localEvidence: AudioEvidenceResult?,
         coverage: AudioCoverageMetadata? = null
-    ): AudioSemanticReviewResponse?
+    ): AudioSemanticReviewOutcome
+}
+
+data class AudioSemanticReviewOutcome(
+    val response: AudioSemanticReviewResponse?,
+    val status: VerificationPillarStatus,
+    val reasonCode: String? = null
+) {
+    val reasonCodes: List<String>
+        get() = (
+            response?.semanticReview?.reasonCodes.orEmpty() +
+                response?.reasonCodes.orEmpty() +
+                listOfNotNull(reasonCode)
+            )
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .distinct()
+
+    fun asVerificationPillar(): VerificationPillarDisplay = VerificationPillarDisplay(
+        id = "semantic_review",
+        status = status,
+        required = true,
+        details = when (status) {
+            VerificationPillarStatus.OK -> "Analiza semantică a răspuns."
+            VerificationPillarStatus.ERROR -> "Analiza semantică nu a fost disponibilă; verdictul local a fost păstrat."
+            VerificationPillarStatus.SKIPPED -> "Analiza semantică nu a fost necesară sau nu a putut porni."
+            else -> "Stare analiză semantică: ${status.name.lowercase()}."
+        }
+    )
 }
 
 class BackendAudioSemanticReviewer(
@@ -16,10 +46,16 @@ class BackendAudioSemanticReviewer(
         redactedTranscript: String,
         localEvidence: AudioEvidenceResult?,
         coverage: AudioCoverageMetadata?
-    ): AudioSemanticReviewResponse? {
-        if (redactedTranscript.isBlank()) return null
-        return runCatching {
-            api.reviewAudioTranscript(
+    ): AudioSemanticReviewOutcome {
+        if (redactedTranscript.isBlank()) {
+            return AudioSemanticReviewOutcome(
+                response = null,
+                status = VerificationPillarStatus.SKIPPED,
+                reasonCode = "semantic:audio_empty_transcript"
+            )
+        }
+        return try {
+            val response = api.reviewAudioTranscript(
                 AudioSemanticReviewRequest(
                     transcriptRedacted = redactedTranscript,
                     channel = channel,
@@ -30,7 +66,38 @@ class BackendAudioSemanticReviewer(
                     coverage = coverage?.toSemanticCoverage()
                 )
             )
-        }.getOrNull()
+            val responseReasons = (
+                response.semanticReview?.reasonCodes.orEmpty() + response.reasonCodes
+                ).map { it.trim() }.filter { it.isNotBlank() }
+            val responseComplete = response.status.equals("done", ignoreCase = true) &&
+                response.semanticReview != null
+            val status = if (responseComplete) {
+                VerificationPillarStatus.OK
+            } else {
+                VerificationPillarStatus.ERROR
+            }
+            AudioSemanticReviewOutcome(
+                response = response,
+                status = status,
+                reasonCode = responseReasons.firstOrNull { it.startsWith("semantic:mistral_") }
+                    ?: responseReasons.firstOrNull()
+                    ?: if (response.status.equals("done", ignoreCase = true)) {
+                        "semantic:invalid_response"
+                    } else if (status == VerificationPillarStatus.ERROR) {
+                        "semantic:provider_fallback"
+                    } else {
+                        null
+                    }
+            )
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            AudioSemanticReviewOutcome(
+                response = null,
+                status = VerificationPillarStatus.ERROR,
+                reasonCode = "semantic:backend_unavailable"
+            )
+        }
     }
 }
 
@@ -39,7 +106,11 @@ object NoopAudioSemanticReviewer : AudioSemanticReviewer {
         redactedTranscript: String,
         localEvidence: AudioEvidenceResult?,
         coverage: AudioCoverageMetadata?
-    ): AudioSemanticReviewResponse? = null
+    ): AudioSemanticReviewOutcome = AudioSemanticReviewOutcome(
+        response = null,
+        status = VerificationPillarStatus.SKIPPED,
+        reasonCode = "semantic:not_requested"
+    )
 }
 
 private fun AudioCoverageMetadata.toSemanticCoverage(): AudioSemanticCoverage {

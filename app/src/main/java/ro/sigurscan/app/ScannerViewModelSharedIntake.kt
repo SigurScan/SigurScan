@@ -559,7 +559,7 @@ internal fun ScannerViewModel.scanSharedAudioFile(uri: Uri, context: Context, fi
                 AudioFileScanPipeline().scan(decoded, modelFile.absolutePath)
             }
             loadingMsg = "Analizăm semantic transcriptul redactat..."
-            val semanticReview = withContext(Dispatchers.IO) {
+            val semanticOutcome = withContext(Dispatchers.IO) {
                 BackendAudioSemanticReviewer(scanStartApi, channel = "audio_share").review(
                     redactedTranscript = result.redactedTranscriptForSemanticReview,
                     localEvidence = result.evidence,
@@ -567,10 +567,10 @@ internal fun ScannerViewModel.scanSharedAudioFile(uri: Uri, context: Context, fi
                 )
             }
             val reviewedResult = result.copy(
-                evidence = AudioSemanticReviewFusion.fuse(result.evidence, semanticReview)
+                evidence = AudioSemanticReviewFusion.fuse(result.evidence, semanticOutcome.response)
             )
             audioEvidenceResult = reviewedResult.evidence
-            assessment = reviewedResult.toOfflineAssessment(fileName)
+            assessment = reviewedResult.toOfflineAssessment(fileName, semanticOutcome)
             loading = false
             loadingMsg = ""
         } catch (e: Exception) {

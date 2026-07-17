@@ -62,6 +62,33 @@ class AudioFileScanPipelineTest {
         assertEquals("unknown", assessment.riskLevel)
         assertEquals("Neverificat", assessment.reputationVerdict)
         assertEquals(0, assessment.riskScore)
+        assertEquals(GateAction.UNVERIFIED, assessment.gateResult?.action)
+        assertEquals(GateFinality.FINAL, assessment.gateResult?.finality)
+        assertTrue(assessment.gateResult?.reasonCodes?.contains("whisper_native_unavailable") == true)
+    }
+
+    @Test
+    fun semanticProviderFailureIsVisibleWithoutDowngradingLocalEvidence() {
+        val result = AudioFileScanResult(
+            success = true,
+            evidence = AudioTranscriptEvidence.analyze(
+                "Sunt de la banca si trebuie sa imi dai codul OTP primit prin SMS"
+            ),
+            reasonCode = null,
+            transcriptForTelemetry = "[redactat]",
+            redactedTranscriptForSemanticReview = "Sunt de la banca si trebuie sa imi dai [cod] primit prin SMS"
+        )
+        val outcome = AudioSemanticReviewOutcome(
+            response = null,
+            status = VerificationPillarStatus.ERROR,
+            reasonCode = "semantic:backend_unavailable"
+        )
+
+        val assessment = result.toOfflineAssessment("voice-note.m4a", outcome)
+
+        assertEquals(GateAction.DO_NOT_CONTINUE, assessment.gateResult?.action)
+        assertTrue(assessment.gateResult?.reasonCodes?.contains("semantic:backend_unavailable") == true)
+        assertEquals(VerificationPillarStatus.ERROR, assessment.verificationPillars.single().status)
     }
 
     @Test

@@ -141,12 +141,22 @@ class AudioFileScanPipeline(
     }
 }
 
-internal fun AudioFileScanResult.toOfflineAssessment(fileName: String): OfflineAssessment {
+internal fun AudioFileScanResult.toOfflineAssessment(
+    fileName: String,
+    semanticOutcome: AudioSemanticReviewOutcome? = null
+): OfflineAssessment {
     val evidence = evidence
     val verdict = evidence?.verdict ?: AudioEvidenceVerdict.UNVERIFIED
-    val reasonCodes = (evidence?.reasonCodes.orEmpty() + coverage.reasonCodes).distinct().ifEmpty {
-        listOf(reasonCode ?: "audio_asr_unavailable")
-    }
+    val reasonCodes = (
+        evidence?.reasonCodes.orEmpty() +
+            coverage.reasonCodes +
+            semanticOutcome?.reasonCodes.orEmpty() +
+            listOfNotNull(reasonCode)
+        )
+        .map { it.trim() }
+        .filter { it.isNotBlank() }
+        .distinct()
+        .ifEmpty { listOf("audio_asr_unavailable") }
     val family = evidence?.arcFamily ?: when (verdict) {
         AudioEvidenceVerdict.DANGEROUS -> "Periculos"
         AudioEvidenceVerdict.SUSPECT -> "Suspect"
@@ -196,6 +206,28 @@ internal fun AudioFileScanResult.toOfflineAssessment(fileName: String): OfflineA
         }
         AudioCoverageStatus.UNKNOWN -> "Durata completă nu a putut fi confirmată; verdictul folosește partea analizată."
     }
+    val gateAction = when (verdict) {
+        AudioEvidenceVerdict.DANGEROUS -> GateAction.DO_NOT_CONTINUE
+        AudioEvidenceVerdict.SUSPECT -> GateAction.VERIFY_OFFICIAL
+        AudioEvidenceVerdict.UNVERIFIED -> GateAction.UNVERIFIED
+    }
+    val gateResult = GateResult(
+        action = gateAction,
+        finality = GateFinality.FINAL,
+        reasonCodes = reasonCodes,
+        decisiveSignalIds = emptyList(),
+        unknownReason = if (verdict == AudioEvidenceVerdict.UNVERIFIED) {
+            "AUDIO_INSUFFICIENT_EVIDENCE"
+        } else {
+            null
+        }
+    )
+    val semanticStatusText = when (semanticOutcome?.status) {
+        VerificationPillarStatus.OK -> "Analiză audio locală + semantică"
+        VerificationPillarStatus.ERROR -> "Analiză audio locală; semantic indisponibil"
+        VerificationPillarStatus.SKIPPED -> "Analiză audio locală"
+        else -> "Analiză audio locală"
+    }
     return OfflineAssessment(
         family = family,
         riskScore = riskScore,
@@ -211,6 +243,8 @@ internal fun AudioFileScanResult.toOfflineAssessment(fileName: String): OfflineA
         reputationVerdict = "Neverificat",
         domainAgeText = "Nu se aplică",
         sslStatus = "Nu se aplică",
-        aiConfidence = "Analiză audio locală"
+        aiConfidence = semanticStatusText,
+        gateResult = gateResult,
+        verificationPillars = listOfNotNull(semanticOutcome?.asVerificationPillar())
     )
 }

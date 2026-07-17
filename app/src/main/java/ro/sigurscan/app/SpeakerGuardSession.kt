@@ -370,10 +370,10 @@ class SpeakerGuardSession(
     private suspend fun LocalAsrResult.withSemanticReview(): LocalAsrResult {
         if (!success || transcript.isBlank()) return this
         val redacted = AudioTranscriptRedactor.redact(transcript)
-        val review = withContext(Dispatchers.IO) {
+        val outcome = withContext(Dispatchers.IO) {
             semanticReviewer.review(redacted, evidence)
         }
-        val fused = AudioSemanticReviewFusion.fuse(evidence, review)
+        val fused = AudioSemanticReviewFusion.fuse(evidence, outcome.response)
         return copy(evidence = fused)
     }
 
