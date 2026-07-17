@@ -43,6 +43,34 @@ SE_GATE_IMPERSONATION_REQUIRES_LOCAL_CORROBORATION = os.getenv(
 # confidence, so this guard doesn't invent a new, uncalibrated threshold.
 SE_LOCAL_CORROBORATION_MIN_CONFIDENCE = 0.68
 
+# Missing provider/resolution evidence may block SAFE, but must not erase an
+# independently positive fraud floor. Kept OFF until the candidate path is
+# measured against the FP/FN corpus and explicitly approved for activation.
+VERDICT_GATE_MONOTONIC_FRAUD_FLOOR_DEFAULT = False
+VERDICT_GATE_MONOTONIC_FRAUD_FLOOR = os.getenv(
+    "VERDICT_GATE_MONOTONIC_FRAUD_FLOOR",
+    str(VERDICT_GATE_MONOTONIC_FRAUD_FLOOR_DEFAULT).lower(),
+).strip().lower() in {"1", "true", "yes", "on"}
+MONOTONIC_DANGEROUS_MIN_SEMANTIC_CONFIDENCE = 0.68
+
+_MONOTONIC_POSITIVE_FRAUD_REASONS = {
+    "provider_suspicious",
+    "campaign_match_only",
+    "social_engineering_high_confidence_intent",
+    "social_engineering_build_up",
+    "community_report_only",
+    "positive_provenance_contradicted",
+    "brand_token_lookalike",
+    "lookalike_identity_no_sensitive",
+}
+
+_MONOTONIC_ACTION_GATED_FRAUD_REASONS = {
+    "semantic_high_structural_hidden_action",
+    "semantic_high_family_match",
+    "semantic_high_risk_match",
+    "value_request_needs_verification",
+}
+
 
 def _section(bundle: Dict[str, Any], name: str) -> Dict[str, Any]:
     value = bundle.get(name)
@@ -159,6 +187,36 @@ def _semantic_high_confidence(semantic: Dict[str, Any]) -> bool:
     return True
 
 
+def _is_positive_monotonic_fraud_candidate(
+    candidate: Dict[str, Any],
+    *,
+    bundle: Dict[str, Any],
+    semantic: Dict[str, Any],
+    explicit_positive_action_request: bool,
+    has_provenance: bool,
+    provenance_contradicted: bool,
+) -> bool:
+    if candidate.get("label") not in {"SUSPECT", "DANGEROUS"}:
+        return False
+    input_type = _norm(_section(bundle, "input").get("type"))
+    request_channel = _norm(_section(bundle, "request").get("channel"))
+    if "invoice" in input_type or request_channel == "invoice":
+        return False
+    reasons = {str(reason) for reason in candidate.get("reason_codes") or []}
+    if reasons & _MONOTONIC_POSITIVE_FRAUD_REASONS:
+        return True
+    action_gated_reasons = reasons & _MONOTONIC_ACTION_GATED_FRAUD_REASONS
+    if action_gated_reasons:
+        if not explicit_positive_action_request:
+            return False
+        if has_provenance and not provenance_contradicted:
+            return False
+        if "semantic_high_risk_match" in action_gated_reasons:
+            return _semantic_high_confidence(semantic)
+        return True
+    return False
+
+
 def _is_safety_education_semantic(semantic: Dict[str, Any]) -> bool:
     matched_template = _norm(semantic.get("matched_template"))
     reason_codes = semantic.get("reason_codes") if isinstance(semantic.get("reason_codes"), list) else []
@@ -175,6 +233,19 @@ def _has_positive_action_request(request: Dict[str, Any], social_engineering: Di
             return False
         return _bool(social_engineering.get("ask_present")) and _float(social_engineering.get("confidence")) >= 0.78
     return True
+
+
+def _has_explicit_positive_action_request(
+    request: Dict[str, Any],
+    social_engineering: Dict[str, Any],
+) -> bool:
+    if "positive_action_request" in request:
+        return _bool(request.get("positive_action_request"))
+    return (
+        _norm(social_engineering.get("status")) == "done"
+        and _bool(social_engineering.get("ask_present"))
+        and _float(social_engineering.get("confidence")) >= 0.78
+    )
 
 
 def _is_non_action_request(request: Dict[str, Any], social_engineering: Dict[str, Any]) -> bool:
@@ -502,7 +573,12 @@ def _has_violated_never_does(identity: Dict[str, Any]) -> List[str]:
     return identity.get("violated_never_does") or []
 
 
-def verdict(bundle: Dict[str, Any]) -> Dict[str, Any]:
+def _verdict(
+    bundle: Dict[str, Any],
+    *,
+    monotonic_fraud_floor: bool,
+    skip_incomplete_guard: bool = False,
+) -> Dict[str, Any]:
     """EvidenceGate unic — 4 stări.
 
     Determinist, auditabil. AI/LLM/conversație = medium maximum, nu pot produce
@@ -537,6 +613,10 @@ def verdict(bundle: Dict[str, Any]) -> Dict[str, Any]:
     value_sensitive = sensitive in MONEY_OR_VALUE_REQUESTS
     wrong_channel = channel in WRONG_CHANNELS
     positive_action_request = _has_positive_action_request(request, social_engineering)
+    explicit_positive_action_request = _has_explicit_positive_action_request(
+        request,
+        social_engineering,
+    )
     non_action_request = _is_non_action_request(request, social_engineering)
     has_provenance = _has_positive_provenance(identity, provenance)
     provenance_contradicted = _has_positive_provenance_contradiction(identity, provenance, semantic)
@@ -642,12 +722,45 @@ def verdict(bundle: Dict[str, Any]) -> Dict[str, Any]:
         )
 
     # ─── Rule 4: Incomplete evidence → UNVERIFIED ──────────────────────────
-    if (
+    incomplete_evidence = (
         resolution_status in INCOMPLETE_RESOLUTION
         or provider_verdict in PROVIDER_PENDING
         or semantic_status != "done"
         or not _required_completeness(bundle)
-    ) and not non_http_deeplink_present:
+    ) and not non_http_deeplink_present
+    if incomplete_evidence and not skip_incomplete_guard:
+        if monotonic_fraud_floor:
+            candidate = _verdict(
+                bundle,
+                monotonic_fraud_floor=False,
+                skip_incomplete_guard=True,
+            )
+            if _is_positive_monotonic_fraud_candidate(
+                candidate,
+                bundle=bundle,
+                semantic=semantic,
+                explicit_positive_action_request=explicit_positive_action_request,
+                has_provenance=has_provenance,
+                provenance_contradicted=provenance_contradicted,
+            ):
+                candidate_reasons = {str(reason) for reason in candidate.get("reason_codes") or []}
+                semantic_confidence = max(
+                    _float(semantic.get("confidence")),
+                    _float(semantic.get("family_confidence")),
+                )
+                if (
+                    candidate.get("label") == "DANGEROUS"
+                    and "semantic_high_risk_match" in candidate_reasons
+                    and semantic_confidence < MONOTONIC_DANGEROUS_MIN_SEMANTIC_CONFIDENCE
+                ):
+                    candidate = _result(
+                        "SUSPECT",
+                        ["semantic_high_risk_incomplete_floor"],
+                        confidence=72,
+                    )
+                reason_codes = list(candidate.get("reason_codes") or [])
+                reason_codes.append("incomplete_evidence_fraud_floor_preserved")
+                return {**candidate, "reason_codes": reason_codes}
         return _result("UNVERIFIED", ["insufficient_evidence"], confidence=0)
 
     # ─── Rule 4b: Structured social-engineering intent ─────────────────────
@@ -790,3 +903,18 @@ def verdict(bundle: Dict[str, Any]) -> Dict[str, Any]:
 
     # ─── Rule 12: Residual ────────────────────────────────────────────────
     return _result("UNVERIFIED", ["residual"], confidence=60, is_final=True)
+
+
+def verdict(bundle: Dict[str, Any]) -> Dict[str, Any]:
+    """Return the active gate result using the explicitly configured policy."""
+
+    return _verdict(
+        bundle,
+        monotonic_fraud_floor=VERDICT_GATE_MONOTONIC_FRAUD_FLOOR,
+    )
+
+
+def verdict_monotonic_candidate(bundle: Dict[str, Any]) -> Dict[str, Any]:
+    """Evaluate the guarded monotonic candidate without activating it."""
+
+    return _verdict(bundle, monotonic_fraud_floor=True)

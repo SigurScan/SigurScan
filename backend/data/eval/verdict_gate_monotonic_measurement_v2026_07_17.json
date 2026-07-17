@@ -1,0 +1,137 @@
+{
+  "schema": "sigurscan_verdict_gate_monotonic_measurement_v1",
+  "base_commit": "a399503e92933a26072b0149dacdc4c85583ef7b",
+  "mode": "offline_existing_pipeline_bundle_with_resolution_failure_simulation",
+  "privacy": "Aggregate counts only; no text, URL, hostname, path, case id, or provider payload is stored.",
+  "corpus": {
+    "deduplicated_case_count": 2294,
+    "evaluated_generic_url_cases": 575,
+    "labeled_cases": 556,
+    "skipped": {
+      "not_generic_url_case": 1719
+    },
+    "expected_counts": {
+      "SAFE": 145,
+      "DANGEROUS": 336,
+      "SUSPECT": 70,
+      "UNVERIFIED": 5
+    }
+  },
+  "results": {
+    "active_counts": {
+      "UNVERIFIED": 374,
+      "DANGEROUS": 200,
+      "SUSPECT": 1
+    },
+    "candidate_counts": {
+      "UNVERIFIED": 349,
+      "DANGEROUS": 202,
+      "SUSPECT": 24
+    },
+    "transitions": {
+      "UNVERIFIED->UNVERIFIED": 349,
+      "DANGEROUS->DANGEROUS": 200,
+      "UNVERIFIED->SUSPECT": 23,
+      "UNVERIFIED->DANGEROUS": 2,
+      "SUSPECT->SUSPECT": 1
+    },
+    "expected_transitions": {
+      "SAFE:UNVERIFIED->UNVERIFIED": 144,
+      "DANGEROUS:DANGEROUS->DANGEROUS": 186,
+      "DANGEROUS:UNVERIFIED->UNVERIFIED": 130,
+      "SUSPECT:UNVERIFIED->UNVERIFIED": 51,
+      "SUSPECT:DANGEROUS->DANGEROUS": 14,
+      "DANGEROUS:UNVERIFIED->SUSPECT": 18,
+      "UNVERIFIED:UNVERIFIED->UNVERIFIED": 5,
+      "DANGEROUS:UNVERIFIED->DANGEROUS": 2,
+      "SUSPECT:UNVERIFIED->SUSPECT": 5,
+      "SAFE:SUSPECT->SUSPECT": 1
+    },
+    "changed_cases": 25,
+    "false_safe_candidates": 0,
+    "safe_to_suspect_or_dangerous": 0,
+    "dangerous_recovered_to_dangerous": 2,
+    "dangerous_recovered_to_at_least_suspect": 20,
+    "dangerous_remaining_below_dangerous": 148,
+    "suspect_recovered_to_at_least_suspect": 5,
+    "suspect_over_escalated_to_dangerous": 0,
+    "unverified_escalated_to_suspect_or_dangerous": 0,
+    "candidate_reason_counts": {
+      "insufficient_evidence": 340,
+      "identity_spoof": 157,
+      "value_request_needs_verification": 14,
+      "incomplete_evidence_fraud_floor_preserved": 25,
+      "semantic_high_value_request": 18,
+      "sensitive_wrong_channel": 23,
+      "semantic_high_risk_match": 2,
+      "safety_education_not_action_request": 9,
+      "semantic_high_risk_incomplete_floor": 3,
+      "non_http_deeplink_unverified": 1,
+      "semantic_high_family_match": 6,
+      "never_asks_violated:link_request": 2
+    },
+    "changed_reason_counts_by_expected": {
+      "DANGEROUS": {
+        "value_request_needs_verification": 10,
+        "incomplete_evidence_fraud_floor_preserved": 20,
+        "semantic_high_risk_match": 2,
+        "semantic_high_risk_incomplete_floor": 2,
+        "semantic_high_family_match": 6
+      },
+      "SUSPECT": {
+        "semantic_high_risk_incomplete_floor": 1,
+        "incomplete_evidence_fraud_floor_preserved": 5,
+        "value_request_needs_verification": 4
+      }
+    }
+  },
+  "by_source_transitions": {
+    "backend/data/evaluation_dataset_v1.jsonl": {
+      "UNVERIFIED->UNVERIFIED": 75,
+      "DANGEROUS->DANGEROUS": 86,
+      "UNVERIFIED->SUSPECT": 4
+    },
+    "backend/data/verdict_testset_ro.jsonl": {
+      "UNVERIFIED->UNVERIFIED": 18,
+      "DANGEROUS->DANGEROUS": 18,
+      "UNVERIFIED->SUSPECT": 2
+    },
+    "sigurscan_adversarial_negation_contrastive_ro_2026_06_17.zip:sigurscan_adversarial_negation_contrastive_ro_2026_06_17.json": {
+      "DANGEROUS->DANGEROUS": 12,
+      "UNVERIFIED->DANGEROUS": 1,
+      "UNVERIFIED->UNVERIFIED": 2,
+      "UNVERIFIED->SUSPECT": 1
+    },
+    "sigurscan_real_b2b_scam_cases_ro_eu_2026_round3_98_cases.zip:real_b2b_scam_cases_ro_eu_2026_round3_98_cases.json": {
+      "UNVERIFIED->UNVERIFIED": 5,
+      "DANGEROUS->DANGEROUS": 1,
+      "UNVERIFIED->SUSPECT": 1
+    },
+    "sigurscan_real_scam_cases_ro_2026_round1.zip:sigurscan_real_scam_cases_ro_2026_round1/real_scam_cases_ro_2026_pack.json": {
+      "DANGEROUS->DANGEROUS": 24,
+      "UNVERIFIED->UNVERIFIED": 2,
+      "UNVERIFIED->DANGEROUS": 1
+    },
+    "sigurscan_ro_research_test_pack_2025_2026_v1.zip:sigurscan_ro_research_test_pack_2025_2026_v1/html_email_parser_torture_tests.json": {
+      "UNVERIFIED->UNVERIFIED": 25,
+      "DANGEROUS->DANGEROUS": 6,
+      "UNVERIFIED->SUSPECT": 1,
+      "SUSPECT->SUSPECT": 1
+    },
+    "sigurscan_romania_minor_scam_families_addendum_2025_2026.zip:sigurscan_romania_minor_scam_families_addendum_2025_2026/acceptance_tests_minor_families.json": {
+      "UNVERIFIED->UNVERIFIED": 49,
+      "UNVERIFIED->SUSPECT": 7,
+      "DANGEROUS->DANGEROUS": 10
+    },
+    "sigurscan_romania_minor_scam_families_addendum_2025_2026.zip:sigurscan_romania_minor_scam_families_addendum_2025_2026/sigurscan_romania_minor_scam_families_addendum_2025_2026.json": {
+      "UNVERIFIED->UNVERIFIED": 49,
+      "UNVERIFIED->SUSPECT": 7,
+      "DANGEROUS->DANGEROUS": 10
+    }
+  },
+  "decision": {
+    "active_flag_default": false,
+    "activation_authorized": false,
+    "requires_manual_fp_fn_review": true
+  }
+}

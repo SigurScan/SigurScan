@@ -22,6 +22,7 @@ jobs:
       ENABLE_CLOUD_AI_EXPLANATION: "false"
       ENABLE_MISTRAL_SHADOW_ADJUDICATION: "false"
       OFFER_THREAT_ENRICHMENT_SHADOW: "false"
+      VERDICT_GATE_MONOTONIC_FRAUD_FLOOR: "false"
       INVOICE_CACHE_HMAC_KEY: "ci-test-hmac-key"
     steps:
       - name: Checkout
@@ -59,6 +60,7 @@ jobs:
       ENABLE_CLOUD_AI_EXPLANATION: "false"
       ENABLE_MISTRAL_SHADOW_ADJUDICATION: "false"
       OFFER_THREAT_ENRICHMENT_SHADOW: "false"
+      VERDICT_GATE_MONOTONIC_FRAUD_FLOOR: "false"
       INVOICE_CACHE_HMAC_KEY: "ci-test-hmac-key"
     steps:
       - name: Checkout
