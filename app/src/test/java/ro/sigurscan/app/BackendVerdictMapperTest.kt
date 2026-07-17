@@ -91,6 +91,52 @@ class BackendVerdictMapperTest {
     }
 
     @Test
+    fun exactBackendGateReasonsArePreservedVerbatim() {
+        val result = backendGateResult(
+            scanResponse(
+                label = "DANGEROUS",
+                riskLevel = "high",
+                evidence = mapOf(
+                    "verdict_gate" to mapOf(
+                        "label" to "DANGEROUS",
+                        "reason_codes" to listOf(
+                            "provider_malicious",
+                            "incomplete_evidence_fraud_floor_preserved"
+                        ),
+                        "is_final" to true
+                    )
+                )
+            )
+        )
+
+        assertEquals(
+            listOf("provider_malicious", "incomplete_evidence_fraud_floor_preserved"),
+            result.reasonCodes
+        )
+        assertTrue("Generic Android reasons must not replace backend provenance.",
+            "BACKEND_ORCHESTRATED_VERDICT" !in result.reasonCodes)
+    }
+
+    @Test
+    fun evidenceGateLabelIsUsedWhenLegacyTopLevelLabelIsMissing() {
+        val result = backendGateResult(
+            scanResponse(
+                label = null,
+                riskLevel = "high",
+                evidence = mapOf(
+                    "verdict_gate" to mapOf(
+                        "label" to "DANGEROUS",
+                        "reason_codes" to listOf("sensitive_wrong_channel")
+                    )
+                )
+            )
+        )
+
+        assertEquals(GateAction.DO_NOT_CONTINUE, result.action)
+        assertEquals(listOf("sensitive_wrong_channel"), result.reasonCodes)
+    }
+
+    @Test
     fun missingFinalBackendLabelDoesNotTriggerAnotherLocalJudge() {
         val result = backendGateResult(
             scanResponse(label = null, riskLevel = "low", isFinal = true)
@@ -104,12 +150,14 @@ class BackendVerdictMapperTest {
     private fun scanResponse(
         label: String?,
         riskLevel: String,
-        isFinal: Boolean = true
+        isFinal: Boolean = true,
+        evidence: Map<String, Any>? = null
     ) = ScanResponse(
         scanId = "backend-verdict",
         riskScore = 10,
         riskLevel = riskLevel,
         isFinal = isFinal,
-        userRiskLabel = label
+        userRiskLabel = label,
+        evidence = evidence
     )
 }

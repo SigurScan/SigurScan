@@ -124,9 +124,9 @@ internal fun ScannerViewModel.withGate(
     val gateReason = GateResultPresentation.reasonText(gateResult, snapshot)
     val gateActions = GateResultPresentation.recommendedActions(gateResult)
     return self.copy(
-        family = GateResultPresentation.familyLabel(gateResult.action, self.family),
-        riskScore = GateResultPresentation.legacyRiskScore(gateResult.action),
-        riskLevel = GateResultPresentation.legacyRiskLevel(gateResult.action),
+        family = GateResultPresentation.familyLabel(gateResult, self.family),
+        riskScore = GateResultPresentation.legacyRiskScore(gateResult),
+        riskLevel = GateResultPresentation.legacyRiskLevel(gateResult),
         reasons = (listOf(gateReason) + self.reasons).map { it.trim() }.filter { it.isNotBlank() }.distinct(),
         safeActions = (gateActions + self.safeActions).map { it.trim() }.filter { it.isNotBlank() }.distinct(),
         keyDangers = when (gateResult.action) {
