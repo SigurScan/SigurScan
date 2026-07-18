@@ -98,7 +98,7 @@ class InvoiceVerdictMapperTest {
     }
 
     @Test
-    fun backendGateSafeIsNotDowngradedByLegacyCoherenceSignals() {
+    fun backendGateSafeCannotRenderSafeWhenInvoiceTruthBlocksPayment() {
         val r = invoiceVerdict(
             fromJson(
                 """
@@ -115,7 +115,34 @@ class InvoiceVerdictMapperTest {
             )
         )
 
+        assertEquals(InvoiceVerdict.NEVERIFICAT, r.verdict)
+
+        val presentation = invoiceVerdictPresentation(r)
+        assertEquals("Neverificat", presentation.headline)
+        assertEquals(DSChipTone.Pending, presentation.tone)
+        assertFalse(presentation.action.contains("Poți plăti"))
+    }
+
+    @Test
+    fun backendGateSafeStillRendersSafeWhenInvoiceTruthConfirmsPayment() {
+        val r = invoiceVerdict(
+            fromJson(
+                """
+                {
+                  "fields": {"emitent": "ALFA DISTRIB SRL", "payment_beneficiary": "ALFA DISTRIB SRL",
+                             "iban": "RO17BTRL0000456789012345"},
+                  "coherence": {"totals_match": true, "tva_rate_plausible": true, "dates_plausible": true, "all_ok": true},
+                  "invoice_truth": {"verdict": "DATE_CONFIRMATE", "safe_to_pay": true,
+                                    "primary_reason_code": "DESTINATION_CONFIRMED", "hard_conflicts": []},
+                  "verdict_gate": {"label": "SAFE", "risk_level": "low", "risk_score": 5,
+                                   "reason_codes": ["backend_safe"]}
+                }
+                """
+            )
+        )
+
         assertEquals(InvoiceVerdict.SIGUR, r.verdict)
+        assertEquals(DSChipTone.Safe, invoiceVerdictPresentation(r).tone)
     }
 
     // ---- Real captures, labeled by ground truth ----

@@ -10,7 +10,8 @@ import java.util.Locale
  * so the verdict is consistent across the app.
  *
  * Display-layer only: this never re-judges the engine. Current backend responses are
- * rendered from verdict_gate, the single source of truth. The invoice_truth/field-based
+ * rendered from verdict_gate, with one fail-closed invariant: SAFE cannot be displayed
+ * when InvoiceTruth explicitly says payment is not safe. The invoice_truth/field-based
  * logic below is retained only as a legacy fallback for old responses without a gate.
  *
  * Periculos keys on the engine's *collapsed* fraud signals (hard_conflicts +
@@ -97,14 +98,18 @@ private fun verdictFromGate(gate: InvoiceVerdictGateResponse?): InvoiceVerdict? 
 
 fun invoiceVerdict(result: InvoiceScanResponse): InvoiceVerdictResult {
     val beneficiaryMismatch = invoiceBeneficiaryMismatch(result.fields)
+    val truth = result.invoiceTruth
     verdictFromGate(result.verdictGate)?.let { gateVerdict ->
+        val displayVerdict = if (gateVerdict == InvoiceVerdict.SIGUR && truth?.safeToPay == false) {
+            InvoiceVerdict.NEVERIFICAT
+        } else {
+            gateVerdict
+        }
         return InvoiceVerdictResult(
-            verdict = gateVerdict,
-            beneficiaryMismatch = gateVerdict == InvoiceVerdict.PERICULOS && beneficiaryMismatch,
+            verdict = displayVerdict,
+            beneficiaryMismatch = displayVerdict == InvoiceVerdict.PERICULOS && beneficiaryMismatch,
         )
     }
-
-    val truth = result.invoiceTruth
 
     // 1) Periculos (hard) — fraud-grade triggers win over everything, even a confirmed safe_to_pay.
     val hardPericulos = (truth?.hardConflicts?.isNotEmpty() == true) ||
