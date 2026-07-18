@@ -22,6 +22,8 @@ from api_models import OrchestratedScanRequest, UrlscanSandboxRequest
 from services.provider_gate import _apply_decision_contract_result, _apply_provider_gate_verdict, _claim_verifier_required, _skipped_offer_claim_payload
 from services.reputation_enrich import _attach_reputation_lookup_hashes, _attach_reputation_lookup_urls, _has_bad_provider_verdict
 from services.external_url_privacy import prepare_external_url, prepare_external_urls, prepare_reputation_lookup_url
+from services.artifact_envelope import build_artifact_envelope
+from services.threat_enrichment import build_threat_enrichment
 from services.scan_helpers import _invoice_payment_destination_for_client, _validate_text_input
 from services.url_reputation import reputation_url_hash_variants
 from services.verdict_gate import verdict as reduce_verdict
@@ -1277,7 +1279,12 @@ class OrchestratedScanEngine:
         return job
 
 
-    async def _create_orchestrated_job(self, payload: OrchestratedScanRequest) -> Dict[str, Any]:
+    async def _create_orchestrated_job(
+        self,
+        payload: OrchestratedScanRequest,
+        *,
+        artifact_metadata: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
         context = self._build_orchestrated_text_context(payload)
         raw_urls = [str(url) for url in (context.get("urls") or []) if str(url).strip()]
         urls, url_privacy = prepare_external_urls(raw_urls)
@@ -1325,6 +1332,27 @@ class OrchestratedScanEngine:
         except Exception:
             cross_scan_knowledge = {}
         redacted_text = redact_pii(privacy_safe_text)
+        artifact_metadata = artifact_metadata if isinstance(artifact_metadata, dict) else {}
+        artifact_envelope = build_artifact_envelope(
+            artifact_type=str(artifact_metadata.get("artifact_type") or context["input_type"]),
+            analysis_input_type=str(context["input_type"]),
+            source_channel=str(context["source_channel"]),
+            redacted_text=redacted_text,
+            external_urls=raw_urls,
+            qr_payloads=artifact_metadata.get("qr_payloads")
+            if isinstance(artifact_metadata.get("qr_payloads"), list)
+            else [],
+            hidden_url_visibility=bool(artifact_metadata.get("hidden_url_visibility")),
+            has_html=bool(artifact_metadata.get("has_html") or payload.html_content),
+            email_auth=(
+                artifact_metadata.get("email_auth")
+                if isinstance(artifact_metadata.get("email_auth"), dict)
+                else payload.email_auth
+            ),
+            extraction_warning=(
+                "present" if artifact_metadata.get("extraction_warning") else None
+            ),
+        )
         scan_id = _new_scan_id("orch")
         extra_fields = dict(context.get("extra_fields") or {})
         for key in ("input_url", "canonical_url"):
@@ -1358,6 +1386,12 @@ class OrchestratedScanEngine:
             "pipeline_stage": "queued",
             "input_type": context["input_type"],
             "source_channel": context["source_channel"],
+            "artifact_envelope": artifact_envelope,
+            "threat_enrichment": build_threat_enrichment(
+                artifact_envelope=artifact_envelope,
+                resolved_urls=[],
+                provider_summary={},
+            ),
             "urls": urls,
             "redacted_text": redacted_text,
             "cross_scan_knowledge": cross_scan_knowledge,
@@ -1494,6 +1528,13 @@ class OrchestratedScanEngine:
             lambda: _external_intel_summary_from_threat_intel(threat_intel),
         )
         job["threat_intel"] = threat_intel
+        job["threat_enrichment"] = build_threat_enrichment(
+            artifact_envelope=job.get("artifact_envelope")
+            if isinstance(job.get("artifact_envelope"), dict)
+            else {},
+            resolved_urls=resolved_urls,
+            provider_summary=summary,
+        )
 
         if _has_bad_provider_verdict(summary):
             analysis = self._timed_orchestrated_component(
@@ -1652,6 +1693,13 @@ class OrchestratedScanEngine:
                 lambda: _external_intel_summary_from_threat_intel(threat_intel),
             )
             job["threat_intel"] = threat_intel
+        job["threat_enrichment"] = build_threat_enrichment(
+            artifact_envelope=job.get("artifact_envelope")
+            if isinstance(job.get("artifact_envelope"), dict)
+            else {},
+            resolved_urls=resolved_urls,
+            provider_summary=external_intel_summary,
+        )
         self._set_orchestrated_stage(job, "invoice_parse")
         try:
             result = await self._timed_orchestrated_component(
@@ -2693,7 +2741,19 @@ class OrchestratedScanEngine:
                 text=text,
                 html_content=html_content,
                 source_channel=source_channel or str(extraction.get("source_channel") or default_input_type),
-            )
+            ),
+            artifact_metadata={
+                "artifact_type": extraction.get("input_type") or default_input_type,
+                "qr_payloads": extraction.get("qr_payloads")
+                if isinstance(extraction.get("qr_payloads"), list)
+                else [],
+                "hidden_url_visibility": bool(extraction.get("hidden_url_visibility")),
+                "has_html": bool(html_content),
+                "email_auth": extraction.get("email_auth")
+                if isinstance(extraction.get("email_auth"), dict)
+                else None,
+                "extraction_warning": extraction.get("warning"),
+            },
         )
         response = self._orchestrated_status_payload(job)
         response.setdefault("extraction", {})
