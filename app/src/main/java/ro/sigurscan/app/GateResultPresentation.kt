@@ -1,5 +1,7 @@
 package ro.sigurscan.app
 
+import java.util.Locale
+
 object GateResultPresentation {
     fun isScanInProgress(result: GateResult): Boolean =
         result.asyncExpected || result.finality == GateFinality.PROVISIONAL
@@ -108,8 +110,24 @@ object GateResultPresentation {
     }
 
     fun reasonText(result: GateResult, snapshot: EvidenceSnapshot?): String {
-        val codes = result.reasonCodes.toSet()
+        val codes = result.reasonCodes
+            .map { it.trim().uppercase(Locale.ROOT) }
+            .filter { it.isNotBlank() }
+            .toSet()
         return when {
+            "PROVIDER_MALICIOUS" in codes -> "Un provider extern de securitate a raportat destinația ca periculoasă."
+            "PROVIDER_SUSPICIOUS" in codes -> "Un provider extern a raportat semnale suspecte pentru destinație."
+            "SENSITIVE_WRONG_CHANNEL" in codes -> "Conversația cere date sau coduri sensibile pe un canal nepotrivit."
+            "IDENTITY_SPOOF" in codes || "IDENTITY_SPOOF_VALUE_REQUEST" in codes -> "Identitatea pretinsă nu se potrivește cu destinația sau cererea de plată."
+            "SOCIAL_ENGINEERING_HIGH_CONFIDENCE_INTENT" in codes -> "Am găsit o combinație clară de presiune și cerere riscantă."
+            "SOCIAL_ENGINEERING_BUILD_UP" in codes -> "Conversația folosește tactici de apropiere sau presiune întâlnite în fraude."
+            "SEMANTIC_HIGH_RISK_MATCH" in codes || "SEMANTIC_HIGH_VALUE_REQUEST" in codes -> "Analiza semantică a găsit un scenariu de fraudă cu cerere riscantă."
+            "VALUE_REQUEST_NEEDS_VERIFICATION" in codes -> "Cererea de plată trebuie confirmată independent înainte să continui."
+            "CAMPAIGN_MATCH_ONLY" in codes -> "Mesajul seamănă cu o campanie de fraudă cunoscută și trebuie verificat."
+            "POSITIVE_PROVENANCE_CLEAN" in codes -> "Destinația și proveniența au fost confirmate, fără semnale de risc."
+            "CLEAN_PUBLIC_NAVIGATION_QR" in codes || "CLEAN_PUBLIC_NAVIGATION_URL" in codes -> "Destinația publică a fost verificată și providerii nu au raportat risc."
+            "UNKNOWN_BUT_CLEAN" in codes || "UNKNOWN_BUT_CLEAN_ESTABLISHED" in codes -> "Providerii nu au raportat risc, dar proveniența nu este confirmată suficient pentru verde."
+            "PROVIDER_ERROR" in codes -> "Un serviciu necesar de verificare nu a răspuns; rezultatul nu este verde."
             "HIGH_CONFIDENCE_REPUTATION" in codes -> "Scanarea a gasit semnale clare de risc pe link."
             "SANDBOX_VERDICT" in codes -> "Pagina verificata a aratat comportament riscant."
             "SENSITIVE_FORM_ON_UNOFFICIAL_BRAND_DOMAIN" in codes -> "Pagina cere date sensibile pe un domeniu care nu apartine brandului mentionat."

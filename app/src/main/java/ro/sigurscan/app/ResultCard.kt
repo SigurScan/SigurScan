@@ -132,7 +132,9 @@ fun ResultCard(
             assessment.detectedButtons.isNotEmpty() ||
             assessment.redirectChain.isNotEmpty() ||
             assessment.finalUrl != null ||
-            assessment.sandboxReportUrl != null
+            assessment.sandboxReportUrl != null ||
+            assessment.gateResult != null ||
+            assessment.verificationPillars.isNotEmpty()
 
     var feedbackSent by remember { mutableStateOf(false) }
     var showTechnicalDetails by remember { mutableStateOf(false) }
@@ -323,6 +325,8 @@ fun ResultCard(
                 }
 
                 if (showTechnicalDetails) {
+                    VerdictProvenanceSection(assessment)
+
                     SincerityPillarsSection(assessment)
 
                     if (assessment.threatIntel.isNotEmpty()) {
@@ -453,6 +457,114 @@ fun ResultCard(
             }
         }
     }
+    }
+}
+
+internal fun verificationPillarTitle(id: String): String = when (id) {
+    "final_url" -> "Destinație finală"
+    "google_web_risk" -> "Google Web Risk"
+    "asf_investor_alerts" -> "Alerte ASF"
+    "phishing_database" -> "Phishing.Database"
+    "phishtank_online_valid" -> "PhishTank"
+    "openphish" -> "OpenPhish"
+    "urlscan" -> "URLScan"
+    "claim_verifier" -> "Verificare ofertă"
+    "semantic_review" -> "Analiză semantică"
+    else -> id.replace('_', ' ').replaceFirstChar { it.uppercase(Locale.getDefault()) }
+}
+
+internal fun verificationPillarStatusText(status: VerificationPillarStatus): String = when (status) {
+    VerificationPillarStatus.OK -> "Finalizat"
+    VerificationPillarStatus.PENDING -> "În curs"
+    VerificationPillarStatus.RATE_LIMITED -> "Limită atinsă"
+    VerificationPillarStatus.TIMEOUT -> "Timeout"
+    VerificationPillarStatus.ERROR -> "Eroare"
+    VerificationPillarStatus.SKIPPED -> "Nu a fost necesar"
+    VerificationPillarStatus.NOT_RUN -> "Nu a rulat"
+}
+
+@Composable
+internal fun VerdictProvenanceSection(assessment: OfflineAssessment) {
+    val gateResult = assessment.gateResult
+    if (gateResult == null && assessment.verificationPillars.isEmpty()) return
+
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
+        Text(
+            text = "Decizie și verificări",
+            color = SigurColors.TextPrimary,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold
+        )
+        gateResult?.let { result ->
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = if (result.finality == GateFinality.FINAL) "Verdict final" else "Verdict provizoriu",
+                color = if (result.finality == GateFinality.FINAL) SigurColors.TextSecondary else SigurColors.Pending,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+            if (result.reasonCodes.isNotEmpty()) {
+                Text(
+                    text = "Coduri: ${result.reasonCodes.joinToString(", ")}",
+                    color = SigurColors.TextMuted,
+                    fontSize = 10.sp,
+                    lineHeight = 14.sp,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+        }
+
+        assessment.verificationPillars.forEach { pillar ->
+            HorizontalDivider(
+                color = SigurColors.GlassBorder,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = verificationPillarTitle(pillar.id),
+                    color = SigurColors.TextPrimary,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    text = verificationPillarStatusText(pillar.status),
+                    color = when (pillar.status) {
+                        VerificationPillarStatus.OK -> SigurColors.Safe
+                        VerificationPillarStatus.PENDING -> SigurColors.Pending
+                        VerificationPillarStatus.ERROR,
+                        VerificationPillarStatus.TIMEOUT,
+                        VerificationPillarStatus.RATE_LIMITED -> SigurColors.Suspect
+                        else -> SigurColors.TextMuted
+                    },
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            pillar.details?.let { details ->
+                Text(
+                    text = details,
+                    color = SigurColors.TextMuted,
+                    fontSize = 10.sp,
+                    lineHeight = 14.sp,
+                    modifier = Modifier.padding(top = 3.dp)
+                )
+            }
+            pillar.reference?.let { reference ->
+                Text(
+                    text = "Ref: $reference",
+                    color = SigurColors.TextMuted,
+                    fontSize = 10.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
+            }
+        }
     }
 }
 

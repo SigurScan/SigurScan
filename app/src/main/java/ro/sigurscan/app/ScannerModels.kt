@@ -147,6 +147,24 @@ data class ScanCacheStatus(
     val source: String = "local"
 )
 
+enum class VerificationPillarStatus {
+    NOT_RUN,
+    OK,
+    PENDING,
+    RATE_LIMITED,
+    TIMEOUT,
+    ERROR,
+    SKIPPED
+}
+
+data class VerificationPillarDisplay(
+    val id: String,
+    val status: VerificationPillarStatus,
+    val required: Boolean = false,
+    val details: String? = null,
+    val reference: String? = null
+)
+
 data class OfflineAssessment(
     val scanId: String = UUID.randomUUID().toString(),
     val family: String,
@@ -177,7 +195,8 @@ data class OfflineAssessment(
     val legal: LegalSection? = null,
     val actionPlan: ActionPlan? = null,
     val inputFidelity: SharedContentFidelity? = null,
-    val cacheStatus: ScanCacheStatus? = null
+    val cacheStatus: ScanCacheStatus? = null,
+    val verificationPillars: List<VerificationPillarDisplay> = emptyList()
 )
 
 data class PendingSharedFile(

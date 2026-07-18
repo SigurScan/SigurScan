@@ -379,6 +379,19 @@ class ScannerViewModelTest {
     }
 
     @Test
+    fun gateMappingPreservesFinalityInsteadOfCollapsingToActionOnly() {
+        val source = File("src/main/java/ro/sigurscan/app/ScannerViewModelEvidenceGate.kt").readText()
+        val start = source.indexOf("internal fun ScannerViewModel.withGate")
+        val end = source.indexOf("internal fun ScannerViewModel.localUnverifiedAssessment", start)
+        assertTrue("withGate must exist.", start >= 0 && end > start)
+        val mapping = source.substring(start, end)
+
+        assertTrue(mapping.contains("familyLabel(gateResult, self.family)"))
+        assertTrue(mapping.contains("legacyRiskScore(gateResult)"))
+        assertTrue(mapping.contains("legacyRiskLevel(gateResult)"))
+    }
+
+    @Test
     fun resultCacheKeyNormalizesUrlOnlyInput() {
         val first = scanResultCacheKey(
             rawInput = "example.com/path",

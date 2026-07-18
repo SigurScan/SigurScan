@@ -364,13 +364,41 @@ internal fun ScannerViewModel.providerStatesFromOrchestratedPillars(
     ).associateBy { it.provider }
 }
 
+internal fun verificationPillarsFromOrchestrated(
+    pillars: Map<String, OrchestratedPillarState>?
+): List<VerificationPillarDisplay> {
+    fun status(value: String?): VerificationPillarStatus = when (value?.lowercase(Locale.US)) {
+        "ok" -> VerificationPillarStatus.OK
+        "pending" -> VerificationPillarStatus.PENDING
+        "not_required" -> VerificationPillarStatus.SKIPPED
+        "rate_limited" -> VerificationPillarStatus.RATE_LIMITED
+        "timeout" -> VerificationPillarStatus.TIMEOUT
+        "error" -> VerificationPillarStatus.ERROR
+        else -> VerificationPillarStatus.NOT_RUN
+    }
+
+    return pillars
+        .orEmpty()
+        .toSortedMap()
+        .map { (id, raw) ->
+            VerificationPillarDisplay(
+                id = id,
+                status = status(raw.status),
+                required = raw.required == true,
+                details = raw.details?.trim()?.takeIf { it.isNotBlank() },
+                reference = raw.ref?.trim()?.takeIf { it.isNotBlank() }
+            )
+        }
+}
+
 internal fun ScannerViewModel.buildAssessmentFromBackendScanResponse(
     response: ScanResponse,
     rawInput: String,
     urls: List<String>,
     preview: OrchestratedPreview? = null,
     orchestratedStatusMessage: String? = null,
-    providerStates: Map<ProviderId, ProviderState> = emptyMap()
+    providerStates: Map<ProviderId, ProviderState> = emptyMap(),
+    verificationPillars: List<VerificationPillarDisplay> = emptyList()
 ): OfflineAssessment {
     val evidence = response.evidence
     val extractedUrls = mapList(evidence?.get("extracted_urls")).ifEmpty {
@@ -431,7 +459,8 @@ internal fun ScannerViewModel.buildAssessmentFromBackendScanResponse(
         sandboxReportUrl = preview?.reportUrl,
         offerEvidence = offerEvidenceFrom(evidence),
         legal = response.legal,
-        actionPlan = response.actionPlan
+        actionPlan = response.actionPlan,
+        verificationPillars = verificationPillars
     )
     val snapshot = EvidenceSignalNormalizer.buildSnapshot(
         EvidenceNormalizerInput(
@@ -494,7 +523,8 @@ internal fun ScannerViewModel.buildPendingAssessmentFromOrchestratedResponse(
         aiConfidence = "Analiză online în curs",
         threatIntel = threatIntel,
         screenshotUrl = response.preview?.screenshotUrl,
-        sandboxReportUrl = response.preview?.reportUrl
+        sandboxReportUrl = response.preview?.reportUrl,
+        verificationPillars = verificationPillarsFromOrchestrated(response.pillars)
     )
     val snapshot = EvidenceSignalNormalizer.buildSnapshot(
         EvidenceNormalizerInput(
@@ -531,6 +561,7 @@ internal suspend fun ScannerViewModel.publishOrchestratedResponse(
     resultCacheKey: String? = null
 ) {
     val providerStates = providerStatesFromOrchestratedPillars(response.pillars)
+    val verificationPillars = verificationPillarsFromOrchestrated(response.pillars)
     val remoteScreenshotUrl = response.preview?.screenshotUrl
     val preview = response.preview
     val updated = response.result?.let {
@@ -541,7 +572,8 @@ internal suspend fun ScannerViewModel.publishOrchestratedResponse(
                 urls = urls,
                 preview = preview,
                 orchestratedStatusMessage = response.statusMessage,
-                providerStates = providerStates
+                providerStates = providerStates,
+                verificationPillars = verificationPillars
             )
         } catch (mappingError: Exception) {
             Log.w(
@@ -555,7 +587,8 @@ internal suspend fun ScannerViewModel.publishOrchestratedResponse(
                 urls = urls,
                 preview = preview,
                 orchestratedStatusMessage = response.statusMessage,
-                providerStates = providerStates
+                providerStates = providerStates,
+                verificationPillars = verificationPillars
             )
         }
     } ?: buildPendingAssessmentFromOrchestratedResponse(response, rawInput, urls)
@@ -689,7 +722,8 @@ internal fun ScannerViewModel.buildDegradedAssessmentFromBackendScanResponse(
     urls: List<String>,
     preview: OrchestratedPreview? = null,
     orchestratedStatusMessage: String? = null,
-    providerStates: Map<ProviderId, ProviderState> = emptyMap()
+    providerStates: Map<ProviderId, ProviderState> = emptyMap(),
+    verificationPillars: List<VerificationPillarDisplay> = emptyList()
 ): OfflineAssessment {
     val finalUrl = normalizeCandidateUrl(preview?.finalUrl)
         ?: urls.firstOrNull()?.let(::normalizeUrl)
@@ -730,7 +764,8 @@ internal fun ScannerViewModel.buildDegradedAssessmentFromBackendScanResponse(
         threatIntel = threatIntel,
         sandboxReportUrl = preview?.reportUrl,
         legal = response.legal,
-        actionPlan = response.actionPlan
+        actionPlan = response.actionPlan,
+        verificationPillars = verificationPillars
     )
     val snapshot = EvidenceSnapshot(
         scanId = response.scanId,

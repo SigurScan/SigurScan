@@ -1,11 +1,103 @@
 package ro.sigurscan.app
 
+import com.google.gson.Gson
+import kotlinx.coroutines.runBlocking
+import okhttp3.mockwebserver.MockResponse
+import okhttp3.mockwebserver.MockWebServer
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 class AudioSemanticReviewFusionTest {
+    @Test
+    fun backendReviewerReportsNetworkFailureInsteadOfSilentlyReturningNull() = runBlocking {
+        val server = MockWebServer()
+        server.enqueue(MockResponse().setResponseCode(503).setBody("unavailable"))
+        server.start()
+        try {
+            val api = Retrofit.Builder()
+                .baseUrl(server.url("/"))
+                .addConverterFactory(GsonConverterFactory.create(Gson()))
+                .build()
+                .create(SigurScanApi::class.java)
+
+            val outcome = BackendAudioSemanticReviewer(api, "audio_share").review(
+                redactedTranscript = "Sunt de la banca si cer [cod]",
+                localEvidence = AudioEvidenceEngine.evaluate(AudioEvidenceInput())
+            )
+
+            assertEquals(VerificationPillarStatus.ERROR, outcome.status)
+            assertEquals("semantic:backend_unavailable", outcome.reasonCode)
+            assertEquals(null, outcome.response)
+        } finally {
+            server.shutdown()
+        }
+    }
+
+    @Test
+    fun backendFallbackIsExposedAsProviderErrorWithLocalResponsePreserved() = runBlocking {
+        val server = MockWebServer()
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody(
+                    """{"status":"fallback","semantic_review":{"risk_class":"medium","reason_codes":["semantic:mistral_unavailable"],"source":"audio_local_fallback"},"reason_codes":["semantic:mistral_unavailable"],"escalates":false}"""
+                )
+        )
+        server.start()
+        try {
+            val api = Retrofit.Builder()
+                .baseUrl(server.url("/"))
+                .addConverterFactory(GsonConverterFactory.create(Gson()))
+                .build()
+                .create(SigurScanApi::class.java)
+
+            val outcome = BackendAudioSemanticReviewer(api, "audio_share").review(
+                redactedTranscript = "Sunt de la banca si cer [cod]",
+                localEvidence = AudioEvidenceEngine.evaluate(AudioEvidenceInput())
+            )
+
+            assertEquals(VerificationPillarStatus.ERROR, outcome.status)
+            assertEquals("semantic:mistral_unavailable", outcome.reasonCode)
+            assertEquals("fallback", outcome.response?.status)
+        } finally {
+            server.shutdown()
+        }
+    }
+
+    @Test
+    fun malformedDoneResponseIsNotPresentedAsSuccessfulSemanticReview() = runBlocking {
+        val server = MockWebServer()
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setBody("""{"status":"done","semantic_review":null,"reason_codes":[],"escalates":false}""")
+        )
+        server.start()
+        try {
+            val api = Retrofit.Builder()
+                .baseUrl(server.url("/"))
+                .addConverterFactory(GsonConverterFactory.create(Gson()))
+                .build()
+                .create(SigurScanApi::class.java)
+
+            val outcome = BackendAudioSemanticReviewer(api, "audio_share").review(
+                redactedTranscript = "Sunt de la banca si cer [cod]",
+                localEvidence = AudioEvidenceEngine.evaluate(AudioEvidenceInput())
+            )
+
+            assertEquals(VerificationPillarStatus.ERROR, outcome.status)
+            assertEquals("semantic:invalid_response", outcome.reasonCode)
+        } finally {
+            server.shutdown()
+        }
+    }
+
     @Test
     fun mistralHighEscalatesUnverifiedLocalEvidenceToDangerous() {
         val local = AudioEvidenceEngine.evaluate(AudioEvidenceInput())
