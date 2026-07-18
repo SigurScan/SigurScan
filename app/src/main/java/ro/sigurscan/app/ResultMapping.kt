@@ -152,9 +152,9 @@ internal fun mapUserActionDecision(assessment: OfflineAssessment, riskUi: RiskDi
             nextBestAction = "Poți continua."
         )
         else -> UserActionDecision(
-            headline = "Suspect",
-            supportText = "Rezultatul nu a putut fi încadrat sigur. Verifică pe canalul oficial.",
-            nextBestAction = "Nu continua până nu confirmi separat sursa."
+            headline = "Neverificat",
+            supportText = "Am procesat conținutul, dar nu avem suficiente dovezi ca să spunem că este sigur.",
+            nextBestAction = "Verifică separat persoana, instituția sau destinația înainte să continui."
         )
     }
 }

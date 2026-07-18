@@ -94,6 +94,13 @@ import kotlin.math.pow
 
 internal fun handleIncomingIntent(context: Context, intent: Intent?, viewModel: ScannerViewModel) {
     val plan = buildSharedIntentIntakePlan(intent)
+    val streamCount = (plan as? SharedIntentIntakePlan.SharedContent)?.streams?.size ?: 0
+    val autoScan = (plan as? SharedIntentIntakePlan.SharedContent)?.autoScan?.name ?: "not_applicable"
+    Log.i(
+        "SharedIntentIntake",
+        "Incoming intent: action=${intent?.action ?: "none"}, type=${intent?.type ?: "none"}, " +
+            "plan=${plan.javaClass.simpleName}, streamCount=$streamCount, autoScan=$autoScan"
+    )
     executeSharedIntentIntakePlan(
         plan = plan,
         sink = object : SharedIntentIntakeSink {
@@ -115,7 +122,11 @@ internal fun handleIncomingIntent(context: Context, intent: Intent?, viewModel: 
                     }
                     SharedIntentDestination.SPEAKER_GUARD -> {
                         viewModel.currentTab = "radar"
-                        if (autoStartSpeakerGuard && BuildConfig.SIGURSCAN_ENABLE_AUDIO_ASR) {
+                        if (
+                            autoStartSpeakerGuard &&
+                            BuildConfig.SIGURSCAN_ENABLE_LIVE_CALL &&
+                            BuildConfig.SIGURSCAN_ENABLE_AUDIO_ASR
+                        ) {
                             viewModel.acceptSpeakerGuardConsent()
                             val microphoneGranted = ContextCompat.checkSelfPermission(
                                 context,
@@ -124,10 +135,10 @@ internal fun handleIncomingIntent(context: Context, intent: Intent?, viewModel: 
                             if (microphoneGranted) {
                                 viewModel.startSpeakerGuard()
                             } else {
-                                viewModel.audioReadinessStatus = "Permite microfonul, pune apelul pe difuzor, apoi pornește Urechea."
+                                viewModel.audioReadinessStatus = "Permite microfonul, pune celălalt telefon pe difuzor, apoi pornește Urechea aici."
                             }
                         } else {
-                            viewModel.audioReadinessStatus = "Pune apelul pe difuzor, apoi apasă Ascultă pe difuzor."
+                            viewModel.audioReadinessStatus = "Pune celălalt telefon pe difuzor, apoi apasă Pornește ascultarea."
                         }
                     }
                 }
@@ -159,6 +170,10 @@ internal fun handleIncomingIntent(context: Context, intent: Intent?, viewModel: 
             }
 
             override fun scanSingleFile() {
+                Log.i(
+                    "SharedIntentIntake",
+                    "Auto-scanning single shared file: pendingCount=${viewModel.pendingSharedFiles.size}"
+                )
                 viewModel.scanPendingSharedFile(
                     viewModel.pendingSharedFiles.singleOrNull()?.id.orEmpty(),
                     context

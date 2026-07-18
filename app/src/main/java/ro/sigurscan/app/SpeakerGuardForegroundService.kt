@@ -15,6 +15,7 @@ import android.os.IBinder
 import android.os.Looper
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -22,18 +23,18 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
-import java.util.concurrent.TimeUnit
 
 object SpeakerGuardForegroundServiceEvents {
-    private val _updates = MutableSharedFlow<SpeakerGuardUpdate>(extraBufferCapacity = 64)
+    private val _updates = MutableSharedFlow<SpeakerGuardUpdate>(replay = 1, extraBufferCapacity = 64)
     val updates: SharedFlow<SpeakerGuardUpdate> = _updates.asSharedFlow()
 
     fun publish(update: SpeakerGuardUpdate) {
         _updates.tryEmit(update)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun clear() {
+        _updates.resetReplayCache()
     }
 }
 
@@ -41,13 +42,35 @@ class SpeakerGuardForegroundService : Service() {
     private val handler = Handler(Looper.getMainLooper())
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private var captureSession: SpeakerGuardSession? = null
+    private val clientInstanceId: String by lazy {
+        SigurScanClientIdentity.loadOrCreateClientInstanceId(applicationContext)
+    }
+    private val playIntegrityTokenProvider: PlayIntegrityTokenProvider by lazy {
+        if (BuildConfig.SIGURSCAN_ENABLE_PLAY_INTEGRITY) {
+            PlayIntegrityTokenProvider.fromContext(
+                applicationContext,
+                configuredSigurScanBackendBaseUrl(),
+                BuildConfig.SIGURSCAN_API_KEY,
+                clientInstanceId
+            )
+        } else {
+            PlayIntegrityTokenProvider.disabled()
+        }
+    }
     private val audioSemanticApi: SigurScanApi by lazy { buildAudioSemanticApi() }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         return when (intent?.action) {
-            ACTION_SHOW_CALL_PROMPT -> handleCallPrompt(intent, startId)
+            ACTION_SHOW_CALL_PROMPT -> {
+                if (BuildConfig.SIGURSCAN_ENABLE_LIVE_CALL) {
+                    handleCallPrompt(intent, startId)
+                } else {
+                    stopSelf(startId)
+                    START_NOT_STICKY
+                }
+            }
             ACTION_START_CAPTURE -> handleStartCapture(intent, startId)
             ACTION_STOP_CAPTURE -> {
                 stopCaptureSession()
@@ -99,7 +122,7 @@ class SpeakerGuardForegroundService : Service() {
 
         val session = SpeakerGuardSession(
             context = applicationContext,
-            semanticReviewer = BackendAudioSemanticReviewer(audioSemanticApi, channel = "call_live")
+            semanticReviewer = BackendAudioSemanticReviewer(audioSemanticApi, channel = "speaker_listener")
         )
         captureSession = session
         session.start(serviceScope, modelPath) { update ->
@@ -120,7 +143,7 @@ class SpeakerGuardForegroundService : Service() {
             "Urechea SigurScan",
             NotificationManager.IMPORTANCE_LOW
         ).apply {
-            description = "Serviciu vizibil pentru promptul Urechea în timpul apelurilor."
+            description = "Serviciu vizibil pentru ascultarea pornită explicit de utilizator."
         }
         manager.createNotificationChannel(channel)
     }
@@ -171,7 +194,7 @@ class SpeakerGuardForegroundService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle("Urechea ascultă")
-            .setContentText("Analiza rulează local. Ține apelul pe difuzor.")
+            .setContentText("Analiza rulează local. Ține acest telefon lângă difuzorul celuilalt telefon.")
             .setStyle(NotificationCompat.BigTextStyle().bigText("Analiza rulează local. Nimic audio brut nu pleacă de pe telefon."))
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
@@ -190,34 +213,14 @@ class SpeakerGuardForegroundService : Service() {
     }
 
     private fun buildAudioSemanticApi(): SigurScanApi {
-        val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.NONE
-        }
-        val client = OkHttpClient.Builder()
-            .callTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(15, TimeUnit.SECONDS)
-            .writeTimeout(15, TimeUnit.SECONDS)
-            .connectTimeout(8, TimeUnit.SECONDS)
-            .addInterceptor(ApiKeyInterceptor(rawApiKey = BuildConfig.SIGURSCAN_API_KEY))
-            .addInterceptor(logging)
-            .build()
-
-        return Retrofit.Builder()
-            .baseUrl(configuredBackendBaseUrl())
-            .client(client)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(SigurScanApi::class.java)
-    }
-
-    private fun configuredBackendBaseUrl(): String {
-        val configured = BuildConfig.SIGURSCAN_BACKEND_BASE_URL.trim()
-        val allowed = configured.takeIf {
-            it.startsWith("https://", ignoreCase = true) ||
-                (BuildConfig.DEBUG && it.startsWith("http://", ignoreCase = true))
-        }
-        return (allowed ?: "https://offline.sigurscan.invalid/")
-            .let { if (it.endsWith("/")) it else "$it/" }
+        return buildSigurScanApiClient(
+            callTimeoutSeconds = 15,
+            readTimeoutSeconds = 15,
+            writeTimeoutSeconds = 15,
+            connectTimeoutSeconds = 8,
+            clientInstanceId = clientInstanceId,
+            integrityTokenProvider = { playIntegrityTokenProvider.currentToken() }
+        )
     }
 
     companion object {
@@ -242,6 +245,7 @@ class SpeakerGuardForegroundService : Service() {
         private const val DEEP_LINK = "sigurscan://speaker-guard?autostart=1&source=call_screening"
 
         fun startForCallPrompt(context: Context, decision: RadarCallDecision) {
+            if (!BuildConfig.SIGURSCAN_ENABLE_LIVE_CALL) return
             if (!BuildConfig.SIGURSCAN_ENABLE_AUDIO_ASR) return
             if (!SpeakerGuardCallPromptPolicy.shouldOffer(decision)) return
             val intent = Intent(context, SpeakerGuardForegroundService::class.java).apply {
