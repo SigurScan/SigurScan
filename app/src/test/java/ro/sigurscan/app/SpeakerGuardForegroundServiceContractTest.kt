@@ -65,6 +65,28 @@ class SpeakerGuardForegroundServiceContractTest {
     }
 
     @Test
+    fun v1ProtectionScreenDoesNotExposeLiveCallControlsOrDisabledAudio() {
+        val protectionSource = File("src/main/java/ro/sigurscan/app/EducationScreen.kt").readText()
+
+        assertTrue(
+            "Call-screening controls in Protecție must stay behind the dedicated V2 live-call flag.",
+            Regex(
+                """if \(BuildConfig\.SIGURSCAN_ENABLE_LIVE_CALL\) \{[\s\S]*?RadarCallProtectionCard\("""
+            ).containsMatchIn(protectionSource)
+        )
+        assertTrue(
+            "The manual Urechea entry must not be actionable in builds that do not package local ASR.",
+            Regex(
+                """if \(BuildConfig\.SIGURSCAN_ENABLE_AUDIO_ASR\) \{[\s\S]*?UrecheaCardV2\("""
+            ).containsMatchIn(protectionSource)
+        )
+        assertFalse(
+            "Protecție V1 must not synthesize automatic call prompts; those remain on the gated V2 Radar path.",
+            protectionSource.contains("SpeakerGuardCallPromptPolicy")
+        )
+    }
+
+    @Test
     fun v1ListenerCopyRequiresASecondPhoneAndUsesItsOwnSemanticChannel() {
         val cardSource = File("src/main/java/ro/sigurscan/app/RadarCards.kt").readText()
         val sessionSource = File("src/main/java/ro/sigurscan/app/SpeakerGuardSession.kt").readText()

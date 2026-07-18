@@ -33,6 +33,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -92,123 +93,9 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
 
-@Composable
-internal fun BottomNavItem(
-    icon: ImageVector,
-    label: String,
-    isActive: Boolean,
-    activeColor: Color = SigurColors.Brand,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-        modifier = modifier
-            .fillMaxHeight()
-            .clickable(onClick = onClick)
-            .padding(top = 12.dp),
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = if (isActive) activeColor else SigurColors.TextMuted,
-            modifier = Modifier.size(24.dp)
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = label,
-            fontSize = 12.sp,
-            fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
-            color = if (isActive) activeColor else SigurColors.TextMuted
-        )
-    }
-}
-
-@Composable
-fun BottomNavigationBar(activeTab: String, onTabClick: (String) -> Unit) {
-    val navigationBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(80.dp + navigationBarInset)
-            .background(SigurColors.BackgroundCard)
-            .border(BorderStroke(1.dp, SigurColors.BorderSubtle))
-            .padding(bottom = navigationBarInset),
-        verticalAlignment = Alignment.Top
-    ) {
-        BottomNavItem(
-            icon = Icons.Default.Radar,
-            label = "Radar",
-            isActive = activeTab == "radar",
-            onClick = { onTabClick("radar") },
-            modifier = Modifier.weight(1f)
-        )
-        BottomNavItem(
-            icon = Icons.Default.Warning,
-            label = "Urgență",
-            isActive = activeTab == "triage",
-            activeColor = SigurColors.Dangerous,
-            onClick = { onTabClick("triage") },
-            modifier = Modifier.weight(1f)
-        )
-
-        // Central FAB — scan action, raised above the bar (DS BottomNav)
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight()
-                .clickable { onTabClick("scan") },
-            contentAlignment = Alignment.TopCenter
-        ) {
-            Box(
-                modifier = Modifier
-                    .offset(y = (-28).dp)
-                    .size(56.dp)
-                    .border(4.dp, SigurColors.Canvas, CircleShape)
-                    .clip(CircleShape)
-                    .background(
-                        brush = androidx.compose.ui.graphics.Brush.linearGradient(
-                            colors = listOf(Color(0xFF5B86FF), SigurColors.Brand, Color(0xFF3552D6))
-                        )
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.QrCodeScanner,
-                    contentDescription = "Scanează",
-                    tint = Color.White,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-            Text(
-                text = "Scanează",
-                fontSize = 12.sp,
-                fontWeight = if (activeTab == "scan") FontWeight.Bold else FontWeight.Medium,
-                color = if (activeTab == "scan") SigurColors.Brand else SigurColors.TextMuted,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 12.dp)
-            )
-        }
-
-        BottomNavItem(
-            icon = Icons.Default.School,
-            label = "Educație",
-            isActive = activeTab == "education",
-            onClick = { onTabClick("education") },
-            modifier = Modifier.weight(1f)
-        )
-        BottomNavItem(
-            icon = Icons.Default.MoreHoriz,
-            label = "Mai mult",
-            isActive = activeTab == "more",
-            onClick = { onTabClick("more") },
-            modifier = Modifier.weight(1f)
-        )
-    }
-}
+// The bottom navigation bar is now ChromeV2.BottomNavBarV2 (the canonical v2
+// component), wired up in MainActivity. The former hand-rolled BottomNavItem /
+// BottomNavigationBar were removed in favour of it.
 
 // ─────────────────────────────────────────────────────────────
 // DS shared primitives (design-system/ds-full: .ss-card, .ss-chip)

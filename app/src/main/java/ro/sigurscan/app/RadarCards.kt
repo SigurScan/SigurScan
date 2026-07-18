@@ -708,25 +708,28 @@ private fun speakerGuardTone(verdict: AudioEvidenceVerdict?): DSChipTone = when 
     null -> DSChipTone.Brand
 }
 
+// Urechea brand purple for the "listening, no verdict yet" state (v2 mockup 14).
+private val UrecheaPurple = Color(0xFF7C3AED)
+
 private fun speakerGuardAccent(verdict: AudioEvidenceVerdict?): Color = when (verdict) {
     AudioEvidenceVerdict.DANGEROUS -> SigurColors.Dangerous
     AudioEvidenceVerdict.SUSPECT -> SigurColors.Suspect
     AudioEvidenceVerdict.UNVERIFIED -> SigurColors.Pending
-    null -> SigurColors.Brand
+    null -> UrecheaPurple
 }
 
 private fun speakerGuardLight(verdict: AudioEvidenceVerdict?): Color = when (verdict) {
     AudioEvidenceVerdict.DANGEROUS -> SigurColors.DangerousLight
     AudioEvidenceVerdict.SUSPECT -> SigurColors.SuspectLight
     AudioEvidenceVerdict.UNVERIFIED -> SigurColors.PendingLight
-    null -> SigurColors.BrandTint
+    null -> UrecheaPurple.copy(alpha = 0.12f)
 }
 
 private fun speakerGuardBorder(verdict: AudioEvidenceVerdict?): Color = when (verdict) {
     AudioEvidenceVerdict.DANGEROUS -> SigurColors.DangerousBorder
     AudioEvidenceVerdict.SUSPECT -> SigurColors.SuspectBorder
     AudioEvidenceVerdict.UNVERIFIED -> SigurColors.BrandLight.copy(alpha = 0.35f)
-    null -> SigurColors.Brand.copy(alpha = 0.25f)
+    null -> UrecheaPurple.copy(alpha = 0.30f)
 }
 
 @Composable
@@ -776,7 +779,7 @@ internal fun RadarCallProtectionCard(
                 Icon(Icons.Default.Phone, contentDescription = null, tint = SigurColors.Brand, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Protecție apeluri", color = SigurColors.TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text("Verificare apeluri", color = SigurColors.TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     Text(cacheText, color = SigurColors.TextMuted, fontSize = 11.sp, lineHeight = 15.sp)
                 }
                 DSChip(if (expired) "necesită sync" else "offline ready", tone = if (expired) DSChipTone.Pending else DSChipTone.Safe)

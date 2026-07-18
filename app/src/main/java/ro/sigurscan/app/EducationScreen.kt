@@ -73,6 +73,7 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import coil.compose.SubcomposeAsyncImage
 import ro.sigurscan.app.ui.theme.SigurScanTheme
 import ro.sigurscan.app.ui.theme.SigurColors
+import ro.sigurscan.app.ui.v2.components.AppHeaderV2
 import org.json.JSONArray
 import org.json.JSONObject
 import android.webkit.WebResourceRequest
@@ -101,9 +102,7 @@ internal data class LessonContent(
     val correctIndex: Int
 )
 
-@Composable
-fun EducationTab(viewModel: ScannerViewModel) {
-    val lessons = listOf(
+private fun educationLessons(): List<LessonContent> = listOf(
         LessonContent(
             id = "lesson_phishing_sms",
             title = "Cum identifici un link din SMS",
@@ -202,14 +201,444 @@ fun EducationTab(viewModel: ScannerViewModel) {
         )
     )
 
+/** "Urechea — apel pe difuzor" card (v2 · 11): describe + toggle the speaker guard. */
+@Composable
+private fun UrecheaCardV2(active: Boolean, onToggle: (Boolean) -> Unit) {
+    val accent = Color(0xFF7C3AED)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(SigurColors.BackgroundCard)
+            .border(1.dp, SigurColors.GlassBorder, RoundedCornerShape(18.dp))
+            .padding(horizontal = 16.dp, vertical = 15.dp)
+    ) {
+        Row(verticalAlignment = Alignment.Top) {
+            Box(
+                modifier = Modifier.size(44.dp).clip(RoundedCornerShape(13.dp)).background(accent.copy(alpha = 0.14f)),
+                contentAlignment = Alignment.Center
+            ) { Icon(Icons.Default.Hearing, contentDescription = null, tint = accent, modifier = Modifier.size(23.dp)) }
+            Spacer(modifier = Modifier.width(13.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Urechea — apel pe difuzor", color = SigurColors.TextPrimary, fontSize = 15.5.sp, fontWeight = FontWeight.ExtraBold)
+                Text(
+                    "Ascultă convorbirea pusă pe difuzor și te avertizează dacă pare o țeapă.",
+                    color = SigurColors.TextMuted,
+                    fontSize = 12.5.sp,
+                    lineHeight = 17.sp,
+                    modifier = Modifier.padding(top = 3.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Switch(
+                checked = active,
+                onCheckedChange = onToggle,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = Color.White,
+                    checkedTrackColor = SigurColors.Safe,
+                    uncheckedThumbColor = Color.White,
+                    uncheckedTrackColor = Color(0xFFCBD2DD),
+                    uncheckedBorderColor = Color.Transparent
+                )
+            )
+        }
+        Row(modifier = Modifier.padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(modifier = Modifier.size(7.dp).clip(CircleShape).background(if (active) SigurColors.Safe else SigurColors.TextMuted))
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(if (active) "Activ" else "Oprit", color = if (active) SigurColors.Safe else SigurColors.TextMuted, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        }
+        Text(
+            "Pornește doar la cererea ta. Analiza se face pe telefon — nimic nu pleacă fără permisiune.",
+            color = SigurColors.TextMuted,
+            fontSize = 12.sp,
+            lineHeight = 17.sp,
+            modifier = Modifier
+                .padding(top = 9.dp)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(10.dp))
+                .background(SigurColors.BackgroundSurface)
+                .padding(horizontal = 11.dp, vertical = 9.dp)
+        )
+    }
+}
+
+/** Expandable v2 entry card — mockup-style header (icon chip + title + desc + chevron
+ *  + optional status dot) that reveals the real controls on tap. */
+@Composable
+private fun ExpandableEntryCardV2(
+    icon: ImageVector,
+    accent: Color,
+    title: String,
+    desc: String,
+    statusLabel: String?,
+    statusColor: Color,
+    content: @Composable () -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(SigurColors.BackgroundCard)
+            .border(1.dp, SigurColors.GlassBorder, RoundedCornerShape(18.dp))
+            .clickable { expanded = !expanded }
+            .padding(horizontal = 16.dp, vertical = 15.dp)
+    ) {
+        Row(verticalAlignment = Alignment.Top) {
+            Box(
+                modifier = Modifier.size(44.dp).clip(RoundedCornerShape(13.dp)).background(accent.copy(alpha = 0.14f)),
+                contentAlignment = Alignment.Center
+            ) { Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(23.dp)) }
+            Spacer(modifier = Modifier.width(13.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, color = SigurColors.TextPrimary, fontSize = 15.5.sp, fontWeight = FontWeight.ExtraBold)
+                Text(desc, color = SigurColors.TextMuted, fontSize = 12.5.sp, lineHeight = 17.sp, modifier = Modifier.padding(top = 3.dp))
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Icon(
+                if (expanded) Icons.Default.ExpandLess else Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = SigurColors.TextMuted,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+        if (statusLabel != null) {
+            Row(modifier = Modifier.padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(modifier = Modifier.size(7.dp).clip(CircleShape).background(statusColor))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(statusLabel, color = statusColor, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+        if (expanded) {
+            Spacer(modifier = Modifier.height(14.dp))
+            content()
+        }
+    }
+}
+
+/** "Cercul de siguranță" — v2 entry card wrapping the Circle pairing/ping controls. */
+@Composable
+private fun CircleSafetyCard(
+    members: List<FamilyMember>,
+    selectedMember: FamilyMember?,
+    onSelectedMember: (FamilyMember) -> Unit,
+    snapshot: CircleProtectionSnapshot,
+    circleLoading: Boolean,
+    circleStatus: String?,
+    onPair: () -> Unit,
+    onPing: () -> Unit,
+    onResolve: (String) -> Unit,
+    onRevoke: () -> Unit
+) {
+    val activeLink = snapshot.link?.active == true
+    val ping = snapshot.ping
+    var memberMenuExpanded by remember { mutableStateOf(false) }
+    ExpandableEntryCardV2(
+        icon = Icons.Default.Group,
+        accent = SigurColors.Brand,
+        title = "Cercul de siguranță",
+        desc = "Întreabă rapid o persoană de încredere: „chestia asta e reală?”.",
+        statusLabel = if (activeLink) "Activ pe acest telefon" else "${members.size} persoane de încredere",
+        statusColor = if (activeLink) SigurColors.Safe else SigurColors.TextMuted
+    ) {
+        if (members.isEmpty()) {
+            Text(
+                "Adaugă întâi o persoană de încredere în Mai mult › Securitate și Familie.",
+                color = SigurColors.TextSecondary, fontSize = 12.sp, lineHeight = 16.sp
+            )
+        } else {
+            Box {
+                Button(
+                    onClick = { memberMenuExpanded = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = SigurColors.BackgroundSurface),
+                    border = BorderStroke(1.dp, SigurColors.GlassBorder),
+                    shape = DSPillShape
+                ) {
+                    Icon(Icons.Default.Person, contentDescription = null, tint = SigurColors.TextPrimary, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(selectedMember?.name ?: "Alege persoana", color = SigurColors.TextPrimary, fontSize = 12.sp)
+                }
+                DropdownMenu(expanded = memberMenuExpanded, onDismissRequest = { memberMenuExpanded = false }) {
+                    members.forEach { member ->
+                        DropdownMenuItem(
+                            text = { Column { Text(member.name); Text(member.contact, fontSize = 11.sp, color = SigurColors.TextMuted) } },
+                            onClick = { onSelectedMember(member); memberMenuExpanded = false }
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = onPair, enabled = !circleLoading && selectedMember != null, modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(containerColor = SigurColors.BrandTint), border = BorderStroke(1.dp, SigurColors.Brand), shape = DSPillShape
+                ) {
+                    Icon(Icons.Default.Link, contentDescription = null, tint = SigurColors.Brand, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(6.dp)); Text(if (circleLoading) "..." else "Leagă", color = SigurColors.Brand, fontSize = 11.sp)
+                }
+                Button(
+                    onClick = onPing, enabled = !circleLoading && activeLink, modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(containerColor = SigurColors.SafeLight), border = BorderStroke(1.dp, SigurColors.SafeBorder), shape = DSPillShape
+                ) {
+                    Icon(Icons.Default.Send, contentDescription = null, tint = SigurColors.Safe, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(6.dp)); Text("Ping", color = SigurColors.Safe, fontSize = 11.sp)
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                Button(onClick = { onResolve("its_me") }, enabled = !circleLoading && ping != null, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = SigurColors.SafeLight), border = BorderStroke(1.dp, SigurColors.SafeBorder), shape = DSPillShape) { Text("Confirmă", color = SigurColors.Safe, fontSize = 11.sp) }
+                Button(onClick = { onResolve("not_me") }, enabled = !circleLoading && ping != null, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = SigurColors.DangerousLight), border = BorderStroke(1.dp, SigurColors.DangerousBorder), shape = DSPillShape) { Text("Respinge", color = SigurColors.Dangerous, fontSize = 11.sp) }
+                Button(onClick = { onResolve("timeout") }, enabled = !circleLoading && ping != null, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = SigurColors.SuspectLight), border = BorderStroke(1.dp, SigurColors.SuspectBorder), shape = DSPillShape) { Text("Timeout", color = SigurColors.Suspect, fontSize = 11.sp) }
+            }
+            circleStatus?.takeIf { it.isNotBlank() }?.let {
+                Spacer(modifier = Modifier.height(8.dp)); Text(it, color = SigurColors.TextSecondary, fontSize = 11.sp, lineHeight = 15.sp)
+            }
+            if (activeLink) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(onClick = onRevoke, enabled = !circleLoading, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = SigurColors.BackgroundSurface), border = BorderStroke(1.dp, SigurColors.GlassBorder), shape = DSPillShape) {
+                    Icon(Icons.Default.Delete, contentDescription = null, tint = SigurColors.TextMuted, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(6.dp)); Text("Revocă legătura", color = SigurColors.TextPrimary, fontSize = 11.sp)
+                }
+            }
+        }
+    }
+}
+
+/** "A doua opinie" — v2 entry card wrapping the Guardian second-opinion controls. */
+@Composable
+private fun SecondOpinionCard(
+    selectedMember: FamilyMember?,
+    hasAssessment: Boolean,
+    guardianLoading: Boolean,
+    guardianStatus: String?,
+    onGuardian: (String, Boolean) -> Unit
+) {
+    var guardianShareLevel by remember { mutableStateOf("metadata_only") }
+    var fullConsent by remember { mutableStateOf(false) }
+    ExpandableEntryCardV2(
+        icon = Icons.Default.Forum,
+        accent = SigurColors.Pending,
+        title = "A doua opinie",
+        desc = "Trimite un caz neclar și primești o verificare umană suplimentară.",
+        statusLabel = null,
+        statusColor = SigurColors.TextMuted
+    ) {
+        Text(
+            if (hasAssessment) "Trimite doar rezumat redactat al scanării curente." else "Poți cere o opinie metadata-only chiar fără scanare curentă.",
+            color = SigurColors.TextSecondary, fontSize = 12.sp, lineHeight = 16.sp
+        )
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 6.dp)) {
+            Checkbox(checked = guardianShareLevel == "redacted_excerpt", onCheckedChange = { checked -> guardianShareLevel = if (checked) "redacted_excerpt" else "metadata_only" })
+            Text("Include extras redactat", color = SigurColors.TextSecondary, fontSize = 12.sp)
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(checked = fullConsent, onCheckedChange = { fullConsent = it })
+            Text("Consimțământ explicit pentru full_with_consent", color = SigurColors.TextSecondary, fontSize = 12.sp)
+        }
+        guardianStatus?.takeIf { it.isNotBlank() }?.let {
+            Spacer(modifier = Modifier.height(8.dp)); Text(it, color = SigurColors.TextSecondary, fontSize = 11.sp, lineHeight = 15.sp)
+        }
+        Spacer(modifier = Modifier.height(10.dp))
+        Button(
+            onClick = { onGuardian(if (fullConsent) "full_with_consent" else guardianShareLevel, fullConsent) },
+            enabled = !guardianLoading && selectedMember != null,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(containerColor = SigurColors.SafeLight),
+            border = BorderStroke(1.dp, SigurColors.SafeBorder),
+            shape = DSPillShape
+        ) {
+            Icon(Icons.Default.PrivacyTip, contentDescription = null, tint = SigurColors.Safe, modifier = Modifier.size(14.dp))
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(if (guardianLoading) "..." else "Cere opinie", color = SigurColors.Safe, fontSize = 12.sp)
+        }
+        if (selectedMember == null) {
+            Spacer(modifier = Modifier.height(6.dp))
+            Text("Alege întâi o persoană în „Cercul de siguranță”.", color = SigurColors.TextMuted, fontSize = 11.sp)
+        }
+    }
+}
+
+@Composable
+fun EducationTab(viewModel: ScannerViewModel) {
+    val context = LocalContext.current
+    var hasMicrophonePermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+    var hasCallPromptNotificationPermission by remember {
+        mutableStateOf(
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+    val microphonePermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        hasMicrophonePermission = granted
+        viewModel.refreshAudioReadiness()
+        if (granted) {
+            viewModel.startSpeakerGuard()
+        } else {
+            viewModel.audioReadinessStatus = "Permisiunea microfonului este necesară pentru Urechea."
+        }
+    }
+    val callPromptNotificationPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        hasCallPromptNotificationPermission = granted
+        viewModel.radarHotCacheStatus = if (granted) {
+            "Alerta Urechea poate apărea când Radar semnalează un apel."
+        } else {
+            "Fără notificări, deschide manual Urechea din Radar în timpul apelului."
+        }
+    }
+    var selectedCircleMemberId by remember { mutableStateOf<String?>(null) }
+    val selectedCircleMember = remember(viewModel.familyMembers.toList(), selectedCircleMemberId) {
+        viewModel.familyMembers.firstOrNull { it.id == selectedCircleMemberId }
+            ?: viewModel.familyMembers.firstOrNull { it.isProtected }
+            ?: viewModel.familyMembers.firstOrNull()
+    }
+    val protectionHero = androidx.compose.ui.graphics.Brush.linearGradient(
+        colors = listOf(Color(0xFF14BE86), SigurColors.Brand, Color(0xFF06875A))
+    )
+
+    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 120.dp)) {
+        AppHeaderV2()
+
+        // Green hero — "Protecție continuă" (v2 · 11 · Protecție)
+        Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(protectionHero).padding(18.dp)) {
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = Color.White, modifier = Modifier.size(22.dp))
+                    Spacer(modifier = Modifier.width(9.dp))
+                    Text("Protecție continuă", color = Color.White, fontSize = 19.sp, fontWeight = FontWeight.ExtraBold)
+                }
+                Text(
+                    "Te apără și între scanări — la apeluri și când ai nevoie de o confirmare rapidă.",
+                    color = Color.White.copy(alpha = 0.9f),
+                    fontSize = 13.5.sp,
+                    lineHeight = 19.sp,
+                    modifier = Modifier.padding(top = 6.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        if (BuildConfig.SIGURSCAN_ENABLE_LIVE_CALL) {
+            RadarCallProtectionCard(
+                cache = viewModel.radarHotCache,
+                audit = viewModel.radarScreeningAudit,
+                loading = viewModel.radarHotCacheLoading,
+                status = viewModel.radarHotCacheStatus,
+                hasCallPromptNotificationPermission = hasCallPromptNotificationPermission,
+                reportPhoneInput = viewModel.radarReportPhoneInput,
+                reportPhoneLoading = viewModel.radarReportPhoneLoading,
+                reportPhoneStatus = viewModel.radarReportPhoneStatus,
+                onSync = { viewModel.syncRadarHotCache() },
+                onRefreshAudit = { viewModel.refreshRadarScreeningAudit() },
+                onEnableRole = { requestCallScreeningRole(context) },
+                onEnableCallPromptNotification = {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        callPromptNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    } else {
+                        hasCallPromptNotificationPermission = true
+                    }
+                },
+                onReportPhoneInputChange = { viewModel.radarReportPhoneInput = it },
+                onReportPhone = { viewModel.reportRadarPhoneNumber() }
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        // Urechea — apel pe difuzor (v2 · 11): always-visible entry card wired to
+        // the real speaker guard. Deep on-device ASR still needs the audio build flag.
+        if (BuildConfig.SIGURSCAN_ENABLE_AUDIO_ASR) {
+            UrecheaCardV2(
+                active = viewModel.speakerGuardSnapshot.active,
+                onToggle = { turnOn ->
+                    if (turnOn) {
+                        viewModel.acceptSpeakerGuardConsent()
+                        if (!hasMicrophonePermission) {
+                            microphonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                        } else {
+                            viewModel.startSpeakerGuard()
+                        }
+                    } else {
+                        viewModel.stopSpeakerGuard()
+                    }
+                }
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        // The detailed Urechea listening/verdict block only appears once listening is
+        // active — the always-visible UrecheaCardV2 above is the entry card, so we don't
+        // show two Urechea cards at rest. (Outer flag gate kept intact so the ASR surface
+        // stays hidden entirely when the audio build flag is off.)
+        if (BuildConfig.SIGURSCAN_ENABLE_AUDIO_ASR) {
+          if (viewModel.speakerGuardSnapshot.active) {
+            val startSpeakerGuardWithConsent = {
+                viewModel.acceptSpeakerGuardConsent()
+                if (!hasMicrophonePermission) {
+                    microphonePermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                } else {
+                    viewModel.startSpeakerGuard()
+                }
+            }
+            AudioAsrReadinessCard(
+                snapshot = viewModel.audioReadiness,
+                status = viewModel.audioReadinessStatus,
+                evidenceResult = viewModel.audioEvidenceResult,
+                hasAssessment = viewModel.assessment != null,
+                onConsentChanged = { viewModel.setAudioConsent(it) },
+                onDisclosureChanged = { viewModel.setAudioPrivacyDisclosureAccepted(it) },
+                onRefresh = { viewModel.refreshAudioReadiness() },
+                onAnalyzeTranscript = { viewModel.analyzeCurrentTextAsAudioTranscript() },
+                speakerGuard = viewModel.speakerGuardSnapshot,
+                callPrompt = null,
+                hasMicrophonePermission = hasMicrophonePermission,
+                onStartSpeakerGuard = startSpeakerGuardWithConsent,
+                onStopSpeakerGuard = { viewModel.stopSpeakerGuard() }
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+          }
+        }
+
+        CircleSafetyCard(
+            members = viewModel.familyMembers,
+            selectedMember = selectedCircleMember,
+            onSelectedMember = { selectedCircleMemberId = it.id },
+            snapshot = viewModel.circleSnapshot,
+            circleLoading = viewModel.circleLoading,
+            circleStatus = viewModel.circleStatus,
+            onPair = { viewModel.createCirclePair(selectedCircleMember) },
+            onPing = { viewModel.createCirclePing() },
+            onResolve = { viewModel.resolveCirclePing(it) },
+            onRevoke = { viewModel.revokeCirclePair() }
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+
+        SecondOpinionCard(
+            selectedMember = selectedCircleMember,
+            hasAssessment = viewModel.assessment != null,
+            guardianLoading = viewModel.guardianLoading,
+            guardianStatus = viewModel.guardianStatus,
+            onGuardian = { shareLevel, consent ->
+                viewModel.requestGuardianSecondOpinion(selectedCircleMember, shareLevel, consent)
+            }
+        )
+    }
+}
+
+/** Anti-fraud micro-lessons + quiz — its own section, shown under the "Mai mult" tab. */
+@Composable
+fun LessonsSection(viewModel: ScannerViewModel) {
+    val lessons = educationLessons()
     var selectedLesson by remember { mutableStateOf(lessons.first()) }
 
-    Column(modifier = Modifier.fillMaxSize().padding(20.dp).verticalScroll(rememberScrollState())) {
-        Text("Educație", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = SigurColors.TextPrimary)
-        Spacer(modifier = Modifier.height(8.dp))
-        Text("Alege o lecție, vezi regula și apoi verifici cu un mini test.", color = SigurColors.TextSecondary, fontSize = 12.sp)
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text("Alege o lecție, vezi regula și apoi verifici cu un mini test.", color = SigurColors.TextSecondary, fontSize = 12.sp, modifier = Modifier.padding(start = 4.dp))
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         lessons.forEach { lesson ->
             val isSelected = selectedLesson.id == lesson.id

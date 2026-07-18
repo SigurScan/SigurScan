@@ -73,6 +73,7 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import coil.compose.SubcomposeAsyncImage
 import ro.sigurscan.app.ui.theme.SigurScanTheme
 import ro.sigurscan.app.ui.theme.SigurColors
+import ro.sigurscan.app.ui.v2.components.AppHeaderV2
 import org.json.JSONArray
 import org.json.JSONObject
 import android.webkit.WebResourceRequest
@@ -92,6 +93,11 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
 
+/**
+ * Radar — the "what's circulating now" scam feed (v2 · 10 · Radar):
+ * green hero, live scam map, active-campaign feed (real viewModel.campaigns),
+ * verified-brands entry. Protection controls live under the Protecție tab.
+ */
 @Composable
 fun RadarTab(viewModel: ScannerViewModel) {
     val context = LocalContext.current
@@ -134,25 +140,53 @@ fun RadarTab(viewModel: ScannerViewModel) {
             "Fără notificări, deschide manual Urechea din Radar în timpul apelului."
         }
     }
-    val locatedCampaigns = remember(viewModel.campaigns) {
-        viewModel.campaigns.count { it.lat != null && it.lon != null }
-    }
     var selectedCampaign by remember { mutableStateOf<ScamCampaign?>(null) }
-    val onMapCampaignSelected: (ScamCampaign?) -> Unit = { selectedCampaign = it }
-
-    val campaignPins = remember(viewModel.campaigns) {
+    val campaignPins = remember(viewModel.campaigns.toList()) {
         viewModel.campaigns.filter { it.lat != null && it.lon != null }
     }
-    var selectedCircleMemberId by remember { mutableStateOf<String?>(null) }
-    val selectedCircleMember = remember(viewModel.familyMembers.toList(), selectedCircleMemberId) {
-        viewModel.familyMembers.firstOrNull { it.id == selectedCircleMemberId }
-            ?: viewModel.familyMembers.firstOrNull { it.isProtected }
-            ?: viewModel.familyMembers.firstOrNull()
-    }
+    val heroGradient = androidx.compose.ui.graphics.Brush.linearGradient(
+        colors = listOf(Color(0xFF14BE86), SigurColors.Brand, Color(0xFF06875A))
+    )
 
-    Column(modifier = Modifier.fillMaxSize().padding(20.dp).verticalScroll(rememberScrollState())) {
-        Text("Radar Scam", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = SigurColors.TextPrimary)
-        Spacer(modifier = Modifier.height(16.dp))
+    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 120.dp)) {
+        AppHeaderV2()
+
+        // Green hero — "Ce circulă acum în România"
+        Box(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(heroGradient).padding(18.dp)) {
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Radar, contentDescription = null, tint = Color.White, modifier = Modifier.size(22.dp))
+                    Spacer(modifier = Modifier.width(9.dp))
+                    Text("Ce circulă acum în România", color = Color.White, fontSize = 18.5.sp, fontWeight = FontWeight.ExtraBold)
+                }
+                Text(
+                    "Înșelăciunile semnalate în ultimele zile, ca să le recunoști înainte să te prindă.",
+                    color = Color.White.copy(alpha = 0.9f),
+                    fontSize = 13.5.sp,
+                    lineHeight = 19.sp,
+                    modifier = Modifier.padding(top = 6.dp)
+                )
+                Row(
+                    modifier = Modifier
+                        .padding(top = 12.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(Color.White.copy(alpha = 0.18f))
+                        .padding(horizontal = 11.dp, vertical = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.Sync, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        if (viewModel.campaignsLoading) "Se actualizează…" else "Actualizat acum",
+                        color = Color.White,
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
 
         if (BuildConfig.SIGURSCAN_ENABLE_LIVE_CALL) {
             RadarCallProtectionCard(
@@ -177,7 +211,7 @@ fun RadarTab(viewModel: ScannerViewModel) {
                 onReportPhoneInputChange = { viewModel.radarReportPhoneInput = it },
                 onReportPhone = { viewModel.reportRadarPhoneNumber() }
             )
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
         }
 
         if (BuildConfig.SIGURSCAN_ENABLE_AUDIO_ASR) {
@@ -219,93 +253,61 @@ fun RadarTab(viewModel: ScannerViewModel) {
                 onStartSpeakerGuard = startSpeakerGuardWithConsent,
                 onStopSpeakerGuard = { viewModel.stopSpeakerGuard() }
             )
-            Spacer(modifier = Modifier.height(16.dp))
-        }
-
-        BtrOnDeviceCard(
-            snapshot = viewModel.btrSyncSnapshot,
-            verdict = viewModel.inboxProvenanceVerdict,
-            loading = viewModel.btrSyncLoading,
-            status = viewModel.btrSyncStatus,
-            provenanceStatus = viewModel.inboxProvenanceStatus,
-            onSync = { viewModel.syncBtrManifests() },
-            onLocalCheck = { viewModel.runLocalInboxProvenanceCheck() }
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-
-        CircleGuardianCard(
-            members = viewModel.familyMembers,
-            selectedMember = selectedCircleMember,
-            onSelectedMember = { selectedCircleMemberId = it.id },
-            snapshot = viewModel.circleSnapshot,
-            circleLoading = viewModel.circleLoading,
-            circleStatus = viewModel.circleStatus,
-            guardianLoading = viewModel.guardianLoading,
-            guardianStatus = viewModel.guardianStatus,
-            hasAssessment = viewModel.assessment != null,
-            onPair = { viewModel.createCirclePair(selectedCircleMember) },
-            onPing = { viewModel.createCirclePing() },
-            onResolve = { viewModel.resolveCirclePing(it) },
-            onRevoke = { viewModel.revokeCirclePair() },
-            onGuardian = { shareLevel, consent ->
-                viewModel.requestGuardianSecondOpinion(selectedCircleMember, shareLevel, consent)
-            }
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-
-        viewModel.liveCampaignEvent?.let { liveCampaignEvent ->
-            ActiveCampaignBanner(liveCampaignEvent) {
-                viewModel.clearLiveCampaignEvent()
-            }
             Spacer(modifier = Modifier.height(12.dp))
         }
 
-        viewModel.activeCampaignAlert?.let { activeCampaignAlert ->
-            Card(
-                colors = CardDefaults.cardColors(containerColor = SigurColors.DangerousLight),
-                border = BorderStroke(1.dp, SigurColors.DangerousBorder),
-                shape = DSCardShape
-            ) {
-                Text(
-                    text = activeCampaignAlert,
-                    color = SigurColors.Dangerous,
-                    fontSize = 12.sp,
-                    modifier = Modifier.padding(10.dp)
-                )
-            }
-            Spacer(modifier = Modifier.height(16.dp))
+        // Live scam map (real pins)
+        if (campaignPins.isNotEmpty()) {
+            RadarMapCard(campaigns = campaignPins, onCampaignSelected = { selectedCampaign = it })
+            Spacer(modifier = Modifier.height(4.dp))
+            Text("Harta înșelăciunilor · azi", color = SigurColors.TextMuted, fontSize = 11.sp, modifier = Modifier.padding(start = 4.dp))
+            Spacer(modifier = Modifier.height(14.dp))
         }
 
-        if (locatedCampaigns > 0) {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = SigurColors.BrandTint),
-                border = BorderStroke(1.dp, SigurColors.Brand.copy(alpha = 0.20f)),
-                shape = DSCardShape
-            ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Place, contentDescription = null, tint = SigurColors.Brand)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Radar Geographic", color = SigurColors.TextPrimary, fontWeight = FontWeight.Bold)
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("Am mapat $locatedCampaigns campanii pe hartă. Atinge un marker pentru detalii.", color = SigurColors.TextSecondary, fontSize = 12.sp)
-                }
+        // Campanii active — real feed
+        Text("Campanii active", color = SigurColors.TextPrimary, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(start = 4.dp))
+        Spacer(modifier = Modifier.height(10.dp))
+
+        if (viewModel.campaignsLoading && viewModel.campaigns.isEmpty()) {
+            Box(modifier = Modifier.fillMaxWidth().height(72.dp), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = SigurColors.Brand)
             }
-            Spacer(modifier = Modifier.height(16.dp))
-    RadarMapCard(
-                campaigns = campaignPins,
-                onCampaignSelected = onMapCampaignSelected
-            )
-            Spacer(modifier = Modifier.height(16.dp))
+        } else if (viewModel.campaigns.isEmpty()) {
+            Text("Nicio campanie majoră semnalată acum.", color = SigurColors.TextMuted, fontSize = 13.sp, modifier = Modifier.padding(start = 4.dp, bottom = 4.dp))
+        } else {
+            viewModel.campaigns.forEach { campaign ->
+                CampaignRowV2(campaign = campaign, onClick = { selectedCampaign = campaign })
+                Spacer(modifier = Modifier.height(10.dp))
+            }
         }
 
-        ActiveCampaignsSection(viewModel.campaigns, viewModel.campaignsLoading)
-        Spacer(modifier = Modifier.height(8.dp))
-        TextButton(
-            onClick = { viewModel.loadCampaigns() },
-            modifier = Modifier.align(Alignment.CenterHorizontally)
+        Spacer(modifier = Modifier.height(2.dp))
+
+        // Branduri verificate
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(SigurColors.BackgroundCard)
+                .border(1.dp, SigurColors.GlassBorder, RoundedCornerShape(16.dp))
+                .clickable { viewModel.loadCampaigns() }
+                .padding(horizontal = 15.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            Box(
+                modifier = Modifier.size(42.dp).clip(RoundedCornerShape(12.dp)).background(SigurColors.Brand.copy(alpha = 0.14f)),
+                contentAlignment = Alignment.Center
+            ) { Icon(Icons.Default.Verified, contentDescription = null, tint = SigurColors.Brand, modifier = Modifier.size(21.dp)) }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Branduri verificate", color = SigurColors.TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
+                Text("Domeniile și IBAN-urile oficiale ale firmelor cunoscute, ca să le deosebești de imitații.", color = SigurColors.TextMuted, fontSize = 12.sp, lineHeight = 17.sp)
+            }
+            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = SigurColors.TextMuted, modifier = Modifier.size(22.dp))
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+        TextButton(onClick = { viewModel.loadCampaigns() }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
             Icon(Icons.Default.Refresh, contentDescription = null, tint = SigurColors.Brand, modifier = Modifier.size(16.dp))
             Spacer(modifier = Modifier.width(8.dp))
             Text("Reîncarcă campanii", color = SigurColors.Brand)
@@ -314,13 +316,65 @@ fun RadarTab(viewModel: ScannerViewModel) {
         selectedCampaign?.let { campaign ->
             Spacer(modifier = Modifier.height(12.dp))
             CampaignBottomCard(campaign = campaign) {
-                openCampaignOnMap(
-                    context,
-                    campaign.lat,
-                    campaign.lon,
-                    campaign.title
-                )
+                openCampaignOnMap(context, campaign.lat, campaign.lon, campaign.title)
             }
+        }
+    }
+}
+
+/** One active-campaign card — icon chip + title + severity badge + description (v2). */
+@Composable
+private fun CampaignRowV2(campaign: ScamCampaign, onClick: () -> Unit) {
+    val accent = when (campaign.risk.lowercase()) {
+        "high", "critical", "dangerous", "danger", "red" -> Color(0xFFE5392B)
+        "medium", "suspect", "warn", "warning", "yellow", "orange" -> Color(0xFFF2900B)
+        else -> Color(0xFF2563EB)
+    }
+    val badgeLabel = campaign.status?.takeIf { it.isNotBlank() } ?: when (campaign.risk.lowercase()) {
+        "high", "critical", "dangerous", "danger", "red" -> "În creștere"
+        "medium", "suspect", "warn", "warning", "yellow", "orange" -> "Activ"
+        else -> "De urmărit"
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(SigurColors.BackgroundCard)
+            .border(1.dp, SigurColors.GlassBorder, RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 15.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        Box(
+            modifier = Modifier.size(42.dp).clip(RoundedCornerShape(12.dp)).background(accent.copy(alpha = 0.14f)),
+            contentAlignment = Alignment.Center
+        ) { Icon(Icons.Default.Campaign, contentDescription = null, tint = accent, modifier = Modifier.size(21.dp)) }
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    campaign.title,
+                    color = SigurColors.TextPrimary,
+                    fontSize = 14.5.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    modifier = Modifier.weight(1f, fill = false),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Box(
+                    modifier = Modifier.clip(RoundedCornerShape(999.dp)).background(accent.copy(alpha = 0.15f)).padding(horizontal = 9.dp, vertical = 3.dp)
+                ) { Text(badgeLabel, color = accent, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold) }
+            }
+            Text(
+                campaign.description,
+                color = SigurColors.TextMuted,
+                fontSize = 12.5.sp,
+                lineHeight = 17.sp,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = 4.dp)
+            )
         }
     }
 }

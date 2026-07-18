@@ -723,6 +723,34 @@ class ScannerViewModelTest {
         assertTrue("Internal Cloud Run screenshot URLs must refresh.", helperFlow.contains("\".run.app/\""))
     }
 
+    /**
+     * A cached URL scan that never got its screenshot must not stay frozen on
+     * "Se generează…" forever. It must be re-fetched while the preview is still
+     * generating (even when finalUrl is null but a redirect target exists), yet
+     * must NOT re-scan a page whose preview is conclusively unavailable, and must
+     * leave text-only scans (nothing to screenshot) alone.
+     */
+    @Test
+    fun cachedPreviewRefreshHealsScreenshotlessGeneratingPreviews() {
+        fun asmt(finalUrl: String?, redirect: List<String>, shot: String?, info: String?) =
+            OfflineAssessment(
+                family = "url", riskScore = 0, riskLevel = "safe",
+                reasons = emptyList(), safeActions = emptyList(), keyDangers = emptyList(),
+                finalUrl = finalUrl, redirectChain = redirect, screenshotUrl = shot, serverInfo = info
+            )
+        val generating = "Preview-ul securizat se generează."
+        // URL scan, still generating, no screenshot → refresh (the stuck-cache bug).
+        assertTrue(cachedPreviewNeedsRefresh(asmt("https://emag.ro", emptyList(), null, generating)))
+        // finalUrl null but redirect present → previously returned false (the bug); now refresh.
+        assertTrue(cachedPreviewNeedsRefresh(asmt(null, listOf("https://emag.ro"), null, generating)))
+        // Preview conclusively unavailable → must NOT re-scan forever.
+        assertFalse(cachedPreviewNeedsRefresh(asmt("https://x.ro", emptyList(), null, "Preview-ul securizat nu este disponibil momentan.")))
+        // Text-only scan (nothing to screenshot) → no refresh.
+        assertFalse(cachedPreviewNeedsRefresh(asmt(null, emptyList(), null, "Scanarea completă a fost finalizată.")))
+        // Healthy https screenshot → no refresh.
+        assertFalse(cachedPreviewNeedsRefresh(asmt("https://x.ro", emptyList(), "https://api.sigurscan.com/v1/sandbox/urlscan/abc/screenshot", "ok")))
+    }
+
     @Test
     fun cachedResultUiClearlyOffersRescanWithoutChangingVerdictCopy() {
         val activitySource = uiPackageSource()
@@ -732,11 +760,12 @@ class ScannerViewModelTest {
         )
         assertTrue(
             "Cached results must show a clear rescan action for a fresh provider run.",
-            activitySource.contains("Text(\"Rescanează acum\"")
+            activitySource.contains("label = \"Rescanează acum\"")
         )
         assertTrue(
             "Cached results must be labelled as previously verified, not as a new live scan.",
-            activitySource.contains("if (assessment.cacheStatus != null) \"Verificat anterior\" else null")
+            activitySource.contains("if (assessment.cacheStatus != null) {") &&
+                activitySource.contains("Verificat anterior")
         )
     }
 
@@ -1508,18 +1537,16 @@ class ScannerViewModelTest {
     @Test
     fun bottomNavigationKeepsTabsAboveSystemGestureArea() {
         val activitySource = uiPackageSource()
-        val bottomNavStart = activitySource.indexOf("fun BottomNavigationBar(activeTab: String, onTabClick: (String) -> Unit)")
-        val bottomNavEnd = activitySource.indexOf("// ─────────────────────────────────────────────────────────────", bottomNavStart)
-        assertTrue("BottomNavigationBar must exist.", bottomNavStart >= 0 && bottomNavEnd > bottomNavStart)
+        val bottomNavStart = activitySource.indexOf("fun BottomNavBarV2(")
+        assertTrue("BottomNavBarV2 must exist.", bottomNavStart >= 0)
+        val bottomNavEnd = activitySource.indexOf("private fun NavTabV2(", bottomNavStart)
+        assertTrue("BottomNavBarV2 body must be bounded.", bottomNavEnd > bottomNavStart)
 
         val bottomNavSource = activitySource.substring(bottomNavStart, bottomNavEnd)
         assertTrue(
-            "Bottom navigation must reserve navigation bar inset on gesture-navigation phones and keep the central scan slot tappable beyond the icon itself.",
-            bottomNavSource.contains("WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()") &&
-                bottomNavSource.contains(".height(80.dp + navigationBarInset)") &&
-                bottomNavSource.contains(".padding(bottom = navigationBarInset)") &&
-                bottomNavSource.contains(".fillMaxHeight()") &&
-                bottomNavSource.contains(".clickable { onTabClick(\"scan\") }")
+            "Bottom navigation must reserve the navigation bar inset on gesture-navigation phones and keep the central scan action tappable.",
+            bottomNavSource.contains(".navigationBarsPadding()") &&
+                bottomNavSource.contains("onSelect(BottomNavTabV2.SCANEAZA)")
         )
     }
 
