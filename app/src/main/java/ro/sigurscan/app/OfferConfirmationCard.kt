@@ -128,7 +128,7 @@ fun OfferConfirmationCard(
                         .size(48.dp)
                         .background(
                             brush = androidx.compose.ui.graphics.Brush.linearGradient(
-                                colors = listOf(Color(0xFF5B86FF), SigurColors.Brand, Color(0xFF3552D6))
+                                colors = listOf(Color(0xFF14BE86), SigurColors.Brand, Color(0xFF06875A))
                             ),
                             shape = RoundedCornerShape(16.dp)
                         ),
@@ -436,7 +436,7 @@ internal fun InvoiceFieldRow(label: String, value: String, valueTone: DSChipTone
             Text(
                 value,
                 fontSize = 13.sp,
-                fontWeight = FontWeight.Medium,
+                fontFamily = ro.sigurscan.app.ui.v2.theme.JetBrainsMonoV2,
                 color = SigurColors.TextPrimary,
                 textAlign = TextAlign.End,
                 lineHeight = 18.sp,

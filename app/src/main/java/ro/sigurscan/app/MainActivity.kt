@@ -73,6 +73,8 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import coil.compose.SubcomposeAsyncImage
 import ro.sigurscan.app.ui.theme.SigurScanTheme
 import ro.sigurscan.app.ui.theme.SigurColors
+import ro.sigurscan.app.ui.v2.components.BottomNavBarV2
+import ro.sigurscan.app.ui.v2.components.BottomNavTabV2
 import org.json.JSONArray
 import org.json.JSONObject
 import android.webkit.WebResourceRequest
@@ -213,12 +215,16 @@ fun MainScreen(viewModel: ScannerViewModel) {
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = SigurColors.Canvas,
-        bottomBar = {
-            BottomNavigationBar(viewModel.currentTab) { viewModel.currentTab = it }
-        }
+        containerColor = SigurColors.Canvas
     ) { innerPadding ->
-        Box(modifier = Modifier.padding(innerPadding)) {
+        // Nav bar floats as an overlay so tab content scrolls UNDER it and stays
+        // visible around the pill (matches v2). Content gets only the top inset;
+        // bottom clearance for the floating pill is added inside each tab's scroll.
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = innerPadding.calculateTopPadding())
+        ) {
             when (viewModel.currentTab) {
                 "scan" -> ScanTab(
                     viewModel, 
@@ -251,6 +257,28 @@ fun MainScreen(viewModel: ScannerViewModel) {
                     onScanOffer = { offerPickerLauncher.launch(arrayOf("image/*", "application/pdf", "text/*", "text/html", "message/rfc822")) }
                 )
             }
+
+            // v2 nav bar (ChromeV2.BottomNavBarV2) mapped onto the app's string tab keys.
+            val selectedNavTab = when (viewModel.currentTab) {
+                "radar" -> BottomNavTabV2.RADAR
+                "education" -> BottomNavTabV2.PROTECTIE
+                "triage" -> BottomNavTabV2.URGENTA
+                "more" -> BottomNavTabV2.MAI_MULT
+                else -> BottomNavTabV2.SCANEAZA
+            }
+            BottomNavBarV2(
+                selected = selectedNavTab,
+                onSelect = { tab ->
+                    viewModel.currentTab = when (tab) {
+                        BottomNavTabV2.RADAR -> "radar"
+                        BottomNavTabV2.PROTECTIE -> "education"
+                        BottomNavTabV2.SCANEAZA -> "scan"
+                        BottomNavTabV2.URGENTA -> "triage"
+                        BottomNavTabV2.MAI_MULT -> "more"
+                    }
+                },
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
 
             if (showQrScanner) {
                 hasQrCameraPermission =

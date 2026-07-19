@@ -61,6 +61,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
@@ -264,58 +265,101 @@ fun RedirectChainSection(chain: List<String>, finalUrl: String?) {
     }
 }
 
+/**
+ * Destination domain + secure preview, merged into one card: both are "what we found at the
+ * link", and having them as two separate cards back-to-back read as unrelated. The domain
+ * doubles as the preview box's caption, so the preview box itself no longer needs its own
+ * "Preview securizat" title.
+ */
 @Composable
-fun EvidenceSection(screenshotUrl: String?, serverInfo: String?, finalUrl: String?) {
-    if (screenshotUrl != null || finalUrl != null) {
+fun DestinationPreviewCard(
+    domain: String?,
+    accent: Color,
+    screenshotUrl: String?,
+    serverInfo: String?,
+    finalUrl: String?,
+    badgeLabel: String? = null,
+    badgeAccent: Color = accent,
+) {
+    if (domain == null && screenshotUrl == null && finalUrl == null) return
+    val hasPreviewEvidence = screenshotUrl != null || finalUrl != null
+
+    Card(
+        colors = CardDefaults.cardColors(containerColor = SigurColors.BackgroundCard),
+        shape = RoundedCornerShape(SigurColors.RadiusCard.dp),
+        border = BorderStroke(1.dp, SigurColors.GlassBorder),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            if (domain != null) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(accent.copy(alpha = 0.13f), RoundedCornerShape(11.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.Link, contentDescription = null, tint = accent, modifier = Modifier.size(20.dp))
+                    }
+                    Column(modifier = Modifier.padding(start = 12.dp).weight(1f)) {
+                        Text("Te duce către", color = SigurColors.TextMuted, fontSize = 10.5.sp, fontWeight = FontWeight.Bold)
+                        Text(domain, color = SigurColors.TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    }
+                    if (badgeLabel != null) {
+                        Box(
+                            modifier = Modifier
+                                .padding(start = 8.dp)
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(badgeAccent.copy(alpha = 0.15f))
+                                .padding(horizontal = 9.dp, vertical = 3.dp)
+                        ) {
+                            Text(badgeLabel, color = badgeAccent, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+                        }
+                    }
+                }
+            }
+
+            if (hasPreviewEvidence) {
+                EvidencePreviewBox(screenshotUrl, serverInfo, finalUrl, topSpacing = if (domain != null) 12.dp else 0.dp)
+            }
+        }
+    }
+}
+
+@Composable
+private fun EvidencePreviewBox(screenshotUrl: String?, serverInfo: String?, finalUrl: String?, topSpacing: Dp) {
         val screenshotModel = sandboxScreenshotModel(screenshotUrl)
         val previewPending = screenshotUrl == null && serverInfo?.contains("genere", ignoreCase = true) == true
 
-        Column(modifier = Modifier.padding(vertical = 12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Visibility, contentDescription = null, tint = SigurColors.Brand, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("Preview securizat", fontWeight = FontWeight.Bold, color = SigurColors.TextPrimary, fontSize = 14.sp)
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
+        Column(modifier = Modifier.padding(top = topSpacing)) {
             Card(
                 shape = RoundedCornerShape(12.dp),
                 border = BorderStroke(1.dp, SigurColors.GlassBorder),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(220.dp),
+                    .height(if (screenshotModel == null) 96.dp else 220.dp),
                 colors = CardDefaults.cardColors(containerColor = SigurColors.BackgroundSurface)
             ) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     if (screenshotModel == null) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            if (previewPending) {
-                                CircularProgressIndicator(color = SigurColors.Brand, modifier = Modifier.size(30.dp))
-                            } else if (screenshotUrl == null) {
-                                Icon(Icons.Default.Visibility, contentDescription = null, tint = SigurColors.TextMuted, modifier = Modifier.size(30.dp))
+                        // Compact placeholder: the domain is already shown in "Te duce către"
+                        // above, so this only needs to say whether the image itself is coming.
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (previewPending || screenshotUrl != null) {
+                                CircularProgressIndicator(color = SigurColors.Brand, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
                             } else {
-                                CircularProgressIndicator(color = SigurColors.Brand, modifier = Modifier.size(30.dp))
+                                Icon(Icons.Default.Visibility, contentDescription = null, tint = SigurColors.TextMuted, modifier = Modifier.size(18.dp))
                             }
-                            Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = if (previewPending || screenshotUrl != null) {
                                     "Se generează captura paginii finale..."
                                 } else {
                                     "Preview indisponibil momentan"
                                 },
-                                color = SigurColors.TextPrimary,
-                                fontSize = 10.sp
+                                color = SigurColors.TextSecondary,
+                                fontSize = 11.sp,
+                                modifier = Modifier.padding(start = 10.dp)
                             )
-                            finalUrl?.let {
-                                Text(
-                                    text = "Destinație verificată: ${it.take(72)}",
-                                    color = SigurColors.TextMuted,
-                                    fontSize = 9.sp,
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
-                                )
-                            }
                         }
 	                    } else {
 	                        val localBitmap = remember(screenshotModel) {
@@ -355,31 +399,36 @@ fun EvidenceSection(screenshotUrl: String?, serverInfo: String?, finalUrl: Strin
 	                        }
 	                    }
 
-                    // Overlay for info
-                    Surface(
-                        color = SigurColors.TextPrimary.copy(alpha = 0.72f),
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .fillMaxWidth()
-                    ) {
-                        Text(
-                            text = publicServerInfo(serverInfo),
-                            color = SigurColors.TextInverse,
-                            fontSize = 11.sp,
-                            modifier = Modifier.padding(8.dp),
-                            textAlign = TextAlign.Center
-                        )
+                    // Info overlay only makes sense captioning an actual screenshot — showing
+                    // it over the empty placeholder just repeats the "don't continue" messaging
+                    // already given by the verdict header above.
+                    if (screenshotModel != null) {
+                        Surface(
+                            color = SigurColors.TextPrimary.copy(alpha = 0.72f),
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .fillMaxWidth()
+                        ) {
+                            Text(
+                                text = publicServerInfo(serverInfo),
+                                color = SigurColors.TextInverse,
+                                fontSize = 11.sp,
+                                modifier = Modifier.padding(8.dp),
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
                 }
             }
-            Text(
-                "Aceasta este o imagine izolată a paginii finale, nu site-ul real. Nu interacționezi cu pagina.",
-                color = SigurColors.TextSecondary,
-                fontSize = 10.sp,
-                modifier = Modifier.padding(top = 4.dp, start = 4.dp)
-            )
+            if (screenshotModel != null) {
+                Text(
+                    "Aceasta este o imagine izolată a paginii finale, nu site-ul real. Nu interacționezi cu pagina.",
+                    color = SigurColors.TextSecondary,
+                    fontSize = 10.sp,
+                    modifier = Modifier.padding(top = 4.dp, start = 4.dp)
+                )
+            }
         }
-    }
 }
 
 internal fun sandboxScreenshotModel(screenshotUrl: String?): String? {

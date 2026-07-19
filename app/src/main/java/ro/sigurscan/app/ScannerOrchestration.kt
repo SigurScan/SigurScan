@@ -134,9 +134,15 @@ internal fun shouldRefreshFinalOrchestratedPreview(response: OrchestratedScanRes
 }
 
 internal fun cachedPreviewNeedsRefresh(assessment: OfflineAssessment): Boolean {
-    if (assessment.finalUrl == null) return false
+    val hasUrlTarget = assessment.finalUrl != null || assessment.redirectChain.isNotEmpty()
+    if (!hasUrlTarget) return false
     val screenshotUrl = assessment.screenshotUrl?.trim().orEmpty()
-    if (screenshotUrl.isBlank()) return true
+    if (screenshotUrl.isBlank()) {
+        // Re-fetch a screenshot-less URL scan only while its preview is still
+        // generating — not one that's conclusively unavailable (bot-blocked page),
+        // otherwise it would re-scan forever on every re-open.
+        return assessment.serverInfo?.contains("genere", ignoreCase = true) == true
+    }
     val normalized = screenshotUrl.lowercase(Locale.US)
     return normalized.startsWith("http://") ||
         ".run.app/" in normalized ||

@@ -112,33 +112,81 @@ fun InvoiceResultCard(
     val tone = if (isError) DSChipTone.Danger else presentation?.tone ?: DSChipTone.Pending
     val verdictText = if (isError) "Eroare" else presentation?.headline ?: "Verifică"
 
-    Card(
-        colors = CardDefaults.cardColors(containerColor = SigurColors.BackgroundCard),
-        shape = RoundedCornerShape(16.dp),
-        modifier = Modifier.fillMaxWidth().border(1.dp, SigurColors.GlassBorder, RoundedCornerShape(16.dp))
-    ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Receipt, contentDescription = null, tint = SigurColors.Brand, modifier = Modifier.size(24.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    "Scanare Factură",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    color = SigurColors.TextPrimary,
-                    modifier = Modifier.weight(1f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                DSChip(
-                    verdictText,
-                    tone = tone,
-                    modifier = Modifier.widthIn(max = 210.dp)
-                )
-            }
+    // v2 invoice verdict (mockups 06-09): themed hero + supplier card + support card.
+    val invoiceTone = when (tone) {
+        DSChipTone.Safe -> ro.sigurscan.app.ui.v2.theme.VerdictTone.SIGUR
+        DSChipTone.Suspect -> ro.sigurscan.app.ui.v2.theme.VerdictTone.SUSPECT
+        DSChipTone.Danger -> ro.sigurscan.app.ui.v2.theme.VerdictTone.PERICULOS
+        else -> ro.sigurscan.app.ui.v2.theme.VerdictTone.NEVERIFICAT
+    }
+    // Mockups 06-09: the hero carries WHY this verdict (conflicts + unconfirmed). The list
+    // of what we positively checked lives in its own "Am verificat" section below, so we
+    // don't duplicate it. Exception: a clean verdict with no conflicts surfaces the
+    // positives in the hero ("De ce poți plăti") and skips the separate section.
+    val hasHeroConflicts = !invoiceTruth?.hardConflicts.isNullOrEmpty() ||
+        !invoiceTruth?.unconfirmedItems.isNullOrEmpty()
+    val heroReasons = buildList {
+        invoiceTruth?.hardConflicts?.forEach { c -> c.label?.takeIf { it.isNotBlank() }?.let { add(ro.sigurscan.app.ui.v2.components.VerdictReason(it, ro.sigurscan.app.ui.v2.components.ReasonSeverity.ALERT)) } }
+        invoiceTruth?.unconfirmedItems?.forEach { u -> u.label?.takeIf { it.isNotBlank() }?.let { add(ro.sigurscan.app.ui.v2.components.VerdictReason(it, ro.sigurscan.app.ui.v2.components.ReasonSeverity.NEUTRAL)) } }
+        if (!hasHeroConflicts) {
+            invoiceTruth?.verifiedItems?.forEach { v -> v.label?.takeIf { it.isNotBlank() }?.let { add(ro.sigurscan.app.ui.v2.components.VerdictReason(it, ro.sigurscan.app.ui.v2.components.ReasonSeverity.GOOD)) } }
+        }
+    }.take(5)
+    val verifiedItemsList = if (hasHeroConflicts) {
+        invoiceTruth?.verifiedItems?.mapNotNull { it.label?.takeIf { l -> l.isNotBlank() } }.orEmpty()
+    } else emptyList()
+    val heroIcon = when (tone) {
+        DSChipTone.Safe -> Icons.Default.CheckCircle
+        DSChipTone.Danger -> Icons.Default.Dangerous
+        DSChipTone.Suspect -> Icons.Default.Warning
+        else -> Icons.Default.HelpOutline
+    }
+    val supplierAccent = when (tone) {
+        DSChipTone.Danger -> SigurColors.Dangerous
+        DSChipTone.Suspect -> SigurColors.Suspect
+        DSChipTone.Safe -> SigurColors.Safe
+        else -> SigurColors.Pending
+    }
+    val supplierName = result.fields?.emitent?.takeIf { it.isNotBlank() }
+    val supplierIban = result.paymentDestination?.ibanMaskedForClient?.takeIf { it.isNotBlank() }
+        ?: result.fields?.iban?.takeIf { it.isNotBlank() }
+        ?: ""
+    val xmlBadge = when {
+        result.officialDocumentCheck?.provided == true && result.officialDocumentCheck?.status == "match" -> "XML verificat"
+        result.officialDocumentCheck?.provided == true && result.officialDocumentCheck?.status == "mismatch" -> "XML ≠"
+        else -> "doc scanat"
+    }
 
-            Spacer(modifier = Modifier.height(16.dp))
+    Column(modifier = Modifier.fillMaxWidth()) {
+        if (!isError && presentation != null) {
+            ro.sigurscan.app.ui.v2.components.VerdictCardV2(
+                tone = invoiceTone,
+                badgeLabel = verdictText.uppercase(Locale.getDefault()),
+                title = presentation.headline,
+                subtitle = presentation.action,
+                headerIcon = heroIcon,
+                reasons = heroReasons
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        if (supplierName != null) {
+            ro.sigurscan.app.ui.v2.components.InvoiceSupplierCardV2(
+                accent = supplierAccent,
+                supplierName = supplierName,
+                iban = supplierIban,
+                sourceBadge = xmlBadge,
+                sourceLine = invoiceSourceLabel(result.officialDocumentCheck)
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        Card(
+            colors = CardDefaults.cardColors(containerColor = SigurColors.BackgroundCard),
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth().border(1.dp, SigurColors.GlassBorder, RoundedCornerShape(16.dp))
+        ) {
+        Column(modifier = Modifier.padding(20.dp)) {
 
             Text(
                 invoiceSourceLabel(result.officialDocumentCheck),
@@ -183,59 +231,13 @@ fun InvoiceResultCard(
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
-            presentation?.let { p ->
-                val accent = when (p.tone) {
-                    DSChipTone.Danger -> SigurColors.Dangerous
-                    DSChipTone.Suspect -> SigurColors.Suspect
-                    DSChipTone.Safe -> SigurColors.Safe
-                    else -> SigurColors.Pending
-                }
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(accent.copy(alpha = 0.12f))
-                        .padding(14.dp)
-                ) {
-                    Text(p.headline, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = accent)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(p.action, color = SigurColors.TextPrimary, fontSize = 14.sp, lineHeight = 20.sp)
-                }
-                Spacer(modifier = Modifier.height(14.dp))
-            }
-
-            invoiceTruth?.hardConflicts?.takeIf { it.isNotEmpty() }?.let { items ->
-                Text("Problemă găsită", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = SigurColors.Dangerous)
-                items.take(4).forEach { item ->
-                    item.label?.takeIf { it.isNotBlank() }?.let { label ->
-                        Text("• $label", fontSize = 12.sp, color = SigurColors.TextSecondary, modifier = Modifier.padding(start = 8.dp, top = 3.dp))
-                    }
-                }
-                Spacer(modifier = Modifier.height(10.dp))
-            }
-
-            invoiceTruth?.verifiedItems?.takeIf { it.isNotEmpty() }?.let { items ->
-                Text("Am verificat", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = SigurColors.Safe)
-                items.take(4).forEach { item ->
-                    item.label?.takeIf { it.isNotBlank() }?.let { label ->
-                        Text("• $label", fontSize = 12.sp, color = SigurColors.TextSecondary, modifier = Modifier.padding(start = 8.dp, top = 3.dp))
-                    }
-                }
-                Spacer(modifier = Modifier.height(10.dp))
-            }
-
-            invoiceTruth?.unconfirmedItems?.takeIf { it.isNotEmpty() }?.let { items ->
-                Text("Mai verifică", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = SigurColors.Pending)
-                items.take(4).forEach { item ->
-                    item.label?.takeIf { it.isNotBlank() }?.let { label ->
-                        Text("• $label", fontSize = 12.sp, color = SigurColors.TextSecondary, modifier = Modifier.padding(start = 8.dp, top = 3.dp))
-                    }
-                }
-                Spacer(modifier = Modifier.height(10.dp))
+            if (verifiedItemsList.isNotEmpty()) {
+                InvoiceVerifiedBlock(items = verifiedItemsList, accent = supplierAccent)
+                Spacer(modifier = Modifier.height(12.dp))
             }
 
             invoiceTruth?.nextAction?.title?.takeIf { it.isNotBlank() }?.let { action ->
-                InvoiceFieldRow("Următorul pas", action, tone)
+                InvoiceNextStepCard(action = action, accent = supplierAccent)
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
@@ -252,25 +254,43 @@ fun InvoiceResultCard(
             // the verdict + decision above is all a non-technical user needs.
             var detailsExpanded by remember { mutableStateOf(false) }
             Spacer(modifier = Modifier.height(8.dp))
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(SigurColors.BackgroundSurface)
+            ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
                     .clickable { detailsExpanded = !detailsExpanded }
-                    .padding(vertical = 8.dp),
+                    .padding(horizontal = 13.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    if (detailsExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    Icons.Default.DataObject,
                     contentDescription = null,
                     tint = SigurColors.TextSecondary,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    "Detalii tehnice (CUI, IBAN, sume)",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = SigurColors.TextPrimary,
+                    modifier = Modifier.weight(1f)
+                )
+                Icon(
+                    if (detailsExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = null,
+                    tint = SigurColors.TextMuted,
                     modifier = Modifier.size(20.dp)
                 )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Detalii tehnice (CUI, IBAN, sume)", fontSize = 13.sp, color = SigurColors.TextSecondary)
             }
 
             if (detailsExpanded) {
+            Column(modifier = Modifier.padding(horizontal = 13.dp).padding(bottom = 6.dp)) {
             result.fields?.let { f ->
                 val currency = f.currency ?: "RON"
                 val profileLabel = when (f.invoiceProfile) {
@@ -409,7 +429,9 @@ fun InvoiceResultCard(
                     Text("• $w", fontSize = 12.sp, color = SigurColors.TextSecondary, modifier = Modifier.padding(start = 8.dp, top = 4.dp))
                 }
             }
-            } // end Detalii tehnice (collapsible)
+            } // end inner padded rows
+            } // end if detailsExpanded
+            } // end Detalii tehnice card (gray fill)
 
             Spacer(modifier = Modifier.height(16.dp))
             Button(
@@ -420,6 +442,7 @@ fun InvoiceResultCard(
             ) {
                 Text("Scanează altă factură", color = Color.White)
             }
+        }
         }
     }
 }
@@ -444,6 +467,75 @@ internal fun invoiceSignalLabel(code: String): String = when (code) {
     "NEW_VENDOR_PUBLIC_PROCUREMENT_FEE" -> "Taxă achiziție publică/furnizor nou"
     "EFACTURA_OFFICIAL_DOCUMENT_MISMATCH" -> "Factura diferă de XML-ul oficial atașat"
     else -> code.replace('_', ' ').lowercase(Locale.getDefault()).replaceFirstChar { it.titlecase(Locale.getDefault()) }
+}
+
+/** Mockups 06-09: "Următorul pas" — tone-tinted callout (bank icon + title + guidance). */
+@Composable
+private fun InvoiceNextStepCard(action: String, accent: Color) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(accent.copy(alpha = 0.09f))
+            .padding(horizontal = 13.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.Top
+    ) {
+        Icon(
+            Icons.Default.AccountBalance,
+            contentDescription = null,
+            tint = accent,
+            modifier = Modifier.size(18.dp)
+        )
+        Column(modifier = Modifier.padding(start = 9.dp)) {
+            Text(
+                "Următorul pas",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = SigurColors.TextPrimary
+            )
+            Text(
+                action,
+                fontSize = 13.5.sp,
+                color = SigurColors.TextSecondary,
+                lineHeight = 19.sp,
+                modifier = Modifier.padding(top = 3.dp)
+            )
+        }
+    }
+}
+
+/** Mockups 07-09: "Am verificat" — task_alt header + tone-colored bullet list of positive checks. */
+@Composable
+private fun InvoiceVerifiedBlock(items: List<String>, accent: Color) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.Default.TaskAlt,
+                contentDescription = null,
+                tint = accent,
+                modifier = Modifier.size(18.dp)
+            )
+            Text(
+                "Am verificat",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                color = SigurColors.TextPrimary,
+                modifier = Modifier.padding(start = 8.dp)
+            )
+        }
+        items.forEach { item ->
+            Row(modifier = Modifier.padding(top = 8.dp), verticalAlignment = Alignment.Top) {
+                Text("•", color = accent, fontSize = 15.sp, lineHeight = 21.sp)
+                Text(
+                    item,
+                    fontSize = 14.sp,
+                    color = SigurColors.TextSecondary,
+                    lineHeight = 21.sp,
+                    modifier = Modifier.padding(start = 9.dp)
+                )
+            }
+        }
+    }
 }
 
 internal fun invoiceOfficialFieldLabel(code: String?): String = when (code) {

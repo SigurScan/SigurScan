@@ -73,6 +73,7 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import coil.compose.SubcomposeAsyncImage
 import ro.sigurscan.app.ui.theme.SigurScanTheme
 import ro.sigurscan.app.ui.theme.SigurColors
+import ro.sigurscan.app.ui.v2.components.AppHeaderV2
 import org.json.JSONArray
 import org.json.JSONObject
 import android.webkit.WebResourceRequest
@@ -123,12 +124,12 @@ fun ScanTab(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(20.dp),
+            .padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 120.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Header()
+        AppHeaderV2()
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
         if (hasActiveScanContext) {
             viewModel.sharedContentFidelity?.let { fidelity ->
@@ -212,7 +213,7 @@ fun Header() {
                 .size(44.dp)
                 .background(
                     brush = androidx.compose.ui.graphics.Brush.linearGradient(
-                        colors = listOf(Color(0xFF5B86FF), SigurColors.Brand, Color(0xFF3552D6))
+                        colors = listOf(Color(0xFF14BE86), SigurColors.Brand, Color(0xFF06875A))
                     ),
                     shape = RoundedCornerShape(14.dp)
                 ),
@@ -276,7 +277,7 @@ fun ScanInputCard(
             .clip(heroShape)
             .background(
                 brush = androidx.compose.ui.graphics.Brush.linearGradient(
-                    colors = listOf(Color(0xFF5B86FF), SigurColors.Brand, Color(0xFF2F50D4))
+                    colors = listOf(Color(0xFF14BE86), SigurColors.Brand, Color(0xFF06875A))
                 )
             )
     ) {
@@ -297,7 +298,7 @@ fun ScanInputCard(
             )
 
             if (viewModel.loading) {
-                Box(modifier = Modifier.fillMaxWidth().height(150.dp), contentAlignment = Alignment.Center) {
+                Box(modifier = Modifier.fillMaxWidth().height(120.dp), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         CircularProgressIndicator(color = Color.White)
                         Spacer(modifier = Modifier.height(8.dp))
@@ -317,11 +318,17 @@ fun ScanInputCard(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(150.dp),
+                        .height(120.dp),
                     placeholder = {
                         Text(
                             "Lipește textul sau URL-ul aici",
                             color = SigurColors.TextMuted
+                        )
+                    },
+                    label = {
+                        Text(
+                            "Text sau link de verificat",
+                            color = SigurColors.TextSecondary,
                         )
                     },
                     colors = OutlinedTextFieldDefaults.colors(
@@ -475,6 +482,11 @@ fun ScanInputCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
+            // v2: button disabled + "Scrie sau lipește ceva" until there is input to scan.
+            val hasScanInput = viewModel.text.isNotBlank() ||
+                viewModel.pendingSharedInput != null ||
+                viewModel.pendingSharedFiles.isNotEmpty()
+            val btnContent = if (hasScanInput) SigurColors.BrandDeep else Color.White.copy(alpha = 0.78f)
             Button(
                 onClick = {
                     when {
@@ -487,20 +499,38 @@ fun ScanInputCard(
                     }
                 },
                 modifier = Modifier.fillMaxWidth().height(48.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.White,
+                    disabledContainerColor = Color.White.copy(alpha = 0.20f)
+                ),
                 shape = RoundedCornerShape(100),
                 contentPadding = PaddingValues(14.dp),
-                enabled = !viewModel.loading
+                enabled = hasScanInput && !viewModel.loading
             ) {
-                Icon(Icons.Default.Bolt, contentDescription = null, tint = SigurColors.BrandDeep, modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.Bolt, contentDescription = null, tint = btnContent, modifier = Modifier.size(20.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Scanează acum", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = SigurColors.BrandDeep)
+                Text(
+                    if (hasScanInput) "Scanează acum" else "Scrie sau lipește ceva",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = btnContent
+                )
             }
 
         }
     }
 
-    Spacer(modifier = Modifier.height(16.dp))
+    Spacer(modifier = Modifier.height(14.dp))
+
+    Text(
+        "Sau alege tipul de scanare",
+        color = SigurColors.TextPrimary,
+        fontSize = 13.sp,
+        fontWeight = FontWeight.ExtraBold,
+        modifier = Modifier.padding(start = 4.dp)
+    )
+
+    Spacer(modifier = Modifier.height(10.dp))
 
     Card(
         colors = CardDefaults.cardColors(containerColor = SigurColors.BackgroundCard),
@@ -509,8 +539,8 @@ fun ScanInputCard(
             .fillMaxWidth()
             .border(1.dp, SigurColors.GlassBorder, RoundedCornerShape(16.dp))
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 GridButton(
                     title = "Încarcă Screenshot",
                     desc = "Analiză text & OCR",
@@ -529,12 +559,12 @@ fun ScanInputCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 GridButton(
                     title = "Scanează Cod QR",
-                    desc = "Scanare live direct din cameră",
+                    desc = "Scanare live din cameră",
                     icon = Icons.Default.QrCodeScanner,
                     color = SigurColors.Safe,
                     onClick = onScanQr,

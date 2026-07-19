@@ -626,6 +626,13 @@ internal fun ScannerViewModel.shouldCacheFinalAssessment(
 ): Boolean {
     if (assessment.gateResult?.finality != GateFinality.FINAL) return false
     if (orchestratedPreviewStillPending(response.preview)) return false
+    // A URL scan without a screenshot must NOT be cached mid-generation (preview null
+    // or ready-but-empty) — otherwise it freezes on "Se generează…" on every re-open.
+    // Only cache a screenshot-less URL scan once the preview is conclusively unavailable.
+    val hasUrlTarget = assessment.finalUrl != null || assessment.redirectChain.isNotEmpty()
+    val hasScreenshot = !assessment.screenshotUrl.isNullOrBlank()
+    val previewUnavailable = response.preview?.status?.trim().equals("unavailable", ignoreCase = true)
+    if (hasUrlTarget && !hasScreenshot && !previewUnavailable) return false
     return true
 }
 
@@ -718,6 +725,10 @@ internal fun ScannerViewModel.launchFinalOrchestratedPreviewRefresh(
     viewModelScope.launch {
         var response = initialResponse
         var refreshFailures = 0
+        // By design, the client keeps refreshing a pending preview until the BACKEND
+        // returns a terminal state (screenshot ready or unavailable) — it never invents
+        // a local timeout. Since the secure preview is the product's differentiator,
+        // tolerate transient network trouble persistently instead of giving up early.
         while (shouldRefreshFinalOrchestratedPreview(response)) {
             kotlinx.coroutines.delay(orchestratedPollDelayMillis(response))
             response = try {
@@ -733,9 +744,10 @@ internal fun ScannerViewModel.launchFinalOrchestratedPreviewRefresh(
                 } catch (statusError: Exception) {
                     refreshFailures += 1
                     Log.w("SigurScan", "orchestrated preview status refresh failed: ${statusError.javaClass.simpleName}")
-                    if (refreshFailures >= 3) {
+                    if (refreshFailures >= 8) {
                         return@launch
                     }
+                    kotlinx.coroutines.delay(2_000L)
                     continue
                 }
             }
